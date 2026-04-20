@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -8,7 +9,12 @@ class AppSnackbar {
   AppSnackbar._();
 
   static const int _maxShowAttempts = 3;
+  static const Duration _displayDuration = Duration(milliseconds: 3200);
+  static const Duration _animationDuration = Duration(milliseconds: 280);
+
   static int _showGeneration = 0;
+  static OverlayEntry? _overlayEntry;
+  static GlobalKey<_AppSnackbarOverlayState>? _overlayKey;
 
   static void success(String message, {String? title}) {
     _show(message: message, title: title, variant: _AppSnackbarVariant.success);
@@ -26,6 +32,10 @@ class AppSnackbar {
     neutral(message, title: title);
   }
 
+  static void dismissCurrent() {
+    _overlayKey?.currentState?.dismiss();
+  }
+
   static void _show({
     required String message,
     String? title,
@@ -40,19 +50,17 @@ class AppSnackbar {
         ? title!.trim()
         : _defaultTitle(variant);
     final generation = ++_showGeneration;
-    _scheduleShow(
-      generation: generation,
+    final data = _AppSnackbarData(
       title: resolvedTitle,
       message: trimmedMessage,
       variant: variant,
     );
+    _scheduleShow(generation: generation, data: data);
   }
 
   static void _scheduleShow({
     required int generation,
-    required String title,
-    required String message,
-    required _AppSnackbarVariant variant,
+    required _AppSnackbarData data,
     int attempt = 0,
   }) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -60,52 +68,43 @@ class AppSnackbar {
         return;
       }
 
-      final currentContext =
-          Get.overlayContext ??
-          Get.key.currentState?.overlay?.context ??
-          Get.context;
-      if (currentContext == null) {
+      final overlayState = Get.key.currentState?.overlay;
+      if (overlayState == null) {
         if (attempt + 1 >= _maxShowAttempts) {
           return;
         }
-        _scheduleShow(
-          generation: generation,
-          title: title,
-          message: message,
-          variant: variant,
-          attempt: attempt + 1,
-        );
+        _scheduleShow(generation: generation, data: data, attempt: attempt + 1);
         WidgetsBinding.instance.ensureVisualUpdate();
         return;
       }
 
-      if (Get.isSnackbarOpen) {
-        Get.closeCurrentSnackbar();
+      final existingState = _overlayKey?.currentState;
+      if (_overlayEntry != null && existingState != null) {
+        existingState.show(data);
+        return;
       }
 
-      final topInset = MediaQuery.maybeOf(currentContext)?.padding.top ?? 0.0;
-      Get.showSnackbar(
-        GetSnackBar(
-          messageText: _AppSnackbarCard(
-            title: title,
-            message: message,
-            variant: variant,
-          ),
-          backgroundColor: Colors.transparent,
-          snackPosition: SnackPosition.TOP,
-          snackStyle: SnackStyle.FLOATING,
-          margin: EdgeInsets.fromLTRB(12, topInset + 8, 12, 0),
-          padding: EdgeInsets.zero,
-          borderRadius: 0,
-          duration: const Duration(milliseconds: 3200),
-          animationDuration: const Duration(milliseconds: 280),
-          forwardAnimationCurve: Curves.easeOutCubic,
-          reverseAnimationCurve: Curves.easeInCubic,
-          isDismissible: true,
+      final overlayKey = GlobalKey<_AppSnackbarOverlayState>();
+      _overlayKey = overlayKey;
+      _overlayEntry = OverlayEntry(
+        builder: (_) => _AppSnackbarOverlay(
+          key: overlayKey,
+          initialData: data,
+          onClosed: _removeCurrentOverlay,
         ),
       );
+      overlayState.insert(_overlayEntry!);
     });
     WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  static void _removeCurrentOverlay() {
+    final entry = _overlayEntry;
+    _overlayEntry = null;
+    _overlayKey = null;
+    if (entry != null && entry.mounted) {
+      entry.remove();
+    }
   }
 
   static String _defaultTitle(_AppSnackbarVariant variant) {
@@ -122,8 +121,8 @@ class AppSnackbar {
 
 enum _AppSnackbarVariant { success, error, neutral }
 
-class _AppSnackbarCard extends StatelessWidget {
-  const _AppSnackbarCard({
+class _AppSnackbarData {
+  const _AppSnackbarData({
     required this.title,
     required this.message,
     required this.variant,
@@ -132,6 +131,111 @@ class _AppSnackbarCard extends StatelessWidget {
   final String title;
   final String message;
   final _AppSnackbarVariant variant;
+}
+
+class _AppSnackbarOverlay extends StatefulWidget {
+  const _AppSnackbarOverlay({
+    super.key,
+    required this.initialData,
+    required this.onClosed,
+  });
+
+  final _AppSnackbarData initialData;
+  final VoidCallback onClosed;
+
+  @override
+  State<_AppSnackbarOverlay> createState() => _AppSnackbarOverlayState();
+}
+
+class _AppSnackbarOverlayState extends State<_AppSnackbarOverlay> {
+  late _AppSnackbarData _data;
+  bool _visible = false;
+  bool _closing = false;
+  int _dismissEpoch = 0;
+  Timer? _dismissTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _data = widget.initialData;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        show(widget.initialData);
+      }
+    });
+  }
+
+  void show(_AppSnackbarData data) {
+    _dismissTimer?.cancel();
+    _dismissEpoch++;
+    setState(() {
+      _data = data;
+      _visible = true;
+      _closing = false;
+    });
+    _dismissTimer = Timer(AppSnackbar._displayDuration, dismiss);
+  }
+
+  void dismiss() {
+    if (!_visible || _closing) {
+      return;
+    }
+    _dismissTimer?.cancel();
+    final epoch = ++_dismissEpoch;
+    setState(() {
+      _visible = false;
+      _closing = true;
+    });
+    Future<void>.delayed(AppSnackbar._animationDuration, () {
+      if (!mounted || !_closing || epoch != _dismissEpoch) {
+        return;
+      }
+      widget.onClosed();
+    });
+  }
+
+  @override
+  void dispose() {
+    _dismissTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final topInset = MediaQuery.maybeOf(context)?.padding.top ?? 0.0;
+
+    return Positioned(
+      top: topInset + 8,
+      left: 12,
+      right: 12,
+      child: IgnorePointer(
+        ignoring: !_visible,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: AnimatedSlide(
+              duration: AppSnackbar._animationDuration,
+              curve: Curves.easeOutCubic,
+              offset: _visible ? Offset.zero : const Offset(0, -0.12),
+              child: AnimatedOpacity(
+                duration: AppSnackbar._animationDuration,
+                curve: Curves.easeOutCubic,
+                opacity: _visible ? 1 : 0,
+                child: _AppSnackbarCard(data: _data),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AppSnackbarCard extends StatelessWidget {
+  const _AppSnackbarCard({required this.data});
+
+  final _AppSnackbarData data;
 
   @override
   Widget build(BuildContext context) {
@@ -142,7 +246,7 @@ class _AppSnackbarCard extends StatelessWidget {
             ? AppColors.dark
             : AppColors.light);
     final style = _AppSnackbarStyle.resolve(
-      variant: variant,
+      variant: data.variant,
       appColors: appColors,
       brightness: theme.brightness,
     );
@@ -172,119 +276,114 @@ class _AppSnackbarCard extends StatelessWidget {
           height: 1.45,
         );
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 640),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(22),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [style.surfaceStart, style.surfaceEnd],
-                ),
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: style.borderColor),
-                boxShadow: [
-                  BoxShadow(
-                    color: style.shadowColor,
-                    blurRadius: 28,
-                    spreadRadius: -10,
-                    offset: const Offset(0, 16),
-                  ),
-                  BoxShadow(
-                    color: style.accentGlowColor,
-                    blurRadius: 20,
-                    spreadRadius: -14,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(22),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [style.surfaceStart, style.surfaceEnd],
+            ),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: style.borderColor),
+            boxShadow: [
+              BoxShadow(
+                color: style.shadowColor,
+                blurRadius: 28,
+                spreadRadius: -10,
+                offset: const Offset(0, 16),
               ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      height: 4,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            style.accentColor,
-                            style.accentColor.withValues(alpha: 0.18),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: -44,
-                    right: -26,
-                    child: IgnorePointer(
-                      child: Container(
-                        width: 112,
-                        height: 112,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              style.accentGlowColor,
-                              style.accentGlowColor.withValues(alpha: 0),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _IconBadge(style: style),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(top: 2),
-                                      child: Text(
-                                        title,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: titleStyle,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  _DismissButton(style: style),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                message,
-                                maxLines: 4,
-                                overflow: TextOverflow.ellipsis,
-                                style: messageStyle,
-                              ),
-                            ],
-                          ),
-                        ),
+              BoxShadow(
+                color: style.accentGlowColor,
+                blurRadius: 20,
+                spreadRadius: -14,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: 4,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        style.accentColor,
+                        style.accentColor.withValues(alpha: 0.18),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+              Positioned(
+                top: -44,
+                right: -26,
+                child: IgnorePointer(
+                  child: Container(
+                    width: 112,
+                    height: 112,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          style.accentGlowColor,
+                          style.accentGlowColor.withValues(alpha: 0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _IconBadge(style: style),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    data.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: titleStyle,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              _DismissButton(style: style),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            data.message,
+                            maxLines: 4,
+                            overflow: TextOverflow.ellipsis,
+                            style: messageStyle,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -300,7 +399,7 @@ class _DismissButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: Get.closeCurrentSnackbar,
+      onTap: AppSnackbar.dismissCurrent,
       behavior: HitTestBehavior.opaque,
       child: Container(
         width: 30,

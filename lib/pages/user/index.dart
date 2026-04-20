@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/utils/feature_gate_dialog.dart';
-import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
+import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/controllers/user/notify_controller.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
 import 'package:tronskins_app/pages/user/scan_login_page.dart';
@@ -83,12 +83,40 @@ class UserPage extends StatelessWidget {
 class _TopNavigationShell extends StatelessWidget {
   const _TopNavigationShell();
 
-  Future<void> _scanCode(BuildContext context) async {
+  Future<bool> _promptLoginIfNeeded(BuildContext context) async {
     final userCtrl = Get.find<UserController>();
-    if (!userCtrl.isLoggedIn.value) {
-      AppSnackbar.info('app.system.message.nologin'.tr);
+    if (userCtrl.isLoggedIn.value) {
+      return true;
+    }
+
+    final confirmed = await showFigmaModal<bool>(
+      context: context,
+      child: FigmaConfirmationDialog(
+        icon: Icons.login_rounded,
+        iconColor: const Color(0xFF1E40AF),
+        iconBackgroundColor: const Color.fromRGBO(30, 64, 175, 0.10),
+        title: 'app.user.login.nologin'.tr,
+        message: 'app.system.message.nologin'.tr,
+        primaryLabel: 'app.user.login.nologin'.tr,
+        secondaryLabel: 'app.common.cancel'.tr,
+        onPrimary: () => popModalRoute(context, true),
+        onSecondary: () => popModalRoute(context, false),
+      ),
+    );
+    if (confirmed == true) {
+      await Get.toNamed(Routers.LOGIN);
+    }
+    return false;
+  }
+
+  Future<void> _scanCode(BuildContext context) async {
+    if (!await _promptLoginIfNeeded(context)) {
       return;
     }
+    if (!context.mounted) {
+      return;
+    }
+
     await Navigator.of(
       context,
     ).push(MaterialPageRoute<void>(builder: (_) => const ScanLoginPage()));
