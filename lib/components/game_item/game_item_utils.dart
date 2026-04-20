@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 
+const LinearGradient kUnifiedItemImageBackgroundGradient = LinearGradient(
+  begin: Alignment.centerLeft,
+  end: Alignment.centerRight,
+  colors: [Color(0xFF2D1B1B), Color(0xFF1A0F0F)],
+);
+
 Color? parseHexColor(String? hex) {
   if (hex == null || hex.isEmpty) {
     return null;
@@ -20,7 +26,12 @@ Color? qualityBorderColor(String? hex) {
   return parseHexColor(safe);
 }
 
-String rarityBgAsset(String? color) {
-  final normalized = (color ?? 'b0c3d9').replaceAll('#', '').toLowerCase();
-  return 'assets/images/game/item/$normalized.png';
+BoxDecoration itemImageBackgroundDecoration({
+  BorderRadiusGeometry? borderRadius,
+}) {
+  return BoxDecoration(
+    color: const Color(0xFF1A0F0F),
+    gradient: kUnifiedItemImageBackgroundGradient,
+    borderRadius: borderRadius,
+  );
 }

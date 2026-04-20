@@ -1539,12 +1539,7 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset(
-              rarityBgAsset(rarity?.color),
-              fit: BoxFit.cover,
-              errorBuilder: (context, _, __) =>
-                  Container(color: const Color(0xFF120C10)),
-            ),
+            DecoratedBox(decoration: itemImageBackgroundDecoration()),
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(

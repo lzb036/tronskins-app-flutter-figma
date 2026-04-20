@@ -14,6 +14,7 @@ import 'package:tronskins_app/common/storage/user_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/components/filter/filter_sheet_style.dart';
+import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 
 class BulkBuyingPage extends StatefulWidget {
   const BulkBuyingPage({super.key});
@@ -919,15 +920,7 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
     );
   }
 
-  String _itemBackgroundAsset(String? color) {
-    final normalized = (color ?? 'b0c3d9').replaceAll('#', '').toLowerCase();
-    return 'assets/images/game/item/$normalized.png';
-  }
-
-  Widget _buildItemPreview({
-    required String imageUrl,
-    required String backgroundAsset,
-  }) {
+  Widget _buildItemPreview({required String imageUrl}) {
     return Container(
       width: 92,
       height: 68,
@@ -939,12 +932,7 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
       child: Stack(
         children: [
           Positioned.fill(
-            child: Image.asset(
-              backgroundAsset,
-              fit: BoxFit.cover,
-              errorBuilder: (context, _, __) =>
-                  Container(color: _itemPreviewSlate),
-            ),
+            child: DecoratedBox(decoration: itemImageBackgroundDecoration()),
           ),
           Positioned.fill(
             child: DecoratedBox(
@@ -1318,9 +1306,6 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
     final schema = _schema;
     final imageUrl = schema?.imageUrl ?? '';
     final title = schema?.marketName ?? schema?.marketHashName ?? '-';
-    final imageBackgroundAsset = _itemBackgroundAsset(
-      schema?.tags?.rarity?.color,
-    );
     final sellMin = schema?.sellMin ?? 0;
     final buyMax = schema?.buyMax ?? 0;
     final wearQuickOptions = _showFilter
@@ -1342,10 +1327,7 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
             padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                _buildItemPreview(
-                  imageUrl: imageUrl,
-                  backgroundAsset: imageBackgroundAsset,
-                ),
+                _buildItemPreview(imageUrl: imageUrl),
                 const SizedBox(width: 20),
                 Expanded(
                   child: Column(

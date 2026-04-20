@@ -15,6 +15,7 @@ import 'package:tronskins_app/common/utils/string_utils.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/components/filter/filter_sheet_style.dart';
+import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 import 'package:tronskins_app/controllers/shop/buy_request_controller.dart';
 
 class ProductBuyingPage extends StatefulWidget {
@@ -903,15 +904,7 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
     );
   }
 
-  String _itemBackgroundAsset(String? color) {
-    final normalized = (color ?? 'b0c3d9').replaceAll('#', '').toLowerCase();
-    return 'assets/images/game/item/$normalized.png';
-  }
-
-  Widget _buildItemPreview({
-    required String imageUrl,
-    required String backgroundAsset,
-  }) {
+  Widget _buildItemPreview({required String imageUrl}) {
     return Container(
       width: 92,
       height: 68,
@@ -923,12 +916,7 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
       child: Stack(
         children: [
           Positioned.fill(
-            child: Image.asset(
-              backgroundAsset,
-              fit: BoxFit.cover,
-              errorBuilder: (context, _, __) =>
-                  Container(color: _itemPreviewSlate),
-            ),
+            child: DecoratedBox(decoration: itemImageBackgroundDecoration()),
           ),
           Positioned.fill(
             child: DecoratedBox(
@@ -1307,9 +1295,6 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
     final schema = _schema;
     final imageUrl = schema?.imageUrl ?? '';
     final itemTitle = schema?.marketName ?? schema?.marketHashName ?? '-';
-    final imageBackgroundAsset = _itemBackgroundAsset(
-      schema?.tags?.rarity?.color,
-    );
     final sellMin = schema?.sellMin ?? 0;
     final buyMax = schema?.buyMax ?? 0;
     final wearQuickOptions = _showFilter
@@ -1338,10 +1323,7 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
             padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                _buildItemPreview(
-                  imageUrl: imageUrl,
-                  backgroundAsset: imageBackgroundAsset,
-                ),
+                _buildItemPreview(imageUrl: imageUrl),
                 const SizedBox(width: 20),
                 Expanded(
                   child: Column(

@@ -64,7 +64,6 @@ class GameItemImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgAsset = _isDota ? null : rarityBgAsset(rarity?.color);
     final qualityBorder = qualityBorderColor(quality?.color);
     final exteriorColor = parseHexColor(exterior?.color) ?? Colors.black54;
     final badges = showTopBadges
@@ -92,20 +91,9 @@ class GameItemImage extends StatelessWidget {
         : (_isDota ? 130.0 : 145.0);
     return Stack(
       children: [
-        if (bgAsset != null)
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.95,
-              child: Image.asset(
-                bgAsset,
-                fit: BoxFit.cover,
-                errorBuilder: (context, _, __) => Image.asset(
-                  'assets/images/game/item/b0c3d9.png',
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-          ),
+        Positioned.fill(
+          child: DecoratedBox(decoration: itemImageBackgroundDecoration()),
+        ),
         Positioned.fill(
           child: LayoutBuilder(
             builder: (context, constraints) {

@@ -252,31 +252,27 @@ class _SteamStyleAmountConfirmDialogState
                 ],
                 const SizedBox(height: 14),
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 1),
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: Checkbox(
-                          value: _agreed,
-                          onChanged: (value) {
-                            setState(() {
-                              _agreed = value ?? false;
-                              if (_agreed) {
-                                _showAgreementHint = false;
-                              }
-                            });
-                          },
-                          visualDensity: VisualDensity.compact,
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                          side: BorderSide(
-                            color: _showAgreementHint
-                                ? const Color(0xFFD92D20)
-                                : borderColor,
-                          ),
+                    SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: Checkbox(
+                        value: _agreed,
+                        onChanged: (value) {
+                          setState(() {
+                            _agreed = value ?? false;
+                            if (_agreed) {
+                              _showAgreementHint = false;
+                            }
+                          });
+                        },
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        side: BorderSide(
+                          color: _showAgreementHint
+                              ? const Color(0xFFD92D20)
+                              : borderColor,
                         ),
                       ),
                     ),

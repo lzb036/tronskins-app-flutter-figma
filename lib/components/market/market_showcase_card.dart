@@ -98,31 +98,15 @@ class MarketShowcaseCard extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      if (!isDota)
-                        Image.asset(
-                          rarityBgAsset(rarity?.color),
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, _, __) =>
-                              Container(color: const Color(0xFF120C10)),
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: itemImageBackgroundDecoration(),
                         ),
-                      if (isDota)
-                        const Positioned.fill(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [Color(0xFF6A6660), Color(0xFF4A4741)],
-                              ),
-                            ),
-                          ),
-                        ),
+                      ),
                       Positioned.fill(
                         child: DecoratedBox(
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(
-                              alpha: isDota ? 0.03 : 0.08,
-                            ),
+                            color: Colors.black.withValues(alpha: 0.08),
                           ),
                         ),
                       ),

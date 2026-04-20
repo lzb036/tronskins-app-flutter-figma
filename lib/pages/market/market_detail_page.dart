@@ -13,6 +13,7 @@ import 'package:tronskins_app/common/storage/user_storage.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/game_item/gem_row.dart';
 import 'package:tronskins_app/components/game_item/sticker_row.dart';
+import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 import 'package:tronskins_app/components/filter/filter_sheet_style.dart';
 import 'package:tronskins_app/components/layout/list_end_tip.dart';
@@ -510,13 +511,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildFigmaHeaderImage(
-                itemId: item.id,
-                imageUrl: displayImage,
-                backgroundAsset: _figmaItemBackgroundAsset(
-                  displayTags?.rarity?.color,
-                ),
-              ),
+              _buildFigmaHeaderImage(itemId: item.id, imageUrl: displayImage),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildFigmaHeaderMeta(
@@ -542,31 +537,8 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   Widget _buildFigmaHeaderImage({
     required int? itemId,
     required String imageUrl,
-    required String backgroundAsset,
   }) {
-    if (controller.appId == 570) {
-      return SizedBox(
-        width: 92,
-        height: 68,
-        child: Center(
-          child: Hero(
-            tag: 'market_item_$itemId',
-            child: imageUrl.isEmpty
-                ? Icon(
-                    Icons.image_not_supported_outlined,
-                    color: Colors.white.withValues(alpha: 0.4),
-                    size: 22,
-                  )
-                : CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    width: 92,
-                    height: 68,
-                    fit: BoxFit.contain,
-                  ),
-          ),
-        ),
-      );
-    }
+    final isDota = controller.appId == 570;
 
     return Container(
       width: 92,
@@ -579,12 +551,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       child: Stack(
         children: [
           Positioned.fill(
-            child: Image.asset(
-              backgroundAsset,
-              fit: BoxFit.cover,
-              errorBuilder: (context, _, __) =>
-                  Container(color: _figmaSlate800),
-            ),
+            child: DecoratedBox(decoration: itemImageBackgroundDecoration()),
           ),
           Positioned.fill(
             child: DecoratedBox(
@@ -602,6 +569,19 @@ class _MarketDetailPageState extends State<MarketDetailPage>
                         Icons.image_not_supported_outlined,
                         color: Colors.white.withValues(alpha: 0.4),
                         size: 22,
+                      )
+                    : isDota
+                    ? ClipRect(
+                        child: Transform.scale(
+                          scale: 1.1,
+                          alignment: Alignment.center,
+                          child: CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            width: 92,
+                            height: 68,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
                       )
                     : CachedNetworkImage(
                         imageUrl: imageUrl,
@@ -920,11 +900,6 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       return '1000+';
     }
     return value.toString();
-  }
-
-  String _figmaItemBackgroundAsset(String? color) {
-    final normalized = (color ?? 'b0c3d9').replaceAll('#', '').toLowerCase();
-    return 'assets/images/game/item/$normalized.png';
   }
 
   bool get _isEnglishLocale =>
@@ -2918,10 +2893,6 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     const listingBuyButtonBlueStart = Color(0xFF4C80F1);
     const listingChangePriceBlueStart = Color(0xFF4A7BEE);
     const listingDelistRedStart = Color(0xFFE5635B);
-    final imageBackgroundAsset = _figmaItemBackgroundAsset(
-      schema?.tags?.rarity?.color,
-    );
-
     Widget buildItemPreviewImage() {
       return Container(
         width: imageBoxWidth,
@@ -2934,12 +2905,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
         child: Stack(
           children: [
             Positioned.fill(
-              child: Image.asset(
-                imageBackgroundAsset,
-                fit: BoxFit.cover,
-                errorBuilder: (context, _, __) =>
-                    Container(color: _figmaSlate800),
-              ),
+              child: DecoratedBox(decoration: itemImageBackgroundDecoration()),
             ),
             Positioned.fill(
               child: DecoratedBox(
