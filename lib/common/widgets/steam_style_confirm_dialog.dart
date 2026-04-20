@@ -93,6 +93,15 @@ class _SteamStyleAmountConfirmDialogState
   bool _agreed = false;
   bool _showAgreementHint = false;
 
+  void _toggleAgreement([bool? value]) {
+    setState(() {
+      _agreed = value ?? !_agreed;
+      if (_agreed) {
+        _showAgreementHint = false;
+      }
+    });
+  }
+
   void _handleConfirmTap() {
     if (!_agreed) {
       HapticFeedback.lightImpact();
@@ -100,6 +109,66 @@ class _SteamStyleAmountConfirmDialogState
       return;
     }
     Navigator.of(context).pop(true);
+  }
+
+  Widget _buildAgreementCheckbox({
+    required Color borderColor,
+    required Color accent,
+  }) {
+    final checkboxBorderColor = _showAgreementHint
+        ? const Color(0xFFD92D20)
+        : (_agreed ? accent : borderColor);
+    return SizedBox(
+      width: 20,
+      height: 20,
+      child: Center(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            color: _agreed ? accent : Colors.transparent,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: checkboxBorderColor, width: 1.4),
+          ),
+          child: _agreed
+              ? const Icon(Icons.check_rounded, size: 13, color: Colors.white)
+              : null,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCenteredInfoRow({
+    required Widget leading,
+    required Widget text,
+    VoidCallback? onTap,
+    double gap = 10,
+    double maxTextWidth = 240,
+  }) {
+    final content = Center(
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: gap,
+        children: [
+          leading,
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxTextWidth),
+            child: text,
+          ),
+        ],
+      ),
+    );
+    if (onTap == null) {
+      return content;
+    }
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: content,
+    );
   }
 
   @override
@@ -228,98 +297,72 @@ class _SteamStyleAmountConfirmDialogState
                 ],
                 if ((widget.noticeText ?? '').trim().isNotEmpty) ...[
                   const SizedBox(height: 20),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.verified_user_outlined,
-                        size: 18,
+                  _buildCenteredInfoRow(
+                    gap: 8,
+                    leading: Icon(
+                      Icons.verified_user_outlined,
+                      size: 18,
+                      color: noticeColor,
+                    ),
+                    text: Text(
+                      widget.noticeText!,
+                      style: theme.textTheme.bodyMedium?.copyWith(
                         color: noticeColor,
+                        height: 1.4,
+                        fontWeight: FontWeight.w500,
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          widget.noticeText!,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: noticeColor,
-                            height: 1.4,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ],
                 const SizedBox(height: 14),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: Checkbox(
-                        value: _agreed,
-                        onChanged: (value) {
-                          setState(() {
-                            _agreed = value ?? false;
-                            if (_agreed) {
-                              _showAgreementHint = false;
-                            }
-                          });
-                        },
-                        visualDensity: VisualDensity.compact,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        side: BorderSide(
-                          color: _showAgreementHint
-                              ? const Color(0xFFD92D20)
-                              : borderColor,
-                        ),
+                _buildCenteredInfoRow(
+                  onTap: _toggleAgreement,
+                  leading: _buildAgreementCheckbox(
+                    borderColor: borderColor,
+                    accent: accent,
+                  ),
+                  text: RichText(
+                    text: TextSpan(
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: bodyColor,
+                        height: 1.35,
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: RichText(
-                        text: TextSpan(
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: bodyColor,
-                            height: 1.35,
+                      children: [
+                        TextSpan(text: 'app.trade.buy.agree_prefix'.tr),
+                        TextSpan(
+                          text: 'app.trade.buy.purchase_agreement'.tr,
+                          style: TextStyle(
+                            color: accent,
+                            fontWeight: FontWeight.w600,
                           ),
-                          children: [
-                            TextSpan(text: 'app.trade.buy.agree_prefix'.tr),
-                            TextSpan(
-                              text: 'app.trade.buy.purchase_agreement'.tr,
-                              style: TextStyle(
-                                color: accent,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            TextSpan(text: 'app.trade.buy.agree_and'.tr),
-                            TextSpan(
-                              text: 'app.trade.buy.user_terms'.tr,
-                              style: TextStyle(
-                                color: accent,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
                         ),
-                      ),
+                        TextSpan(text: 'app.trade.buy.agree_and'.tr),
+                        TextSpan(
+                          text: 'app.trade.buy.user_terms'.tr,
+                          style: TextStyle(
+                            color: accent,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
                 AnimatedSize(
                   duration: const Duration(milliseconds: 180),
                   curve: Curves.easeOut,
                   child: _showAgreementHint
-                      ? Align(
-                          alignment: Alignment.centerLeft,
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 6, left: 30),
-                            child: Text(
-                              'app.trade.buy.agreement_required'.tr,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: const Color(0xFFD92D20),
-                                fontSize: 12,
+                      ? Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 280),
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 6, left: 30),
+                              child: Text(
+                                'app.trade.buy.agreement_required'.tr,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: const Color(0xFFD92D20),
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
                           ),

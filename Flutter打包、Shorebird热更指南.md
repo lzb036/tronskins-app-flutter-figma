@@ -1,138 +1,182 @@
-# Flutter打包、Shorebird热更指南
+# Flutter 打包 & Shorebird 热更指南
 
-# 一. 打包+热更
+> 适用项目：TronSkins Flutter App（Windows 环境）
 
-## 1. 安装 Shorebird CLI
+---
 
-### 1.1 准备
+## 一、环境准备
 
-- 需要已安装 git
-- 需要已安装 Flutter 环境
-- https://console.shorebird.dev/
-- 去上面这个链接的平台上注册一个Shorebird的号，用于管理应用版本、安装包、热更包：
+### 1.1 前置条件
 
-![image-20260327143411423](C:\Users\Administrator\AppData\Roaming\Typora\typora-user-images\image-20260327143411423.png)
+- 已安装 Git
+- 已安装 Flutter 环境
+- 已注册 Shorebird 账号：https://console.shorebird.dev/
 
-### 1.2 安装
+### 1.2 安装 Shorebird CLI（手动安装，适用于网络受限环境）
 
-打开 PowerShell，执行：
+**方式：克隆仓库手动安装**
 
 ```powershell
-Set-ExecutionPolicy RemoteSigned -scope CurrentUser; iwr -UseBasicParsing 'https://raw.githubusercontent.com/shorebirdtech/install/main/install.ps1' | iex
+git clone https://github.com/shorebirdtech/shorebird.git C:\Users\Administrator\shorebird
 ```
 
-安装完成后，确认 CLI 可用：
+**将 bin 目录加入 PATH（永久生效）：**
+
+```powershell
+[Environment]::SetEnvironmentVariable("PATH", [Environment]::GetEnvironmentVariable("PATH", "User") + ";C:\Users\Administrator\shorebird\bin", "User")
+```
+
+重新打开 PowerShell 后验证：
 
 ```powershell
 shorebird --version
 ```
 
-### 1.3 登录
+### 1.3 配置代理（访问 Shorebird 服务必须）
 
-使用之前注册的账号进行登录。
+Shorebird 需要访问以下地址，国内需要代理：
+- `https://api.shorebird.dev`
+- `https://oauth2.googleapis.com`
+- `https://cdn.shorebird.cloud`
+
+在 PowerShell 中临时设置代理（每次打开新窗口需重新执行）：
+
+```powershell
+$env:HTTPS_PROXY = "http://127.0.0.1:7890"  # 替换为你的代理端口
+$env:HTTP_PROXY  = "http://127.0.0.1:7890"
+```
+
+常见代理端口：Clash/Clash Verge = `7890`，v2rayN = `10809`，Shadowsocks = `1080`
+
+**永久生效（写入 PowerShell Profile）：**
+
+```powershell
+notepad $PROFILE
+# 在文件末尾加入上面两行，保存后重开窗口生效
+```
+
+### 1.4 登录账号
 
 ```powershell
 shorebird login
 ```
 
-首次使用建议运行诊断：
+会打开浏览器完成 Google 账号授权（需代理）。
+
+### 1.5 修复 Git 长路径问题
 
 ```powershell
-shorebird doctor
+git config --system core.longpaths true
 ```
 
-## 2. 集成热更新（Android）
+---
 
-### 2.1 初始化项目
+## 二、项目初始化（首次使用）
 
-在 Flutter 项目根目录执行：
+在项目根目录执行：
 
 ```powershell
 shorebird init
 ```
 
-该命令会完成以下工作：
+完成后会：
+- 生成 `shorebird.yaml`（含 `app_id`，可提交 git）
+- 自动将 `shorebird.yaml` 加入 `pubspec.yaml` assets
 
-- 生成 `shorebird.yaml`（包含 `app_id`）
-- 将 `shorebird.yaml` 添加到 `pubspec.yaml` 的 assets
-- 检查 AndroidManifest 网络权限
+> **注意：** `app_id` 与 Shorebird 账号绑定，不同账号的 `app_id` 不通用。如果报 `Could not find app with id` 错误，需重新执行 `shorebird init`。
 
-### 2.2 Android 网络权限
-
-Shorebird 需要联网拉取补丁，确保 `android/app/src/main/AndroidManifest.xml` 中包含：
-
-```xml
-<uses-permission android:name="android.permission.INTERNET" />
-```
-
-### 2.3 pubspec.yaml 资产
-
-确保 `pubspec.yaml` 中包含：
-
-```yaml
-flutter:
-  assets:
-    - shorebird.yaml
-```
-
-### 2.4 官方自动更新策略（不灵活）
-
-默认情况下，`shorebird.yaml` 使用后台自动更新。若希望手动触发更新，可在 `shorebird.yaml` 中启用：
-
-```yaml
-auto_update: false
-```
-
-然后在代码中使用 `shorebird_code_push` 手动检查并应用补丁（本项目已配置，见下）。
-
-### 2.5 自定义更新策略（较为灵活）
-
-若需要手动触发更新，需要：
-
-- `shorebird.yaml` 启用 `auto_update: false`
-- 依赖中加入 `shorebird_code_push: ^2.0.5`
-- 运行 `flutter pub get`
-- 在 UI 中调用 `ShorebirdUpdater` 进行检查与下载
-- 加载成功后会自动进行应用的重启，假如重启失败的话会提示用户进行手动重启
-
-## 3. 应用打包（Release）
-
-1. 修改 UI（例如 `lib/main.dart` 文本显示为 “Version A”）
-2. 执行发布命令：（用于生成一个正式的APK安装包）
+运行诊断确认配置正确：
 
 ```powershell
-shorebird release android 或 shorebird release android --artifact apk
+shorebird doctor
+# 如有可自动修复的问题：
+shorebird doctor --fix
 ```
 
-**注意：**第一个命令打出来的包是.aab模型，更适合用来上架商城的。假如只是想打一个普通的apk包，就直接使用第二个命令。
+---
 
-执行完后会在`build/app/outputs/flutter-apk/app-release.apk`这个目录下生成一个apk文件。
+## 三、打包 Release APK
 
-3. 将这个apk安装到真机或者模拟器上。
-
-
-
-## 4. 推送热更包（Patch）
-
-将热更新包推送到shorebird云端上。
+### 3.1 执行打包命令
 
 ```powershell
+# 打 APK（测试分发用）
+shorebird release android --artifact apk
+
+# 打 AAB（上架 Google Play 用）
+shorebird release android
+```
+
+### 3.2 输出路径
+
+```
+build/app/outputs/flutter-apk/app-release.apk
+```
+
+### 3.3 注意事项
+
+- 打包前确保 `android/app/src/main/AndroidManifest.xml` 包含网络权限：
+  ```xml
+  <uses-permission android:name="android.permission.INTERNET" />
+  ```
+- 版本号在 `pubspec.yaml` 中设置，格式：`version: 1.0.0+1`（`+` 前为版本名，后为版本号）
+- 每次发新版本需修改版本号，否则热更包无法匹配
+
+---
+
+## 四、推送热更包（Patch）
+
+代码修复或功能更新后，无需重新上架，直接推送热更包：
+
+```powershell
+# 针对当前版本推送热更
 shorebird patch android
+
+# 针对指定版本推送热更
+shorebird patch android --release-version=1.0.0+1
 ```
 
-**热更注意事项：**
+### 热更限制
 
-- 假如后续热更新继续针对 1.0.0+1：  
-  `shorebird patch android --release-version=1.0.0+1`其实就是默认的`shorebird patch android`命令
-  
-- 前提：当前代码要和你当初发布 1.0.0+1 时一致，否则 patch 可能不匹配（也就是热更包整个版本必须和现在的应用版本是一样的，不然热更就无法生效）。
+| 支持热更 | 不支持热更 |
+|---------|-----------|
+| Dart 代码修改 | 原生 Android/iOS 代码修改 |
+| 资源文件（图片、字体等） | 新增原生插件 |
+| pubspec.yaml 中的 assets | AndroidManifest 修改 |
 
-- 版本号设置需按一下规则：（`pubspec.yaml`）
+### 热更生效流程（本项目为手动触发模式）
 
-  <img src="C:\Users\Administrator\AppData\Roaming\Typora\typora-user-images\image-20260327115254087.png" alt="image-20260327115254087" style="zoom:50%;" />
+本项目 `shorebird.yaml` 配置了 `auto_update: false`，更新由 `shorebird_code_push` 包手动触发：
 
-## 5. 常见注意事项
+1. App 启动后调用 `ShorebirdUpdater` 检查是否有新补丁
+2. 有补丁则后台下载
+3. 下载完成后自动重启应用（重启失败时提示用户手动重启）
 
-- 必须使用 `shorebird release` 安装的 release 包，`flutter run` 的 debug 包不会热更新。
-- patch 只支持 Dart 代码与资源更新，不能替代原生修改。
-- Android 端必须有 `INTERNET` 权限。
+---
+
+## 五、常见问题
+
+| 错误信息 | 原因 | 解决方法 |
+|---------|------|---------|
+| `shorebird` 命令找不到 | PATH 未配置 | 执行 `$env:PATH += ";C:\Users\Administrator\shorebird\bin"` |
+| `Could not find app with id` | app_id 不属于当前账号 | 执行 `shorebird init` 重新初始化 |
+| `api.shorebird.dev unreachable` | 网络不通 | 配置代理后重试 |
+| `missing the INTERNET permission` | AndroidManifest 缺少权限 | 添加 `INTERNET` 权限或执行 `shorebird doctor --fix` |
+| patch 热更不生效 | 版本号不匹配 | 确保 patch 基于对应 release 版本的代码构建 |
+| debug 包无法热更 | debug 包不支持 | 必须使用 `shorebird release` 打出的包 |
+
+---
+
+## 六、日常发版流程
+
+```
+修改代码
+    ↓
+更新 pubspec.yaml 版本号（发新版时）
+    ↓
+shorebird release android --artifact apk   ← 生成安装包
+    ↓
+安装到设备测试
+    ↓
+后续 bug 修复 → shorebird patch android    ← 推送热更，无需重新安装
+```
