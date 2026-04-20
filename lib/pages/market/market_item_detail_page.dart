@@ -15,7 +15,6 @@ import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/common/widgets/steam_style_confirm_dialog.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
-import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 import 'package:tronskins_app/components/game_item/gem_row.dart';
 import 'package:tronskins_app/components/game_item/sticker_row.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
@@ -1531,50 +1530,41 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     required String imageUrl,
     required TagInfo? rarity,
   }) {
-    return Container(
-      width: double.infinity,
-      color: const Color(0xFF120C10),
-      child: AspectRatio(
-        aspectRatio: 1.48,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            DecoratedBox(decoration: itemImageBackgroundDecoration()),
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.14),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
-              child: Center(
-                child: imageUrl.isEmpty
-                    ? const Icon(
-                        Icons.image_not_supported_outlined,
-                        size: 36,
-                        color: Colors.white54,
-                      )
-                    : CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        fit: BoxFit.contain,
-                        placeholder: (context, _) => const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        errorWidget: (context, _, __) => const Icon(
-                          Icons.image_not_supported_outlined,
-                          size: 36,
-                          color: Colors.white54,
-                        ),
-                      ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final imageSideLength = constraints.maxWidth * 0.5;
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          alignment: Alignment.center,
+          child: Container(
+            width: imageSideLength,
+            height: imageSideLength,
+            color: Colors.black,
+            alignment: Alignment.center,
+            child: imageUrl.isEmpty
+                ? const Icon(
+                    Icons.image_not_supported_outlined,
+                    size: 36,
+                    color: Colors.white54,
+                  )
+                : CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.contain,
+                    placeholder: (context, _) => const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    errorWidget: (context, _, __) => const Icon(
+                      Icons.image_not_supported_outlined,
+                      size: 36,
+                      color: Colors.white54,
+                    ),
+                  ),
+          ),
+        );
+      },
     );
   }
 
