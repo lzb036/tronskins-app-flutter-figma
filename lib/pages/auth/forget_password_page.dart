@@ -7,7 +7,6 @@ import 'package:tronskins_app/api/loginServer.dart';
 import 'package:tronskins_app/common/http/model/base_response.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/auth_floating_input_field.dart';
-import 'package:tronskins_app/common/widgets/app_request_loading_overlay.dart';
 import 'package:tronskins_app/pages/auth/auth_visual_style.dart';
 
 class ForgetPasswordPage extends StatefulWidget {
@@ -186,7 +185,6 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
     final code = _codeController.text.trim();
 
     setState(() => _submitting = true);
-    AppRequestLoading.show();
     try {
       final result = await ApiLoginServer().resetPassword(
         email: email,
@@ -205,7 +203,6 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
     } catch (_) {
       _showError('app.user.login.message.error'.tr);
     } finally {
-      AppRequestLoading.hide();
       if (mounted) setState(() => _submitting = false);
     }
   }

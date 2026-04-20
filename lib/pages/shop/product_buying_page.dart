@@ -12,7 +12,6 @@ import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/user_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/utils/string_utils.dart';
-import 'package:tronskins_app/common/widgets/app_request_loading_overlay.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/components/filter/filter_sheet_style.dart';
@@ -741,7 +740,6 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
     if (!alreadySubmitting) {
       setState(() => _isSubmitting = true);
     }
-    AppRequestLoading.show();
     try {
       final res = await _shopApi.orderItemBuying(
         params: {
@@ -809,7 +807,6 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
         );
       }
     } finally {
-      AppRequestLoading.hide();
       if (mounted && !shouldClosePage) {
         setState(() => _isSubmitting = false);
       }

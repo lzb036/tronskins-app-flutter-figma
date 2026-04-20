@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:tronskins_app/api/loginServer.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
-import 'package:tronskins_app/common/widgets/app_request_loading_overlay.dart';
 
 class ScanLoginPage extends StatefulWidget {
   const ScanLoginPage({super.key});
@@ -57,7 +56,6 @@ class _ScanLoginPageState extends State<ScanLoginPage> {
     setState(() {
       _submitting = true;
     });
-    AppRequestLoading.show();
     try {
       final res = await _api.loginScanConfirm(qrCode: qrCode);
       final data = res.datas;
@@ -83,7 +81,6 @@ class _ScanLoginPageState extends State<ScanLoginPage> {
       AppSnackbar.error('app.user.login.message.error'.tr);
       await _resumeScanner();
     } finally {
-      AppRequestLoading.hide();
       if (mounted) {
         setState(() {
           _submitting = false;
@@ -96,7 +93,6 @@ class _ScanLoginPageState extends State<ScanLoginPage> {
     setState(() {
       _submitting = true;
     });
-    AppRequestLoading.show();
     try {
       final res = await _api.cancelScanConfirm(qrCode: qrCode);
       if (res.success) {
@@ -111,7 +107,6 @@ class _ScanLoginPageState extends State<ScanLoginPage> {
       AppSnackbar.error('app.user.login.message.error'.tr);
       await _resumeScanner();
     } finally {
-      AppRequestLoading.hide();
       if (mounted) {
         setState(() {
           _submitting = false;

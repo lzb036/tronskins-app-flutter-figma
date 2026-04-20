@@ -8,7 +8,6 @@ import 'package:tronskins_app/api/steam.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/hooks/game/global_game_controller.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
-import 'package:tronskins_app/common/widgets/app_request_loading_overlay.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
@@ -342,36 +341,63 @@ class _ShopPageState extends State<ShopPage>
     if (_selectedIds.isEmpty) {
       return;
     }
-    final confirmed = await showFigmaModal<bool>(
+    var submitting = false;
+    await showFigmaModal<void>(
       context: context,
-      child: FigmaConfirmationDialog(
-        title: _isEnglishLocale ? 'Delist Listing' : '确认下架',
-        message: 'app.inventory.message.confirm_delist'.tr,
-        primaryLabel: _isEnglishLocale ? 'Confirm Delist' : '确认下架',
-        secondaryLabel: 'app.common.cancel'.tr,
-        onPrimary: () => popModalRoute(context, true),
-        onSecondary: () => popModalRoute(context, false),
+      barrierDismissible: false,
+      child: StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          Future<void> submitDelist() async {
+            if (submitting) {
+              return;
+            }
+            setDialogState(() => submitting = true);
+            try {
+              final res = await salesController.delistItems(
+                _selectedIds.toList(),
+              );
+              if (res.success) {
+                if (mounted) {
+                  setState(_selectedIds.clear);
+                }
+                if (dialogContext.mounted) {
+                  popModalRoute(dialogContext);
+                }
+                AppSnackbar.success('app.system.message.success'.tr);
+              } else {
+                AppSnackbar.error(
+                  res.message.isNotEmpty
+                      ? res.message
+                      : 'app.trade.filter.failed'.tr,
+                );
+                if (dialogContext.mounted) {
+                  setDialogState(() => submitting = false);
+                }
+              }
+            } catch (_) {
+              AppSnackbar.error('app.trade.filter.failed'.tr);
+              if (dialogContext.mounted) {
+                setDialogState(() => submitting = false);
+              }
+            }
+          }
+
+          return FigmaConfirmationDialog(
+            title: _isEnglishLocale ? 'Delist Listing' : '确认下架',
+            message: 'app.inventory.message.confirm_delist'.tr,
+            primaryLabel: _isEnglishLocale ? 'Confirm Delist' : '确认下架',
+            primaryLoading: submitting,
+            secondaryLabel: 'app.common.cancel'.tr,
+            onPrimary: submitting
+                ? null
+                : () {
+                    submitDelist();
+                  },
+            onSecondary: submitting ? null : () => popModalRoute(dialogContext),
+          );
+        },
       ),
     );
-    if (confirmed != true) {
-      return;
-    }
-    try {
-      AppRequestLoading.show();
-      final res = await salesController.delistItems(_selectedIds.toList());
-      if (res.success) {
-        setState(_selectedIds.clear);
-        AppSnackbar.success('app.system.message.success'.tr);
-      } else {
-        AppSnackbar.error(
-          res.message.isNotEmpty ? res.message : 'app.trade.filter.failed'.tr,
-        );
-      }
-    } catch (_) {
-      AppSnackbar.error('app.trade.filter.failed'.tr);
-    } finally {
-      AppRequestLoading.hide();
-    }
   }
 
   ShopSchemaInfo? _lookupSchema(

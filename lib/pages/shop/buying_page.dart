@@ -9,7 +9,6 @@ import 'package:intl/intl.dart';
 import 'package:tronskins_app/api/model/shop/shop_models.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/hooks/game/global_game_controller.dart';
-import 'package:tronskins_app/common/widgets/app_request_loading_overlay.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/login_required_prompt.dart';
@@ -245,51 +244,75 @@ class _BuyingPageState extends State<BuyingPage>
       return;
     }
     final title = _recordTitle(item, _lookupSchema(item));
-    final confirm = await showFigmaModal<bool>(
+    var submitting = false;
+    await showFigmaModal<void>(
       context: context,
-      child: FigmaConfirmationDialog(
-        title: _text(zh: '终止求购', en: 'Terminate Buy Request'),
-        primaryLabel: _text(zh: '确认终止', en: 'Confirm Termination'),
-        secondaryLabel: 'app.common.cancel'.tr,
-        onPrimary: () => Navigator.of(context).pop(true),
-        onSecondary: () => Navigator.of(context).pop(false),
-        content: Text.rich(
-          TextSpan(
-            children: [
+      barrierDismissible: false,
+      child: StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          Future<void> submitTermination() async {
+            if (submitting) {
+              return;
+            }
+            setDialogState(() => submitting = true);
+            var shouldClose = false;
+            try {
+              await controller.cancelBuy(id);
+              shouldClose = true;
+              if (dialogContext.mounted) {
+                popModalRoute(dialogContext);
+              }
+              AppSnackbar.success('app.system.message.success'.tr);
+            } finally {
+              if (!shouldClose && dialogContext.mounted) {
+                setDialogState(() => submitting = false);
+              }
+            }
+          }
+
+          return FigmaConfirmationDialog(
+            title: _text(zh: '终止求购', en: 'Terminate Buy Request'),
+            primaryLabel: _text(zh: '确认终止', en: 'Confirm Termination'),
+            primaryLoading: submitting,
+            secondaryLabel: 'app.common.cancel'.tr,
+            onPrimary: submitting
+                ? null
+                : () {
+                    submitTermination();
+                  },
+            onSecondary: submitting ? null : () => popModalRoute(dialogContext),
+            content: Text.rich(
               TextSpan(
-                text: _text(
-                  zh: '你确定要终止对 ',
-                  en: 'Are you sure you want to terminate the buy request for ',
-                ),
+                children: [
+                  TextSpan(
+                    text: _text(
+                      zh: '你确定要终止对 ',
+                      en:
+                          'Are you sure you want to terminate the buy request '
+                          'for ',
+                    ),
+                  ),
+                  TextSpan(
+                    text: '[$title]',
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  TextSpan(
+                    text: _text(
+                      zh: ' 吗？终止后资金将解除冻结。',
+                      en: '? The funds will be unfrozen upon termination.',
+                    ),
+                  ),
+                ],
               ),
-              TextSpan(
-                text: '[$title]',
-                style: const TextStyle(
-                  color: Color(0xFF0F172A),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              TextSpan(
-                text: _text(
-                  zh: ' 吗？终止后资金将解除冻结。',
-                  en: '? The funds will be unfrozen upon termination.',
-                ),
-              ),
-            ],
-          ),
-          textAlign: TextAlign.center,
-        ),
+              textAlign: TextAlign.center,
+            ),
+          );
+        },
       ),
     );
-    if (confirm == true) {
-      AppRequestLoading.show();
-      try {
-        await controller.cancelBuy(id);
-        AppSnackbar.success('app.system.message.success'.tr);
-      } finally {
-        AppRequestLoading.hide();
-      }
-    }
   }
 
   bool get _isMyBuyingTab => _currentTabIndex == 0;
@@ -2180,7 +2203,6 @@ class _PurchasePriceChangeDialogState
       }
     }
     setState(() => _isSubmitting = true);
-    AppRequestLoading.show();
     var shouldClose = false;
     try {
       final res = await _api.myBuyUpdatePrice(
@@ -2206,7 +2228,6 @@ class _PurchasePriceChangeDialogState
         AppSnackbar.success('app.inventory.message.price_change_success'.tr);
       });
     } finally {
-      AppRequestLoading.hide();
       if (mounted && !shouldClose) {
         setState(() => _isSubmitting = false);
       }

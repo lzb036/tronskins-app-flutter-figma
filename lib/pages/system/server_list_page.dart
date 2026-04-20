@@ -48,7 +48,7 @@ class _ServerListPageState extends State<ServerListPage> {
   }
 
   Future<void> _addServer() async {
-    final result = await _showServerDialog();
+    final result = await _openServerPage();
 
     if (!mounted || result == null) {
       return;
@@ -67,7 +67,7 @@ class _ServerListPageState extends State<ServerListPage> {
   }
 
   Future<void> _editServer(ServerStorageItem server) async {
-    final result = await _showServerDialog(initialServer: server);
+    final result = await _openServerPage(initialServer: server);
 
     if (!mounted || result == null) {
       return;
@@ -102,44 +102,20 @@ class _ServerListPageState extends State<ServerListPage> {
     }
   }
 
-  Future<ServerStorageItem?> _showServerDialog({
+  Future<ServerStorageItem?> _openServerPage({
     ServerStorageItem? initialServer,
-  }) {
-    return showGeneralDialog<ServerStorageItem>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-      barrierColor: Colors.black.withValues(alpha: 0.22),
-      transitionDuration: const Duration(milliseconds: 260),
-      pageBuilder: (dialogContext, _, __) {
-        return _AddServerDialog(
+  }) async {
+    final route = MaterialPageRoute<ServerStorageItem>(
+      builder: (_) {
+        return _AddServerPage(
           isValidServer: _isValidServer,
           normalizeServer: _normalize,
           initialServer: initialServer,
-          onDocumentationTap: () {
-            Navigator.of(dialogContext).pop();
-            Future.microtask(() => Get.toNamed(Routers.HELP_CENTER));
-          },
-        );
-      },
-      transitionBuilder: (context, animation, _, child) {
-        final curve = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutCubic,
-          reverseCurve: Curves.easeInCubic,
-        );
-        return FadeTransition(
-          opacity: curve,
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0, 0.04),
-              end: Offset.zero,
-            ).animate(curve),
-            child: child,
-          ),
+          onDocumentationTap: () => Get.toNamed(Routers.HELP_CENTER),
         );
       },
     );
+    return Navigator.of(context).push(route);
   }
 
   Future<void> _deleteServer(ServerStorageItem server) async {
@@ -728,8 +704,8 @@ class _ServerListPageState extends State<ServerListPage> {
   }
 }
 
-class _AddServerDialog extends StatefulWidget {
-  const _AddServerDialog({
+class _AddServerPage extends StatefulWidget {
+  const _AddServerPage({
     required this.isValidServer,
     required this.normalizeServer,
     this.initialServer,
@@ -742,10 +718,10 @@ class _AddServerDialog extends StatefulWidget {
   final VoidCallback onDocumentationTap;
 
   @override
-  State<_AddServerDialog> createState() => _AddServerDialogState();
+  State<_AddServerPage> createState() => _AddServerPageState();
 }
 
-class _AddServerDialogState extends State<_AddServerDialog> {
+class _AddServerPageState extends State<_AddServerPage> {
   static const Color _surfaceBg = Color(0xFFF7F9FB);
   static const Color _inputBg = Color(0xFFE0E3E5);
   static const Color _inputHint = Color(0x80757684);
@@ -770,7 +746,7 @@ class _AddServerDialogState extends State<_AddServerDialog> {
 
   String get _serverAddressLabel => 'app.user.setting.server_url_label'.tr;
 
-  String get _dialogTitle => _isEditing
+  String get _pageTitle => _isEditing
       ? 'app.user.setting.server_edit'.tr
       : 'app.user.setting.server_add'.tr;
 
@@ -848,9 +824,9 @@ class _AddServerDialogState extends State<_AddServerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.black.withValues(alpha: 0.22),
-      child: SafeArea(
+    return Scaffold(
+      backgroundColor: _surfaceBg,
+      body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
             return Center(
@@ -862,62 +838,59 @@ class _AddServerDialogState extends State<_AddServerDialog> {
                 child: SizedBox(
                   width: double.infinity,
                   height: constraints.maxHeight,
-                  child: ColoredBox(
-                    color: _surfaceBg,
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          right: -48,
-                          top: -24,
-                          child: _DialogBlurBlob(
-                            size: 136,
-                            color: const Color(0x143B82F6),
-                          ),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        right: -48,
+                        top: -24,
+                        child: _DialogBlurBlob(
+                          size: 136,
+                          color: const Color(0x143B82F6),
                         ),
-                        Positioned(
-                          left: -64,
-                          bottom: -72,
-                          child: _DialogBlurBlob(
-                            size: 164,
-                            color: const Color(0x141E40AF),
-                          ),
+                      ),
+                      Positioned(
+                        left: -64,
+                        bottom: -72,
+                        child: _DialogBlurBlob(
+                          size: 164,
+                          color: const Color(0x141E40AF),
                         ),
-                        Positioned.fill(
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.fromLTRB(24, 96, 24, 72),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildInputSection(),
-                                const SizedBox(height: 32),
-                                _buildSecurityCard(),
-                                const SizedBox(height: 32),
-                                _buildPrimaryButton(),
-                                const SizedBox(height: 48),
-                                Center(
-                                  child: TextButton(
-                                    onPressed: widget.onDocumentationTap,
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: const Color(0xFF00288E),
-                                      textStyle: const TextStyle(
-                                        fontSize: 14,
-                                        height: 20 / 14,
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                      ),
+                      Positioned.fill(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(24, 96, 24, 72),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildInputSection(),
+                              const SizedBox(height: 32),
+                              _buildSecurityCard(),
+                              const SizedBox(height: 32),
+                              _buildPrimaryButton(),
+                              const SizedBox(height: 48),
+                              Center(
+                                child: TextButton(
+                                  onPressed: widget.onDocumentationTap,
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: const Color(0xFF00288E),
+                                    textStyle: const TextStyle(
+                                      fontSize: 14,
+                                      height: 20 / 14,
+                                      fontWeight: FontWeight.w700,
                                     ),
-                                    child: Text('app.user.server.help'.tr),
                                   ),
+                                  child: Text('app.user.server.help'.tr),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
-                        SettingsStyleInlineTopBar(
-                          title: _dialogTitle,
-                          onBack: () => Navigator.of(context).pop(),
-                        ),
-                      ],
-                    ),
+                      ),
+                      SettingsStyleInlineTopBar(
+                        title: _pageTitle,
+                        onBack: () => Navigator.of(context).maybePop(),
+                      ),
+                    ],
                   ),
                 ),
               ),

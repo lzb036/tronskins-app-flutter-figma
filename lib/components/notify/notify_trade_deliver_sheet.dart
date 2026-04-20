@@ -9,7 +9,6 @@ import 'package:tronskins_app/api/tradeoffer.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/game_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
-import 'package:tronskins_app/common/widgets/app_request_loading_overlay.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
@@ -190,7 +189,6 @@ class _NotifyTradeDeliverSheetState extends State<NotifyTradeDeliverSheet> {
       return;
     }
     setState(() => _submitting = true);
-    AppRequestLoading.show();
     try {
       final steamStatus = await _steamApi.steamOnlineState();
       if (steamStatus.datas != true) {
@@ -268,7 +266,6 @@ class _NotifyTradeDeliverSheetState extends State<NotifyTradeDeliverSheet> {
     } catch (_) {
       AppSnackbar.error('app.trade.filter.failed'.tr);
     } finally {
-      AppRequestLoading.hide();
       if (mounted) {
         setState(() => _submitting = false);
       }

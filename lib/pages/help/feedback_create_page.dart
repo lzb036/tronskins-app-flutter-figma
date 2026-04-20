@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
-import 'package:tronskins_app/common/widgets/app_request_loading_overlay.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:tronskins_app/common/storage/user_storage.dart';
 import 'package:tronskins_app/controllers/help/feedback_controller.dart';
@@ -114,7 +113,6 @@ class _FeedbackCreatePageState extends State<FeedbackCreatePage> {
     }
     if (_submitting) return;
     setState(() => _submitting = true);
-    AppRequestLoading.show();
     try {
       final user = UserStorage.getUserInfo();
       final ok = _isAddFeedback
@@ -141,7 +139,6 @@ class _FeedbackCreatePageState extends State<FeedbackCreatePage> {
         AppSnackbar.info('app.system.message.not_open'.tr);
       }
     } finally {
-      AppRequestLoading.hide();
       if (mounted) {
         setState(() => _submitting = false);
       }
@@ -184,7 +181,27 @@ class _FeedbackCreatePageState extends State<FeedbackCreatePage> {
                 letterSpacing: -0.4,
               ),
             ),
-            child: Text('app.user.feedback.submit'.tr),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              child: _submitting
+                  ? Row(
+                      key: const ValueKey('feedback_submit_loading'),
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2.2),
+                        ),
+                        const SizedBox(width: 8),
+                        Text('app.user.feedback.submit'.tr),
+                      ],
+                    )
+                  : Text(
+                      'app.user.feedback.submit'.tr,
+                      key: const ValueKey('feedback_submit_text'),
+                    ),
+            ),
           ),
         ],
       ),

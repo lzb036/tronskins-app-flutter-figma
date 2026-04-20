@@ -8,7 +8,6 @@ import 'package:tronskins_app/common/http/model/base_response.dart';
 import 'package:tronskins_app/common/security/sm2_helper.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/auth_floating_input_field.dart';
-import 'package:tronskins_app/common/widgets/app_request_loading_overlay.dart';
 import 'package:tronskins_app/pages/auth/auth_visual_style.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
@@ -213,7 +212,6 @@ class _TokenRecoveryPageState extends State<TokenRecoveryPage> {
     final code = _codeController.text.trim();
 
     setState(() => _submitting = true);
-    AppRequestLoading.show();
     try {
       final pubKeyResult = await ApiLoginServer().getLoginPubKey(
         username: email,
@@ -244,7 +242,6 @@ class _TokenRecoveryPageState extends State<TokenRecoveryPage> {
     } catch (_) {
       _showError('app.user.login.message.error'.tr);
     } finally {
-      AppRequestLoading.hide();
       if (mounted) setState(() => _submitting = false);
     }
   }

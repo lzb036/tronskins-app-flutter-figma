@@ -95,8 +95,10 @@ class FigmaConfirmationDialog extends StatelessWidget {
     this.message = '',
     required this.primaryLabel,
     required this.onPrimary,
+    this.primaryLoading = false,
     this.secondaryLabel,
     this.onSecondary,
+    this.secondaryLoading = false,
     this.highlightText,
     this.content,
     this.icon = Icons.warning_amber_rounded,
@@ -108,9 +110,11 @@ class FigmaConfirmationDialog extends StatelessWidget {
   final String title;
   final String message;
   final String primaryLabel;
-  final VoidCallback onPrimary;
+  final VoidCallback? onPrimary;
+  final bool primaryLoading;
   final String? secondaryLabel;
   final VoidCallback? onSecondary;
+  final bool secondaryLoading;
   final String? highlightText;
   final Widget? content;
   final IconData icon;
@@ -207,6 +211,7 @@ class FigmaConfirmationDialog extends StatelessWidget {
               backgroundColor: accentColor,
               foregroundColor: Colors.white,
               onTap: onPrimary,
+              loading: primaryLoading,
               boxShadow: [
                 BoxShadow(
                   color: accentColor.withValues(alpha: 0.20),
@@ -230,7 +235,8 @@ class FigmaConfirmationDialog extends StatelessWidget {
                 backgroundColor: Colors.white,
                 foregroundColor: const Color(0xFF334155),
                 border: Border.all(color: const Color(0xFFE2E8F0), width: 2),
-                onTap: onSecondary!,
+                onTap: onSecondary,
+                loading: secondaryLoading,
               ),
             ],
           ],
@@ -247,6 +253,7 @@ class _FigmaDialogActionButton extends StatelessWidget {
     required this.backgroundColor,
     required this.foregroundColor,
     required this.onTap,
+    this.loading = false,
     this.border,
     this.boxShadow,
   });
@@ -255,43 +262,77 @@ class _FigmaDialogActionButton extends StatelessWidget {
   final double height;
   final Color backgroundColor;
   final Color foregroundColor;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool loading;
   final Border? border;
   final List<BoxShadow>? boxShadow;
 
   @override
   Widget build(BuildContext context) {
+    final isEnabled = onTap != null && !loading;
     return SizedBox(
       width: double.infinity,
       height: height,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: onTap,
-          child: Ink(
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              borderRadius: BorderRadius.circular(8),
-              border: border,
-              boxShadow: boxShadow,
-            ),
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    softWrap: false,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: foregroundColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      height: 24 / 16,
-                    ),
+      child: Opacity(
+        opacity: isEnabled ? 1 : 0.72,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: isEnabled ? onTap : null,
+            child: Ink(
+              decoration: BoxDecoration(
+                color: backgroundColor,
+                borderRadius: BorderRadius.circular(8),
+                border: border,
+                boxShadow: boxShadow,
+              ),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: loading
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    foregroundColor,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                label,
+                                maxLines: 1,
+                                softWrap: false,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: foregroundColor,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  height: 24 / 16,
+                                ),
+                              ),
+                            ],
+                          )
+                        : Text(
+                            label,
+                            maxLines: 1,
+                            softWrap: false,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: foregroundColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              height: 24 / 16,
+                            ),
+                          ),
                   ),
                 ),
               ),

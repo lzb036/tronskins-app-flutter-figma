@@ -4,7 +4,6 @@ import 'package:tronskins_app/api/user_profile.dart';
 import 'package:tronskins_app/common/storage/app_cache.dart';
 import 'package:tronskins_app/common/storage/user_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
-import 'package:tronskins_app/common/widgets/app_request_loading_overlay.dart';
 import 'package:tronskins_app/common/widgets/login_required_prompt.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
@@ -69,7 +68,6 @@ class _EditPasswordPageState extends State<EditPasswordPage> {
       return;
     }
     setState(() => _saving = true);
-    AppRequestLoading.show();
     try {
       final res = await _api.editPassword(
         id: userId,
@@ -99,7 +97,6 @@ class _EditPasswordPageState extends State<EditPasswordPage> {
         );
       }
     } finally {
-      AppRequestLoading.hide();
       if (mounted) {
         setState(() => _saving = false);
       }

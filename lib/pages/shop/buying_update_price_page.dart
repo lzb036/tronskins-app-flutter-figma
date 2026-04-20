@@ -7,7 +7,6 @@ import 'package:tronskins_app/api/model/shop/shop_models.dart';
 import 'package:tronskins_app/api/shop_product.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
-import 'package:tronskins_app/common/widgets/app_request_loading_overlay.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 
 class BuyingUpdatePricePage extends StatefulWidget {
@@ -272,7 +271,6 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
       }
     }
     setState(() => _isSubmitting = true);
-    AppRequestLoading.show();
     try {
       final res = await _api.myBuyUpdatePrice(
         items: [
@@ -300,7 +298,6 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
       });
       return;
     } finally {
-      AppRequestLoading.hide();
       if (mounted && !shouldClosePage) {
         setState(() => _isSubmitting = false);
       }
