@@ -1,0 +1,62 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+*.tmp
+.DS_Store
+Thumbs.db
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IDE / Editor
+*.iml
+*.ipr
+*.iws
+.idea/
+.vscode/
+.cache/
+.codex/
+.codex_tmp/
+omp.cache
+
+# Flutter/Dart/Pub related
+**/doc/api/
+.dart_tool/
+.flutter
+.flutter-plugins
+.flutter-plugins-dependencies
+.flutter_tool_state
+.packages
+.pub-cache/
+.pub/
+/build/
+/coverage/
+pubspec_overrides.yaml
+lib/generated_plugin_registrant.dart
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Flutter platform directories
+#/android/
+#/ios/
+#/macos/
+#/linux/
+#/windows/
+#/web/
+
+# Local env / signing files
+.env
+.env.*
+android/key.properties
+*.jks
+*.keystore

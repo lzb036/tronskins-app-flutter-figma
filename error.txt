@@ -1,0 +1,46 @@
+【弹窗按钮 / 顶部栏返回按钮偶发无响应问题排查记录】
+
+一、问题现象
+1. 部分 Figma 风格弹窗点击确认、取消或顶部返回按钮后，没有关闭弹窗。
+2. 问题主要出现在自定义弹窗，不是所有 AlertDialog 都有问题。
+
+二、根因分析
+1. 项目里同时存在两套弹窗关闭方式：
+   - 一部分弹窗通过 showFigmaModal / showGeneralDialog 用 Navigator 打开。
+   - 但按钮回调里仍有不少地方使用 Get.back(...) 关闭。
+2. 当弹窗是 Navigator 打开的，但关闭动作走的是 Get.back(...) 时，存在关错栈或未命中当前弹窗栈的风险。
+3. 部分顶部栏返回按钮也直接绑定了 Get.back(...)，在嵌套路由或弹窗上下文中同样可能失效。
+
+三、处理方案
+1. 在 lib/common/widgets/figma_confirmation_dialog.dart 中新增统一关闭方法：
+   - popModalRoute(context, [result])
+   - maybePopModalRoute(context)
+2. 上述方法统一使用 Navigator.of(context, rootNavigator: true).pop / maybePop，确保和 showFigmaModal 的打开链路一致。
+3. 已将以下 Figma 弹窗相关旧写法从 Get.back(...) 改为统一关闭链路：
+   - lib/controllers/user/user_controller.dart
+   - lib/pages/steam/steam_setting_page.dart
+   - lib/pages/navbar/inventory.dart
+   - lib/pages/navbar/shop.dart
+   - lib/pages/market/market_detail_page.dart
+   - lib/pages/shop/shop_order_detail_page.dart
+   - lib/common/utils/feature_gate_dialog.dart
+4. 已将以下顶部栏返回从 Get.back(...) 改为 Navigator.of(context).maybePop()：
+   - lib/pages/shop/buying_page.dart
+   - lib/pages/shop/my_purchase_page.dart
+   - lib/pages/user/guard/twofa_token_page.dart
+
+四、这次没有动的范围
+1. Get.dialog + Get.back(...) 这种本来就是同一条链路的写法，暂时未改，避免误伤正常弹窗。
+2. 目前优先处理的是“Navigator 打开 + Get.back 关闭”的错配问题。
+
+五、验证结果
+1. 已执行 dart format。
+2. 已执行 flutter analyze，结果通过，没有新增静态分析错误。
+
+六、后续排查建议
+1. 后续如果再出现“按钮点击无反应”的弹窗，优先检查：
+   - 打开方式是否是 showFigmaModal / showGeneralDialog / showDialog
+   - 关闭方式是否仍在用 Get.back(...)
+2. 原则上应保持“谁打开，谁关闭”：
+   - Navigator 打开 -> Navigator 关闭
+   - Get.dialog 打开 -> Get.back 关闭
