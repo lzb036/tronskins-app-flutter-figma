@@ -35,6 +35,7 @@ omp.cache
 .packages
 .pub-cache/
 .pub/
+pubspec.lock
 /build/
 /coverage/
 pubspec_overrides.yaml
