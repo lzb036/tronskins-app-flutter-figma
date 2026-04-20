@@ -186,7 +186,6 @@ class _ServerListPageState extends State<ServerListPage> {
     HttpHelper.setBaseUrl(server.url);
     ServerStorage.setServer(server.url);
     AppSnackbar.success('app.user.setting.server_connectivity_success'.tr);
-    Navigator.of(context).maybePop(true);
   }
 
   Future<void> _showConnectivityLoading(
@@ -218,10 +217,15 @@ class _ServerListPageState extends State<ServerListPage> {
 
   Future<void> _closeConnectivityLoading() async {
     final dialogContext = _connectivityDialogContext;
-    if (!_connectivityDialogVisible || dialogContext == null) {
+    if (!_connectivityDialogVisible ||
+        dialogContext == null ||
+        !dialogContext.mounted) {
       return;
     }
-    await Navigator.of(dialogContext, rootNavigator: true).maybePop();
+
+    // This dialog is wrapped in PopScope(canPop: false), so maybePop()
+    // would be vetoed by the route. Use a direct pop on the dialog route.
+    Navigator.of(dialogContext).pop();
     await Future<void>.delayed(Duration.zero);
   }
 
