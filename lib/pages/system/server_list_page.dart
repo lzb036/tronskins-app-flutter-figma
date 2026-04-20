@@ -221,7 +221,7 @@ class _ServerListPageState extends State<ServerListPage> {
     if (!_connectivityDialogVisible || dialogContext == null) {
       return;
     }
-    Navigator.of(dialogContext).pop();
+    await Navigator.of(dialogContext, rootNavigator: true).maybePop();
     await Future<void>.delayed(Duration.zero);
   }
 

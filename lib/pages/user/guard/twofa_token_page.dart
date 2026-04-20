@@ -749,7 +749,10 @@ class _TwoFaBindDialogState extends State<_TwoFaBindDialog> {
         }
         if (res.success) {
           shouldResetLoading = false;
-          Get.back();
+          if (!context.mounted) {
+            return;
+          }
+          Navigator.of(context).pop();
           _showSuccess('app.user.guard.sync_success'.tr);
           return;
         }

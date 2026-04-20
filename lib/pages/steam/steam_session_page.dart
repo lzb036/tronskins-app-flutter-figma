@@ -365,13 +365,11 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
       _hasHandledToken = true;
       _titlePoller?.cancel();
       _titlePoller = null;
-      Get.back(
-        result: {
-          'showSteamIdNotMatch': true,
-          'steamId': _boundSteamId,
-          'loginSteamId': loginSteamId,
-        },
-      );
+      Navigator.of(context).pop({
+        'showSteamIdNotMatch': true,
+        'steamId': _boundSteamId,
+        'loginSteamId': loginSteamId,
+      });
       return;
     }
 
@@ -411,18 +409,14 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
 
       _titlePoller?.cancel();
       _titlePoller = null;
-      Get.back(
-        result: {
-          'verified': true,
-          'sessionValid': true,
-          'steamId': _boundSteamId,
-          'loginSteamId': loginSteamId.isNotEmpty
-              ? loginSteamId
-              : _boundSteamId,
-          'refreshToken': refreshToken,
-          'serverData': result.datas,
-        },
-      );
+      Navigator.of(context).pop({
+        'verified': true,
+        'sessionValid': true,
+        'steamId': _boundSteamId,
+        'loginSteamId': loginSteamId.isNotEmpty ? loginSteamId : _boundSteamId,
+        'refreshToken': refreshToken,
+        'serverData': result.datas,
+      });
       AppSnackbar.success('app.steam.message.verify_success'.tr);
     } catch (_) {
       _hasHandledToken = false;

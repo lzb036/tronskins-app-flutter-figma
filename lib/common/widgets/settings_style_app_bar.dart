@@ -2,7 +2,6 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get.dart';
 import 'package:tronskins_app/common/theme/settings_top_bar_style.dart';
 
 class SettingsStyleAppBar extends AppBar {
@@ -166,6 +165,14 @@ class SettingsStyleNavigationRow extends StatelessWidget {
   final VoidCallback? onBack;
   final double horizontalPadding;
 
+  void _handleDefaultBack(BuildContext context) {
+    final navigator = Navigator.maybeOf(context);
+    if (navigator == null) {
+      return;
+    }
+    navigator.maybePop();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -179,7 +186,7 @@ class SettingsStyleNavigationRow extends StatelessWidget {
               shape: const CircleBorder(),
               child: InkWell(
                 customBorder: const CircleBorder(),
-                onTap: onBack ?? () => Get.back<void>(),
+                onTap: onBack ?? () => _handleDefaultBack(context),
                 child: const SizedBox(
                   width: _backButtonSize,
                   height: _backButtonSize,
