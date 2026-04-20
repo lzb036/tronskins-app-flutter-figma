@@ -246,7 +246,7 @@ class UserSetting extends StatelessWidget {
             child: Row(
               children: [
                 InkWell(
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.zero,
                   onTap: () => showAvatarPreviewDialog(
                     context,
                     imageProvider: userCtrl.avatarProvider,
@@ -258,7 +258,6 @@ class UserSetting extends StatelessWidget {
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
                         border: Border.all(
                           color: const Color.fromRGBO(30, 64, 175, 0.1),
                           width: 2,
@@ -266,11 +265,9 @@ class UserSetting extends StatelessWidget {
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(2),
-                        child: ClipOval(
-                          child: Image(
-                            image: userCtrl.avatarProvider,
-                            fit: BoxFit.cover,
-                          ),
+                        child: Image(
+                          image: userCtrl.avatarProvider,
+                          fit: BoxFit.cover,
                         ),
                       ),
                     ),
@@ -419,7 +416,6 @@ class UserSetting extends StatelessWidget {
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
                         border: Border.all(
                           color: const Color.fromRGBO(30, 64, 175, 0.1),
                           width: 2,
@@ -427,11 +423,9 @@ class UserSetting extends StatelessWidget {
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(2),
-                        child: ClipOval(
-                          child: Image(
-                            image: userCtrl.avatarProvider,
-                            fit: BoxFit.cover,
-                          ),
+                        child: Image(
+                          image: userCtrl.avatarProvider,
+                          fit: BoxFit.cover,
                         ),
                       ),
                     ),

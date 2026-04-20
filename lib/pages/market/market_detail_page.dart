@@ -544,6 +544,30 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     required String imageUrl,
     required String backgroundAsset,
   }) {
+    if (controller.appId == 570) {
+      return SizedBox(
+        width: 92,
+        height: 68,
+        child: Center(
+          child: Hero(
+            tag: 'market_item_$itemId',
+            child: imageUrl.isEmpty
+                ? Icon(
+                    Icons.image_not_supported_outlined,
+                    color: Colors.white.withValues(alpha: 0.4),
+                    size: 22,
+                  )
+                : CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    width: 92,
+                    height: 68,
+                    fit: BoxFit.contain,
+                  ),
+          ),
+        ),
+      );
+    }
+
     return Container(
       width: 92,
       height: 68,

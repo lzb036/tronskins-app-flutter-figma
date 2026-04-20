@@ -288,7 +288,6 @@ class _ProfileSection extends StatelessWidget {
           width: 96,
           height: 96,
           decoration: BoxDecoration(
-            shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 4),
             boxShadow: const [
               BoxShadow(
@@ -298,14 +297,12 @@ class _ProfileSection extends StatelessWidget {
               ),
             ],
           ),
-          child: ClipOval(
-            child: Image(
-              image: avatarProvider,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) {
-                return Container(color: const Color(0xFF10293E));
-              },
-            ),
+          child: Image(
+            image: avatarProvider,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) {
+              return Container(color: const Color(0xFF10293E));
+            },
           ),
         ),
         const SizedBox(width: 24),
