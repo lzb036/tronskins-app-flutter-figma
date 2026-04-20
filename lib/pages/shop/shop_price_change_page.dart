@@ -690,7 +690,9 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
           return;
         }
         Navigator.of(context).pop(true);
-        AppSnackbar.success('app.system.message.success'.tr);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          AppSnackbar.success('app.system.message.success'.tr);
+        });
       } else {
         AppSnackbar.error(
           res.message.isNotEmpty ? res.message : 'app.trade.filter.failed'.tr,

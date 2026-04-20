@@ -1797,15 +1797,16 @@ class ShopOrderDetailPage extends StatelessWidget {
           ? Get.find<ShopOrderController>()
           : Get.put(ShopOrderController());
       final message = await controller.cancelBuyOrder(orderId);
-      AppSnackbar.success(
-        message.trim().isNotEmpty
-            ? message.trim()
-            : 'app.system.message.success'.tr,
-      );
+      final successMessage = message.trim().isNotEmpty
+          ? message.trim()
+          : 'app.system.message.success'.tr;
       if (!context.mounted) {
         return;
       }
       Navigator.of(context).pop(true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        AppSnackbar.success(successMessage);
+      });
     } catch (error) {
       AppSnackbar.error(_resolveActionErrorMessage(error));
     }
@@ -1860,11 +1861,13 @@ class ShopOrderDetailPage extends StatelessWidget {
           : Get.put(ShopOrderController());
       await controller.acceptTradeOffer(orderId);
       await controller.refreshBuyRecords();
-      AppSnackbar.success('app.system.message.success'.tr);
       if (!context.mounted) {
         return;
       }
       Navigator.of(context).pop(true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        AppSnackbar.success('app.system.message.success'.tr);
+      });
     } catch (error) {
       AppSnackbar.error(_resolveActionErrorMessage(error));
     }

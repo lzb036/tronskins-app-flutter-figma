@@ -363,7 +363,9 @@ class _ShopPageState extends State<ShopPage>
                 if (dialogContext.mounted) {
                   popModalRoute(dialogContext);
                 }
-                AppSnackbar.success('app.system.message.success'.tr);
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  AppSnackbar.success('app.system.message.success'.tr);
+                });
               } else {
                 AppSnackbar.error(
                   res.message.isNotEmpty

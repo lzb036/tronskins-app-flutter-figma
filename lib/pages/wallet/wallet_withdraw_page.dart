@@ -664,9 +664,11 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
                                 return;
                               }
                               Navigator.of(sheetContext).pop();
-                              AppSnackbar.success(
-                                'app.system.message.success'.tr,
-                              );
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                AppSnackbar.success(
+                                  'app.system.message.success'.tr,
+                                );
+                              });
                             }
                           },
                         ),

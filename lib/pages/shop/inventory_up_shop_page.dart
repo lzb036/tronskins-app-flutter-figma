@@ -636,7 +636,9 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
           return;
         }
         Navigator.of(context).pop(true);
-        AppSnackbar.success('app.inventory.message.upshop_success'.tr);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          AppSnackbar.success('app.inventory.message.upshop_success'.tr);
+        });
         return;
       }
 

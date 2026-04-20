@@ -7,6 +7,9 @@ import 'package:tronskins_app/common/theme/app_colors.dart';
 class AppSnackbar {
   AppSnackbar._();
 
+  static const int _maxShowAttempts = 3;
+  static int _showGeneration = 0;
+
   static void success(String message, {String? title}) {
     _show(message: message, title: title, variant: _AppSnackbarVariant.success);
   }
@@ -33,38 +36,76 @@ class AppSnackbar {
       return;
     }
 
-    if (Get.isSnackbarOpen) {
-      Get.closeCurrentSnackbar();
-    }
-
     final resolvedTitle = title?.trim().isNotEmpty == true
         ? title!.trim()
         : _defaultTitle(variant);
-    final currentContext = Get.context;
-    final topInset = currentContext == null
-        ? 0.0
-        : (MediaQuery.maybeOf(currentContext)?.padding.top ?? 0.0);
-
-    Get.showSnackbar(
-      GetSnackBar(
-        messageText: _AppSnackbarCard(
-          title: resolvedTitle,
-          message: trimmedMessage,
-          variant: variant,
-        ),
-        backgroundColor: Colors.transparent,
-        snackPosition: SnackPosition.TOP,
-        snackStyle: SnackStyle.FLOATING,
-        margin: EdgeInsets.fromLTRB(12, topInset + 8, 12, 0),
-        padding: EdgeInsets.zero,
-        borderRadius: 0,
-        duration: const Duration(milliseconds: 3200),
-        animationDuration: const Duration(milliseconds: 280),
-        forwardAnimationCurve: Curves.easeOutCubic,
-        reverseAnimationCurve: Curves.easeInCubic,
-        isDismissible: true,
-      ),
+    final generation = ++_showGeneration;
+    _scheduleShow(
+      generation: generation,
+      title: resolvedTitle,
+      message: trimmedMessage,
+      variant: variant,
     );
+  }
+
+  static void _scheduleShow({
+    required int generation,
+    required String title,
+    required String message,
+    required _AppSnackbarVariant variant,
+    int attempt = 0,
+  }) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (generation != _showGeneration) {
+        return;
+      }
+
+      final currentContext =
+          Get.overlayContext ??
+          Get.key.currentState?.overlay?.context ??
+          Get.context;
+      if (currentContext == null) {
+        if (attempt + 1 >= _maxShowAttempts) {
+          return;
+        }
+        _scheduleShow(
+          generation: generation,
+          title: title,
+          message: message,
+          variant: variant,
+          attempt: attempt + 1,
+        );
+        WidgetsBinding.instance.ensureVisualUpdate();
+        return;
+      }
+
+      if (Get.isSnackbarOpen) {
+        Get.closeCurrentSnackbar();
+      }
+
+      final topInset = MediaQuery.maybeOf(currentContext)?.padding.top ?? 0.0;
+      Get.showSnackbar(
+        GetSnackBar(
+          messageText: _AppSnackbarCard(
+            title: title,
+            message: message,
+            variant: variant,
+          ),
+          backgroundColor: Colors.transparent,
+          snackPosition: SnackPosition.TOP,
+          snackStyle: SnackStyle.FLOATING,
+          margin: EdgeInsets.fromLTRB(12, topInset + 8, 12, 0),
+          padding: EdgeInsets.zero,
+          borderRadius: 0,
+          duration: const Duration(milliseconds: 3200),
+          animationDuration: const Duration(milliseconds: 280),
+          forwardAnimationCurve: Curves.easeOutCubic,
+          reverseAnimationCurve: Curves.easeInCubic,
+          isDismissible: true,
+        ),
+      );
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
   }
 
   static String _defaultTitle(_AppSnackbarVariant variant) {

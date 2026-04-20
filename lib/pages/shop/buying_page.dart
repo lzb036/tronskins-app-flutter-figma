@@ -262,7 +262,9 @@ class _BuyingPageState extends State<BuyingPage>
               if (dialogContext.mounted) {
                 popModalRoute(dialogContext);
               }
-              AppSnackbar.success('app.system.message.success'.tr);
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                AppSnackbar.success('app.system.message.success'.tr);
+              });
             } finally {
               if (!shouldClose && dialogContext.mounted) {
                 setDialogState(() => submitting = false);

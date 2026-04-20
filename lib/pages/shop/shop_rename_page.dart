@@ -44,7 +44,9 @@ class _ShopRenamePageState extends State<ShopRenamePage> {
         return;
       }
       Navigator.of(context).pop();
-      AppSnackbar.success('app.system.message.success'.tr);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        AppSnackbar.success('app.system.message.success'.tr);
+      });
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
