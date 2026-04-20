@@ -290,53 +290,64 @@ class _CustomNavBarState extends State<CustomNavBar> {
           ),
           child: ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-            child: BottomNavigationBar(
-              type: BottomNavigationBarType.fixed,
-              currentIndex: index,
-              elevation: 0,
-              selectedItemColor: selectedColor,
-              unselectedItemColor: unselectedColor,
-              backgroundColor: navBgColor,
-              selectedFontSize: 12,
-              unselectedFontSize: 12,
-              selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
-              unselectedLabelStyle: const TextStyle(
-                fontWeight: FontWeight.w500,
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                splashFactory: NoSplash.splashFactory,
+                splashColor: Colors.transparent,
+                highlightColor: Colors.transparent,
+                hoverColor: Colors.transparent,
+                focusColor: Colors.transparent,
               ),
-              onTap: (index) {
-                navController.switchTo(index);
-              },
-              items: [
-                BottomNavigationBarItem(
-                  icon: const Icon(Icons.home_outlined),
-                  label: 'app.tabbar.home'.tr,
+              child: BottomNavigationBar(
+                type: BottomNavigationBarType.fixed,
+                currentIndex: index,
+                elevation: 0,
+                selectedItemColor: selectedColor,
+                unselectedItemColor: unselectedColor,
+                backgroundColor: navBgColor,
+                selectedFontSize: 12,
+                unselectedFontSize: 12,
+                selectedLabelStyle: const TextStyle(
+                  fontWeight: FontWeight.w500,
                 ),
-                BottomNavigationBarItem(
-                  icon: const Icon(Icons.storefront_outlined),
-                  label: 'app.tabbar.market'.tr,
+                unselectedLabelStyle: const TextStyle(
+                  fontWeight: FontWeight.w500,
                 ),
-                BottomNavigationBarItem(
-                  icon: const Icon(Icons.backpack_outlined),
-                  label: 'app.tabbar.inventory'.tr,
-                ),
-                BottomNavigationBarItem(
-                  icon: _buildNavIconWithBadge(
-                    icon: Icons.shopping_cart_outlined,
-                    badgeText: sellBadgeCount > 0
-                        ? (sellBadgeCount > 99 ? '99+' : '$sellBadgeCount')
-                        : null,
+                onTap: (index) {
+                  navController.switchTo(index);
+                },
+                items: [
+                  BottomNavigationBarItem(
+                    icon: const Icon(Icons.home_outlined),
+                    label: 'app.tabbar.home'.tr,
                   ),
-                  label: 'app.tabbar.sell'.tr,
-                ),
-                BottomNavigationBarItem(
-                  icon: _buildNavIconWithBadge(
-                    icon: Icons.person_outline,
-                    badgeText: mineBadgeText,
-                    badgeColor: const Color(0xFFEF4444),
+                  BottomNavigationBarItem(
+                    icon: const Icon(Icons.storefront_outlined),
+                    label: 'app.tabbar.market'.tr,
                   ),
-                  label: 'app.tabbar.mine'.tr,
-                ),
-              ],
+                  BottomNavigationBarItem(
+                    icon: const Icon(Icons.backpack_outlined),
+                    label: 'app.tabbar.inventory'.tr,
+                  ),
+                  BottomNavigationBarItem(
+                    icon: _buildNavIconWithBadge(
+                      icon: Icons.shopping_cart_outlined,
+                      badgeText: sellBadgeCount > 0
+                          ? (sellBadgeCount > 99 ? '99+' : '$sellBadgeCount')
+                          : null,
+                    ),
+                    label: 'app.tabbar.sell'.tr,
+                  ),
+                  BottomNavigationBarItem(
+                    icon: _buildNavIconWithBadge(
+                      icon: Icons.person_outline,
+                      badgeText: mineBadgeText,
+                      badgeColor: const Color(0xFFEF4444),
+                    ),
+                    label: 'app.tabbar.mine'.tr,
+                  ),
+                ],
+              ),
             ),
           ),
         );

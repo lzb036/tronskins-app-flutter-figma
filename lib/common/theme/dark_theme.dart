@@ -19,6 +19,6 @@ ThemeData darkTheme() => ThemeData(
   ),
   scaffoldBackgroundColor: AppColors.dark.scaffoldBackground,
   appBarTheme: settingsTopBarAppBarTheme(),
-  splashFactory: InkSparkle.splashFactory,
+  splashFactory: InkRipple.splashFactory,
   extensions: [AppColors.dark, AppTextTheme.dark()],
 );

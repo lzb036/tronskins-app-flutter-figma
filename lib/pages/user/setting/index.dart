@@ -26,6 +26,8 @@ class UserSetting extends StatelessWidget {
   static const _titleColor = Color(0xFF334155);
   static const _mutedColor = Color(0xFF94A3B8);
   static const _brandColor = Color(0xFF1E3A8A);
+  static const WidgetStateProperty<Color?> _transparentOverlay =
+      WidgetStatePropertyAll<Color?>(Colors.transparent);
 
   @override
   Widget build(BuildContext context) {
@@ -403,6 +405,12 @@ class UserSetting extends StatelessWidget {
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
               onTap: () => Get.toNamed(Routers.LOGIN),
+              overlayColor: _transparentOverlay,
+              splashFactory: NoSplash.splashFactory,
+              splashColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+              hoverColor: Colors.transparent,
+              focusColor: Colors.transparent,
               child: Padding(
                 padding: const EdgeInsets.all(25),
                 child: Row(
@@ -497,6 +505,12 @@ class UserSetting extends StatelessWidget {
         onTap:
             onTap ?? () => AppSnackbar.info('app.system.message.not_open'.tr),
         borderRadius: BorderRadius.circular(16),
+        overlayColor: _transparentOverlay,
+        splashFactory: NoSplash.splashFactory,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        hoverColor: Colors.transparent,
+        focusColor: Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
