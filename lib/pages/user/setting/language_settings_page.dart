@@ -116,7 +116,7 @@ class _LanguageSettingsPageState extends State<LanguageSettingsPage> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.zero,
         boxShadow: const [
           BoxShadow(
             color: Color.fromRGBO(0, 0, 0, 0.05),
@@ -168,7 +168,7 @@ class _LanguageSettingsPageState extends State<LanguageSettingsPage> {
           });
           _useLocale.changeLanguage(code, country);
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.zero,
         child: SizedBox(
           height: 56,
           child: Padding(

@@ -265,12 +265,12 @@ class _LockedRecordTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.zero,
         child: Ink(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.zero,
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF191C1E).withValues(alpha: 0.04),
@@ -429,7 +429,7 @@ class _LockedLoadingTile extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.zero,
       ),
       child: const Row(
         children: [

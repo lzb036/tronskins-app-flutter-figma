@@ -484,13 +484,13 @@ class _HelpCenterPageState extends State<HelpCenterPage> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.zero,
         onTap: () => Get.toNamed(Routers.HELP_DETAIL, arguments: item),
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           decoration: BoxDecoration(
             color: _surface,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.zero,
           ),
           child: Row(
             children: [
@@ -551,13 +551,13 @@ class _HelpCenterPageState extends State<HelpCenterPage> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.zero,
         onTap: () => Get.toNamed(Routers.HELP_CATEGORY, arguments: category),
         child: Ink(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: _surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.zero,
             border: Border.all(color: const Color(0xFFF1F5F9)),
             boxShadow: const [
               BoxShadow(

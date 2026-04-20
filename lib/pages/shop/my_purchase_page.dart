@@ -540,7 +540,7 @@ class _MyPurchasePageState extends State<MyPurchasePage>
   BoxDecoration _buildBuyRecordCardDecoration() {
     return BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.zero,
       border: Border.all(color: _buyRecordCardBorderColor),
       boxShadow: const [
         BoxShadow(
@@ -797,7 +797,7 @@ class _MyPurchasePageState extends State<MyPurchasePage>
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.zero,
           onTap: () => _openOrderDetail(order),
           child: Padding(
             padding: const EdgeInsets.all(21),
@@ -932,7 +932,7 @@ class _MyPurchasePageState extends State<MyPurchasePage>
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.zero,
           onTap: () => _openOrderDetail(order),
           child: Padding(
             padding: const EdgeInsets.all(21),

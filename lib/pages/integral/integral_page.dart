@@ -345,7 +345,10 @@ class _IntegralPageState extends State<IntegralPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final showValidity = _shouldShowCouponValidity(item);
     return Container(
-      decoration: WalletUi.cardDecoration(context),
+      decoration: WalletUi.cardDecoration(
+        context,
+        borderRadius: BorderRadius.zero,
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

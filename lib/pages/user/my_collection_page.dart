@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
@@ -626,6 +626,9 @@ class _CollectionCategoryTabState
                             : 'app.trade.sale.text'.tr;
                         return Card(
                           margin: EdgeInsets.zero,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero,
+                          ),
                           clipBehavior: Clip.antiAlias,
                           child: InkWell(
                             onTap: () => _openDetail(item),
@@ -937,6 +940,9 @@ class _CollectionFavoriteTabState
                             gems.isNotEmpty;
                         return Card(
                           margin: EdgeInsets.zero,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero,
+                          ),
                           clipBehavior: Clip.antiAlias,
                           child: InkWell(
                             onTap: () => _openDetail(item),

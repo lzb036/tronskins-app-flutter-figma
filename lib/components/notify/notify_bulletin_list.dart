@@ -59,7 +59,7 @@ class _NotifyBulletinListState extends State<NotifyBulletinList> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.zero,
         border: Border.all(
           color: isUnread
               ? const Color.fromRGBO(22, 163, 74, 0.18)
@@ -77,7 +77,7 @@ class _NotifyBulletinListState extends State<NotifyBulletinList> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.zero,
           onTap: () async {
             await widget.controller.readNotice(item);
             final id = item.id;
@@ -278,7 +278,7 @@ class _NoticeSkeletonCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.zero,
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: const [
           BoxShadow(

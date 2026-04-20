@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -117,11 +117,11 @@ class _HelpCategoryPageState extends State<HelpCategoryPage> {
                 itemBuilder: (context, index) {
                   final item = list[index];
                   return DecoratedBox(
-                    decoration: HelpUi.cardDecoration(context, radius: 18),
+                    decoration: HelpUi.cardDecoration(context, radius: 0),
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.zero,
                         onTap: () =>
                             Get.toNamed(Routers.HELP_DETAIL, arguments: item),
                         child: Padding(

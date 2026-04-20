@@ -774,11 +774,11 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
           controller.selectedWithdrawAddress.value = item;
           Navigator.of(context).pop();
         },
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.zero,
         child: Ink(
           decoration: BoxDecoration(
             color: _surfaceColor,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.zero,
             border: Border.all(
               color: isSelected
                   ? const Color.fromRGBO(0, 40, 142, 0.12)
@@ -869,7 +869,7 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
     return Container(
       decoration: BoxDecoration(
         color: _surfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.zero,
         border: Border.all(color: const Color.fromRGBO(196, 197, 213, 0.08)),
         boxShadow: const [
           BoxShadow(

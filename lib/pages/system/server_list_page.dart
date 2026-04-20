@@ -631,7 +631,7 @@ class _ServerListPageState extends State<ServerListPage> {
                           padding: const EdgeInsets.symmetric(vertical: 40),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.zero,
                             boxShadow: const [
                               BoxShadow(
                                 color: Color.fromRGBO(0, 0, 0, 0.03),
@@ -655,7 +655,7 @@ class _ServerListPageState extends State<ServerListPage> {
                           width: double.infinity,
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.zero,
                             boxShadow: const [
                               BoxShadow(
                                 color: Color.fromRGBO(0, 0, 0, 0.03),

@@ -224,7 +224,7 @@ class _RechargeRecordLoadingTile extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.zero,
       ),
       child: Row(
         children: [
@@ -299,7 +299,7 @@ class _RechargeRecordTile extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.zero,
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF191C1E).withValues(alpha: 0.04),

@@ -65,10 +65,14 @@ class WalletUi {
     );
   }
 
-  static BoxDecoration cardDecoration(BuildContext context, {Color? color}) {
+  static BoxDecoration cardDecoration(
+    BuildContext context, {
+    Color? color,
+    BorderRadius borderRadius = cardRadius,
+  }) {
     return BoxDecoration(
       color: color ?? Theme.of(context).colorScheme.surface,
-      borderRadius: cardRadius,
+      borderRadius: borderRadius,
       border: Border.fromBorderSide(cardBorder(context)),
       boxShadow: cardShadow(context),
     );

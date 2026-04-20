@@ -397,6 +397,9 @@ class _NotifyTradeDeliverSheetState extends State<NotifyTradeDeliverSheet> {
                         itemBuilder: (context, index) {
                           final order = _orders[index];
                           return Card(
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.zero,
+                            ),
                             child: Padding(
                               padding: const EdgeInsets.all(12),
                               child: Column(

@@ -77,6 +77,7 @@ class InventoryItemCard extends StatelessWidget {
 
     return Card(
       margin: EdgeInsets.zero,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,

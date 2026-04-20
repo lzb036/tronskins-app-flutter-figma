@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -58,7 +58,9 @@ class _WalletIntegralRecordPageState extends State<WalletIntegralRecordPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: WalletUi.pageBackground(context),
-      appBar: SettingsStyleAppBar(title: Text('app.user.wallet.integral_details'.tr)),
+      appBar: SettingsStyleAppBar(
+        title: Text('app.user.wallet.integral_details'.tr),
+      ),
       body: Obx(() {
         if (controller.isLoadingIntegralRecords.value &&
             controller.integralRecords.isEmpty) {
@@ -100,7 +102,10 @@ class _WalletIntegralRecordPageState extends State<WalletIntegralRecordPage> {
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
                       elevation: 0,
-                      shape: WalletUi.cardShape(context),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.zero,
+                        side: WalletUi.cardBorder(context),
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.all(14),
                         child: Column(

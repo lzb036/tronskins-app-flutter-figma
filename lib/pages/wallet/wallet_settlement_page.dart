@@ -254,10 +254,13 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
     );
   }
 
-  BoxDecoration _cardDecoration({Color color = _surfaceColor}) {
+  BoxDecoration _cardDecoration({
+    Color color = _surfaceColor,
+    BorderRadius borderRadius = const BorderRadius.all(Radius.circular(8)),
+  }) {
     return BoxDecoration(
       color: color,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: borderRadius,
       border: Border.all(color: _borderColor),
       boxShadow: const [
         BoxShadow(
@@ -507,12 +510,12 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
   ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: _cardDecoration(),
+      decoration: _cardDecoration(borderRadius: BorderRadius.zero),
       clipBehavior: Clip.antiAlias,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.zero,
           onTap: () => _openSettlementDetail(record),
           child: Padding(
             padding: const EdgeInsets.all(18),
@@ -721,7 +724,7 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
 
   Widget _buildSettlementSkeletonCard() {
     return Container(
-      decoration: _cardDecoration(),
+      decoration: _cardDecoration(borderRadius: BorderRadius.zero),
       padding: const EdgeInsets.all(21),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

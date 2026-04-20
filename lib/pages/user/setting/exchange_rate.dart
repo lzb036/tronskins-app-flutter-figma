@@ -139,14 +139,14 @@ class _ExchangeRatePageState extends State<ExchangeRatePage> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.zero,
         onTap: () => _ctrl.setCurrency(code),
         child: Container(
           constraints: const BoxConstraints(minHeight: 72),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.zero,
             border: Border.all(
               color: isCurrent
                   ? const Color.fromRGBO(0, 40, 142, 0.08)

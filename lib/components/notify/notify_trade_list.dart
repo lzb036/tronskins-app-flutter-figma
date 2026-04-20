@@ -160,7 +160,7 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
               ? const [Color(0xFFFFFFFF), Color(0xFFF2FBFF)]
               : const [Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
         ),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.zero,
         border: Border.all(
           color: isUnread
               ? const Color.fromRGBO(14, 165, 233, 0.18)
@@ -183,7 +183,7 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.zero,
           onTap: () => _openDetail(item),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
@@ -414,7 +414,7 @@ class _TradeSkeletonCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.zero,
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: const [
           BoxShadow(

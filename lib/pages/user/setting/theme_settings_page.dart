@@ -87,7 +87,7 @@ class _ThemeOptionCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.zero,
         boxShadow: const [
           BoxShadow(
             color: Color.fromRGBO(0, 0, 0, 0.05),
@@ -148,9 +148,9 @@ class _ThemeTile extends StatelessWidget {
 
     return Material(
       color: selected ? const Color.fromRGBO(239, 246, 255, 0.3) : Colors.white,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.zero,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.zero,
         onTap: onTap,
         child: SizedBox(
           height: 56,

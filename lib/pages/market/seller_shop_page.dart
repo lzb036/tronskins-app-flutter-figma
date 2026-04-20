@@ -1707,7 +1707,7 @@ class _SellerShopPageState extends State<SellerShopPage>
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: _surfaceCard,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.zero,
         boxShadow: const [
           BoxShadow(
             color: Color(0x0A0F172A),
@@ -2001,7 +2001,7 @@ class _SellerShopPageState extends State<SellerShopPage>
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: _surfaceCard,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.zero,
       ),
       child: Row(
         children: [

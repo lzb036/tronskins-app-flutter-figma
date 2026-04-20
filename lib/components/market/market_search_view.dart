@@ -606,11 +606,11 @@ class _MarketSearchViewState extends State<MarketSearchView> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.zero,
         onTap: () => _submit(keyword),
         child: Ink(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.zero,
             gradient: const LinearGradient(
               colors: [Color(0xFFEEF3FF), Color(0xFFF6F8FF)],
               begin: Alignment.topLeft,

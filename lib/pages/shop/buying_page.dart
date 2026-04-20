@@ -792,7 +792,7 @@ class _BuyingPageState extends State<BuyingPage>
   BoxDecoration _buildMyBuyingCardDecoration() {
     return BoxDecoration(
       color: _buyRecordSurfaceColor,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.zero,
       boxShadow: const [
         BoxShadow(
           color: Color.fromRGBO(0, 0, 0, 0.05),
@@ -808,7 +808,7 @@ class _BuyingPageState extends State<BuyingPage>
   }) {
     return BoxDecoration(
       color: color,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.zero,
       boxShadow: const [
         BoxShadow(
           color: Color.fromRGBO(0, 0, 0, 0.03),

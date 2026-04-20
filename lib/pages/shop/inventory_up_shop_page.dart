@@ -1163,7 +1163,7 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.zero,
         border: Border.all(color: const Color(0xFFF1F5F9)),
         boxShadow: const [
           BoxShadow(

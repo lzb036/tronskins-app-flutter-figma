@@ -1453,7 +1453,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.zero,
         boxShadow: const [
           BoxShadow(
             color: Color(0x120F172A),
@@ -3278,7 +3278,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.zero,
             boxShadow: const [
               BoxShadow(
                 color: Color(0x120F172A),
@@ -3968,7 +3968,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
                 Container(
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF242830) : Colors.white,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.zero,
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(
@@ -5088,7 +5088,7 @@ class _MarketOnSaleLoadingCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.zero,
         boxShadow: const [
           BoxShadow(
             color: Color(0x120F172A),

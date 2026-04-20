@@ -1580,7 +1580,7 @@ class _ShopPageState extends State<ShopPage>
       child: Ink(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.zero,
           border: Border.all(color: borderColor),
           boxShadow: const [
             BoxShadow(
@@ -1593,7 +1593,7 @@ class _ShopPageState extends State<ShopPage>
         child: onTap == null
             ? content
             : InkWell(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.zero,
                 onTap: onTap,
                 child: content,
               ),
@@ -1612,7 +1612,7 @@ class _ShopPageState extends State<ShopPage>
       child: Ink(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.zero,
           border: Border.all(color: const Color(0x99FFFFFF)),
           boxShadow: const [
             BoxShadow(
@@ -1625,7 +1625,7 @@ class _ShopPageState extends State<ShopPage>
         child: onTap == null
             ? content
             : InkWell(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.zero,
                 onTap: onTap,
                 child: content,
               ),
@@ -2459,7 +2459,7 @@ class _ShopPageState extends State<ShopPage>
       child: Ink(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.zero,
           border: Border.all(color: const Color(0xFFF0F0F0)),
           boxShadow: const [
             BoxShadow(
@@ -2477,7 +2477,7 @@ class _ShopPageState extends State<ShopPage>
           ],
         ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.zero,
           onTap: () => _openSellRecordDetail(record),
           child: Opacity(
             opacity: statusVisual.muted ? 0.84 : 1,

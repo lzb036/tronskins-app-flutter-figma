@@ -284,15 +284,15 @@ class _WithdrawRecordTile extends StatelessWidget {
     final statusText = _displayValue(item.statusName);
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.zero,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.zero,
         onTap: onTap,
         child: Ink(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.zero,
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF191C1E).withValues(alpha: 0.02),
@@ -754,7 +754,7 @@ class _WithdrawRecordLoadingTile extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.zero,
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF191C1E).withValues(alpha: 0.02),

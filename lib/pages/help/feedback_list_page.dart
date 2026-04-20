@@ -213,7 +213,7 @@ class _FeedbackTicketCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.zero,
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 15, 14, 15),
@@ -541,7 +541,7 @@ class _FeedbackStyle {
 
   static final cardDecoration = BoxDecoration(
     color: card,
-    borderRadius: BorderRadius.circular(18),
+    borderRadius: BorderRadius.zero,
     border: Border.all(color: border),
     boxShadow: softShadow,
   );
