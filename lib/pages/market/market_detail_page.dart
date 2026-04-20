@@ -1147,8 +1147,8 @@ class _MarketDetailPageState extends State<MarketDetailPage>
         tabs: [
           Tab(text: _figmaListingsTabLabel),
           Tab(text: _figmaTabBuyOrdersLabel),
-          Tab(text: _figmaTrendTabLabel),
           Tab(text: _figmaHistoryTabLabel),
+          Tab(text: _figmaTrendTabLabel),
         ],
       ),
     );
@@ -1283,8 +1283,8 @@ class _MarketDetailPageState extends State<MarketDetailPage>
                       children: [
                         _buildOnSaleTab(currency),
                         _buildBuyRequestTab(currency),
-                        _buildPriceTrendTab(),
                         _buildTransactionTab(currency),
+                        _buildPriceTrendTab(),
                       ],
                     ),
                   ),
@@ -4193,45 +4193,77 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     final paintIndex = _resolveTransactionPaintIndex(item);
     final paintWearValue = _resolveTransactionPaintWear(item);
     final exterior = _resolveTransactionExteriorLabel(item, paintWearValue);
-    final resolvedPaintSeed = paintSeed ?? '-';
-    final resolvedPaintIndex = paintIndex ?? '-';
-    final resolvedWear = paintWearValue?.toStringAsFixed(4) ?? '-';
-    final resolvedExterior = exterior ?? '-';
+    final chips = <_HistoryDetailChipData>[];
 
-    return <_HistoryDetailChipData>[
-      _HistoryDetailChipData(
-        value: resolvedPaintSeed,
-        backgroundColor: isDark
-            ? const Color(0xFF2A3854)
-            : const Color(0xFFEAF1FF),
-        textColor: isDark ? const Color(0xFFBFD3FF) : _figmaBlue700,
-        dimmed: resolvedPaintSeed == '-',
-      ),
-      _HistoryDetailChipData(
-        value: resolvedPaintIndex,
-        backgroundColor: isDark
-            ? const Color(0xFF2A313D)
-            : const Color(0xFFF1F5F9),
-        textColor: isDark ? const Color(0xFFD8E0EB) : _figmaSlate800,
-        dimmed: resolvedPaintIndex == '-',
-      ),
-      _HistoryDetailChipData(
-        value: resolvedWear,
-        backgroundColor: isDark
-            ? const Color(0xFF21392F)
-            : const Color(0xFFE9F8F2),
-        textColor: isDark ? const Color(0xFFB6E8D0) : _figmaGreen600,
-        dimmed: resolvedWear == '-',
-      ),
-      _HistoryDetailChipData(
-        value: resolvedExterior,
-        backgroundColor: isDark
-            ? const Color(0xFF3B311F)
-            : const Color(0xFFFFF1DD),
-        textColor: isDark ? const Color(0xFFFFD59D) : _figmaOrange,
-        dimmed: resolvedExterior == '-',
-      ),
-    ];
+    void addChip({
+      required String? value,
+      required int flex,
+      required Color lightBackgroundColor,
+      required Color darkBackgroundColor,
+      required Color lightTextColor,
+      required Color darkTextColor,
+    }) {
+      final normalized = _normalizeTransactionChipValue(value);
+      if (normalized == null) {
+        return;
+      }
+      chips.add(
+        _HistoryDetailChipData(
+          value: normalized,
+          flex: flex,
+          backgroundColor: isDark ? darkBackgroundColor : lightBackgroundColor,
+          textColor: isDark ? darkTextColor : lightTextColor,
+          dimmed: false,
+        ),
+      );
+    }
+
+    addChip(
+      value: paintSeed,
+      flex: 10,
+      lightBackgroundColor: const Color(0xFFEAF1FF),
+      darkBackgroundColor: const Color(0xFF2A3854),
+      lightTextColor: _figmaBlue700,
+      darkTextColor: const Color(0xFFBFD3FF),
+    );
+    addChip(
+      value: paintIndex,
+      flex: 10,
+      lightBackgroundColor: const Color(0xFFF1F5F9),
+      darkBackgroundColor: const Color(0xFF2A313D),
+      lightTextColor: _figmaSlate800,
+      darkTextColor: const Color(0xFFD8E0EB),
+    );
+    addChip(
+      value: paintWearValue?.toStringAsFixed(4),
+      flex: 12,
+      lightBackgroundColor: const Color(0xFFE9F8F2),
+      darkBackgroundColor: const Color(0xFF21392F),
+      lightTextColor: _figmaGreen600,
+      darkTextColor: const Color(0xFFB6E8D0),
+    );
+    addChip(
+      value: exterior,
+      flex: 18,
+      lightBackgroundColor: const Color(0xFFFFF1DD),
+      darkBackgroundColor: const Color(0xFF3B311F),
+      lightTextColor: _figmaOrange,
+      darkTextColor: const Color(0xFFFFD59D),
+    );
+
+    return chips;
+  }
+
+  String? _normalizeTransactionChipValue(String? value) {
+    final normalized = _cleanText(value);
+    if (normalized == null || normalized == '-') {
+      return null;
+    }
+    final numericValue = num.tryParse(normalized);
+    if (numericValue != null && numericValue == 0) {
+      return null;
+    }
+    return normalized;
   }
 
   String? _resolveTransactionPaintSeed(MarketListItem item) {
@@ -4932,33 +4964,19 @@ class _MarketDetailPageState extends State<MarketDetailPage>
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        Expanded(
-                          flex: 10,
-                          child: _buildTransactionDetailChip(
-                            chip: detailChips[0],
+                        for (
+                          var index = 0;
+                          index < detailChips.length;
+                          index++
+                        ) ...[
+                          if (index > 0) const SizedBox(width: 4),
+                          Expanded(
+                            flex: detailChips[index].flex,
+                            child: _buildTransactionDetailChip(
+                              chip: detailChips[index],
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          flex: 10,
-                          child: _buildTransactionDetailChip(
-                            chip: detailChips[1],
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          flex: 12,
-                          child: _buildTransactionDetailChip(
-                            chip: detailChips[2],
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          flex: 18,
-                          child: _buildTransactionDetailChip(
-                            chip: detailChips[3],
-                          ),
-                        ),
+                        ],
                       ],
                     ),
                   ],
@@ -5025,12 +5043,14 @@ class _HistoryStatusStyle {
 class _HistoryDetailChipData {
   const _HistoryDetailChipData({
     required this.value,
+    required this.flex,
     required this.backgroundColor,
     required this.textColor,
     this.dimmed = false,
   });
 
   final String value;
+  final int flex;
   final Color backgroundColor;
   final Color textColor;
   final bool dimmed;
