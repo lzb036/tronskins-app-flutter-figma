@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:tronskins_app/components/market/market_search_view.dart';
 
 class MarketSearchPage extends StatelessWidget {
@@ -22,8 +21,8 @@ class MarketSearchPage extends StatelessWidget {
           appId: appId,
           initialKeyword: initialKeyword,
           mode: MarketSearchViewMode.page,
-          onCancel: Get.back,
-          onSubmit: (keyword) => Get.back(result: keyword),
+          onCancel: () => Navigator.of(context).maybePop(),
+          onSubmit: (keyword) => Navigator.of(context).pop(keyword),
         ),
       ),
     );

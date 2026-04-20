@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
@@ -40,7 +40,10 @@ class _ShopRenamePageState extends State<ShopRenamePage> {
     setState(() => _isSaving = true);
     try {
       await controller.changeShopName(name);
-      Get.back();
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pop();
       AppSnackbar.success('app.system.message.success'.tr);
     } finally {
       if (mounted) {

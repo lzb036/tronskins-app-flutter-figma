@@ -99,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen>
                               color: AuthVisualStyle.text,
                               size: 20,
                             ),
-                            onPressed: () => Get.back(),
+                            onPressed: () => Navigator.of(context).maybePop(),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),

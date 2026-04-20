@@ -794,7 +794,10 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
             ? Get.find<BuyRequestController>()
             : null;
         FocusManager.instance.primaryFocus?.unfocus();
-        Get.back(result: true);
+        if (!mounted) {
+          return;
+        }
+        Navigator.of(context).pop(true);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           AppSnackbar.success('app.trade.purchase.message.success'.tr);
           buyRequestController?.refreshMyBuying();

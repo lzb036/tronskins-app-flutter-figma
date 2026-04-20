@@ -291,7 +291,10 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
       }
       shouldClosePage = true;
       FocusManager.instance.primaryFocus?.unfocus();
-      Get.back(result: true);
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pop(true);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         AppSnackbar.success('app.inventory.message.price_change_success'.tr);
       });

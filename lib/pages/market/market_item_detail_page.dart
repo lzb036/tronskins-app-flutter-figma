@@ -551,7 +551,10 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
         }
       }
       if (res.success) {
-        Get.back(result: true);
+        if (!mounted) {
+          return;
+        }
+        Navigator.of(context).pop(true);
       } else {
         AppSnackbar.error(
           res.message.isNotEmpty

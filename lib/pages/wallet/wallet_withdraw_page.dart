@@ -660,7 +660,10 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
                               account: account,
                             );
                             if (ok) {
-                              Get.back();
+                              if (!sheetContext.mounted) {
+                                return;
+                              }
+                              Navigator.of(sheetContext).pop();
                               AppSnackbar.success(
                                 'app.system.message.success'.tr,
                               );

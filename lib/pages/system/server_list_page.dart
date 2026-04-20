@@ -31,6 +31,7 @@ class _ServerListPageState extends State<ServerListPage> {
   List<ServerStorageItem> servers = <ServerStorageItem>[];
   String current = '';
   BuildContext? _connectivityDialogContext;
+  Future<void>? _connectivityDialogFuture;
   bool _connectivityDialogVisible = false;
 
   static const Color _pageBg = Color(0xFFF8F8FC);
@@ -194,39 +195,47 @@ class _ServerListPageState extends State<ServerListPage> {
   ) async {
     _connectivityDialogVisible = true;
     _connectivityDialogContext = null;
-    Get.dialog(
-      PopScope(
-        canPop: false,
-        child: Builder(
-          builder: (dialogContext) {
+    _connectivityDialogFuture =
+        showGeneralDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          barrierLabel: MaterialLocalizations.of(
+            context,
+          ).modalBarrierDismissLabel,
+          barrierColor: Colors.transparent,
+          transitionDuration: Duration.zero,
+          pageBuilder: (dialogContext, _, __) {
             _connectivityDialogContext = dialogContext;
-            return _ConnectivityCheckingDialog(
-              server: server,
-              progress: progress,
+            return PopScope(
+              canPop: false,
+              child: _ConnectivityCheckingDialog(
+                server: server,
+                progress: progress,
+              ),
             );
           },
-        ),
-      ),
-      barrierDismissible: false,
-    ).whenComplete(() {
-      _connectivityDialogVisible = false;
-      _connectivityDialogContext = null;
-    });
+        ).whenComplete(() {
+          _connectivityDialogVisible = false;
+          _connectivityDialogContext = null;
+          _connectivityDialogFuture = null;
+        });
     await WidgetsBinding.instance.endOfFrame;
   }
 
   Future<void> _closeConnectivityLoading() async {
     final dialogContext = _connectivityDialogContext;
-    if (!_connectivityDialogVisible ||
-        dialogContext == null ||
-        !dialogContext.mounted) {
-      return;
+    final dialogFuture = _connectivityDialogFuture;
+    if (_connectivityDialogVisible &&
+        dialogContext != null &&
+        dialogContext.mounted) {
+      Navigator.of(dialogContext).pop();
     }
-
-    // This dialog is wrapped in PopScope(canPop: false), so maybePop()
-    // would be vetoed by the route. Use a direct pop on the dialog route.
-    Navigator.of(dialogContext).pop();
-    await Future<void>.delayed(Duration.zero);
+    if (dialogFuture != null) {
+      await dialogFuture;
+    }
+    if (mounted) {
+      await WidgetsBinding.instance.endOfFrame;
+    }
   }
 
   Future<bool> _checkServerConnectivity(

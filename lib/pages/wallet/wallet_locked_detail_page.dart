@@ -612,7 +612,7 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
         if (mounted) {
           Future.delayed(const Duration(milliseconds: 900), () {
             if (mounted) {
-              Get.back();
+              Navigator.of(context).maybePop();
             }
           });
         }
@@ -671,7 +671,7 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
         _showTopSnack('app.system.message.success'.tr, isSuccess: true);
         await _loadDetail();
         if (mounted) {
-          Get.back();
+          Navigator.of(context).maybePop();
         }
         return;
       }

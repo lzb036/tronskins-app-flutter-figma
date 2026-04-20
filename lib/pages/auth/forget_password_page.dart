@@ -195,7 +195,9 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
       if (result.success) {
         _showSuccess('app.user.login.message.send_to_email'.tr);
         Future.delayed(const Duration(milliseconds: 800), () {
-          if (mounted) Get.back();
+          if (mounted) {
+            Navigator.of(context).maybePop();
+          }
         });
       } else {
         _showError(_resolveMessage(result, 'app.user.login.message.error'));
@@ -240,7 +242,7 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
                               color: AuthVisualStyle.text,
                               size: 20,
                             ),
-                            onPressed: () => Get.back(),
+                            onPressed: () => Navigator.of(context).maybePop(),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),

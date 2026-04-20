@@ -872,7 +872,7 @@ class ShopOrderDetailPage extends StatelessWidget {
                           : const [Color(0xFF1D4ED8), Color(0xFF3B82F6)],
                     ),
                     onTap: () => isPendingFlow
-                        ? _openPendingDeliverPage(order)
+                        ? _openPendingDeliverPage(context, order)
                         : canReceiveOrder
                         ? _handleReceiveOrder(context, order)
                         : canCancelOrder
@@ -1664,7 +1664,10 @@ class ShopOrderDetailPage extends StatelessWidget {
     );
   }
 
-  Future<void> _openPendingDeliverPage(ShopOrderItem order) async {
+  Future<void> _openPendingDeliverPage(
+    BuildContext context,
+    ShopOrderItem order,
+  ) async {
     if (order.id == null) {
       AppSnackbar.error('app.trade.filter.failed'.tr);
       return;
@@ -1709,7 +1712,10 @@ class ShopOrderDetailPage extends StatelessWidget {
         if (Get.isRegistered<ShopShippingNoticeController>()) {
           Get.find<ShopShippingNoticeController>().refreshPendingTotals();
         }
-        Get.back(result: true);
+        if (!context.mounted) {
+          return;
+        }
+        Navigator.of(context).pop(true);
         return;
       }
 
@@ -1796,7 +1802,10 @@ class ShopOrderDetailPage extends StatelessWidget {
             ? message.trim()
             : 'app.system.message.success'.tr,
       );
-      Get.back(result: true);
+      if (!context.mounted) {
+        return;
+      }
+      Navigator.of(context).pop(true);
     } catch (error) {
       AppSnackbar.error(_resolveActionErrorMessage(error));
     }
@@ -1852,7 +1861,10 @@ class ShopOrderDetailPage extends StatelessWidget {
       await controller.acceptTradeOffer(orderId);
       await controller.refreshBuyRecords();
       AppSnackbar.success('app.system.message.success'.tr);
-      Get.back(result: true);
+      if (!context.mounted) {
+        return;
+      }
+      Navigator.of(context).pop(true);
     } catch (error) {
       AppSnackbar.error(_resolveActionErrorMessage(error));
     }

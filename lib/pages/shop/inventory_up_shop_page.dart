@@ -634,7 +634,10 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
                 : 'app.trade.filter.failed'.tr);
 
       if (submitCode == 0 || submitCode == 200) {
-        Get.back();
+        if (!mounted) {
+          return;
+        }
+        Navigator.of(context).pop(true);
         AppSnackbar.success('app.inventory.message.upshop_success'.tr);
         return;
       }

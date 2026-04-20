@@ -235,7 +235,10 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
         AppSnackbar.success(
           'app.trade.deliver.message.steam_trade_url_success'.tr,
         );
-        Get.back(result: true);
+        if (!mounted) {
+          return;
+        }
+        Navigator.of(context).pop(true);
         return;
       }
 

@@ -342,7 +342,10 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
       final dataText = datas?.toString().trim();
       if (res.success) {
         FocusManager.instance.primaryFocus?.unfocus();
-        Get.back(result: true);
+        if (!mounted) {
+          return;
+        }
+        Navigator.of(context).pop(true);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           AppSnackbar.success('app.trade.supply.message.success'.tr);
         });
