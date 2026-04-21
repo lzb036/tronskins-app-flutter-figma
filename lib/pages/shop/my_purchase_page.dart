@@ -36,7 +36,6 @@ class MyPurchasePage extends StatefulWidget {
 class _MyPurchasePageState extends State<MyPurchasePage>
     with SingleTickerProviderStateMixin {
   static const double _loadMoreThreshold = 200;
-  static const Color _buyRecordCardBorderColor = Color(0xFFE2E8F0);
   static const Color _buyRecordCardTitleColor = Color(0xFF0F172A);
   static const Color _buyRecordRefreshColor = Color(0xFF1E40AF);
   static const Color _buyRecordRefreshSurfaceColor = Colors.white;
@@ -541,7 +540,6 @@ class _MyPurchasePageState extends State<MyPurchasePage>
     return BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.zero,
-      border: Border.all(color: _buyRecordCardBorderColor),
       boxShadow: const [
         BoxShadow(
           color: Color.fromRGBO(15, 23, 42, 0.05),

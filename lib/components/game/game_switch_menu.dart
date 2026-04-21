@@ -6,6 +6,17 @@ const Color _menuPanelFill = Colors.white;
 const Color _menuPanelBorder = Color(0xFFE7EBF2);
 const Color _menuSelectedFill = Color(0xFFF3F5F8);
 const Color _menuPressedFill = Color(0xFFF8FAFC);
+const Color _menuPendingDot = Color(0xFFFF9500);
+
+String _pendingCountLabel(int count) {
+  if (count <= 0) {
+    return '';
+  }
+  if (count > 99) {
+    return '99+';
+  }
+  return '$count';
+}
 
 Future<int?> showGameSwitchMenu({
   required BuildContext iconContext,
@@ -58,6 +69,7 @@ Future<int?> showGameSwitchMenu({
         showAbove: showAbove,
         width: panelWidth,
         currentAppId: currentAppId,
+        pendingTotalsByAppId: pendingTotalsByAppId,
       );
     },
   );
@@ -71,6 +83,7 @@ class _GameSwitchOverlay extends StatelessWidget {
     required this.showAbove,
     required this.width,
     required this.currentAppId,
+    this.pendingTotalsByAppId,
   });
 
   final Animation<double> animation;
@@ -79,6 +92,7 @@ class _GameSwitchOverlay extends StatelessWidget {
   final bool showAbove;
   final double width;
   final int currentAppId;
+  final Map<int, int>? pendingTotalsByAppId;
 
   @override
   Widget build(BuildContext context) {
@@ -113,6 +127,7 @@ class _GameSwitchOverlay extends StatelessWidget {
                   child: _GameSwitchPanel(
                     width: width,
                     currentAppId: currentAppId,
+                    pendingTotalsByAppId: pendingTotalsByAppId,
                   ),
                 ),
               ),
@@ -125,10 +140,15 @@ class _GameSwitchOverlay extends StatelessWidget {
 }
 
 class _GameSwitchPanel extends StatelessWidget {
-  const _GameSwitchPanel({required this.width, required this.currentAppId});
+  const _GameSwitchPanel({
+    required this.width,
+    required this.currentAppId,
+    this.pendingTotalsByAppId,
+  });
 
   final double width;
   final int currentAppId;
+  final Map<int, int>? pendingTotalsByAppId;
 
   @override
   Widget build(BuildContext context) {
@@ -157,13 +177,24 @@ class _GameSwitchPanel extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _GameOption(appId: 730, name: 'CS2', selected: currentAppId == 730),
+          _GameOption(
+            appId: 730,
+            name: 'CS2',
+            selected: currentAppId == 730,
+            pendingCount: pendingTotalsByAppId?[730] ?? 0,
+          ),
           _GameOption(
             appId: 570,
             name: 'Dota 2',
             selected: currentAppId == 570,
+            pendingCount: pendingTotalsByAppId?[570] ?? 0,
           ),
-          _GameOption(appId: 440, name: 'TF2', selected: currentAppId == 440),
+          _GameOption(
+            appId: 440,
+            name: 'TF2',
+            selected: currentAppId == 440,
+            pendingCount: pendingTotalsByAppId?[440] ?? 0,
+          ),
         ],
       ),
     );
@@ -175,11 +206,13 @@ class _GameOption extends StatelessWidget {
     required this.appId,
     required this.name,
     required this.selected,
+    this.pendingCount = 0,
   });
 
   final int appId;
   final String name;
   final bool selected;
+  final int pendingCount;
 
   @override
   Widget build(BuildContext context) {
@@ -215,15 +248,56 @@ class _GameOption extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: textStyle,
-                        ),
+                      padding: EdgeInsets.fromLTRB(
+                        12,
+                        0,
+                        selected ? 18 : 12,
+                        0,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: textStyle,
+                            ),
+                          ),
+                          if (pendingCount > 0) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              constraints: const BoxConstraints(minWidth: 18),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _menuPendingDot.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(999),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: _menuPendingDot.withValues(
+                                      alpha: 0.16,
+                                    ),
+                                    blurRadius: 6,
+                                    spreadRadius: 0.5,
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                _pendingCountLabel(pendingCount),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: _menuPendingDot,
+                                  fontSize: 10,
+                                  height: 1.2,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ),

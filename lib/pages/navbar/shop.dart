@@ -92,8 +92,12 @@ class _ShopPageState extends State<ShopPage>
   Worker? _shopStatusWorker;
   Worker? _shopTabVisibilityWorker;
   Worker? _gameWorker;
+  Worker? _pendingNoticeWorker;
+  Worker? _pendingLoadingWorker;
   bool _didResolveInitialOfflineDialog = false;
   bool _isShowingInitialOfflineDialog = false;
+  bool _pendingAutoRefreshScheduled = false;
+  final Map<int, int> _lastPendingTotalsByGame = <int, int>{};
   static const List<StatusOption> _statusOptions = [
     StatusOption(
       labelKey: 'app.market.filter.all',
@@ -125,6 +129,7 @@ class _ShopPageState extends State<ShopPage>
     _onSaleScroll.addListener(_handleOnSaleScroll);
     _pendingScroll.addListener(_handlePendingScroll);
     _recordScroll.addListener(_handleRecordScroll);
+    _lastPendingTotalsByGame.addAll(shippingNoticeController.snapshotTotals());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       MarketFilterSheet.preload(appId: _globalGameController.appId);
       _scheduleInitialOfflineDialogCheck();
@@ -157,6 +162,7 @@ class _ShopPageState extends State<ShopPage>
     _shopTabVisibilityWorker = ever<int>(navController.currentIndex, (index) {
       if (index == NavController.tabSell) {
         _scheduleInitialOfflineDialogCheck();
+        unawaited(_maybeAutoRefreshPendingList());
       }
     });
     _gameWorker = ever<int>(_globalGameController.currentAppId, (appId) {
@@ -164,6 +170,7 @@ class _ShopPageState extends State<ShopPage>
         return;
       }
       unawaited(MarketFilterSheet.preload(appId: appId));
+      _pendingAutoRefreshScheduled = false;
       if (userController.isLoggedIn.value) {
         salesController.refreshOnSale();
         orderController.refreshPending();
@@ -174,6 +181,7 @@ class _ShopPageState extends State<ShopPage>
     });
 
     if (userController.isLoggedIn.value) {
+      _pendingAutoRefreshScheduled = false;
       salesController.refreshOnSale();
       orderController.refreshPending();
       salesController.refreshSellRecords();
@@ -184,13 +192,30 @@ class _ShopPageState extends State<ShopPage>
       _didResolveInitialOfflineDialog = false;
       _isShowingInitialOfflineDialog = false;
       if (loggedIn) {
+        _pendingAutoRefreshScheduled = false;
         salesController.refreshOnSale();
         orderController.refreshPending();
         salesController.refreshSellRecords();
         shippingNoticeController.refreshPendingTotals();
         _scheduleInitialOfflineDialogCheck();
+      } else {
+        _pendingAutoRefreshScheduled = false;
+        _lastPendingTotalsByGame
+          ..clear()
+          ..addAll(shippingNoticeController.snapshotTotals());
       }
       _syncSelectionActionBar();
+    });
+    _pendingNoticeWorker = ever<Map<int, int>>(
+      shippingNoticeController.pendingTotalsByGame,
+      _handlePendingNoticeTotalsChanged,
+    );
+    _pendingLoadingWorker = ever<bool>(orderController.isLoadingPending, (
+      loading,
+    ) {
+      if (!loading) {
+        unawaited(_maybeAutoRefreshPendingList());
+      }
     });
     _syncSelectionActionBar();
   }
@@ -216,6 +241,8 @@ class _ShopPageState extends State<ShopPage>
     _shopStatusWorker?.dispose();
     _shopTabVisibilityWorker?.dispose();
     _gameWorker?.dispose();
+    _pendingNoticeWorker?.dispose();
+    _pendingLoadingWorker?.dispose();
     _bottomBarController.hideForTab(NavController.tabSell);
     super.dispose();
   }
@@ -249,6 +276,43 @@ class _ShopPageState extends State<ShopPage>
     final isCurrentRoute = route?.isCurrent ?? true;
     return navController.currentIndex.value == NavController.tabSell &&
         isCurrentRoute;
+  }
+
+  void _handlePendingNoticeTotalsChanged(Map<int, int> totals) {
+    final snapshot = Map<int, int>.from(totals);
+    final currentAppId = _globalGameController.currentAppId.value;
+    final previousCount = _lastPendingTotalsByGame[currentAppId] ?? 0;
+    final nextCount = snapshot[currentAppId] ?? 0;
+    _lastPendingTotalsByGame
+      ..clear()
+      ..addAll(snapshot);
+
+    if (!mounted || !userController.isLoggedIn.value) {
+      return;
+    }
+    if (previousCount == nextCount) {
+      return;
+    }
+
+    _pendingAutoRefreshScheduled = true;
+    unawaited(_maybeAutoRefreshPendingList());
+  }
+
+  Future<void> _maybeAutoRefreshPendingList() async {
+    if (!mounted ||
+        !userController.isLoggedIn.value ||
+        !_pendingAutoRefreshScheduled ||
+        !_isShopPageVisible() ||
+        orderController.isLoadingPending.value) {
+      return;
+    }
+
+    _pendingAutoRefreshScheduled = false;
+    try {
+      await orderController.refreshPending();
+    } catch (_) {
+      _pendingAutoRefreshScheduled = true;
+    }
   }
 
   void _maybeShowInitialOfflineDialog() {
@@ -331,6 +395,7 @@ class _ShopPageState extends State<ShopPage>
       }
     });
     _syncSelectionActionBar();
+    unawaited(_maybeAutoRefreshPendingList());
   }
 
   void _handleOnSaleScroll() {
@@ -1164,6 +1229,16 @@ class _ShopPageState extends State<ShopPage>
     };
   }
 
+  String _pendingCountBadgeText(int count) {
+    if (count <= 0) {
+      return '';
+    }
+    if (count > 99) {
+      return '99+';
+    }
+    return '$count';
+  }
+
   Widget _buildTopIconAction({
     required IconData icon,
     required String tooltip,
@@ -1450,61 +1525,100 @@ class _ShopPageState extends State<ShopPage>
   Widget _buildGameSwitchTrigger() {
     return Obx(() {
       final appId = _globalGameController.currentAppId.value;
-      final showPendingDot = shippingNoticeController.hasOtherPending(appId);
+      final pendingTotals = shippingNoticeController.snapshotTotals();
+      final totalPendingCount = pendingTotals.values.fold<int>(
+        0,
+        (sum, count) => sum + (count > 0 ? count : 0),
+      );
+      final showPendingDot = totalPendingCount > 0;
+      final badgeText = _pendingCountBadgeText(totalPendingCount);
       return Builder(
         builder: (switchContext) {
-          return _buildTopActionWithDot(
-            visible: showPendingDot,
-            dotColor: _pendingNoticeDot,
-            right: 4,
-            top: 5,
-            size: 9,
-            glow: true,
-            child: Material(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(10),
-              child: InkWell(
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Material(
+                color: Colors.transparent,
                 borderRadius: BorderRadius.circular(10),
-                onTap: () async {
-                  final selected = await showGameSwitchMenu(
-                    iconContext: switchContext,
-                    currentAppId: appId,
-                    pendingTotalsByAppId: shippingNoticeController
-                        .snapshotTotals(),
-                  );
-                  if (selected == null) {
-                    return;
-                  }
-                  await _globalGameController.switchGame(selected);
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _gameLabelForAppId(appId),
-                        style: const TextStyle(
-                          color: Color(0xFF191C1E),
-                          fontSize: 14,
-                          height: 20 / 14,
-                          fontWeight: FontWeight.w700,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () async {
+                    final selected = await showGameSwitchMenu(
+                      iconContext: switchContext,
+                      currentAppId: appId,
+                      pendingTotalsByAppId: pendingTotals,
+                    );
+                    if (selected == null) {
+                      return;
+                    }
+                    await _globalGameController.switchGame(selected);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _gameLabelForAppId(appId),
+                          style: const TextStyle(
+                            color: Color(0xFF191C1E),
+                            fontSize: 14,
+                            height: 20 / 14,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        size: 18,
-                        color: Color(0xFF191C1E),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 18,
+                          color: Color(0xFF191C1E),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
+              if (showPendingDot)
+                Positioned(
+                  top: 2,
+                  right: 0,
+                  child: Container(
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _pendingNoticeDot,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: Colors.white, width: 1.2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _pendingNoticeDot.withValues(alpha: 0.28),
+                          blurRadius: 8,
+                          spreadRadius: 0.5,
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      badgeText,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        height: 1.0,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           );
         },
       );
@@ -1578,20 +1692,42 @@ class _ShopPageState extends State<ShopPage>
     );
   }
 
-  Widget _buildEmptyStateView({
+  Widget _buildRefreshableEmptyStateView({
+    required String storageKey,
+    required ScrollController controller,
+    required Future<void> Function() onRefresh,
     required IconData icon,
     required String title,
     required String subtitle,
   }) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 32),
-      child: SizedBox.expand(
-        child: MarketEmptyState(
-          title: title,
-          subtitle: subtitle,
-          icon: icon,
-          blendWithBackground: true,
+    return RefreshIndicator(
+      color: const Color(0xFF00288E),
+      backgroundColor: Colors.white,
+      strokeWidth: 2.2,
+      displacement: 22,
+      edgeOffset: 2,
+      elevation: 0,
+      onRefresh: onRefresh,
+      child: CustomScrollView(
+        key: PageStorageKey<String>(storageKey),
+        controller: controller,
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: ClampingScrollPhysics(),
         ),
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 32),
+            sliver: SliverFillRemaining(
+              hasScrollBody: false,
+              child: MarketEmptyState(
+                title: title,
+                subtitle: subtitle,
+                icon: icon,
+                blendWithBackground: true,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1946,7 +2082,10 @@ class _ShopPageState extends State<ShopPage>
         return _buildOnSaleLoadingView();
       }
       if (salesController.onSaleItems.isEmpty) {
-        return _buildEmptyStateView(
+        return _buildRefreshableEmptyStateView(
+          storageKey: 'shop-on-sale-empty',
+          controller: _onSaleScroll,
+          onRefresh: salesController.refreshOnSale,
           icon: Icons.storefront_outlined,
           title: _shopEmptyTitle(_ShopTabFilter.onSale),
           subtitle: _shopEmptySubtitle,
@@ -2022,7 +2161,10 @@ class _ShopPageState extends State<ShopPage>
         return _buildPendingLoadingView();
       }
       if (orderController.pendingShipments.isEmpty) {
-        return _buildEmptyStateView(
+        return _buildRefreshableEmptyStateView(
+          storageKey: 'shop-pending-empty',
+          controller: _pendingScroll,
+          onRefresh: orderController.refreshPending,
           icon: Icons.local_shipping_outlined,
           title: _shopEmptyTitle(_ShopTabFilter.pending),
           subtitle: _shopEmptySubtitle,
@@ -2396,7 +2538,10 @@ class _ShopPageState extends State<ShopPage>
               return _buildSellRecordLoadingView();
             }
             if (salesController.sellRecords.isEmpty) {
-              return _buildEmptyStateView(
+              return _buildRefreshableEmptyStateView(
+                storageKey: 'shop-record-empty',
+                controller: _recordScroll,
+                onRefresh: salesController.refreshSellRecords,
                 icon: Icons.receipt_long_outlined,
                 title: _shopEmptyTitle(_ShopTabFilter.saleRecord),
                 subtitle: _shopEmptySubtitle,
