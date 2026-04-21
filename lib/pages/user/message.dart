@@ -16,8 +16,11 @@ class UserMessage extends StatefulWidget {
 
 class _UserMessageState extends State<UserMessage>
     with SingleTickerProviderStateMixin {
-  static const _pageBg = Color(0xFFF7F9FB);
-  static const _brandColor = Color(0xFF1E40AF);
+  static const Color _pageBg = Color(0xFFF7F9FB);
+  static const Color _brandColor = Color(0xFF1E40AF);
+  static const Color _brandAccent = Color(0xFF00288E);
+  static const Color _textSecondary = Color(0xFF444653);
+  static const Color _tabDivider = Color.fromRGBO(196, 197, 213, 0.10);
 
   final NotifyController _controller = Get.isRegistered<NotifyController>()
       ? Get.find<NotifyController>()
@@ -117,6 +120,7 @@ class _UserMessageState extends State<UserMessage>
   Widget _buildTopNavigation() {
     return SettingsStyleTopNavigation(
       title: 'app.system.notice.title'.tr,
+      horizontalPadding: 20,
       actions: [
         _TopActionButton(
           icon: Icons.mark_email_read_rounded,
@@ -124,7 +128,7 @@ class _UserMessageState extends State<UserMessage>
           tooltip: 'app.system.notice.readall'.tr,
         ),
         if (_selectedTab == 0) ...[
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           _TopActionButton(
             icon: Icons.delete_outline_rounded,
             onTap: _clearTrade,
@@ -136,15 +140,22 @@ class _UserMessageState extends State<UserMessage>
   }
 
   Widget _buildPageHeader() {
+    final topOffset = MediaQuery.paddingOf(context).top + 64;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 96, 0, 10),
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 672),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: _buildMessageTabBar(context),
+      padding: EdgeInsets.only(top: topOffset),
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: _pageBg,
+          border: Border(bottom: BorderSide(color: _tabDivider)),
+        ),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 672),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: _buildMessageTabBar(context),
+            ),
           ),
         ),
       ),
@@ -160,27 +171,70 @@ class _UserMessageState extends State<UserMessage>
       padding: const EdgeInsets.symmetric(horizontal: 16),
       tabAlignment: TabAlignment.start,
       indicatorSize: TabBarIndicatorSize.label,
-      indicatorColor: const Color(0xFF00288E),
+      indicatorColor: _brandAccent,
       indicatorWeight: 2,
       dividerColor: Colors.transparent,
-      labelPadding: const EdgeInsets.only(right: 28, bottom: 2),
+      labelPadding: const EdgeInsets.only(right: 32),
       splashFactory: NoSplash.splashFactory,
-      labelColor: const Color(0xFF00288E),
-      unselectedLabelColor: const Color(0xFF444653),
+      labelColor: _brandAccent,
+      unselectedLabelColor: _textSecondary,
       labelStyle: theme.textTheme.titleSmall?.copyWith(
-        fontSize: 16,
-        height: 24 / 16,
-        fontWeight: FontWeight.w700,
+        fontSize: 14,
+        height: 20 / 14,
+        fontWeight: FontWeight.w600,
       ),
       unselectedLabelStyle: theme.textTheme.titleSmall?.copyWith(
-        fontSize: 16,
-        height: 24 / 16,
+        fontSize: 14,
+        height: 20 / 14,
         fontWeight: FontWeight.w500,
       ),
       tabs: [
-        Tab(height: 30, text: 'app.system.notice.trade_tab'.tr),
-        Tab(height: 30, text: 'app.system.notice.announcement'.tr),
+        Tab(height: 52, text: 'app.system.notice.trade_tab'.tr),
+        Tab(height: 52, text: 'app.system.notice.announcement'.tr),
       ],
+    );
+  }
+
+  Widget _buildAtmosphericBackground() {
+    return IgnorePointer(
+      child: Stack(
+        children: [
+          Positioned(
+            top: -108,
+            right: -76,
+            child: Container(
+              width: 236,
+              height: 236,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    Color.fromRGBO(30, 64, 175, 0.12),
+                    Color.fromRGBO(30, 64, 175, 0.00),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 190,
+            left: -68,
+            child: Container(
+              width: 180,
+              height: 180,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    Color.fromRGBO(255, 255, 255, 0.92),
+                    Color.fromRGBO(255, 255, 255, 0.00),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -190,6 +244,8 @@ class _UserMessageState extends State<UserMessage>
       backgroundColor: _pageBg,
       body: Stack(
         children: [
+          const Positioned.fill(child: ColoredBox(color: _pageBg)),
+          Positioned.fill(child: _buildAtmosphericBackground()),
           Positioned.fill(
             child: Column(
               children: [
@@ -230,28 +286,16 @@ class _TopActionButton extends StatelessWidget {
       message: tooltip,
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
+        child: InkResponse(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(999),
-          child: Ink(
+          radius: 18,
+          highlightShape: BoxShape.circle,
+          splashColor: _UserMessageState._brandColor.withValues(alpha: 0.10),
+          highlightColor: Colors.transparent,
+          child: SizedBox(
             width: 32,
             height: 32,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: const Color.fromRGBO(30, 64, 175, 0.08),
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color.fromRGBO(15, 23, 42, 0.05),
-                  blurRadius: 12,
-                  spreadRadius: -8,
-                  offset: Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Icon(icon, size: 18, color: _UserMessageState._brandColor),
+            child: Icon(icon, size: 20, color: Color(0xFF64748B)),
           ),
         ),
       ),

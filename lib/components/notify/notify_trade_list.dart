@@ -18,9 +18,21 @@ class NotifyTradeList extends StatefulWidget {
 }
 
 class _NotifyTradeListState extends State<NotifyTradeList> {
-  final ScrollController _scrollController = ScrollController();
   static const int _skeletonCount = 4;
   static const int _loadMoreSkeletonCount = 2;
+
+  static const Color _cardBorder = Color.fromRGBO(196, 197, 213, 0.08);
+  static const Color _cardShadow = Color.fromRGBO(0, 0, 0, 0.02);
+  static const Color _iconBackground = Color(0xFFD8E2FF);
+  static const Color _iconColor = Color(0xFF1D5DD6);
+  static const Color _messageColor = Color(0xFF191C1E);
+  static const Color _timeColor = Color(0xFF444653);
+  static const Color _emptyHintColor = Color(0xFF757684);
+  static const Color _chevronColor = Color(0xFFC4C5D5);
+  static const Color _unreadDotColor = Color(0xFFBA1A1A);
+  static const Color _accentBlue = Color(0xFF1E40AF);
+
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -118,15 +130,47 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
         .trim();
   }
 
+  _TradeMessageIconSpec _resolveTradeIcon(TradeNotifyItem item) {
+    final type = item.type;
+    final plainMessage = _stripHtml(item.message).toLowerCase();
+
+    if (type == 1) {
+      return const _TradeMessageIconSpec(icon: Icons.swap_horiz_rounded);
+    }
+    if (type == 3 || type == 31) {
+      return const _TradeMessageIconSpec(icon: Icons.inventory_2_outlined);
+    }
+    if (plainMessage.contains('充值') ||
+        plainMessage.contains('recharge') ||
+        plainMessage.contains('到账')) {
+      return const _TradeMessageIconSpec(
+        icon: Icons.account_balance_wallet_outlined,
+      );
+    }
+    if (plainMessage.contains('安全') ||
+        plainMessage.contains('security') ||
+        plainMessage.contains('登录') ||
+        plainMessage.contains('device')) {
+      return const _TradeMessageIconSpec(icon: Icons.shield_outlined);
+    }
+    if (plainMessage.contains('deliver') ||
+        plainMessage.contains('ship') ||
+        plainMessage.contains('发货') ||
+        plainMessage.contains('收货')) {
+      return const _TradeMessageIconSpec(icon: Icons.inventory_2_outlined);
+    }
+    return const _TradeMessageIconSpec(icon: Icons.notifications_none_rounded);
+  }
+
   Widget _buildMessagePreview(TradeNotifyItem item) {
     final message = _stripHtml(item.message);
     if (message.isEmpty) {
       return Text(
         'app.common.no_data'.tr,
-        maxLines: 1,
+        maxLines: 2,
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(
-          color: Color(0xFF94A3B8),
+          color: _emptyHintColor,
           fontSize: 13,
           fontWeight: FontWeight.w500,
           height: 18 / 13,
@@ -136,13 +180,13 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
 
     return Text(
       message,
-      maxLines: 1,
+      maxLines: 2,
       overflow: TextOverflow.ellipsis,
       style: const TextStyle(
-        color: Color(0xFF0F172A),
+        color: _messageColor,
         fontSize: 14,
         fontWeight: FontWeight.w500,
-        height: 22 / 14,
+        height: 19.25 / 14,
       ),
     );
   }
@@ -150,116 +194,90 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
   Widget _buildTradeCard(BuildContext context, TradeNotifyItem item) {
     final isUnread = !item.read;
     final time = _formatTime(item.createTime);
+    final iconSpec = _resolveTradeIcon(item);
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isUnread
-              ? const [Color(0xFFFFFFFF), Color(0xFFF2FBFF)]
-              : const [Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
-        ),
-        borderRadius: BorderRadius.zero,
-        border: Border.all(
-          color: isUnread
-              ? const Color.fromRGBO(14, 165, 233, 0.18)
-              : const Color(0xFFE2E8F0),
-        ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _cardBorder),
         boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(15, 23, 42, 0.04),
-            blurRadius: 20,
-            spreadRadius: -14,
-            offset: Offset(0, 14),
-          ),
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.04),
-            blurRadius: 2,
-            offset: Offset(0, 1),
-          ),
+          BoxShadow(color: _cardShadow, blurRadius: 20, offset: Offset(0, 4)),
         ],
       ),
       child: Material(
         color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
         child: InkWell(
-          borderRadius: BorderRadius.zero,
           onTap: () => _openDetail(item),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: isUnread
-                        ? const Color(0xFFA5F3FC)
-                        : const Color(0xFFE2E8F0),
-                    shape: BoxShape.circle,
+          borderRadius: BorderRadius.circular(12),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 90),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 18, 20),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: iconSpec.backgroundColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      iconSpec.icon,
+                      size: 22,
+                      color: iconSpec.iconColor,
+                    ),
                   ),
-                  child: Icon(
-                    Icons.swap_horiz_rounded,
-                    size: 22,
-                    color: isUnread
-                        ? const Color(0xFF0F172A)
-                        : const Color(0xFF475569),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color.fromRGBO(
-                                    148,
-                                    163,
-                                    184,
-                                    0.10,
-                                  ),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Text(
-                                  time,
-                                  style: const TextStyle(
-                                    color: Color(0xFF64748B),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    height: 16 / 12,
-                                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                time,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: _timeColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  height: 16 / 12,
+                                  letterSpacing: 0.6,
+                                  fontFeatures: [FontFeature.tabularFigures()],
                                 ),
                               ),
                             ),
-                          ),
-                          if (isUnread) ...[
-                            const _ReadDot(),
-                            const SizedBox(width: 8),
+                            if (isUnread) ...[
+                              const Padding(
+                                padding: EdgeInsets.only(top: 3),
+                                child: _ReadDot(),
+                              ),
+                              const SizedBox(width: 12),
+                            ],
+                            const Padding(
+                              padding: EdgeInsets.only(top: 2),
+                              child: Icon(
+                                Icons.chevron_right_rounded,
+                                size: 18,
+                                color: _chevronColor,
+                              ),
+                            ),
                           ],
-                          const Icon(
-                            Icons.chevron_right_rounded,
-                            size: 20,
-                            color: Color(0xFF94A3B8),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      _buildMessagePreview(item),
-                    ],
+                        ),
+                        const SizedBox(height: 4),
+                        _buildMessagePreview(item),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -271,7 +289,7 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
     return ListView(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
       children: [
         const SizedBox(height: 120),
         _NotifyEmptyState(
@@ -286,9 +304,9 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
     return ListView.separated(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
       itemCount: count,
-      separatorBuilder: (_, __) => const SizedBox(height: 14),
+      separatorBuilder: (_, __) => const SizedBox(height: 16),
       itemBuilder: (_, __) => const _TradeSkeletonCard(),
     );
   }
@@ -312,6 +330,7 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 672),
           child: RefreshIndicator(
+            color: _accentBlue,
             onRefresh: () => widget.controller.loadTradeList(refresh: true),
             child: showSkeletonList
                 ? _buildSkeletonList()
@@ -321,13 +340,13 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
                     child: ListView.builder(
                       controller: _scrollController,
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
                       itemCount: list.length + footerCount,
                       itemBuilder: (context, index) {
                         if (index >= list.length) {
                           if (showLoadingFooter) {
                             return const Padding(
-                              padding: EdgeInsets.only(bottom: 14),
+                              padding: EdgeInsets.only(bottom: 16),
                               child: _TradeSkeletonCard(),
                             );
                           }
@@ -342,7 +361,7 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
                             item.id != null && item.id!.isNotEmpty;
 
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
+                          padding: const EdgeInsets.only(bottom: 16),
                           child: Slidable(
                             key: ValueKey(
                               item.id ??
@@ -352,7 +371,7 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
                             endActionPane: canDelete
                                 ? ActionPane(
                                     motion: const StretchMotion(),
-                                    extentRatio: 0.42,
+                                    extentRatio: 0.34,
                                     children: [
                                       SlidableAction(
                                         onPressed: (_) => _handleDelete(item),
@@ -362,11 +381,7 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
                                         foregroundColor: Colors.white,
                                         icon: Icons.delete_outline_rounded,
                                         label: 'app.common.delete'.tr,
-                                        borderRadius:
-                                            const BorderRadius.horizontal(
-                                              left: Radius.circular(20),
-                                              right: Radius.circular(20),
-                                            ),
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
                                     ],
                                   )
@@ -394,7 +409,10 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
           child: SizedBox(
             width: 22,
             height: 22,
-            child: CircularProgressIndicator(strokeWidth: 2.2),
+            child: CircularProgressIndicator(
+              strokeWidth: 2.2,
+              color: _accentBlue,
+            ),
           ),
         ),
       );
@@ -406,6 +424,16 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
   }
 }
 
+class _TradeMessageIconSpec {
+  const _TradeMessageIconSpec({required this.icon});
+
+  final IconData icon;
+
+  Color get backgroundColor => _NotifyTradeListState._iconBackground;
+
+  Color get iconColor => _NotifyTradeListState._iconColor;
+}
+
 class _TradeSkeletonCard extends StatelessWidget {
   const _TradeSkeletonCard();
 
@@ -414,35 +442,34 @@ class _TradeSkeletonCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.zero,
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _NotifyTradeListState._cardBorder),
         boxShadow: const [
           BoxShadow(
-            color: Color.fromRGBO(15, 23, 42, 0.04),
+            color: _NotifyTradeListState._cardShadow,
             blurRadius: 20,
-            spreadRadius: -14,
-            offset: Offset(0, 14),
+            offset: Offset(0, 4),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+        padding: const EdgeInsets.fromLTRB(20, 20, 18, 20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _NotifySkeletonBox(width: 46, height: 46, radius: 23),
-            const SizedBox(width: 14),
+            const _NotifySkeletonBox(width: 48, height: 48, radius: 24),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
                   Row(
                     children: [
-                      _NotifySkeletonBox(width: 128, height: 28, radius: 999),
+                      _NotifySkeletonBox(width: 112, height: 12, radius: 6),
                       Spacer(),
-                      _NotifySkeletonBox(width: 10, height: 10, radius: 5),
-                      SizedBox(width: 8),
-                      _NotifySkeletonBox(width: 18, height: 18, radius: 9),
+                      _NotifySkeletonBox(width: 8, height: 8, radius: 4),
+                      SizedBox(width: 12),
+                      _NotifySkeletonBox(width: 16, height: 16, radius: 8),
                     ],
                   ),
                   SizedBox(height: 10),
@@ -451,6 +478,8 @@ class _TradeSkeletonCard extends StatelessWidget {
                     height: 14,
                     radius: 7,
                   ),
+                  SizedBox(height: 6),
+                  _NotifySkeletonBox(width: 168, height: 14, radius: 7),
                 ],
               ),
             ),
@@ -478,7 +507,7 @@ class _NotifySkeletonBox extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: const Color(0xFFE2E8F0),
+        color: const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(radius),
       ),
     );
@@ -499,16 +528,16 @@ class _NotifyEmptyState extends StatelessWidget {
           width: 72,
           height: 72,
           decoration: const BoxDecoration(
-            color: Color(0xFFEFF6FF),
+            color: _NotifyTradeListState._iconBackground,
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: 30, color: Color(0xFF3B82F6)),
+          child: Icon(icon, size: 30, color: _NotifyTradeListState._iconColor),
         ),
         const SizedBox(height: 18),
         Text(
           title,
           style: const TextStyle(
-            color: Color(0xFF334155),
+            color: _NotifyTradeListState._messageColor,
             fontSize: 15,
             fontWeight: FontWeight.w700,
             height: 20 / 15,
@@ -518,7 +547,7 @@ class _NotifyEmptyState extends StatelessWidget {
         Text(
           'app.common.no_data'.tr,
           style: const TextStyle(
-            color: Color(0xFF94A3B8),
+            color: _NotifyTradeListState._emptyHintColor,
             fontSize: 12,
             fontWeight: FontWeight.w500,
             height: 18 / 12,
@@ -535,12 +564,11 @@ class _ReadDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 10,
-      height: 10,
-      decoration: BoxDecoration(
-        color: const Color(0xFFDC2626),
+      width: 8,
+      height: 8,
+      decoration: const BoxDecoration(
+        color: _NotifyTradeListState._unreadDotColor,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 1.5),
       ),
     );
   }

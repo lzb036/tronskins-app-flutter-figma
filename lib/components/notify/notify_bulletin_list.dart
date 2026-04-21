@@ -16,9 +16,21 @@ class NotifyBulletinList extends StatefulWidget {
 }
 
 class _NotifyBulletinListState extends State<NotifyBulletinList> {
-  final ScrollController _scrollController = ScrollController();
   static const int _skeletonCount = 4;
   static const int _loadMoreSkeletonCount = 2;
+
+  static const Color _cardBorder = Color.fromRGBO(196, 197, 213, 0.08);
+  static const Color _cardShadow = Color.fromRGBO(0, 0, 0, 0.02);
+  static const Color _iconBackground = Color(0xFFD8E2FF);
+  static const Color _iconColor = Color(0xFF1D5DD6);
+  static const Color _titleColor = Color(0xFF191C1E);
+  static const Color _timeColor = Color(0xFF444653);
+  static const Color _emptyHintColor = Color(0xFF757684);
+  static const Color _chevronColor = Color(0xFFC4C5D5);
+  static const Color _unreadDotColor = Color(0xFFBA1A1A);
+  static const Color _accentBlue = Color(0xFF1E40AF);
+
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -52,32 +64,24 @@ class _NotifyBulletinListState extends State<NotifyBulletinList> {
     ).format(DateTime.fromMillisecondsSinceEpoch(ts));
   }
 
-  Widget _buildNoticeCard(NoticeMessageItem item) {
+  Widget _buildNoticeCard(BuildContext context, NoticeMessageItem item) {
     final isUnread = !item.isRead;
     final time = _formatTime(item.createTime);
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.zero,
-        border: Border.all(
-          color: isUnread
-              ? const Color.fromRGBO(22, 163, 74, 0.18)
-              : const Color(0xFFE2E8F0),
-        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _cardBorder),
         boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(15, 23, 42, 0.04),
-            blurRadius: 18,
-            spreadRadius: -14,
-            offset: Offset(0, 14),
-          ),
+          BoxShadow(color: _cardShadow, blurRadius: 20, offset: Offset(0, 4)),
         ],
       ),
       child: Material(
         color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
         child: InkWell(
-          borderRadius: BorderRadius.zero,
+          borderRadius: BorderRadius.circular(12),
           onTap: () async {
             await widget.controller.readNotice(item);
             final id = item.id;
@@ -85,79 +89,83 @@ class _NotifyBulletinListState extends State<NotifyBulletinList> {
               Get.toNamed(Routers.NOTICE_DETAIL, arguments: id);
             }
           },
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: isUnread
-                        ? const Color.fromRGBO(34, 197, 94, 0.12)
-                        : const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(14),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 90),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 18, 20),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: const BoxDecoration(
+                      color: _iconBackground,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.campaign_outlined,
+                      size: 22,
+                      color: _iconColor,
+                    ),
                   ),
-                  child: Icon(
-                    Icons.campaign_outlined,
-                    size: 20,
-                    color: isUnread
-                        ? const Color(0xFF15803D)
-                        : const Color(0xFF64748B),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.title ?? '',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF0F172A),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          height: 22 / 15,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color.fromRGBO(148, 163, 184, 0.10),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              time,
-                              style: const TextStyle(
-                                color: Color(0xFF64748B),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                height: 16 / 12,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                time,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: _timeColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  height: 16 / 12,
+                                  letterSpacing: 0.6,
+                                  fontFeatures: [FontFeature.tabularFigures()],
+                                ),
                               ),
                             ),
+                            if (isUnread) ...[
+                              const Padding(
+                                padding: EdgeInsets.only(top: 3),
+                                child: _ReadDot(),
+                              ),
+                              const SizedBox(width: 12),
+                            ],
+                            const Padding(
+                              padding: EdgeInsets.only(top: 2),
+                              child: Icon(
+                                Icons.chevron_right_rounded,
+                                size: 18,
+                                color: _chevronColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          item.title ?? '',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _titleColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            height: 19.25 / 14,
                           ),
-                          const Spacer(),
-                          if (isUnread) const _ReadDot(),
-                          const SizedBox(width: 8),
-                          const Icon(
-                            Icons.chevron_right_rounded,
-                            size: 20,
-                            color: Color(0xFF94A3B8),
-                          ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -169,7 +177,7 @@ class _NotifyBulletinListState extends State<NotifyBulletinList> {
     return ListView(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
       children: [
         const SizedBox(height: 120),
         _NotifyEmptyState(
@@ -184,9 +192,9 @@ class _NotifyBulletinListState extends State<NotifyBulletinList> {
     return ListView.separated(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
       itemCount: count,
-      separatorBuilder: (_, __) => const SizedBox(height: 14),
+      separatorBuilder: (_, __) => const SizedBox(height: 16),
       itemBuilder: (_, __) => const _NoticeSkeletonCard(),
     );
   }
@@ -210,6 +218,7 @@ class _NotifyBulletinListState extends State<NotifyBulletinList> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 672),
           child: RefreshIndicator(
+            color: _accentBlue,
             onRefresh: () => widget.controller.loadNoticeList(refresh: true),
             child: showSkeletonList
                 ? _buildSkeletonList()
@@ -218,13 +227,13 @@ class _NotifyBulletinListState extends State<NotifyBulletinList> {
                 : ListView.builder(
                     controller: _scrollController,
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
                     itemCount: list.length + footerCount,
                     itemBuilder: (context, index) {
                       if (index >= list.length) {
                         if (showLoadingFooter) {
                           return const Padding(
-                            padding: EdgeInsets.only(bottom: 14),
+                            padding: EdgeInsets.only(bottom: 16),
                             child: _NoticeSkeletonCard(),
                           );
                         }
@@ -236,8 +245,8 @@ class _NotifyBulletinListState extends State<NotifyBulletinList> {
 
                       final item = list[index];
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 14),
-                        child: _buildNoticeCard(item),
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _buildNoticeCard(context, item),
                       );
                     },
                   ),
@@ -258,7 +267,10 @@ class _NotifyBulletinListState extends State<NotifyBulletinList> {
           child: SizedBox(
             width: 22,
             height: 22,
-            child: CircularProgressIndicator(strokeWidth: 2.2),
+            child: CircularProgressIndicator(
+              strokeWidth: 2.2,
+              color: _accentBlue,
+            ),
           ),
         ),
       );
@@ -278,42 +290,44 @@ class _NoticeSkeletonCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.zero,
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _NotifyBulletinListState._cardBorder),
         boxShadow: const [
           BoxShadow(
-            color: Color.fromRGBO(15, 23, 42, 0.04),
-            blurRadius: 18,
-            spreadRadius: -14,
-            offset: Offset(0, 14),
+            color: _NotifyBulletinListState._cardShadow,
+            blurRadius: 20,
+            offset: Offset(0, 4),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+        padding: const EdgeInsets.fromLTRB(20, 20, 18, 20),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _NotifySkeletonBox(width: 42, height: 42, radius: 14),
-            const SizedBox(width: 14),
+            const _NotifySkeletonBox(width: 48, height: 48, radius: 24),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
-                  _NotifySkeletonBox(
-                    width: double.infinity,
-                    height: 15,
-                    radius: 7,
-                  ),
-                  SizedBox(height: 10),
                   Row(
                     children: [
-                      _NotifySkeletonBox(width: 124, height: 26, radius: 999),
+                      _NotifySkeletonBox(width: 112, height: 12, radius: 6),
                       Spacer(),
-                      _NotifySkeletonBox(width: 9, height: 9, radius: 4.5),
-                      SizedBox(width: 8),
-                      _NotifySkeletonBox(width: 18, height: 18, radius: 9),
+                      _NotifySkeletonBox(width: 8, height: 8, radius: 4),
+                      SizedBox(width: 12),
+                      _NotifySkeletonBox(width: 16, height: 16, radius: 8),
                     ],
                   ),
+                  SizedBox(height: 10),
+                  _NotifySkeletonBox(
+                    width: double.infinity,
+                    height: 14,
+                    radius: 7,
+                  ),
+                  SizedBox(height: 6),
+                  _NotifySkeletonBox(width: 186, height: 14, radius: 7),
                 ],
               ),
             ),
@@ -341,7 +355,7 @@ class _NotifySkeletonBox extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: const Color(0xFFE2E8F0),
+        color: const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(radius),
       ),
     );
@@ -362,16 +376,20 @@ class _NotifyEmptyState extends StatelessWidget {
           width: 72,
           height: 72,
           decoration: const BoxDecoration(
-            color: Color(0xFFF0FDF4),
+            color: _NotifyBulletinListState._iconBackground,
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: 30, color: Color(0xFF16A34A)),
+          child: Icon(
+            icon,
+            size: 30,
+            color: _NotifyBulletinListState._iconColor,
+          ),
         ),
         const SizedBox(height: 18),
         Text(
           title,
           style: const TextStyle(
-            color: Color(0xFF334155),
+            color: _NotifyBulletinListState._titleColor,
             fontSize: 15,
             fontWeight: FontWeight.w700,
             height: 20 / 15,
@@ -381,7 +399,7 @@ class _NotifyEmptyState extends StatelessWidget {
         Text(
           'app.common.no_data'.tr,
           style: const TextStyle(
-            color: Color(0xFF94A3B8),
+            color: _NotifyBulletinListState._emptyHintColor,
             fontSize: 12,
             fontWeight: FontWeight.w500,
             height: 18 / 12,
@@ -398,12 +416,11 @@ class _ReadDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 9,
-      height: 9,
-      decoration: BoxDecoration(
-        color: const Color(0xFF16A34A),
+      width: 8,
+      height: 8,
+      decoration: const BoxDecoration(
+        color: _NotifyBulletinListState._unreadDotColor,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 1.2),
       ),
     );
   }

@@ -2984,37 +2984,45 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       if (nickname.isEmpty) {
         return const SizedBox.shrink();
       }
+      final canOpenSellerStore =
+          (_resolveSellerUuidForItem(item, user)?.isNotEmpty ?? false);
       return ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 182),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(1, 0, 4, 0),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircleAvatar(
-                radius: 8,
-                backgroundImage: avatar.isNotEmpty
-                    ? CachedNetworkImageProvider(avatar)
-                    : null,
-                child: avatar.isEmpty
-                    ? const Icon(Icons.person, size: 10)
-                    : null,
-              ),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  nickname,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _figmaSlate800,
-                    fontSize: 10.5,
-                    height: 12 / 10.5,
-                    fontWeight: FontWeight.w600,
+        child: _PressableScale(
+          onTap: canOpenSellerStore ? () => _openSellerStore(item, user) : null,
+          borderRadius: BorderRadius.circular(9),
+          overlayColor: _figmaSlate400.withValues(alpha: 0.14),
+          minScale: 0.97,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(1, 0, 4, 0),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 8,
+                  backgroundImage: avatar.isNotEmpty
+                      ? CachedNetworkImageProvider(avatar)
+                      : null,
+                  child: avatar.isEmpty
+                      ? const Icon(Icons.person, size: 10)
+                      : null,
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    nickname,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _figmaSlate800,
+                      fontSize: 10.5,
+                      height: 12 / 10.5,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       );
@@ -4175,75 +4183,6 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     return label.toUpperCase();
   }
 
-  List<_HistoryDetailChipData> _buildTransactionDetailChips(
-    MarketListItem item,
-    bool isDark,
-  ) {
-    final paintSeed = _resolveTransactionPaintSeed(item);
-    final paintIndex = _resolveTransactionPaintIndex(item);
-    final paintWearValue = _resolveTransactionPaintWear(item);
-    final exterior = _resolveTransactionExteriorLabel(item, paintWearValue);
-    final chips = <_HistoryDetailChipData>[];
-
-    void addChip({
-      required String? value,
-      required int flex,
-      required Color lightBackgroundColor,
-      required Color darkBackgroundColor,
-      required Color lightTextColor,
-      required Color darkTextColor,
-    }) {
-      final normalized = _normalizeTransactionChipValue(value);
-      if (normalized == null) {
-        return;
-      }
-      chips.add(
-        _HistoryDetailChipData(
-          value: normalized,
-          flex: flex,
-          backgroundColor: isDark ? darkBackgroundColor : lightBackgroundColor,
-          textColor: isDark ? darkTextColor : lightTextColor,
-          dimmed: false,
-        ),
-      );
-    }
-
-    addChip(
-      value: paintSeed,
-      flex: 10,
-      lightBackgroundColor: const Color(0xFFEAF1FF),
-      darkBackgroundColor: const Color(0xFF2A3854),
-      lightTextColor: _figmaBlue700,
-      darkTextColor: const Color(0xFFBFD3FF),
-    );
-    addChip(
-      value: paintIndex,
-      flex: 10,
-      lightBackgroundColor: const Color(0xFFF1F5F9),
-      darkBackgroundColor: const Color(0xFF2A313D),
-      lightTextColor: _figmaSlate800,
-      darkTextColor: const Color(0xFFD8E0EB),
-    );
-    addChip(
-      value: paintWearValue?.toStringAsFixed(4),
-      flex: 12,
-      lightBackgroundColor: const Color(0xFFE9F8F2),
-      darkBackgroundColor: const Color(0xFF21392F),
-      lightTextColor: _figmaGreen600,
-      darkTextColor: const Color(0xFFB6E8D0),
-    );
-    addChip(
-      value: exterior,
-      flex: 18,
-      lightBackgroundColor: const Color(0xFFFFF1DD),
-      darkBackgroundColor: const Color(0xFF3B311F),
-      lightTextColor: _figmaOrange,
-      darkTextColor: const Color(0xFFFFD59D),
-    );
-
-    return chips;
-  }
-
   String? _normalizeTransactionChipValue(String? value) {
     final normalized = _cleanText(value);
     if (normalized == null || normalized == '-') {
@@ -4254,26 +4193,6 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       return null;
     }
     return normalized;
-  }
-
-  String? _resolveTransactionPaintSeed(MarketListItem item) {
-    final asset = _resolveAsset(item);
-    return _cleanText(
-      _extractText(asset, [
-            'paint_seed',
-            'paintSeed',
-            'pattern_seed',
-            'patternSeed',
-            'seed',
-          ]) ??
-          _extractText(item.raw, [
-            'paint_seed',
-            'paintSeed',
-            'pattern_seed',
-            'patternSeed',
-            'seed',
-          ]),
-    );
   }
 
   String? _resolveTransactionPaintIndex(MarketListItem item) {
@@ -4472,6 +4391,68 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       await controller.loadOnSale(reset: true);
       await controller.loadTransactions(reset: true);
     }
+  }
+
+  String? _resolveSellerUuidForItem(MarketListItem item, MarketUserInfo? user) {
+    final fromUser = user?.uuid?.trim();
+    if (fromUser != null && fromUser.isNotEmpty) {
+      return fromUser;
+    }
+
+    final candidateMaps = <Map<String, dynamic>?>[
+      _asMap(item.raw['user']),
+      _asMap(item.raw['seller']),
+      _asMap(item.raw['shop']),
+      _asMap(item.raw['shopInfo']),
+    ];
+    for (final candidate in candidateMaps) {
+      final uuid = candidate?['uuid']?.toString().trim();
+      if (uuid != null && uuid.isNotEmpty) {
+        return uuid;
+      }
+    }
+
+    final directCandidates = <String?>[
+      item.raw['uuid']?.toString().trim(),
+      item.raw['user_uuid']?.toString().trim(),
+      item.raw['userUuid']?.toString().trim(),
+      item.raw['shop_uuid']?.toString().trim(),
+      item.raw['shopUuid']?.toString().trim(),
+    ];
+    for (final candidate in directCandidates) {
+      if (candidate != null && candidate.isNotEmpty) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  void _openSellerStore(MarketListItem item, MarketUserInfo? user) {
+    final uuid = _resolveSellerUuidForItem(item, user);
+    if (uuid == null || uuid.isEmpty) {
+      AppSnackbar.error('app.trade.filter.failed'.tr);
+      return;
+    }
+
+    final rawShopInfo =
+        _asMap(item.raw['shopInfo']) ?? _asMap(item.raw['shop']);
+    final initialShopInfo = <String, dynamic>{
+      if (rawShopInfo != null) ...rawShopInfo,
+      if ((user?.nickname?.trim().isNotEmpty ?? false))
+        'name': user!.nickname!.trim(),
+      if ((user?.avatar?.trim().isNotEmpty ?? false))
+        'avatar': user!.avatar!.trim(),
+      'uuid': uuid,
+    };
+
+    Get.toNamed(
+      Routers.MARKET_SELLER_SHOP,
+      arguments: {
+        'uuid': uuid,
+        'appId': item.appId ?? controller.appId,
+        'shopInfo': initialShopInfo,
+      },
+    );
   }
 
   Future<void> _purchaseItem(MarketListItem item) async {
@@ -4875,7 +4856,17 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     final statusLabel = _resolveTransactionStatusLabel(item);
     final statusText = _formatTransactionStatusLabel(statusLabel);
     final statusStyle = _resolveTransactionStatusStyle(statusLabel);
-    final detailChips = _buildTransactionDetailChips(item, isDark);
+    final paintWearValue = _resolveTransactionPaintWear(item);
+    final wearText = paintWearValue == null
+        ? null
+        : _normalizeTransactionChipValue(paintWearValue.toStringAsFixed(4));
+    final patternText = _formatTransactionPatternLabel(item);
+    final exteriorText = _normalizeTransactionChipValue(
+      _resolveTransactionExteriorLabel(item, paintWearValue),
+    );
+    final buyerText = _resolveTransactionBuyerLine(item);
+    final showPrimaryMetaRow = wearText != null || patternText != null;
+    final showSecondaryMetaRow = exteriorText != null || buyerText != null;
 
     return Container(
       color: _historyRowBackground(index, isDark),
@@ -4924,9 +4915,9 @@ class _MarketDetailPageState extends State<MarketDetailPage>
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: const Color(0xFFBA1A1A),
-                              fontSize: 19,
-                              height: 21 / 19,
+                              color: statusStyle.priceColor,
+                              fontSize: 18,
+                              height: 22.5 / 18,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -4942,28 +4933,88 @@ class _MarketDetailPageState extends State<MarketDetailPage>
                           textAlign: TextAlign.right,
                           style: TextStyle(
                             color: isDark ? _figmaSlate300 : _figmaSlate500,
-                            fontSize: 10.5,
-                            height: 14 / 10.5,
+                            fontSize: 11,
+                            height: 16.5 / 11,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  if (detailChips.isNotEmpty) ...[
-                    const SizedBox(height: 2),
+                  if (showPrimaryMetaRow || showSecondaryMetaRow) ...[
+                    const SizedBox(height: 4),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        for (
-                          var index = 0;
-                          index < detailChips.length;
-                          index++
-                        ) ...[
-                          if (index > 0) const SizedBox(width: 4),
-                          Expanded(
-                            flex: detailChips[index].flex,
-                            child: _buildTransactionDetailChip(
-                              chip: detailChips[index],
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (showPrimaryMetaRow)
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (wearText != null)
+                                      _buildTransactionMetricPill(
+                                        text: wearText,
+                                        isDark: isDark,
+                                      ),
+                                    if (wearText != null && patternText != null)
+                                      const SizedBox(width: 8),
+                                    if (patternText != null)
+                                      Flexible(
+                                        child: Text(
+                                          patternText,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: isDark
+                                                ? _figmaSlate300
+                                                : _figmaSlate500,
+                                            fontSize: 10,
+                                            height: 15 / 10,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              if (exteriorText != null) ...[
+                                if (showPrimaryMetaRow)
+                                  const SizedBox(height: 4),
+                                Text(
+                                  exteriorText,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: isDark
+                                        ? _figmaSlate300
+                                        : const Color(0xFF444653),
+                                    fontSize: 10,
+                                    height: 15 / 10,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        if (buyerText != null) ...[
+                          const SizedBox(width: 12),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 92),
+                            child: Text(
+                              buyerText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                color: isDark ? _figmaSlate300 : _figmaSlate500,
+                                fontSize: 10,
+                                height: 15 / 10,
+                                fontWeight: FontWeight.w400,
+                              ),
                             ),
                           ),
                         ],
@@ -4979,32 +5030,76 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     );
   }
 
-  Widget _buildTransactionDetailChip({required _HistoryDetailChipData chip}) {
+  Widget _buildTransactionMetricPill({
+    required String text,
+    required bool isDark,
+  }) {
     return Container(
-      height: 18,
+      constraints: const BoxConstraints(minWidth: 40),
       alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(horizontal: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: chip.dimmed
-            ? chip.backgroundColor.withValues(alpha: 0.55)
-            : chip.backgroundColor,
+        color: isDark ? const Color(0xFF2A313D) : const Color(0xFFECEEF0),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
-        chip.value,
+        text,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: chip.dimmed
-              ? chip.textColor.withValues(alpha: 0.58)
-              : chip.textColor,
-          fontSize: 7.5,
-          height: 1,
+          color: isDark ? _figmaSlate300 : const Color(0xFF444653),
+          fontSize: 10,
+          height: 15 / 10,
           fontWeight: FontWeight.w700,
         ),
       ),
     );
+  }
+
+  String? _formatTransactionPatternLabel(MarketListItem item) {
+    final normalized = _normalizeTransactionChipValue(
+      _resolveTransactionPaintIndex(item),
+    );
+    if (normalized == null) {
+      return null;
+    }
+    if (normalized.startsWith('#')) {
+      return normalized;
+    }
+    return '#$normalized';
+  }
+
+  String? _resolveTransactionBuyerLine(MarketListItem item) {
+    final userKey = item.userId?.toString();
+    final user = userKey == null ? null : controller.users[userKey];
+    final rawUser =
+        _asMap(item.raw['user']) ??
+        _asMap(item.raw['buyer']) ??
+        _asMap(item.raw['shop']);
+    final nickname =
+        _cleanText(user?.nickname) ??
+        _cleanText(rawUser?['nickname']?.toString()) ??
+        _cleanText(rawUser?['name']?.toString());
+    if (nickname == null) {
+      return null;
+    }
+    final label = _isEnglishLocale ? 'Buyer' : '买家';
+    return '$label: ${_maskTransactionUserName(nickname)}';
+  }
+
+  String _maskTransactionUserName(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      return '--';
+    }
+    if (trimmed.length == 1) {
+      return '$trimmed***';
+    }
+    if (trimmed.length == 2) {
+      return '${trimmed.substring(0, 1)}***';
+    }
+    return '${trimmed.substring(0, 1)}***${trimmed.substring(trimmed.length - 1)}';
   }
 
   Color _historyRowBackground(int index, bool isDark) {
@@ -5028,22 +5123,6 @@ class _HistoryStatusStyle {
   final Color backgroundColor;
   final Color statusColor;
   final Color priceColor;
-}
-
-class _HistoryDetailChipData {
-  const _HistoryDetailChipData({
-    required this.value,
-    required this.flex,
-    required this.backgroundColor,
-    required this.textColor,
-    this.dimmed = false,
-  });
-
-  final String value;
-  final int flex;
-  final Color backgroundColor;
-  final Color textColor;
-  final bool dimmed;
 }
 
 class _MarketOnSaleLoadingCard extends StatelessWidget {
