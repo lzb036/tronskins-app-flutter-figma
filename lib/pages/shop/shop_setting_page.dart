@@ -6,7 +6,9 @@ import 'package:get/get.dart';
 import 'package:tronskins_app/api/model/entity/user/user_shop_entity.dart';
 import 'package:tronskins_app/common/http/http_helper.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/login_required_prompt.dart';
+import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/controllers/shop/shop_controller.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
 
@@ -36,7 +38,6 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
   static const _warningBodyText = Color.fromRGBO(146, 64, 14, 0.8);
   static const _warningBorder = Color.fromRGBO(245, 158, 11, 0.2);
   static const _lineColor = Color(0xFFECEEF0);
-  static const _topBarBg = Color.fromRGBO(248, 250, 252, 0.7);
   static const _footerBg = Color.fromRGBO(255, 255, 255, 0.7);
 
   static const List<_AutoOfflinePreset> _presets = [
@@ -168,20 +169,19 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
   }
 
   Future<bool> _confirmSwitch(String messageKey) async {
-    final confirmed = await Get.dialog<bool>(
-      AlertDialog(
-        title: Text('app.system.tips.title'.tr),
-        content: Text(messageKey.tr),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(result: false),
-            child: Text('app.common.cancel'.tr),
-          ),
-          TextButton(
-            onPressed: () => Get.back(result: true),
-            child: Text('app.common.confirm'.tr),
-          ),
-        ],
+    final confirmed = await showFigmaModal<bool>(
+      context: context,
+      child: FigmaConfirmationDialog(
+        title: 'app.system.tips.title'.tr,
+        message: messageKey.tr,
+        primaryLabel: 'app.common.confirm'.tr,
+        secondaryLabel: 'app.common.cancel'.tr,
+        onPrimary: () => popModalRoute(context, true),
+        onSecondary: () => popModalRoute(context, false),
+        icon: Icons.storefront_outlined,
+        accentColor: _brandColor,
+        iconColor: _brandColor,
+        iconBackgroundColor: _brandColor.withValues(alpha: 0.10),
       ),
     );
     return confirmed == true;
@@ -848,90 +848,42 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
 
   Widget _buildTopNavigation(UserShopEntity? shop) {
     final canSave = shop != null && _hasChanges(shop) && !_isSaving;
-    final topInset = MediaQuery.of(context).padding.top;
 
     return Positioned(
       top: 0,
       left: 0,
       right: 0,
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
-            color: _topBarBg,
-            padding: EdgeInsets.only(top: topInset),
-            child: SizedBox(
-              height: 64,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  children: [
-                    Material(
-                      color: Colors.transparent,
-                      shape: const CircleBorder(),
-                      child: InkWell(
-                        customBorder: const CircleBorder(),
-                        onTap: () => Navigator.maybeOf(context)?.maybePop(),
-                        child: const SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: Center(
-                            child: Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              size: 16,
-                              color: _textColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'app.user.shop.setting'.tr,
-                        style: const TextStyle(
-                          color: _textColor,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: -0.45,
-                          height: 28 / 18,
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: canSave ? () => _handleSave(shop) : null,
-                      style: TextButton.styleFrom(
-                        minimumSize: const Size(44, 32),
-                        padding: EdgeInsets.zero,
-                        foregroundColor: _brandColor,
-                      ),
-                      child: _isSaving
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  _brandColor,
-                                ),
-                              ),
-                            )
-                          : Text(
-                              'app.common.save'.tr,
-                              style: TextStyle(
-                                color: canSave ? _brandColor : _subtleColor,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                height: 24 / 16,
-                              ),
-                            ),
-                    ),
-                  ],
-                ),
-              ),
+      child: SettingsStyleInlineTopBar(
+        title: 'app.user.shop.setting'.tr,
+        includeTopInset: true,
+        actions: [
+          TextButton(
+            onPressed: canSave ? () => _handleSave(shop) : null,
+            style: TextButton.styleFrom(
+              minimumSize: const Size(44, 44),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              foregroundColor: _brandColor,
             ),
+            child: _isSaving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(_brandColor),
+                    ),
+                  )
+                : Text(
+                    'app.common.save'.tr,
+                    style: TextStyle(
+                      color: canSave ? _brandColor : _subtleColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      height: 24 / 16,
+                    ),
+                  ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -1598,17 +1550,17 @@ class _FigmaStatusToggle extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (isOnline) ...[
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: _ShopSettingPageState._successColor,
-                          shape: BoxShape.circle,
-                        ),
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: isOnline
+                            ? _ShopSettingPageState._successColor
+                            : _ShopSettingPageState._offlineColor,
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(width: 8),
-                    ],
+                    ),
+                    const SizedBox(width: 8),
                     Text(
                       isOnline ? '在线' : '离线',
                       style: const TextStyle(
