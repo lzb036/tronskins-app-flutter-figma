@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -194,44 +196,46 @@ class MarketShowcaseCard extends StatelessWidget {
                         ),
                       if (hasAccessoryDetails)
                         Positioned(
-                          left: 6,
-                          right: 6,
-                          bottom: 5,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (stickers.isNotEmpty) ...[
-                                StickerRow(stickers: stickers, size: 18),
-                                if (gems.isNotEmpty || wearDisplay != null)
-                                  const SizedBox(height: 3),
-                              ],
-                              if (gems.isNotEmpty) ...[
-                                GemRow(gems: gems, size: isDota ? 20 : 16),
-                                if (wearDisplay != null)
-                                  const SizedBox(height: 3),
-                              ],
-                              if (wearDisplay != null) ...[
-                                Text(
-                                  '${_isEnglishLocale ? 'Wear' : '磨损'}: $wearDisplay',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Color(0xFFE2E8F0),
-                                    fontSize: 7,
-                                    height: 10 / 7,
-                                    fontWeight: FontWeight.w500,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: _buildAccessoryOverlay(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (stickers.isNotEmpty) ...[
+                                  StickerRow(stickers: stickers, size: 18),
+                                  if (gems.isNotEmpty || wearDisplay != null)
+                                    const SizedBox(height: 3),
+                                ],
+                                if (gems.isNotEmpty) ...[
+                                  GemRow(gems: gems, size: isDota ? 20 : 16),
+                                  if (wearDisplay != null)
+                                    const SizedBox(height: 3),
+                                ],
+                                if (wearDisplay != null) ...[
+                                  Text(
+                                    '${_isEnglishLocale ? 'Wear' : '磨损'}: $wearDisplay',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Color(0xFFE2E8F0),
+                                      fontSize: 7,
+                                      height: 10 / 7,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
-                                ),
-                                if (wearValue != null) ...[
-                                  const SizedBox(height: 3),
-                                  _buildWearTrack(
-                                    wearValue: wearValue!,
-                                    conditionLabel: conditionLabel,
-                                  ),
+                                  if (wearValue != null) ...[
+                                    const SizedBox(height: 3),
+                                    _buildWearTrack(
+                                      wearValue: wearValue!,
+                                      conditionLabel: conditionLabel,
+                                    ),
+                                  ],
                                 ],
                               ],
-                            ],
+                            ),
                           ),
                         ),
                     ],
@@ -318,6 +322,34 @@ class MarketShowcaseCard extends StatelessWidget {
           height: 9 / 7,
           fontWeight: FontWeight.w800,
           letterSpacing: 0.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccessoryOverlay({required Widget child}) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+        child: Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(minHeight: 30),
+          alignment: Alignment.bottomLeft,
+          padding: const EdgeInsets.fromLTRB(6, 6, 6, 4),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: const [
+                Color(0x1F2D1B1B),
+                Color(0x73251919),
+                Color(0xC41A0F0F),
+                Color(0xF0100707),
+              ],
+              stops: const [0, 0.34, 0.7, 1],
+            ),
+          ),
+          child: child,
         ),
       ),
     );

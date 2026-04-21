@@ -1409,8 +1409,11 @@ class _SellerShopPageState extends State<SellerShopPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 2, bottom: 2),
-            child: _buildOnlineIndicator(isOnline),
+            padding: const EdgeInsets.only(bottom: 2),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: _buildOnlineIndicator(isOnline),
+            ),
           ),
           const SizedBox(height: 8),
           Row(
