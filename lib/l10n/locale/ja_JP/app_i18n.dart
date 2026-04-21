@@ -662,7 +662,9 @@ final Map<String, String> ja_JP = {
   "app.steam.message.loading_steam_id": "Steam ID を読み込み中...",
   "app.steam.message.loading_account_status": "アカウント状態を読み込み中...",
   "app.steam.message.verify_success": "検証に成功しました！",
-  "app.system.message.success": "操作成功！",
+    "app.system.snackbar.success_title": "成功",
+    "app.system.snackbar.failed_title": "失敗",
+    "app.system.message.success": "操作成功！",
   "app.system.version.latest_discover": "最新バージョンを発見する",
   "app.system.version.download_failed": "更新プログラムをダウンロードできなかった",
 };

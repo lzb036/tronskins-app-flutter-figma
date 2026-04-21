@@ -770,7 +770,9 @@ final Map<String, String> it_IT = {
   "app.steam.message.loading_steam_id": "Caricamento ID Steam...",
   "app.steam.message.loading_account_status": "Caricamento stato account...",
   "app.steam.message.verify_success": "Verifica riuscita!",
-  "app.system.message.success": "Operazione riuscita!",
+    "app.system.snackbar.success_title": "Successo",
+    "app.system.snackbar.failed_title": "Fallito",
+    "app.system.message.success": "Operazione riuscita!",
   "app.system.version.latest_discover": "Scopri l'ultima versione",
   "app.system.version.download_failed":
       "Impossibile scaricare il pacchetto di aggiornamento",

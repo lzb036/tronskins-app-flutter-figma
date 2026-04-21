@@ -736,7 +736,9 @@ final Map<String, String> th_TH = {
   "app.steam.message.loading_steam_id": "กําลังโหลด Steam ID...",
   "app.steam.message.loading_account_status": "กําลังโหลดสถานะบัญชี...",
   "app.steam.message.verify_success": "การยืนยันสําเร็จ!",
-  "app.system.message.success": "การดำเนินงานประสบความสำเร็จ!",
+    "app.system.snackbar.success_title": "สำเร็จ",
+    "app.system.snackbar.failed_title": "ล้มเหลว",
+    "app.system.message.success": "การดำเนินงานประสบความสำเร็จ!",
   "app.system.version.latest_discover": "ค้นพบรุ่นล่าสุด",
   "app.system.version.download_failed":
       "ล้มเหลวในการดาวน์โหลดแพคเกจการปรับปรุง",

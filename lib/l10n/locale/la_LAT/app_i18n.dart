@@ -785,7 +785,9 @@ final Map<String, String> la_LAT = {
   "app.steam.message.loading_steam_id": "Cargando ID de Steam...",
   "app.steam.message.loading_account_status": "Cargando estado de la cuenta...",
   "app.steam.message.verify_success": "¡Verificacion exitosa!",
-  "app.system.message.success": " ¡Operación exitosa!",
+    "app.system.snackbar.success_title": "Éxito",
+    "app.system.snackbar.failed_title": "Fallo",
+    "app.system.message.success": " ¡Operación exitosa!",
   "app.system.version.latest_discover": "Descubre la última versión",
   "app.system.version.download_failed":
       "No se pudo descargar el paquete de actualización",

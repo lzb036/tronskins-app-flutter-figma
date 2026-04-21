@@ -758,7 +758,9 @@ final Map<String, String> po_PL = {
   "app.steam.message.loading_steam_id": "Ladowanie Steam ID...",
   "app.steam.message.loading_account_status": "Ladowanie statusu konta...",
   "app.steam.message.verify_success": "Weryfikacja zakonczona pomyslnie!",
-  "app.system.message.success": "Operacja udana!",
+    "app.system.snackbar.success_title": "Sukces",
+    "app.system.snackbar.failed_title": "Niepowodzenie",
+    "app.system.message.success": "Operacja udana!",
   "app.system.version.latest_discover": "Odkryj najnowszą wersję",
   "app.system.version.download_failed": "Nie można pobrać pakietu aktualizacji",
 };

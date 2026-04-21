@@ -137,7 +137,7 @@ class _ShorebirdUpdateGateState extends State<ShorebirdUpdateGate>
       );
       _hideOverlay();
       final copy = _copyForLocale();
-      AppSnackbar.error(copy.downloadFailedMessage, title: copy.failureTitle);
+      AppSnackbar.error(copy.downloadFailedMessage);
     } catch (error, stackTrace) {
       AppLogger.errorLog(
         'SHOREBIRD',
@@ -148,7 +148,7 @@ class _ShorebirdUpdateGateState extends State<ShorebirdUpdateGate>
       );
       _hideOverlay();
       final copy = _copyForLocale();
-      AppSnackbar.error(copy.downloadFailedMessage, title: copy.failureTitle);
+      AppSnackbar.error(copy.downloadFailedMessage);
     }
   }
 

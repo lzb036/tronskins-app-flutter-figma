@@ -785,7 +785,9 @@ final Map<String, String> fr_FR = {
   "app.steam.message.loading_account_status":
       "Chargement de l'etat du compte...",
   "app.steam.message.verify_success": "Verification reussie !",
-  "app.system.message.success": "Opération réussie !",
+    "app.system.snackbar.success_title": "Succès",
+    "app.system.snackbar.failed_title": "Échec",
+    "app.system.message.success": "Opération réussie !",
   "app.system.version.latest_discover": "Découvrez la dernière version",
   "app.system.version.download_failed":
       "Impossible de télécharger le paquet de mise à jour",

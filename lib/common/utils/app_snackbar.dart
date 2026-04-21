@@ -110,12 +110,23 @@ class AppSnackbar {
   static String _defaultTitle(_AppSnackbarVariant variant) {
     switch (variant) {
       case _AppSnackbarVariant.success:
-        return 'app.trade.filter.success'.tr;
+        return _translateOrFallback(
+          'app.system.snackbar.success_title',
+          'Success',
+        );
       case _AppSnackbarVariant.error:
-        return 'app.trade.filter.failed'.tr;
+        return _translateOrFallback(
+          'app.system.snackbar.failed_title',
+          'Failed',
+        );
       case _AppSnackbarVariant.neutral:
         return 'app.system.tips.title'.tr;
     }
+  }
+
+  static String _translateOrFallback(String key, String fallback) {
+    final translated = key.tr;
+    return translated == key ? fallback : translated;
   }
 }
 

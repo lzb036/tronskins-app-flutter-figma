@@ -622,7 +622,9 @@ final Map<String, String> zh_CN = {
   "app.steam.message.loading_steam_id": "正在加载 Steam ID...",
   "app.steam.message.loading_account_status": "正在加载账号状态...",
   "app.steam.message.verify_success": "验证成功！",
-  "app.system.message.success": "操作成功！",
+    "app.system.snackbar.success_title": "成功",
+    "app.system.snackbar.failed_title": "失败",
+    "app.system.message.success": "操作成功！",
   "app.system.version.latest_discover": "发现最新版本",
   "app.system.version.download_failed": "更新包下载失败",
 };

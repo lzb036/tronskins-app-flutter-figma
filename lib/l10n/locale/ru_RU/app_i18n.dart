@@ -770,7 +770,9 @@ final Map<String, String> ru_RU = {
   "app.steam.message.loading_steam_id": "Загрузка Steam ID...",
   "app.steam.message.loading_account_status": "Загрузка статуса аккаунта...",
   "app.steam.message.verify_success": "Проверка успешно завершена!",
-  "app.system.message.success": "Операция успешна!",
+    "app.system.snackbar.success_title": "Успех",
+    "app.system.snackbar.failed_title": "Ошибка",
+    "app.system.message.success": "Операция успешна!",
   "app.system.version.latest_discover": "Открыть последнюю версию",
   "app.system.version.download_failed": "Не удалось загрузить пакет обновлений",
 };

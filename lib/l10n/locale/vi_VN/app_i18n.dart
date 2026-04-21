@@ -751,7 +751,9 @@ final Map<String, String> vi_VN = {
   "app.steam.message.loading_account_status":
       "Dang tai trang thai tai khoan...",
   "app.steam.message.verify_success": "Xac minh thanh cong!",
-  "app.system.message.success": "Hoạt động thành công!",
+    "app.system.snackbar.success_title": "Thành công",
+    "app.system.snackbar.failed_title": "Thất bại",
+    "app.system.message.success": "Hoạt động thành công!",
   "app.system.version.latest_discover": "Khám phá phiên bản mới nhất",
   "app.system.version.download_failed": "Không thể tải xuống gói cập nhật",
 };

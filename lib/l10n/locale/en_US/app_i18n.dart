@@ -771,7 +771,9 @@ final Map<String, String> en_US = {
   "app.steam.message.loading_steam_id": "Loading Steam ID...",
   "app.steam.message.loading_account_status": "Loading account status...",
   "app.steam.message.verify_success": "Verification successful!",
-  "app.system.message.success": "Operation successful!",
+    "app.system.snackbar.success_title": "Success",
+    "app.system.snackbar.failed_title": "Failed",
+    "app.system.message.success": "Operation successful!",
   "app.system.version.latest_discover": "Discover the latest version",
   "app.system.version.download_failed": "Failed to download the update package",
 };
