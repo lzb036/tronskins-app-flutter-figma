@@ -709,14 +709,30 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
   bool get _isChineseLocale =>
       (Get.locale?.languageCode ?? '').toLowerCase().startsWith('zh');
 
+  bool get _isTraditionalChineseLocale {
+    final countryCode = (Get.locale?.countryCode ?? '').toUpperCase();
+    return _isChineseLocale &&
+        (countryCode == 'TW' || countryCode == 'HK' || countryCode == 'MO');
+  }
+
   String _stickerSectionTitle() =>
       _isChineseLocale ? '包含印花' : 'Containing Stickers';
 
   String _stickerFallbackName(int index) =>
       _isChineseLocale ? '印花 ${index + 1}' : 'Sticker ${index + 1}';
 
-  String get _pageTitle =>
-      _isEnglishLocale ? 'Skin Details' : 'app.market.product.details'.tr;
+  String get _pageTitle {
+    if (_isEnglishLocale) {
+      return 'Skin Details';
+    }
+    if (_isTraditionalChineseLocale) {
+      return '飾品詳情';
+    }
+    if (_isChineseLocale) {
+      return '饰品详情';
+    }
+    return 'app.market.product.details'.tr;
+  }
 
   String get _currentPriceLabel => _isEnglishLocale ? 'Current' : '现价';
 

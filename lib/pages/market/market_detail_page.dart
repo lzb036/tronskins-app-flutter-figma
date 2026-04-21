@@ -905,6 +905,15 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   bool get _isEnglishLocale =>
       (Get.locale?.languageCode.toLowerCase() ?? '') == 'en';
 
+  bool get _isChineseLocale =>
+      (Get.locale?.languageCode.toLowerCase() ?? '') == 'zh';
+
+  bool get _isTraditionalChineseLocale {
+    final countryCode = (Get.locale?.countryCode ?? '').toUpperCase();
+    return _isChineseLocale &&
+        (countryCode == 'TW' || countryCode == 'HK' || countryCode == 'MO');
+  }
+
   bool get _usesWideColon {
     final languageCode = (Get.locale?.languageCode ?? '').toLowerCase();
     return languageCode == 'zh' || languageCode == 'ja';
@@ -919,8 +928,18 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     fontWeight: FontWeight.w600,
   );
 
-  String get _figmaPageTitle =>
-      _isEnglishLocale ? 'Market Details' : 'app.market.product.details'.tr;
+  String get _figmaPageTitle {
+    if (_isEnglishLocale) {
+      return 'Market Details';
+    }
+    if (_isTraditionalChineseLocale) {
+      return '市場詳情';
+    }
+    if (_isChineseLocale) {
+      return '市场详情';
+    }
+    return 'app.market.product.details'.tr;
+  }
 
   String get _figmaReferencePriceLabel =>
       '${'app.market.detail.steam_price'.tr}$_figmaMetaLabelColon';
