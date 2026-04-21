@@ -63,14 +63,15 @@ class InventoryShowcaseCard extends StatelessWidget {
     final rarity = TagInfo.fromRaw(tags is Map ? tags['rarity'] : null);
     final exterior = TagInfo.fromRaw(tags is Map ? tags['exterior'] : null);
     final asset = _resolveAsset(item);
-    final wearText = _extractText(asset, const ['paint_wear', 'paintWear']);
-    final wearValue =
+    final rawWearText = _extractText(asset, const ['paint_wear', 'paintWear']);
+    final rawWearValue =
         item.paintWear ??
         _extractDouble(asset, const ['paint_wear', 'paintWear']);
-    final wearDisplay = _formatWearText(wearText, wearValue);
-    final patternLabel =
-        item.paintSeed ??
-        _extractText(asset, const ['paint_seed', 'paintSeed']);
+    final wearValue = _normalizeWearValue(rawWearValue);
+    final wearDisplay = _formatWearText(rawWearText, wearValue);
+    final patternLabel = _normalizePatternLabel(
+      item.paintSeed ?? _extractText(asset, const ['paint_seed', 'paintSeed']),
+    );
     final stickers = parseStickerList(
       asset?['stickers'] ?? item.raw['stickers'],
       schemaMap: schemaMap,
@@ -678,13 +679,37 @@ bool _shouldShowQualityRibbon(
 
 String? _formatWearText(String? rawText, double? rawValue) {
   final text = rawText?.trim();
-  if (text != null && text.isNotEmpty) {
+  if (text != null && text.isNotEmpty && !_isZeroLikeText(text)) {
     return text;
   }
   if (rawValue == null) {
     return null;
   }
   return rawValue.toStringAsFixed(8);
+}
+
+double? _normalizeWearValue(double? rawValue) {
+  if (rawValue == null || !rawValue.isFinite || rawValue <= 0) {
+    return null;
+  }
+  return rawValue;
+}
+
+String? _normalizePatternLabel(String? rawText) {
+  final text = rawText?.trim();
+  if (text == null || text.isEmpty || _isZeroLikeText(text)) {
+    return null;
+  }
+  return text;
+}
+
+bool _isZeroLikeText(String text) {
+  final normalized = text.trim();
+  if (normalized.isEmpty) {
+    return true;
+  }
+  final parsed = double.tryParse(normalized);
+  return parsed != null && parsed <= 0;
 }
 
 double _parsePriceValue(dynamic value) {

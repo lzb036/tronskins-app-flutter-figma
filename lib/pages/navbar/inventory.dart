@@ -347,32 +347,83 @@ class _InventoryPageState extends State<InventoryPage>
   }
 
   void _openInventoryItemDetail(InventoryItem item, ShopSchemaInfo? schema) {
-    Get.toNamed(
-      Routers.MARKET_DETAIL,
-      arguments: _buildMarketItemEntity(item, schema),
+    _openInventorySkinDetail(
+      item: item,
+      schema: schema,
+      schemas: controller.schemasForState(controller.activeStateKey),
+      stickers: controller.stickersForState(controller.activeStateKey),
     );
   }
 
-  MarketItemEntity _buildMarketItemEntity(
+  void _openInventorySkinDetail({
+    required InventoryItem item,
+    required ShopSchemaInfo? schema,
+    required Map<String, ShopSchemaInfo> schemas,
+    required Map<String, dynamic> stickers,
+  }) {
+    Get.toNamed(
+      Routers.MARKET_ITEM_DETAIL,
+      arguments: {
+        'item': _buildInventoryDetailItem(item, schema),
+        'schema': schema == null ? null : MarketSchemaInfo.fromJson(schema.raw),
+        'user': _buildInventoryDetailUser(),
+        'schemas': {
+          for (final entry in schemas.entries)
+            entry.key: MarketSchemaInfo.fromJson(entry.value.raw),
+        },
+        'stickers': stickers,
+      },
+    );
+  }
+
+  MarketListItem _buildInventoryDetailItem(
     InventoryItem item,
     ShopSchemaInfo? schema,
   ) {
     final asset = _resolveInventoryAsset(item);
-    return MarketItemEntity.fromJson({
+    final currentUser = userController.user.value;
+    return MarketListItem.fromJson({
       ...item.raw,
-      'id': item.id,
+      'id': null,
       'app_id': item.appId,
       'schema_id': item.schemaId,
+      'user_id': _toInt(currentUser?.shop?.id) ?? _toInt(currentUser?.id),
+      'own': true,
+      'favorited': false,
       'market_name': item.marketName ?? schema?.marketName,
       'market_hash_name': item.marketHashName ?? schema?.marketHashName,
       'image_url': item.imageUrl ?? schema?.imageUrl,
-      'market_price': _resolveInventoryMarketPrice(item, schema),
+      'price': _resolveInventoryMarketPrice(item, schema),
       'cd': item.cooldown ?? item.raw['cd'],
       'paint_seed': item.paintSeed,
       'paint_wear': item.paintWear,
       'phase': item.phase,
       if (schema?.raw['tags'] != null) 'tags': schema!.raw['tags'],
       if (asset != null) _marketAssetKey(item.appId): asset,
+    });
+  }
+
+  MarketUserInfo? _buildInventoryDetailUser() {
+    final user = userController.user.value;
+    final shop = user?.shop;
+    final avatar = (shop?.avatar ?? user?.avatar ?? user?.config?.avatar)
+        ?.trim();
+    final nickname =
+        (shop?.shopName ??
+                shop?.name ??
+                user?.nickname ??
+                user?.config?.nickname)
+            ?.trim();
+    final uuid = shop?.uuid?.trim();
+    if ((avatar == null || avatar.isEmpty) &&
+        (nickname == null || nickname.isEmpty) &&
+        (uuid == null || uuid.isEmpty)) {
+      return null;
+    }
+    return MarketUserInfo.fromJson({
+      'avatar': avatar,
+      'nickname': nickname,
+      'uuid': uuid,
     });
   }
 
@@ -423,6 +474,19 @@ class _InventoryPageState extends State<InventoryPage>
       return value.toDouble();
     }
     return double.tryParse(value.toString());
+  }
+
+  int? _toInt(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    return int.tryParse(value.toString());
   }
 
   int _inventoryFilterToPage(_InventoryStateFilter filter) {

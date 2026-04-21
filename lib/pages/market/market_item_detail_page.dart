@@ -2107,7 +2107,9 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
                       Expanded(
                         child: _buildActionButton(
                           label: _wishlistLabel,
-                          onTap: _favoriteSubmitting ? null : _toggleFavorite,
+                          onTap: _item.id != null && !_favoriteSubmitting
+                              ? _toggleFavorite
+                              : null,
                           filled: false,
                           loading: _favoriteSubmitting,
                           prefix: Icon(
