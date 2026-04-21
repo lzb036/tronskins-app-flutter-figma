@@ -1229,16 +1229,6 @@ class _ShopPageState extends State<ShopPage>
     };
   }
 
-  String _pendingCountBadgeText(int count) {
-    if (count <= 0) {
-      return '';
-    }
-    if (count > 99) {
-      return '99+';
-    }
-    return '$count';
-  }
-
   Widget _buildTopIconAction({
     required IconData icon,
     required String tooltip,
@@ -1526,99 +1516,60 @@ class _ShopPageState extends State<ShopPage>
     return Obx(() {
       final appId = _globalGameController.currentAppId.value;
       final pendingTotals = shippingNoticeController.snapshotTotals();
-      final totalPendingCount = pendingTotals.values.fold<int>(
-        0,
-        (sum, count) => sum + (count > 0 ? count : 0),
-      );
-      final showPendingDot = totalPendingCount > 0;
-      final badgeText = _pendingCountBadgeText(totalPendingCount);
+      final showPendingDot = pendingTotals.values.any((count) => count > 0);
       return Builder(
         builder: (switchContext) {
-          return Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Material(
-                color: Colors.transparent,
+          return _buildTopActionWithDot(
+            visible: showPendingDot,
+            dotColor: _pendingNoticeDot,
+            right: 4,
+            top: 5,
+            size: 9,
+            glow: true,
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              child: InkWell(
                 borderRadius: BorderRadius.circular(10),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(10),
-                  onTap: () async {
-                    final selected = await showGameSwitchMenu(
-                      iconContext: switchContext,
-                      currentAppId: appId,
-                      pendingTotalsByAppId: pendingTotals,
-                    );
-                    if (selected == null) {
-                      return;
-                    }
-                    await _globalGameController.switchGame(selected);
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _gameLabelForAppId(appId),
-                          style: const TextStyle(
-                            color: Color(0xFF191C1E),
-                            fontSize: 14,
-                            height: 20 / 14,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          size: 18,
+                onTap: () async {
+                  final selected = await showGameSwitchMenu(
+                    iconContext: switchContext,
+                    currentAppId: appId,
+                    pendingTotalsByAppId: pendingTotals,
+                  );
+                  if (selected == null) {
+                    return;
+                  }
+                  await _globalGameController.switchGame(selected);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _gameLabelForAppId(appId),
+                        style: const TextStyle(
                           color: Color(0xFF191C1E),
+                          fontSize: 14,
+                          height: 20 / 14,
+                          fontWeight: FontWeight.w700,
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 18,
+                        color: Color(0xFF191C1E),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              if (showPendingDot)
-                Positioned(
-                  top: 2,
-                  right: 0,
-                  child: Container(
-                    constraints: const BoxConstraints(
-                      minWidth: 16,
-                      minHeight: 16,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 1,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _pendingNoticeDot,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: Colors.white, width: 1.2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _pendingNoticeDot.withValues(alpha: 0.28),
-                          blurRadius: 8,
-                          spreadRadius: 0.5,
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      badgeText,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        height: 1.0,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+            ),
           );
         },
       );
