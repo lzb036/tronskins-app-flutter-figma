@@ -260,7 +260,7 @@ class _CustomNavBarState extends State<CustomNavBar> {
         final overlayBuilder = bottomBarController.builderFor(index);
         final child = KeyedSubtree(
           key: ValueKey<String>(
-            overlayBuilder == null ? 'system-nav-$index' : 'overlay-nav-$index',
+            overlayBuilder == null ? 'system-nav' : 'overlay-nav-$index',
           ),
           child:
               overlayBuilder?.call(context) ??

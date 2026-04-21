@@ -173,7 +173,6 @@ class _GameSwitchPanel extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -224,13 +223,13 @@ class _GameOption extends StatelessWidget {
     );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: EdgeInsets.zero,
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.zero,
         child: InkWell(
           onTap: () => Navigator.of(context).pop(appId),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.zero,
           overlayColor: WidgetStateProperty.resolveWith<Color?>((states) {
             if (states.contains(WidgetState.pressed)) {
               return _menuPressedFill;
@@ -245,7 +244,7 @@ class _GameOption extends StatelessWidget {
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       color: selected ? _menuSelectedFill : Colors.transparent,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.zero,
                     ),
                     child: Padding(
                       padding: EdgeInsets.fromLTRB(
