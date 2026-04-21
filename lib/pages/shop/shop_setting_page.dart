@@ -472,81 +472,250 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
       return;
     }
 
-    Duration currentDuration = _hasDurationSet()
-        ? Duration(hours: _draftHour, minutes: _draftMinute)
-        : const Duration(minutes: 30);
+    var selectedHour = _hasDurationSet() ? _draftHour : 0;
+    var selectedMinute = _hasDurationSet() ? _draftMinute : 30;
+    var currentDuration = Duration(
+      hours: selectedHour,
+      minutes: selectedMinute,
+    );
+    final hourController = FixedExtentScrollController(
+      initialItem: selectedHour,
+    );
+    final minuteController = FixedExtentScrollController(
+      initialItem: selectedMinute,
+    );
 
     final selectedDuration = await showModalBottomSheet<Duration>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      barrierColor: const Color.fromRGBO(15, 23, 42, 0.22),
       builder: (context) {
         return SafeArea(
           top: false,
+          minimum: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           child: StatefulBuilder(
             builder: (context, setModalState) {
-              return Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              final expectedOffline = _formatClock(
+                DateTime.now().add(currentDuration),
+              );
+
+              return DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color.fromRGBO(15, 23, 42, 0.10),
+                      blurRadius: 56,
+                      offset: Offset(0, 28),
+                      spreadRadius: -16,
+                    ),
+                    BoxShadow(
+                      color: Color.fromRGBO(15, 23, 42, 0.08),
+                      blurRadius: 18,
+                      offset: Offset(0, 10),
+                      spreadRadius: -12,
+                    ),
+                  ],
                 ),
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: Text('app.common.cancel'.tr),
-                        ),
-                        Expanded(
-                          child: Text(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(28),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                    child: Container(
+                      color: const Color.fromRGBO(255, 255, 255, 0.94),
+                      padding: const EdgeInsets.fromLTRB(24, 14, 24, 24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: const Color.fromRGBO(15, 23, 42, 0.12),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Text(
+                            _text('AUTO OFFLINE', 'AUTO OFFLINE'),
+                            style: const TextStyle(
+                              color: _brandColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.2,
+                              height: 16 / 11,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
                             _text('自定义离线时长', 'Custom idle duration'),
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               color: _titleColor,
-                              fontSize: 16,
+                              fontSize: 22,
                               fontWeight: FontWeight.w700,
+                              letterSpacing: -0.6,
+                              height: 30 / 22,
                             ),
                           ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            final safeDuration = currentDuration.inMinutes == 0
-                                ? const Duration(minutes: 5)
-                                : currentDuration;
-                            Navigator.of(context).pop(safeDuration);
-                          },
-                          child: Text('app.common.confirm'.tr),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    SizedBox(
-                      height: 180,
-                      child: CupertinoTimerPicker(
-                        mode: CupertinoTimerPickerMode.hm,
-                        initialTimerDuration: currentDuration,
-                        onTimerDurationChanged: (value) {
-                          setModalState(() {
-                            currentDuration = value;
-                          });
-                        },
+                          const SizedBox(height: 8),
+                          Text(
+                            _text(
+                              '选择空闲多久后自动停止营业，保存后将换算成具体离线时刻。',
+                              'Choose how long the shop stays idle before going offline.',
+                            ),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: _mutedColor,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              height: 22 / 14,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _CustomDurationMetricCard(
+                                  label: _text('IDLE TIME', 'IDLE TIME'),
+                                  value: _formatDurationSummary(
+                                    currentDuration,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _CustomDurationMetricCard(
+                                  label: _text(
+                                    'EXPECTED OFFLINE',
+                                    'EXPECTED OFFLINE',
+                                  ),
+                                  value: expectedOffline,
+                                  accent: true,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                            decoration: BoxDecoration(
+                              color: _pageBg,
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: _CustomDurationPickerColumn(
+                                    label: _text('小时', 'Hours'),
+                                    unitLabel: _text('时', 'h'),
+                                    selectedValue: selectedHour,
+                                    itemCount: 24,
+                                    controller: hourController,
+                                    onSelectedItemChanged: (value) {
+                                      setModalState(() {
+                                        selectedHour = value;
+                                        currentDuration = Duration(
+                                          hours: selectedHour,
+                                          minutes: selectedMinute,
+                                        );
+                                      });
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _CustomDurationPickerColumn(
+                                    label: _text('分钟', 'Minutes'),
+                                    unitLabel: _text('分', 'min'),
+                                    selectedValue: selectedMinute,
+                                    itemCount: 60,
+                                    controller: minuteController,
+                                    onSelectedItemChanged: (value) {
+                                      setModalState(() {
+                                        selectedMinute = value;
+                                        currentDuration = Duration(
+                                          hours: selectedHour,
+                                          minutes: selectedMinute,
+                                        );
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color.fromRGBO(241, 245, 249, 0.9),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Padding(
+                                  padding: EdgeInsets.only(top: 1),
+                                  child: Icon(
+                                    Icons.schedule_rounded,
+                                    size: 16,
+                                    color: _brandColor,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    _text(
+                                      '用于无操作后自动停止营业',
+                                      'Used to stop selling after inactivity',
+                                    ),
+                                    style: const TextStyle(
+                                      color: _mutedColor,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      height: 18 / 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _SecondaryFooterButton(
+                                  label: 'app.common.cancel'.tr,
+                                  onPressed: () => Navigator.of(context).pop(),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                flex: 2,
+                                child: _PrimaryFooterButton(
+                                  label: _text('确认选择', 'Apply duration'),
+                                  loading: false,
+                                  onPressed: () {
+                                    final safeDuration =
+                                        currentDuration.inMinutes == 0
+                                        ? const Duration(minutes: 5)
+                                        : currentDuration;
+                                    Navigator.of(context).pop(safeDuration);
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _text(
-                        '用于无操作后自动停止营业',
-                        'Used to stop selling after inactivity',
-                      ),
-                      style: const TextStyle(
-                        color: _mutedColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               );
             },
@@ -554,6 +723,9 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
         );
       },
     );
+
+    hourController.dispose();
+    minuteController.dispose();
 
     if (!mounted || selectedDuration == null) {
       return;
@@ -608,6 +780,25 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     final h = hour.toString().padLeft(2, '0');
     final m = minute.toString().padLeft(2, '0');
     return '$h:$m:00';
+  }
+
+  String _formatDurationSummary(Duration duration) {
+    final hour = duration.inHours;
+    final minute = duration.inMinutes.remainder(60);
+    final parts = <String>[];
+
+    if (hour > 0) {
+      parts.add(_text('$hour 小时', '$hour h'));
+    }
+    if (minute > 0) {
+      parts.add(_text('$minute 分钟', '$minute min'));
+    }
+
+    if (parts.isEmpty) {
+      return _text('0 分钟', '0 min');
+    }
+
+    return parts.join(' ');
   }
 
   String _presetLabel(_AutoOfflinePreset preset) {
@@ -1597,6 +1788,161 @@ class _MetaValueBlock extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _CustomDurationMetricCard extends StatelessWidget {
+  const _CustomDurationMetricCard({
+    required this.label,
+    required this.value,
+    this.accent = false,
+  });
+
+  final String label;
+  final String value;
+  final bool accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: accent ? const Color.fromRGBO(30, 64, 175, 0.08) : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: accent
+                  ? const Color.fromRGBO(30, 64, 175, 0.72)
+                  : _ShopSettingPageState._mutedColor,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              height: 15 / 10,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: accent
+                  ? _ShopSettingPageState._brandColor
+                  : _ShopSettingPageState._titleColor,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.3,
+              height: 24 / 18,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CustomDurationPickerColumn extends StatelessWidget {
+  const _CustomDurationPickerColumn({
+    required this.label,
+    required this.unitLabel,
+    required this.selectedValue,
+    required this.itemCount,
+    required this.controller,
+    required this.onSelectedItemChanged,
+  });
+
+  final String label;
+  final String unitLabel;
+  final int selectedValue;
+  final int itemCount;
+  final FixedExtentScrollController controller;
+  final ValueChanged<int> onSelectedItemChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 12, 10, 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: _ShopSettingPageState._mutedColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              height: 16 / 11,
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 176,
+            child: CupertinoPicker.builder(
+              scrollController: controller,
+              itemExtent: 44,
+              backgroundColor: Colors.transparent,
+              diameterRatio: 1.28,
+              squeeze: 1.12,
+              useMagnifier: true,
+              magnification: 1.04,
+              selectionOverlay: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color.fromRGBO(248, 250, 252, 0.98),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              onSelectedItemChanged: onSelectedItemChanged,
+              childCount: itemCount,
+              itemBuilder: (context, index) {
+                final selected = index == selectedValue;
+                return Center(
+                  child: RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: index.toString().padLeft(2, '0'),
+                          style: TextStyle(
+                            color: selected
+                                ? _ShopSettingPageState._titleColor
+                                : const Color.fromRGBO(148, 163, 184, 0.72),
+                            fontSize: selected ? 28 : 22,
+                            fontWeight: selected
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            height: 1,
+                          ),
+                        ),
+                        TextSpan(
+                          text: ' $unitLabel',
+                          style: TextStyle(
+                            color: selected
+                                ? _ShopSettingPageState._titleColor
+                                : const Color.fromRGBO(148, 163, 184, 0.72),
+                            fontSize: selected ? 15 : 13,
+                            fontWeight: FontWeight.w600,
+                            height: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

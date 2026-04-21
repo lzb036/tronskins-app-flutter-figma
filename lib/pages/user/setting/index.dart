@@ -9,13 +9,10 @@ import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/utils/app_version.dart';
 import 'package:tronskins_app/common/storage/server_storage.dart';
 import 'package:tronskins_app/common/storage/twofa_storage.dart';
-import 'package:tronskins_app/common/widgets/avatar_preview_dialog.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
-
-const _avatarHeroTag = 'user-avatar-hero-setting';
 
 class UserSetting extends StatelessWidget {
   const UserSetting({super.key});
@@ -245,31 +242,20 @@ class UserSetting extends StatelessWidget {
             padding: const EdgeInsets.all(25),
             child: Row(
               children: [
-                InkWell(
-                  borderRadius: BorderRadius.zero,
-                  onTap: () => showAvatarPreviewDialog(
-                    context,
-                    imageProvider: userCtrl.avatarProvider,
-                    heroTag: _avatarHeroTag,
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: const Color.fromRGBO(30, 64, 175, 0.1),
+                      width: 2,
+                    ),
                   ),
-                  child: Hero(
-                    tag: _avatarHeroTag,
-                    child: Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: const Color.fromRGBO(30, 64, 175, 0.1),
-                          width: 2,
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(2),
-                        child: Image(
-                          image: userCtrl.avatarProvider,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(2),
+                    child: Image(
+                      image: userCtrl.avatarProvider,
+                      fit: BoxFit.cover,
                     ),
                   ),
                 ),
