@@ -7,6 +7,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
+import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/controllers/wallet/wallet_controller.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
@@ -99,7 +100,10 @@ class _WalletRechargePageState extends State<WalletRechargePage>
       return;
     }
     await Clipboard.setData(ClipboardData(text: address));
-    _showTopSnack('app.system.message.copy_success'.tr, isSuccess: true);
+    if (!mounted) {
+      return;
+    }
+    await showCopySuccessNoticeDialog(context);
   }
 
   Future<void> _submitChargeCard() async {

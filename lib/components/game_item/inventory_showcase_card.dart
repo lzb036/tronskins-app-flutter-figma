@@ -258,81 +258,104 @@ class InventoryShowcaseCard extends StatelessWidget {
                                 left: 0,
                                 right: 0,
                                 bottom: 0,
-                                child: _buildAccessoryOverlay(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      if (stickers.isNotEmpty) ...[
-                                        StickerRow(
-                                          stickers: stickers,
-                                          size: 18,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (stickers.isNotEmpty || gems.isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(
+                                          6,
+                                          0,
+                                          6,
+                                          4,
                                         ),
-                                        if (gems.isNotEmpty ||
-                                            wearDisplay != null)
-                                          const SizedBox(height: 3),
-                                      ],
-                                      if (gems.isNotEmpty) ...[
-                                        GemRow(
-                                          gems: gems,
-                                          size: isDota ? 20 : 16,
-                                        ),
-                                        if (wearDisplay != null)
-                                          const SizedBox(height: 3),
-                                      ],
-                                      if (wearDisplay != null) ...[
-                                        Text.rich(
-                                          TextSpan(
-                                            children: [
-                                              TextSpan(
-                                                text:
-                                                    '${_isEnglishLocale ? 'Wear' : '磨损'}: ',
-                                                style: const TextStyle(
-                                                  color: Color(0xFFF0E5DA),
-                                                  fontSize: 8,
-                                                  height: 10 / 8,
-                                                  fontWeight: FontWeight.w500,
-                                                  shadows: [
-                                                    Shadow(
-                                                      color: Color(0xB3000000),
-                                                      blurRadius: 4,
-                                                      offset: Offset(0, 1),
-                                                    ),
-                                                  ],
-                                                ),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            if (stickers.isNotEmpty) ...[
+                                              StickerRow(
+                                                stickers: stickers,
+                                                size: 18,
                                               ),
+                                              if (gems.isNotEmpty)
+                                                const SizedBox(height: 3),
+                                            ],
+                                            if (gems.isNotEmpty)
+                                              GemRow(
+                                                gems: gems,
+                                                size: isDota ? 20 : 16,
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    if (wearDisplay != null)
+                                      _buildAccessoryOverlay(
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text.rich(
                                               TextSpan(
-                                                text: wearDisplay,
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 8,
-                                                  height: 10 / 8,
-                                                  fontWeight: FontWeight.w700,
-                                                  shadows: [
-                                                    Shadow(
-                                                      color: Color(0xB3000000),
-                                                      blurRadius: 4,
-                                                      offset: Offset(0, 1),
+                                                children: [
+                                                  TextSpan(
+                                                    text:
+                                                        '${_isEnglishLocale ? 'Wear' : '磨损'}: ',
+                                                    style: const TextStyle(
+                                                      color: Color(0xFFF0E5DA),
+                                                      fontSize: 8,
+                                                      height: 10 / 8,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      shadows: [
+                                                        Shadow(
+                                                          color: Color(
+                                                            0xB3000000,
+                                                          ),
+                                                          blurRadius: 4,
+                                                          offset: Offset(0, 1),
+                                                        ),
+                                                      ],
                                                     ),
-                                                  ],
-                                                ),
+                                                  ),
+                                                  TextSpan(
+                                                    text: wearDisplay,
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 8,
+                                                      height: 10 / 8,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      shadows: [
+                                                        Shadow(
+                                                          color: Color(
+                                                            0xB3000000,
+                                                          ),
+                                                          blurRadius: 4,
+                                                          offset: Offset(0, 1),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            if (wearValue != null) ...[
+                                              const SizedBox(height: 3),
+                                              _buildWearTrack(
+                                                wearValue: wearValue,
+                                                conditionLabel: conditionLabel,
                                               ),
                                             ],
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                          ],
                                         ),
-                                        if (wearValue != null) ...[
-                                          const SizedBox(height: 3),
-                                          _buildWearTrack(
-                                            wearValue: wearValue,
-                                            conditionLabel: conditionLabel,
-                                          ),
-                                        ],
-                                      ],
-                                    ],
-                                  ),
+                                      ),
+                                  ],
                                 ),
                               ),
                             if (shouldShowOnSaleBadge)

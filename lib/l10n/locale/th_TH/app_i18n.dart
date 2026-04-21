@@ -399,7 +399,7 @@ final Map<String, String> th_TH = {
   "app.user.menu.sale": "บันทึกขาย",
   "app.user.menu.buy": "ซื้อบันทึก",
   "app.user.menu.purchase": "การซื้อ",
-  "app.user.menu.shop": "Shop",
+  "app.user.menu.shop": "ร้านของฉัน",
   "app.user.menu.wallet": "Wallet",
   "app.user.menu.center": "Help",
   "app.user.menu.collection": "คอลเลกชัน",

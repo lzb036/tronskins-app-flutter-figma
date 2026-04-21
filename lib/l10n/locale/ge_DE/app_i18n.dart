@@ -428,7 +428,7 @@ final Map<String, String> ge_DE = {
   "app.user.menu.sale": "Verkaufsrekord",
   "app.user.menu.buy": "Kaufen Sie Record",
   "app.user.menu.purchase": "Kauf",
-  "app.user.menu.shop": "Shop",
+  "app.user.menu.shop": "Mein Shop",
   "app.user.menu.wallet": "Wallet",
   "app.user.menu.center": "Help",
   "app.user.menu.collection": "Sammlung",

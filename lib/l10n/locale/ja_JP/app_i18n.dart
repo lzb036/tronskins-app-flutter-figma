@@ -358,7 +358,7 @@ final Map<String, String> ja_JP = {
   "app.user.menu.sale": "販売記録",
   "app.user.menu.buy": "レコードを購入",
   "app.user.menu.purchase": "購入",
-  "app.user.menu.shop": "Shop",
+  "app.user.menu.shop": "マイショップ",
   "app.user.menu.wallet": "Wallet",
   "app.user.menu.center": "Help",
   "app.user.menu.collection": "コレクション",

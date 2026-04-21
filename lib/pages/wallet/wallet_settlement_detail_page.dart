@@ -4,12 +4,12 @@ import 'dart:ui';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:intl/intl.dart';
 import 'package:tronskins_app/api/model/wallet/wallet_models.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/game_storage.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
+import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/game_item/sticker_row.dart';
@@ -66,7 +66,7 @@ class WalletSettlementDetailPage extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildStatusCard(currency),
+                        _buildStatusCard(context, currency),
                         const SizedBox(height: 16),
                         if (record.details.isEmpty)
                           _buildEmptyCard()
@@ -113,7 +113,10 @@ class WalletSettlementDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusCard(CurrencyController? currency) {
+  Widget _buildStatusCard(
+    BuildContext context,
+    CurrencyController? currency,
+  ) {
     final statusStyle = _statusStyle();
     final orderId = record.id?.trim() ?? '-';
     final createdTime = _formatTimestamp(_resolveCreatedTime());
@@ -188,7 +191,7 @@ class WalletSettlementDetailPage extends StatelessWidget {
           _buildGlassStatusRow(
             label: '${_text(zh: '订单号', en: 'Order No')}:',
             value: orderId,
-            onCopy: orderId == '-' ? null : () => _copy(orderId),
+            onCopy: orderId == '-' ? null : () => _copy(context, orderId),
           ),
           if (createdTime != '-') ...[
             const SizedBox(height: 8),
@@ -1244,12 +1247,15 @@ class WalletSettlementDetailPage extends StatelessWidget {
     return '\$ ${value.toStringAsFixed(2)}';
   }
 
-  Future<void> _copy(String text) async {
+  Future<void> _copy(BuildContext context, String text) async {
     if (text.isEmpty) {
       return;
     }
     await Clipboard.setData(ClipboardData(text: text));
-    AppSnackbar.success('app.system.message.copy_success'.tr);
+    if (!context.mounted) {
+      return;
+    }
+    await showCopySuccessNoticeDialog(context);
   }
 }
 

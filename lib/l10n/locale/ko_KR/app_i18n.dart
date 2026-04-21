@@ -365,7 +365,7 @@ final Map<String, String> ko_KR = {
   "app.user.menu.sale": "판매 기록",
   "app.user.menu.buy": "레코드 구매",
   "app.user.menu.purchase": "구매",
-  "app.user.menu.shop": "Shop",
+  "app.user.menu.shop": "내 가게",
   "app.user.menu.wallet": "Wallet",
   "app.user.menu.center": "Help",
   "app.user.menu.collection": "컬렉션",

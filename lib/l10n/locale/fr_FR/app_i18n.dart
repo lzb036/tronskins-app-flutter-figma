@@ -436,7 +436,7 @@ final Map<String, String> fr_FR = {
   "app.user.menu.sale": "Registre de vente",
   "app.user.menu.buy": "Acheter un enregistrement",
   "app.user.menu.purchase": "Achat",
-  "app.user.menu.shop": "Shop",
+  "app.user.menu.shop": "Mon magasin",
   "app.user.menu.wallet": "Wallet",
   "app.user.menu.center": "Help",
   "app.user.menu.collection": "Collection",

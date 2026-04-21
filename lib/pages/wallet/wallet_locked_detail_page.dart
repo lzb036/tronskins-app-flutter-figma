@@ -10,6 +10,7 @@ import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/game_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
+import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/controllers/wallet/wallet_controller.dart';
 import 'package:tronskins_app/api/model/wallet/wallet_models.dart';
@@ -74,7 +75,10 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
       return;
     }
     await Clipboard.setData(ClipboardData(text: text));
-    AppSnackbar.success('app.system.message.copy_success'.tr);
+    if (!mounted) {
+      return;
+    }
+    await showCopySuccessNoticeDialog(context);
   }
 
   void _showTopSnack(

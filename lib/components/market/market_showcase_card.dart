@@ -199,43 +199,69 @@ class MarketShowcaseCard extends StatelessWidget {
                           left: 0,
                           right: 0,
                           bottom: 0,
-                          child: _buildAccessoryOverlay(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (stickers.isNotEmpty) ...[
-                                  StickerRow(stickers: stickers, size: 18),
-                                  if (gems.isNotEmpty || wearDisplay != null)
-                                    const SizedBox(height: 3),
-                                ],
-                                if (gems.isNotEmpty) ...[
-                                  GemRow(gems: gems, size: isDota ? 20 : 16),
-                                  if (wearDisplay != null)
-                                    const SizedBox(height: 3),
-                                ],
-                                if (wearDisplay != null) ...[
-                                  Text(
-                                    '${_isEnglishLocale ? 'Wear' : '磨损'}: $wearDisplay',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Color(0xFFE2E8F0),
-                                      fontSize: 7,
-                                      height: 10 / 7,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (stickers.isNotEmpty || gems.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    6,
+                                    0,
+                                    6,
+                                    4,
                                   ),
-                                  if (wearValue != null) ...[
-                                    const SizedBox(height: 3),
-                                    _buildWearTrack(
-                                      wearValue: wearValue!,
-                                      conditionLabel: conditionLabel,
-                                    ),
-                                  ],
-                                ],
-                              ],
-                            ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      if (stickers.isNotEmpty) ...[
+                                        StickerRow(
+                                          stickers: stickers,
+                                          size: 18,
+                                        ),
+                                        if (gems.isNotEmpty)
+                                          const SizedBox(height: 3),
+                                      ],
+                                      if (gems.isNotEmpty)
+                                        GemRow(
+                                          gems: gems,
+                                          size: isDota ? 20 : 16,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              if (wearDisplay != null)
+                                _buildAccessoryOverlay(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${_isEnglishLocale ? 'Wear' : '磨损'}: '
+                                        '$wearDisplay',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Color(0xFFE2E8F0),
+                                          fontSize: 7,
+                                          height: 10 / 7,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      if (wearValue != null) ...[
+                                        const SizedBox(height: 3),
+                                        _buildWearTrack(
+                                          wearValue: wearValue!,
+                                          conditionLabel: conditionLabel,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                     ],

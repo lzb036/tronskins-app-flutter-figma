@@ -335,7 +335,7 @@ final Map<String, String> zh_TW = {
   "app.user.menu.sale": "銷售記錄",
   "app.user.menu.buy": "購買記錄",
   "app.user.menu.purchase": "求購",
-  "app.user.menu.shop": "Shop",
+  "app.user.menu.shop": "我的店鋪",
   "app.user.menu.wallet": "Wallet",
   "app.user.menu.center": "Help",
   "app.user.menu.collection": "收集",

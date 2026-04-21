@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/common/storage/server_storage.dart';
-import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/utils/app_version.dart';
+import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 
 class AboutPage extends StatelessWidget {
@@ -27,7 +27,7 @@ class AboutPage extends StatelessWidget {
     if (!context.mounted) {
       return;
     }
-    AppSnackbar.success('app.system.message.copy_success'.tr);
+    await showCopySuccessNoticeDialog(context);
   }
 
   @override

@@ -419,7 +419,7 @@ final Map<String, String> in_ID = {
   "app.user.menu.sale": "Rekam Penjualan",
   "app.user.menu.buy": "Beli Rekam",
   "app.user.menu.purchase": "Pembelian",
-  "app.user.menu.shop": "Shop",
+  "app.user.menu.shop": "Toko saya",
   "app.user.menu.wallet": "Wallet",
   "app.user.menu.center": "Help",
   "app.user.menu.collection": "Koleksi",

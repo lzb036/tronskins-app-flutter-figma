@@ -417,7 +417,7 @@ final Map<String, String> po_PL = {
   "app.user.menu.sale": "Rekord sprzedaży",
   "app.user.menu.buy": "Kup nagranie",
   "app.user.menu.purchase": "Zakup",
-  "app.user.menu.shop": "Shop",
+  "app.user.menu.shop": "Mój sklep",
   "app.user.menu.wallet": "Wallet",
   "app.user.menu.center": "Help",
   "app.user.menu.collection": "Kolekcja",

@@ -35,23 +35,12 @@ final userMenuItems = [
     () => Get.toNamed(Routers.USER_COLLECTION),
   ),
   UserMenuItem(
-    'app.user.menu.guard',
+    'app.user.guard.text',
     Icons.security_outlined,
     () => Get.toNamed(Routers.USER_GUARD),
   ),
-  UserMenuItem('app.user.menu.shop', Icons.store_outlined, () {
-    final navCtrl = Get.isRegistered<NavController>()
-        ? Get.find<NavController>()
-        : Get.put(NavController(), permanent: true);
-    navCtrl.switchToShopTab(NavController.shopTabOnSale);
-  }),
   UserMenuItem(
-    'app.user.menu.wallet',
-    Icons.account_balance_wallet_outlined,
-    () => Get.toNamed(Routers.WALLET),
-  ),
-  UserMenuItem(
-    'app.user.menu.center',
+    'app.user.server.help',
     Icons.menu_book,
     () => Get.toNamed(Routers.HELP_CENTER),
   ),

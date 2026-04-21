@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 /// Shows a centered translucent notice dialog that dismisses itself.
 Future<void> showGlassNoticeDialog(
@@ -37,6 +38,21 @@ Future<void> showGlassNoticeDialog(
         ),
       );
     },
+  );
+}
+
+/// Shows the compact centered success notice used after copy actions.
+Future<void> showCopySuccessNoticeDialog(
+  BuildContext context, {
+  String? message,
+  Duration duration = const Duration(milliseconds: 1400),
+}) {
+  return showGlassNoticeDialog(
+    context,
+    message: message ?? 'app.system.message.copy_success'.tr,
+    icon: Icons.check_circle_outline_rounded,
+    duration: duration,
+    barrierLabel: 'copy_success_notice_dialog',
   );
 }
 

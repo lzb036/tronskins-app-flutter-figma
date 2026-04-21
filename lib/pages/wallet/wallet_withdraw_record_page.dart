@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:tronskins_app/api/model/wallet/wallet_models.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
-import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/components/layout/list_end_tip.dart';
 import 'package:tronskins_app/controllers/wallet/wallet_controller.dart';
@@ -71,7 +71,10 @@ class _WalletWithdrawRecordPageState extends State<WalletWithdrawRecordPage> {
       return;
     }
     await Clipboard.setData(ClipboardData(text: text));
-    AppSnackbar.success('app.system.message.copy_success'.tr);
+    if (!mounted) {
+      return;
+    }
+    await showCopySuccessNoticeDialog(context);
   }
 
   bool get _isChineseLocale =>

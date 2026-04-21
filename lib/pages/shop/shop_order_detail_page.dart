@@ -13,6 +13,7 @@ import 'package:tronskins_app/common/storage/game_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
+import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
@@ -106,7 +107,8 @@ class ShopOrderDetailPage extends StatelessWidget {
                           totalItemCount: totalItemCount,
                           onCopy: order.id == null
                               ? null
-                              : () => _copyOrderId(order.id!.toString()),
+                              : () =>
+                                  _copyOrderId(context, order.id!.toString()),
                         ),
                         if (pendingBuyer != null) ...[
                           const SizedBox(height: 16),
@@ -2784,9 +2786,12 @@ class ShopOrderDetailPage extends StatelessWidget {
     ].where((item) => item.trim().isNotEmpty).toList();
   }
 
-  Future<void> _copyOrderId(String orderId) async {
+  Future<void> _copyOrderId(BuildContext context, String orderId) async {
     await Clipboard.setData(ClipboardData(text: orderId));
-    AppSnackbar.success('app.system.message.copy_success'.tr);
+    if (!context.mounted) {
+      return;
+    }
+    await showCopySuccessNoticeDialog(context);
   }
 
   String _text({required String zh, required String en}) {

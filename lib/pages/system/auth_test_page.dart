@@ -1,15 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get.dart';
 import 'package:tronskins_app/api/loginServer.dart';
 import 'package:tronskins_app/common/http/interceptors/auth_interceptor.dart';
 import 'package:tronskins_app/common/storage/session_storage.dart';
 import 'package:tronskins_app/common/storage/user_storage.dart';
-import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
+import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
+import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 
 class AuthTestPage extends StatefulWidget {
   const AuthTestPage({super.key});
@@ -741,7 +740,7 @@ class _AuthTestPageState extends State<AuthTestPage> {
     if (!mounted) {
       return;
     }
-    AppSnackbar.success('app.system.message.copy_success'.tr);
+    await showCopySuccessNoticeDialog(context);
   }
 
   void _appendLog(_LogLevel level, String message) {

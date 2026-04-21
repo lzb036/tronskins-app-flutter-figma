@@ -409,7 +409,7 @@ final Map<String, String> vi_VN = {
   "app.user.menu.sale": "Kỷ lục bán hàng",
   "app.user.menu.buy": "Mua hồ sơ",
   "app.user.menu.purchase": "Mua",
-  "app.user.menu.shop": "Shop",
+  "app.user.menu.shop": "Cửa hàng của tôi",
   "app.user.menu.wallet": "Wallet",
   "app.user.menu.center": "Help",
   "app.user.menu.collection": "Bộ sưu tập",

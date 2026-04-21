@@ -407,7 +407,7 @@ final Map<String, String> tu_TR = {
   "app.user.menu.sale": "Satış Kaydı",
   "app.user.menu.buy": "Kayıt Satın Alın",
   "app.user.menu.purchase": "Satın Alma",
-  "app.user.menu.shop": "Shop",
+  "app.user.menu.shop": "Dükkanım",
   "app.user.menu.wallet": "Wallet",
   "app.user.menu.center": "Help",
   "app.user.menu.collection": "Koleksiyon",

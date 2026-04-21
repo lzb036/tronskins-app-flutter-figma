@@ -425,7 +425,7 @@ final Map<String, String> po_PT = {
   "app.user.menu.sale": "Registro de vendas",
   "app.user.menu.buy": "Comprar Registro",
   "app.user.menu.purchase": "Compra",
-  "app.user.menu.shop": "Shop",
+  "app.user.menu.shop": "Minha Loja",
   "app.user.menu.wallet": "Wallet",
   "app.user.menu.center": "Help",
   "app.user.menu.collection": "Coleção",

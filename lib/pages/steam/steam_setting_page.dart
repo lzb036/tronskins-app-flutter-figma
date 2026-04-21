@@ -339,10 +339,8 @@ class _SteamSettingPageState extends State<SteamSettingPage> {
     if (!mounted) {
       return;
     }
-    await showGlassNoticeDialog(
+    await showCopySuccessNoticeDialog(
       context,
-      message: 'app.system.message.copy_success'.tr,
-      icon: Icons.check_circle_outline_rounded,
       duration: const Duration(milliseconds: 1200),
     );
   }

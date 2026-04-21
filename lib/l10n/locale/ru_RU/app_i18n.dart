@@ -425,7 +425,7 @@ final Map<String, String> ru_RU = {
   "app.user.menu.sale": "Рекорд продажи",
   "app.user.menu.buy": "Купить запись",
   "app.user.menu.purchase": "Покупка",
-  "app.user.menu.shop": "Shop",
+  "app.user.menu.shop": "Мой магазин",
   "app.user.menu.wallet": "Wallet",
   "app.user.menu.center": "Help",
   "app.user.menu.collection": "Коллекция",

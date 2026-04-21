@@ -423,7 +423,7 @@ final Map<String, String> it_IT = {
   "app.user.menu.sale": "Registro vendita",
   "app.user.menu.buy": "Acquista Record",
   "app.user.menu.purchase": "Acquisto",
-  "app.user.menu.shop": "Shop",
+  "app.user.menu.shop": "Il mio negozio",
   "app.user.menu.wallet": "Wallet",
   "app.user.menu.center": "Help",
   "app.user.menu.collection": "Collezione",

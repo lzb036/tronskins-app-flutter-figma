@@ -433,7 +433,7 @@ final Map<String, String> sp_ES = {
   "app.user.menu.sale": "Registro de venta",
   "app.user.menu.buy": "Comprar Registro",
   "app.user.menu.purchase": "Compra",
-  "app.user.menu.shop": "Shop",
+  "app.user.menu.shop": "Mi tienda",
   "app.user.menu.wallet": "Wallet",
   "app.user.menu.center": "Help",
   "app.user.menu.collection": "Colección",
