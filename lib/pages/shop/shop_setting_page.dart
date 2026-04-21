@@ -1,5 +1,4 @@
-import 'dart:ui';
-
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/api/model/entity/user/user_shop_entity.dart';
@@ -19,20 +18,47 @@ class ShopSettingPage extends StatefulWidget {
 }
 
 class _ShopSettingPageState extends State<ShopSettingPage> {
-  static const _pageBg = Color(0xFFF7F9FB);
-  static const _cardBg = Colors.white;
-  static const _cardBorder = Color(0xFFF1F5F9);
+  static const _pageBg = Color(0xFFF4F6F9);
+  static const _panelBg = Colors.white;
+  static const _sectionBg = Color(0xFFF7F8FB);
+  static const _fieldBg = Color(0xFFECEFF4);
   static const _titleColor = Color(0xFF191C1E);
-  static const _mutedColor = Color(0xFF444653);
-  static const _brandColor = Color(0xFF00288E);
-  static const _brandColorLight = Color(0xFF0058BE);
+  static const _textColor = Color(0xFF23262F);
+  static const _mutedColor = Color(0xFF8E95A3);
+  static const _brandColor = Color(0xFF1E40AF);
+  static const _brandColorEnd = Color(0xFF3B82F6);
+  static const _brandSoftColor = Color(0xFFEAF1FF);
+  static const _successColor = Color(0xFF16A34A);
+  static const _offlineColor = Color(0xFFB93815);
+  static const _warningBg = Color(0xFFFFF4D7);
+  static const _warningText = Color(0xFF9A6805);
+  static const _panelShadow = Color.fromRGBO(15, 23, 42, 0.06);
+
+  static const List<_AutoOfflinePreset> _presets = [
+    _AutoOfflinePreset(id: '15m', hour: 0, minute: 15),
+    _AutoOfflinePreset(id: '30m', hour: 0, minute: 30),
+    _AutoOfflinePreset(id: '1h', hour: 1, minute: 0),
+    _AutoOfflinePreset(id: '2h', hour: 2, minute: 0),
+    _AutoOfflinePreset(id: '4h', hour: 4, minute: 0),
+    _AutoOfflinePreset.custom(id: 'custom'),
+  ];
 
   final ShopController controller = Get.isRegistered<ShopController>()
       ? Get.find<ShopController>()
       : Get.put(ShopController());
   final UserController userController = Get.find<UserController>();
-  bool _isSwitchingShopOnline = false;
-  bool _isSwitchingAutoOffline = false;
+
+  bool _draftInitialized = false;
+  String? _draftShopIdentity;
+  bool _draftOnline = false;
+  bool _draftAutoOffline = false;
+  int _draftHour = 0;
+  int _draftMinute = 0;
+  bool _isSaving = false;
+  DateTime _lastSyncedAt = DateTime.now();
+
+  bool get _isZh =>
+      Get.locale?.languageCode.toLowerCase().startsWith('zh') ?? true;
 
   @override
   void initState() {
@@ -40,6 +66,21 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     if (userController.isLoggedIn.value) {
       controller.loadShop();
     }
+  }
+
+  String _text(String zh, String en) => _isZh ? zh : en;
+
+  String _shopIdentity(UserShopEntity shop) =>
+      '${shop.id ?? ''}|${shop.uuid ?? ''}';
+
+  void _syncDraftFromShop(UserShopEntity shop) {
+    _draftInitialized = true;
+    _draftShopIdentity = _shopIdentity(shop);
+    _draftOnline = shop.isOnline ?? false;
+    _draftAutoOffline = shop.openAutoClose ?? false;
+    _draftHour = shop.hour ?? 0;
+    _draftMinute = shop.minute ?? 0;
+    _lastSyncedAt = DateTime.now();
   }
 
   Future<bool> _confirmSwitch(String messageKey) async {
@@ -66,30 +107,22 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
       ? 'app.user.shop.message.confirm_online_on'
       : 'app.user.shop.message.confirm_online_off';
 
-  String _shopOnlineSuccessKey(bool value) => value
-      ? 'app.user.shop.message.online_on_success'
-      : 'app.user.shop.message.online_off_success';
-
-  String _shopOnlineFailedKey(bool value) => value
-      ? 'app.user.shop.message.online_on_failed'
-      : 'app.user.shop.message.online_off_failed';
+  String _shopOnlineFailedMessage(bool value) => value
+      ? 'app.user.shop.message.online_on_failed'.tr
+      : 'app.user.shop.message.online_off_failed'.tr;
 
   String _autoOfflineConfirmKey(bool value) => value
       ? 'app.user.shop.message.confirm_auto_offline_on'
       : 'app.user.shop.message.confirm_auto_offline_off';
 
-  String _autoOfflineSuccessKey(bool value) => value
-      ? 'app.user.shop.message.auto_offline_on_success'
-      : 'app.user.shop.message.auto_offline_off_success';
-
-  String _autoOfflineFailedKey(bool value) => value
-      ? 'app.user.shop.message.auto_offline_on_failed'
-      : 'app.user.shop.message.auto_offline_off_failed';
+  String _autoOfflineFailedMessage(bool value) => value
+      ? 'app.user.shop.message.auto_offline_on_failed'.tr
+      : 'app.user.shop.message.auto_offline_off_failed'.tr;
 
   String _resolveShopActionError({
     String? responseMessage,
     dynamic responseData,
-    required String fallbackKey,
+    required String fallbackMessage,
   }) {
     final dataText = responseData?.toString().trim() ?? '';
     if (dataText.isNotEmpty) {
@@ -101,90 +134,307 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
       return messageText;
     }
 
-    return fallbackKey.tr;
+    return fallbackMessage;
   }
 
-  String _resolveExceptionError(Object error, String fallbackKey) {
+  String _resolveExceptionError(Object error, String fallbackMessage) {
     if (error is HttpException && error.message.trim().isNotEmpty) {
       return error.message.trim();
     }
-    return fallbackKey.tr;
+    return fallbackMessage;
   }
 
-  Future<void> _handleShopOnlineChanged(bool value) async {
-    if (_isSwitchingShopOnline) {
-      return;
-    }
-    final confirmed = await _confirmSwitch(_shopOnlineConfirmKey(value));
-    if (!confirmed) {
-      return;
-    }
-    if (!mounted) {
-      return;
-    }
-    setState(() => _isSwitchingShopOnline = true);
+  bool _hasDurationSet() => _draftHour > 0 || _draftMinute > 0;
+
+  bool _hasChanges(UserShopEntity shop) {
+    return _draftOnline != (shop.isOnline ?? false) ||
+        _draftAutoOffline != (shop.openAutoClose ?? false) ||
+        _draftHour != (shop.hour ?? 0) ||
+        _draftMinute != (shop.minute ?? 0);
+  }
+
+  Future<bool> _submitShopStatusChange(bool targetValue) async {
     try {
       final res = await controller.toggleShopStatus();
       if (res.success) {
-        AppSnackbar.success(_shopOnlineSuccessKey(value).tr);
-      } else {
-        AppSnackbar.error(
-          _resolveShopActionError(
-            responseMessage: res.message,
-            responseData: res.datas,
-            fallbackKey: _shopOnlineFailedKey(value),
-          ),
-        );
-        await controller.loadShop();
+        return true;
       }
+      AppSnackbar.error(
+        _resolveShopActionError(
+          responseMessage: res.message,
+          responseData: res.datas,
+          fallbackMessage: _shopOnlineFailedMessage(targetValue),
+        ),
+      );
     } catch (error) {
       AppSnackbar.error(
-        _resolveExceptionError(error, _shopOnlineFailedKey(value)),
+        _resolveExceptionError(error, _shopOnlineFailedMessage(targetValue)),
+      );
+    }
+
+    await controller.loadShop();
+    return false;
+  }
+
+  Future<bool> _submitAutoOfflineChange(bool targetValue) async {
+    try {
+      final res = await controller.toggleAutoOffline(targetValue);
+      if (res.success) {
+        return true;
+      }
+      AppSnackbar.error(
+        _resolveShopActionError(
+          responseMessage: res.message,
+          responseData: res.datas,
+          fallbackMessage: _autoOfflineFailedMessage(targetValue),
+        ),
+      );
+    } catch (error) {
+      AppSnackbar.error(
+        _resolveExceptionError(error, _autoOfflineFailedMessage(targetValue)),
+      );
+    }
+
+    await controller.loadShop();
+    return false;
+  }
+
+  Future<bool> _submitAutoCloseTime(int hour, int minute) async {
+    try {
+      await controller.setAutoCloseTime(hour, minute);
+      return true;
+    } catch (error) {
+      AppSnackbar.error(
+        _resolveExceptionError(
+          error,
+          _text('保存自动离线时长失败', 'Failed to save auto-offline duration'),
+        ),
       );
       await controller.loadShop();
+      return false;
+    }
+  }
+
+  void _restoreDraftFromController() {
+    final refreshedShop = controller.shop.value;
+    if (!mounted || refreshedShop == null) {
+      return;
+    }
+    setState(() => _syncDraftFromShop(refreshedShop));
+  }
+
+  Future<void> _handleSave(UserShopEntity shop) async {
+    if (_isSaving || !_hasChanges(shop)) {
+      return;
+    }
+
+    final currentOnline = shop.isOnline ?? false;
+    final currentAutoOffline = shop.openAutoClose ?? false;
+    final statusChanged = _draftOnline != currentOnline;
+    final autoOfflineChanged = _draftAutoOffline != currentAutoOffline;
+
+    var saveHour = _draftHour;
+    var saveMinute = _draftMinute;
+    if (_draftAutoOffline && saveHour == 0 && saveMinute == 0) {
+      saveMinute = 30;
+    }
+
+    final durationChanged =
+        saveHour != (shop.hour ?? 0) || saveMinute != (shop.minute ?? 0);
+
+    if (statusChanged) {
+      final confirmed = await _confirmSwitch(
+        _shopOnlineConfirmKey(_draftOnline),
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    if (autoOfflineChanged) {
+      final confirmed = await _confirmSwitch(
+        _autoOfflineConfirmKey(_draftAutoOffline),
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    if (_draftAutoOffline &&
+        saveHour == 0 &&
+        saveMinute == 30 &&
+        (_draftHour != saveHour || _draftMinute != saveMinute)) {
+      setState(() {
+        _draftHour = saveHour;
+        _draftMinute = saveMinute;
+      });
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      if (statusChanged) {
+        final saved = await _submitShopStatusChange(_draftOnline);
+        if (!saved) {
+          _restoreDraftFromController();
+          return;
+        }
+      }
+
+      if (autoOfflineChanged) {
+        final saved = await _submitAutoOfflineChange(_draftAutoOffline);
+        if (!saved) {
+          _restoreDraftFromController();
+          return;
+        }
+      }
+
+      if (durationChanged) {
+        final saved = await _submitAutoCloseTime(saveHour, saveMinute);
+        if (!saved) {
+          _restoreDraftFromController();
+          return;
+        }
+      }
+
+      await controller.loadShop();
+      final refreshedShop = controller.shop.value;
+
+      if (mounted && refreshedShop != null) {
+        setState(() => _syncDraftFromShop(refreshedShop));
+      }
+
+      AppSnackbar.success(_text('店铺设置已保存', 'Shop settings saved'));
     } finally {
       if (mounted) {
-        setState(() => _isSwitchingShopOnline = false);
+        setState(() => _isSaving = false);
       }
     }
   }
 
-  Future<void> _handleAutoOfflineChanged(bool value) async {
-    if (_isSwitchingAutoOffline) {
+  Future<void> _handleRename() async {
+    await Get.toNamed(Routers.SHOP_RENAME);
+    await controller.loadShop();
+    final refreshedShop = controller.shop.value;
+    if (!mounted || refreshedShop == null) {
       return;
     }
-    final confirmed = await _confirmSwitch(_autoOfflineConfirmKey(value));
-    if (!confirmed) {
+    setState(() => _syncDraftFromShop(refreshedShop));
+  }
+
+  void _handleCancel(UserShopEntity shop) {
+    if (_isSaving) {
       return;
     }
-    if (!mounted) {
+
+    if (_hasChanges(shop)) {
+      setState(() => _syncDraftFromShop(shop));
       return;
     }
-    setState(() => _isSwitchingAutoOffline = true);
-    try {
-      final res = await controller.toggleAutoOffline(value);
-      if (res.success) {
-        AppSnackbar.success(_autoOfflineSuccessKey(value).tr);
-      } else {
-        AppSnackbar.error(
-          _resolveShopActionError(
-            responseMessage: res.message,
-            responseData: res.datas,
-            fallbackKey: _autoOfflineFailedKey(value),
+
+    Navigator.maybeOf(context)?.maybePop();
+  }
+
+  Future<void> _openCustomDurationPicker() async {
+    if (_isSaving) {
+      return;
+    }
+
+    Duration currentDuration = _hasDurationSet()
+        ? Duration(hours: _draftHour, minutes: _draftMinute)
+        : const Duration(minutes: 30);
+
+    final selectedDuration = await showModalBottomSheet<Duration>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return SafeArea(
+          top: false,
+          child: StatefulBuilder(
+            builder: (context, setModalState) {
+              return Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: Text('app.common.cancel'.tr),
+                        ),
+                        Expanded(
+                          child: Text(
+                            _text('自定义离线时长', 'Custom idle duration'),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: _titleColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            final safeDuration = currentDuration.inMinutes == 0
+                                ? const Duration(minutes: 5)
+                                : currentDuration;
+                            Navigator.of(context).pop(safeDuration);
+                          },
+                          child: Text('app.common.confirm'.tr),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    SizedBox(
+                      height: 180,
+                      child: CupertinoTimerPicker(
+                        mode: CupertinoTimerPickerMode.hm,
+                        initialTimerDuration: currentDuration,
+                        onTimerDurationChanged: (value) {
+                          setModalState(() {
+                            currentDuration = value;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _text(
+                        '用于无操作后自动停止营业',
+                        'Used to stop selling after inactivity',
+                      ),
+                      style: const TextStyle(
+                        color: _mutedColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         );
-        await controller.loadShop();
-      }
-    } catch (error) {
-      AppSnackbar.error(
-        _resolveExceptionError(error, _autoOfflineFailedKey(value)),
-      );
-      await controller.loadShop();
-    } finally {
-      if (mounted) {
-        setState(() => _isSwitchingAutoOffline = false);
-      }
+      },
+    );
+
+    if (!mounted || selectedDuration == null) {
+      return;
     }
+
+    setState(() {
+      _draftHour = selectedDuration.inHours;
+      _draftMinute = selectedDuration.inMinutes.remainder(60);
+    });
   }
 
   String _shopDisplayName(UserShopEntity shop) {
@@ -192,10 +442,134 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     return displayName.isEmpty ? '-' : displayName;
   }
 
+  String _shopMeta(UserShopEntity shop) {
+    final parts = <String>[];
+    final nickname = (shop.nickname ?? '').trim();
+    if (nickname.isNotEmpty) {
+      parts.add(nickname);
+    }
+
+    final uuid = (shop.uuid ?? shop.id ?? '').trim();
+    if (uuid.isNotEmpty) {
+      final shortened = uuid.length > 8 ? uuid.substring(0, 8) : uuid;
+      parts.add('#$shortened');
+    }
+
+    if (parts.isEmpty) {
+      return _text('店铺信息已同步', 'Shop information synced');
+    }
+    return parts.join('  |  ');
+  }
+
+  String _statusLabel(bool value) =>
+      _text(value ? '在线' : '离线', value ? 'Online' : 'Offline');
+
+  String _statusPrefix() => _text('目前状态: ', 'Current: ');
+
+  String _formatClock(DateTime time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    final second = time.second.toString().padLeft(2, '0');
+    return '$hour:$minute:$second';
+  }
+
+  String _formatDurationClock(int hour, int minute) {
+    final h = hour.toString().padLeft(2, '0');
+    final m = minute.toString().padLeft(2, '0');
+    return '$h:$m:00';
+  }
+
+  String _presetLabel(_AutoOfflinePreset preset) {
+    switch (preset.id) {
+      case '15m':
+        return '15 min';
+      case '30m':
+        return '30 min';
+      case '1h':
+        return '1 h';
+      case '2h':
+        return '2 h';
+      case '4h':
+        return '4 h';
+      case 'custom':
+        return _text('自定义', 'Custom');
+      default:
+        return '';
+    }
+  }
+
+  bool _isPresetSelected(_AutoOfflinePreset preset) {
+    if (preset.isCustom) {
+      if (!_hasDurationSet()) {
+        return false;
+      }
+      for (final candidate in _presets) {
+        if (!candidate.isCustom &&
+            candidate.hour == _draftHour &&
+            candidate.minute == _draftMinute) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    return preset.hour == _draftHour && preset.minute == _draftMinute;
+  }
+
+  String _expectedOfflineValue() {
+    if (!_draftAutoOffline || !_hasDurationSet()) {
+      return '--:--:--';
+    }
+    final expected = DateTime.now().add(
+      Duration(hours: _draftHour, minutes: _draftMinute),
+    );
+    return _formatClock(expected);
+  }
+
+  Widget _buildTopNavigation(UserShopEntity? shop) {
+    final canSave = shop != null && _hasChanges(shop) && !_isSaving;
+
+    return SettingsStyleTopNavigation(
+      title: 'app.user.shop.setting'.tr,
+      horizontalPadding: 16,
+      actions: [
+        TextButton(
+          onPressed: canSave ? () => _handleSave(shop) : null,
+          style: TextButton.styleFrom(
+            minimumSize: const Size(44, 36),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            foregroundColor: _brandColor,
+          ),
+          child: _isSaving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(
+                  'app.common.save'.tr,
+                  style: TextStyle(
+                    color: canSave ? _brandColor : _mutedColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Obx(() {
       final loggedIn = userController.isLoggedIn.value;
+      final shop = loggedIn ? controller.shop.value : null;
+
+      if (shop != null &&
+          (!_draftInitialized || _draftShopIdentity != _shopIdentity(shop))) {
+        _syncDraftFromShop(shop);
+      }
+
       return Scaffold(
         backgroundColor: _pageBg,
         body: Stack(
@@ -203,15 +577,11 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
             Positioned.fill(
               child: !loggedIn
                   ? const LoginRequiredPrompt()
-                  : Obx(() {
-                      final shop = controller.shop.value;
-                      if (shop == null) {
-                        return const _ShopSettingLoadingState();
-                      }
-                      return _buildLoggedInBody(shop);
-                    }),
+                  : shop == null
+                  ? const _ShopSettingLoadingState()
+                  : _buildLoggedInBody(shop),
             ),
-            _buildTopNavigation(context),
+            _buildTopNavigation(shop),
           ],
         ),
       );
@@ -219,193 +589,270 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
   }
 
   Widget _buildLoggedInBody(UserShopEntity shop) {
-    final autoClose = shop.openAutoClose ?? false;
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 96, 16, 32),
+      padding: const EdgeInsets.fromLTRB(14, 92, 14, 28),
       child: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 672),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildOverviewCard(shop: shop, autoClose: autoClose),
-              const SizedBox(height: 16),
-              _buildNoticeCard(),
-              const SizedBox(height: 16),
-              _buildGroupedCard([
-                _buildActionTile(
-                  icon: Icons.storefront_rounded,
-                  title: 'app.user.shop.name.label'.tr,
-                  value: _shopDisplayName(shop),
-                  onTap: () => Get.toNamed(Routers.SHOP_RENAME),
-                ),
-                _buildToggleTile(
-                  icon: Icons.wifi_tethering_rounded,
-                  title: 'app.user.shop.online_title'.tr,
-                  value: shop.isOnline ?? false,
-                  isBusy: _isSwitchingShopOnline,
-                  onChanged: _isSwitchingShopOnline
-                      ? null
-                      : _handleShopOnlineChanged,
-                ),
-                _buildToggleTile(
-                  icon: Icons.schedule_rounded,
-                  title: 'app.user.shop.automatic_offline'.tr,
-                  value: autoClose,
-                  isBusy: _isSwitchingAutoOffline,
-                  onChanged: _isSwitchingAutoOffline
-                      ? null
-                      : _handleAutoOfflineChanged,
-                ),
-              ]),
-            ],
+          constraints: const BoxConstraints(maxWidth: 430),
+          child: AbsorbPointer(
+            absorbing: _isSaving,
+            child: Container(
+              decoration: BoxDecoration(
+                color: _panelBg,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: const [
+                  BoxShadow(
+                    color: _panelShadow,
+                    blurRadius: 28,
+                    offset: Offset(0, 16),
+                    spreadRadius: -18,
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildShopIdentityCard(shop),
+                  const SizedBox(height: 14),
+                  _buildStatusSection(),
+                  const SizedBox(height: 14),
+                  _buildAutoOfflineSection(),
+                  const SizedBox(height: 14),
+                  _buildNoticeBanner(),
+                  const SizedBox(height: 18),
+                  _buildFooterActions(shop),
+                ],
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildTopNavigation(BuildContext context) {
-    return SettingsStyleTopNavigation(title: 'app.user.shop.setting'.tr);
-  }
-
-  Widget _buildOverviewCard({
-    required UserShopEntity shop,
-    required bool autoClose,
-  }) {
+  Widget _buildShopIdentityCard(UserShopEntity shop) {
     return Container(
       width: double.infinity,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.white, Color(0xFFF8FBFF)],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _cardBorder),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.04),
-            blurRadius: 20,
-            offset: Offset(0, 4),
-          ),
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.03),
-            blurRadius: 2,
-            offset: Offset(0, 1),
-          ),
-        ],
+        color: _sectionBg,
+        borderRadius: BorderRadius.circular(24),
       ),
-      child: Stack(
-        clipBehavior: Clip.hardEdge,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Positioned(
-            right: -36,
-            top: -48,
-            child: _buildBlurBlob(
-              size: 148,
-              color: const Color.fromRGBO(0, 88, 190, 0.10),
-            ),
-          ),
-          Positioned(
-            left: -42,
-            bottom: -56,
-            child: _buildBlurBlob(
-              size: 156,
-              color: const Color.fromRGBO(0, 40, 142, 0.08),
-            ),
-          ),
-          Positioned(
-            left: 22,
-            top: 0,
-            child: Container(
-              width: 84,
-              height: 5,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [_brandColor, _brandColorLight],
+          Row(
+            children: [
+              _ShopAvatar(imageUrl: (shop.avatar ?? '').trim()),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _brandSoftColor,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: const Text(
+                        'OFFICIAL VENDOR',
+                        style: TextStyle(
+                          color: _brandColor,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _shopDisplayName(shop),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _titleColor,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _shopMeta(shop),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _mutedColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
                 ),
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(999),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'app.user.shop.name.label'.tr,
+            style: const TextStyle(
+              color: _mutedColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _handleRename,
+              borderRadius: BorderRadius.circular(16),
+              child: Ink(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 15,
+                ),
+                decoration: BoxDecoration(
+                  color: _fieldBg,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _shopDisplayName(shop),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _textColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Icon(
+                      Icons.edit_outlined,
+                      size: 16,
+                      color: _mutedColor,
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusSection() {
+    final activeColor = _draftOnline ? _successColor : _offlineColor;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _sectionBg,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEAF2FF),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(
-                        Icons.storefront_rounded,
-                        size: 22,
-                        color: _brandColor,
+                    Text(
+                      _text('营业状态', 'Business status'),
+                      style: const TextStyle(
+                        color: _titleColor,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        'app.user.shop.status'.tr,
+                    const SizedBox(height: 6),
+                    RichText(
+                      text: TextSpan(
                         style: const TextStyle(
-                          color: _mutedColor,
                           fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          height: 16 / 12,
+                          fontWeight: FontWeight.w600,
+                          height: 1.4,
                         ),
+                        children: [
+                          TextSpan(
+                            text: _statusPrefix(),
+                            style: const TextStyle(color: _mutedColor),
+                          ),
+                          TextSpan(
+                            text: _statusLabel(_draftOnline),
+                            style: TextStyle(color: activeColor),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
-                Text(
-                  'app.user.shop.name.label'.tr,
-                  style: const TextStyle(
-                    color: _mutedColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    height: 16 / 12,
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _text('同步时间', 'LAST UPDATE'),
+                    style: const TextStyle(
+                      color: _mutedColor,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatClock(_lastSyncedAt),
+                    style: const TextStyle(
+                      color: _textColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: _fieldBg,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _StatusSegment(
+                    label: _text('在线', 'Online'),
+                    selected: _draftOnline,
+                    onTap: () => setState(() => _draftOnline = true),
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  _shopDisplayName(shop),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _titleColor,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    height: 32 / 24,
-                    letterSpacing: -0.6,
+                Expanded(
+                  child: _StatusSegment(
+                    label: _text('离线', 'Offline'),
+                    selected: !_draftOnline,
+                    onTap: () => setState(() => _draftOnline = false),
                   ),
-                ),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _buildStateChip(
-                      icon: Icons.wifi_tethering_rounded,
-                      label: 'app.user.shop.online_title'.tr,
-                      active: shop.isOnline ?? false,
-                    ),
-                    _buildStateChip(
-                      icon: Icons.schedule_rounded,
-                      label: 'app.user.shop.automatic_offline'.tr,
-                      active: autoClose,
-                    ),
-                  ],
                 ),
               ],
             ),
@@ -415,263 +862,164 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     );
   }
 
-  Widget _buildNoticeCard() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: _cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _cardBorder),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.03),
-            blurRadius: 12,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.info_outline_rounded,
-                size: 20,
-                color: _brandColor,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'app.system.tips.title'.tr,
-                    style: const TextStyle(
-                      color: _titleColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      height: 24 / 16,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'app.user.shop.notice'.tr,
-                    style: const TextStyle(
-                      color: _mutedColor,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      height: 20 / 13,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _buildAutoOfflineSection() {
+    final idleLimit = _hasDurationSet()
+        ? _formatDurationClock(_draftHour, _draftMinute)
+        : _text('未设置', 'Unset');
 
-  Widget _buildGroupedCard(List<Widget> tiles) {
     return Container(
       width: double.infinity,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: _cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _cardBorder),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.03),
-            blurRadius: 12,
-            offset: Offset(0, 2),
-          ),
-        ],
+        color: _sectionBg,
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (var i = 0; i < tiles.length; i++) ...[
-            tiles[i],
-            if (i != tiles.length - 1)
-              const Divider(
-                height: 1,
-                thickness: 1,
-                indent: 16,
-                endIndent: 16,
-                color: _cardBorder,
-              ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionTile({
-    required IconData icon,
-    required String title,
-    required String value,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildLeadingIcon(icon),
-              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      'app.user.shop.automatic_offline'.tr,
                       style: const TextStyle(
-                        color: _mutedColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        height: 16 / 12,
+                        color: _titleColor,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      value,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      _text('无操作后自动停止营业', 'Stop selling after inactivity'),
                       style: const TextStyle(
-                        color: _titleColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        height: 24 / 16,
+                        color: _mutedColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        height: 1.35,
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 12),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: Color(0xFFCBD5E1),
-                size: 18,
+              _InlineToggle(
+                value: _draftAutoOffline,
+                onChanged: (value) {
+                  setState(() {
+                    _draftAutoOffline = value;
+                    if (value && !_hasDurationSet()) {
+                      _draftMinute = 30;
+                    }
+                  });
+                },
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildToggleTile({
-    required IconData icon,
-    required String title,
-    required bool value,
-    required bool isBusy,
-    required ValueChanged<bool>? onChanged,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          _buildLeadingIcon(icon),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: _titleColor,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                height: 24 / 16,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          AnimatedSwitcher(
+          const SizedBox(height: 14),
+          AnimatedOpacity(
             duration: const Duration(milliseconds: 180),
-            child: isBusy
-                ? const SizedBox(
-                    key: ValueKey('busy'),
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2.2),
-                  )
-                : Transform.scale(
-                    key: const ValueKey('switch'),
-                    scale: 0.92,
-                    child: Switch(
-                      value: value,
-                      onChanged: onChanged,
-                      activeThumbColor: Colors.white,
-                      activeTrackColor: _brandColor,
-                      inactiveThumbColor: Colors.white,
-                      inactiveTrackColor: const Color(0xFFE2E8F0),
-                    ),
-                  ),
+            opacity: _draftAutoOffline ? 1 : 0.68,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final chipWidth = (constraints.maxWidth - 16) / 3;
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _presets.map((preset) {
+                    return SizedBox(
+                      width: chipWidth,
+                      child: _DurationChip(
+                        label: _presetLabel(preset),
+                        selected: _isPresetSelected(preset),
+                        onTap: () {
+                          if (preset.isCustom) {
+                            _openCustomDurationPicker();
+                            return;
+                          }
+                          setState(() {
+                            _draftHour = preset.hour;
+                            _draftMinute = preset.minute;
+                          });
+                        },
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _MetaValueBlock(
+                  label: _text('预计离线', 'EXPECTED OFFLINE'),
+                  value: _expectedOfflineValue(),
+                  highlight: _draftAutoOffline,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _MetaValueBlock(
+                  label: _text('闲置阈值', 'IDLE LIMIT'),
+                  value: idleLimit,
+                  highlight: _hasDurationSet(),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildLeadingIcon(IconData icon) {
+  Widget _buildNoticeBanner() {
     return Container(
-      width: 44,
-      height: 44,
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Icon(icon, size: 20, color: _brandColor),
-    );
-  }
-
-  Widget _buildStateChip({
-    required IconData icon,
-    required String label,
-    required bool active,
-  }) {
-    final background = active
-        ? const Color(0xFFEAF2FF)
-        : const Color(0xFFF1F5F9);
-    final foreground = active ? _brandColor : _mutedColor;
-    final borderColor = active
-        ? const Color.fromRGBO(0, 40, 142, 0.10)
-        : _cardBorder;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: borderColor),
+        color: _warningBg,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 14, color: foreground),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              color: foreground,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              height: 16 / 12,
+          const Padding(
+            padding: EdgeInsets.only(top: 1),
+            child: Icon(
+              Icons.warning_amber_rounded,
+              size: 18,
+              color: _warningText,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _text('重要提示', 'Important note'),
+                  style: const TextStyle(
+                    color: _warningText,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'app.user.shop.notice'.tr,
+                  style: const TextStyle(
+                    color: _warningText,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    height: 1.45,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -679,14 +1027,27 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     );
   }
 
-  Widget _buildBlurBlob({required double size, required Color color}) {
-    return ImageFiltered(
-      imageFilter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      ),
+  Widget _buildFooterActions(UserShopEntity shop) {
+    final hasChanges = _hasChanges(shop);
+
+    return Row(
+      children: [
+        Expanded(
+          child: _SecondaryFooterButton(
+            label: 'app.common.cancel'.tr,
+            onPressed: () => _handleCancel(shop),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 2,
+          child: _PrimaryFooterButton(
+            label: _text('保存设置', 'Save Settings'),
+            loading: _isSaving,
+            onPressed: hasChanges ? () => _handleSave(shop) : null,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -703,4 +1064,355 @@ class _ShopSettingLoadingState extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ShopAvatar extends StatelessWidget {
+  const _ShopAvatar({required this.imageUrl});
+
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget child;
+    if (imageUrl.isEmpty) {
+      child = const Center(
+        child: Icon(
+          Icons.storefront_rounded,
+          size: 24,
+          color: Color(0xFF24409E),
+        ),
+      );
+    } else {
+      child = Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return const Center(
+            child: Icon(
+              Icons.storefront_rounded,
+              size: 24,
+              color: Color(0xFF24409E),
+            ),
+          );
+        },
+      );
+    }
+
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xFFDDE7FF),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromRGBO(37, 99, 235, 0.12),
+            blurRadius: 16,
+            offset: Offset(0, 8),
+            spreadRadius: -10,
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: child,
+    );
+  }
+}
+
+class _StatusSegment extends StatelessWidget {
+  const _StatusSegment({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      decoration: BoxDecoration(
+        color: selected ? Colors.white : Colors.transparent,
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: selected
+            ? const [
+                BoxShadow(
+                  color: Color.fromRGBO(15, 23, 42, 0.08),
+                  blurRadius: 16,
+                  offset: Offset(0, 8),
+                  spreadRadius: -12,
+                ),
+              ]
+            : const [],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 11),
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: selected
+                    ? const Color(0xFF1A1F36)
+                    : const Color(0xFF8E95A3),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineToggle extends StatelessWidget {
+  const _InlineToggle({required this.value, required this.onChanged});
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: 38,
+        height: 22,
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: value ? const Color(0xFF2F63F2) : const Color(0xFFD6DBE5),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: AnimatedAlign(
+          duration: const Duration(milliseconds: 180),
+          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            width: 18,
+            height: 18,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DurationChip extends StatelessWidget {
+  const _DurationChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Ink(
+          height: 40,
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFF214FDF) : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: selected ? Colors.white : const Color(0xFF475467),
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MetaValueBlock extends StatelessWidget {
+  const _MetaValueBlock({
+    required this.label,
+    required this.value,
+    required this.highlight,
+  });
+
+  final String label;
+  final String value;
+  final bool highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFF9AA1AF),
+            fontSize: 9,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.3,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          value,
+          style: TextStyle(
+            color: highlight
+                ? const Color(0xFF214FDF)
+                : const Color(0xFF475467),
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SecondaryFooterButton extends StatelessWidget {
+  const _SecondaryFooterButton({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: onPressed == null ? 0.55 : 1,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(12),
+          child: Ink(
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F3F6),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: Color(0xFF475467),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PrimaryFooterButton extends StatelessWidget {
+  const _PrimaryFooterButton({
+    required this.label,
+    required this.loading,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool loading;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null && !loading;
+    return Opacity(
+      opacity: enabled ? 1 : 0.65,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              _ShopSettingPageState._brandColor,
+              _ShopSettingPageState._brandColorEnd,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(
+              color: Color.fromRGBO(59, 130, 246, 0.22),
+              blurRadius: 20,
+              offset: Offset(0, 12),
+              spreadRadius: -12,
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: enabled ? onPressed : null,
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              height: 48,
+              child: Center(
+                child: loading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      )
+                    : Text(
+                        label,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AutoOfflinePreset {
+  const _AutoOfflinePreset({
+    required this.id,
+    required this.hour,
+    required this.minute,
+  }) : isCustom = false;
+
+  const _AutoOfflinePreset.custom({required this.id})
+    : hour = 0,
+      minute = 0,
+      isCustom = true;
+
+  final String id;
+  final int hour;
+  final int minute;
+  final bool isCustom;
 }
