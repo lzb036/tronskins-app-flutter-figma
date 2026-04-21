@@ -389,6 +389,24 @@ abstract class _BaseCollectionTabState<T extends StatefulWidget>
     super.dispose();
   }
 
+  void resetScrollPositionForGameChange() {
+    if (scrollController.hasClients) {
+      final minExtent = scrollController.position.minScrollExtent;
+      if (scrollController.position.pixels != minExtent) {
+        scrollController.jumpTo(minExtent);
+      }
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !scrollController.hasClients) {
+        return;
+      }
+      final minExtent = scrollController.position.minScrollExtent;
+      if (scrollController.position.pixels != minExtent) {
+        scrollController.jumpTo(minExtent);
+      }
+    });
+  }
+
   void handleScroll() {
     if (!scrollController.hasClients || loading || loadingMore) {
       return;
@@ -500,6 +518,7 @@ class _CollectionCategoryTabState
       filter = const MarketFilterResult(sortField: '', sortAsc: false);
       keyword = '';
       searchController.clear();
+      resetScrollPositionForGameChange();
       notifyControlsChanged();
       loadData(refresh: true);
     }
@@ -761,6 +780,7 @@ class _CollectionFavoriteTabState
       filter = const MarketFilterResult(sortField: '', sortAsc: false);
       keyword = '';
       searchController.clear();
+      resetScrollPositionForGameChange();
       notifyControlsChanged();
       loadData(refresh: true);
     }

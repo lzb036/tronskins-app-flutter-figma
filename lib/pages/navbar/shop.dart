@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:tronskins_app/api/model/market/market_models.dart';
 import 'package:tronskins_app/api/model/shop/shop_models.dart';
 import 'package:tronskins_app/api/steam.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
@@ -169,6 +170,7 @@ class _ShopPageState extends State<ShopPage>
       if (!mounted) {
         return;
       }
+      _resetShopViewportForGameChange();
       unawaited(MarketFilterSheet.preload(appId: appId));
       _pendingAutoRefreshScheduled = false;
       if (userController.isLoggedIn.value) {
@@ -268,6 +270,37 @@ class _ShopPageState extends State<ShopPage>
         return;
       }
       _maybeShowInitialOfflineDialog();
+    });
+  }
+
+  void _jumpScrollToTop(ScrollController controller) {
+    if (!controller.hasClients) {
+      return;
+    }
+    final minExtent = controller.position.minScrollExtent;
+    if (controller.position.pixels == minExtent) {
+      return;
+    }
+    controller.jumpTo(minExtent);
+  }
+
+  void _resetShopViewportForGameChange() {
+    _jumpScrollToTop(_onSaleScroll);
+    _jumpScrollToTop(_pendingScroll);
+    _jumpScrollToTop(_recordScroll);
+    if (_tabController.offset != 0) {
+      _tabController.offset = 0;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _jumpScrollToTop(_onSaleScroll);
+      _jumpScrollToTop(_pendingScroll);
+      _jumpScrollToTop(_recordScroll);
+      if (_tabController.offset != 0) {
+        _tabController.offset = 0;
+      }
     });
   }
 
@@ -536,6 +569,58 @@ class _ShopPageState extends State<ShopPage>
       return TagInfo.fromRaw(tags[key]);
     }
     return null;
+  }
+
+  void _openOnSaleItemDetail(ShopItemAsset item) {
+    final schema = _lookupSchema(
+      salesController.schemas,
+      item.marketHashName,
+      item.schemaId,
+    );
+    final asset = item.asset;
+    final shop = shopController.shop.value;
+    final marketItem = MarketListItem.fromJson({
+      ...item.raw,
+      'id': item.raw['sell_id'] ?? item.id,
+      'app_id': item.appId,
+      'schema_id': item.schemaId,
+      'price': item.price,
+      'market_name': item.marketName,
+      'market_hash_name': item.marketHashName,
+      'image_url': item.imageUrl,
+      'user_id': item.userId,
+      if (asset != null) _appAssetKey(item.appId): asset,
+    });
+    final user = MarketUserInfo.fromJson({
+      'avatar': shop?.avatar,
+      'nickname': shop?.shopName ?? shop?.name ?? shop?.nickname,
+      'uuid': shop?.uuid,
+    });
+    Get.toNamed(
+      Routers.MARKET_ITEM_DETAIL,
+      arguments: {
+        'item': marketItem,
+        'schema': schema == null ? null : MarketSchemaInfo.fromJson(schema.raw),
+        'user': user,
+        'schemas': {
+          for (final entry in salesController.schemas.entries)
+            entry.key: MarketSchemaInfo.fromJson(entry.value.raw),
+        },
+        'stickers': salesController.stickers,
+      },
+    );
+  }
+
+  String _appAssetKey(int? appId) {
+    switch (appId) {
+      case 440:
+        return 'tf2Asset';
+      case 570:
+        return 'dota2Asset';
+      case 730:
+      default:
+        return 'csgoAsset';
+    }
   }
 
   int _resolveDetailAppId(ShopOrderDetail detail, ShopSchemaInfo? schema) {
@@ -1820,8 +1905,9 @@ class _ShopPageState extends State<ShopPage>
   }
 
   Widget _buildOnSaleLoadingView() {
+    final currentAppId = _globalGameController.currentAppId.value;
     return GridView.builder(
-      key: const PageStorageKey<String>('shop-on-sale-loading'),
+      key: PageStorageKey<String>('shop-on-sale-loading-$currentAppId'),
       physics: const NeverScrollableScrollPhysics(),
       padding: _gridPadding,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -1836,8 +1922,9 @@ class _ShopPageState extends State<ShopPage>
   }
 
   Widget _buildPendingLoadingView() {
+    final currentAppId = _globalGameController.currentAppId.value;
     return ListView.separated(
-      key: const PageStorageKey<String>('shop-pending-loading'),
+      key: PageStorageKey<String>('shop-pending-loading-$currentAppId'),
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
       itemCount: _pendingLoadingPlaceholderCount,
@@ -1922,8 +2009,9 @@ class _ShopPageState extends State<ShopPage>
   }
 
   Widget _buildSellRecordLoadingView() {
+    final currentAppId = _globalGameController.currentAppId.value;
     return ListView.separated(
-      key: const PageStorageKey<String>('shop-sell-record-loading'),
+      key: PageStorageKey<String>('shop-sell-record-loading-$currentAppId'),
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
       itemCount: _recordLoadingPlaceholderCount,
@@ -2033,8 +2121,9 @@ class _ShopPageState extends State<ShopPage>
         return _buildOnSaleLoadingView();
       }
       if (salesController.onSaleItems.isEmpty) {
+        final currentAppId = _globalGameController.currentAppId.value;
         return _buildRefreshableEmptyStateView(
-          storageKey: 'shop-on-sale-empty',
+          storageKey: 'shop-on-sale-empty-$currentAppId',
           controller: _onSaleScroll,
           onRefresh: salesController.refreshOnSale,
           icon: Icons.storefront_outlined,
@@ -2093,7 +2182,8 @@ class _ShopPageState extends State<ShopPage>
                     stickerMap: salesController.stickers,
                     selected: selected,
                     showSelectionControl: _selectedIds.isNotEmpty,
-                    onTap: () => _toggleSelection(item),
+                    onImageTap: () => _toggleSelection(item),
+                    onInfoTap: () => _openOnSaleItemDetail(item),
                   );
                 },
               ),
@@ -2112,8 +2202,9 @@ class _ShopPageState extends State<ShopPage>
         return _buildPendingLoadingView();
       }
       if (orderController.pendingShipments.isEmpty) {
+        final currentAppId = _globalGameController.currentAppId.value;
         return _buildRefreshableEmptyStateView(
-          storageKey: 'shop-pending-empty',
+          storageKey: 'shop-pending-empty-$currentAppId',
           controller: _pendingScroll,
           onRefresh: orderController.refreshPending,
           icon: Icons.local_shipping_outlined,
@@ -2489,8 +2580,9 @@ class _ShopPageState extends State<ShopPage>
               return _buildSellRecordLoadingView();
             }
             if (salesController.sellRecords.isEmpty) {
+              final currentAppId = _globalGameController.currentAppId.value;
               return _buildRefreshableEmptyStateView(
-                storageKey: 'shop-record-empty',
+                storageKey: 'shop-record-empty-$currentAppId',
                 controller: _recordScroll,
                 onRefresh: salesController.refreshSellRecords,
                 icon: Icons.receipt_long_outlined,

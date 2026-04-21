@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:tronskins_app/api/model/market/market_models.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/login_required_prompt.dart';
 import 'package:tronskins_app/api/model/shop/shop_models.dart';
@@ -54,6 +55,7 @@ class _InventoryPageState extends State<InventoryPage>
   Worker? _loginWorker;
   Worker? _selectionBarWorker;
   Worker? _tabWorker;
+  Worker? _gameWorker;
   bool _steamSessionDialogShowing = false;
 
   String _steamIdFromProfile() {
@@ -127,6 +129,9 @@ class _InventoryPageState extends State<InventoryPage>
     });
     _selectionBarWorker = ever(controller.selectedIds, (_) {
       _syncSelectionActionBar();
+    });
+    _gameWorker = ever<int>(controller.currentAppId, (_) {
+      _resetInventoryViewportForGameChange();
     });
 
     if (Get.isRegistered<NavController>()) {
@@ -211,6 +216,7 @@ class _InventoryPageState extends State<InventoryPage>
     _loginWorker?.dispose();
     _selectionBarWorker?.dispose();
     _tabWorker?.dispose();
+    _gameWorker?.dispose();
     _bottomBarController.hideForTab(NavController.tabInventory);
     super.dispose();
   }
@@ -340,6 +346,85 @@ class _InventoryPageState extends State<InventoryPage>
     return null;
   }
 
+  void _openInventoryItemDetail(InventoryItem item, ShopSchemaInfo? schema) {
+    Get.toNamed(
+      Routers.MARKET_DETAIL,
+      arguments: _buildMarketItemEntity(item, schema),
+    );
+  }
+
+  MarketItemEntity _buildMarketItemEntity(
+    InventoryItem item,
+    ShopSchemaInfo? schema,
+  ) {
+    final asset = _resolveInventoryAsset(item);
+    return MarketItemEntity.fromJson({
+      ...item.raw,
+      'id': item.id,
+      'app_id': item.appId,
+      'schema_id': item.schemaId,
+      'market_name': item.marketName ?? schema?.marketName,
+      'market_hash_name': item.marketHashName ?? schema?.marketHashName,
+      'image_url': item.imageUrl ?? schema?.imageUrl,
+      'market_price': _resolveInventoryMarketPrice(item, schema),
+      'cd': item.cooldown ?? item.raw['cd'],
+      'paint_seed': item.paintSeed,
+      'paint_wear': item.paintWear,
+      'phase': item.phase,
+      if (schema?.raw['tags'] != null) 'tags': schema!.raw['tags'],
+      if (asset != null) _marketAssetKey(item.appId): asset,
+    });
+  }
+
+  double _resolveInventoryMarketPrice(
+    InventoryItem item,
+    ShopSchemaInfo? schema,
+  ) {
+    final schemaPrice = _toDouble(
+      schema?.raw['buff_min_price'] ?? schema?.raw['buffMinPrice'],
+    );
+    if (schemaPrice != null && schemaPrice > 0) {
+      return schemaPrice;
+    }
+    return item.price ?? 0;
+  }
+
+  Map<String, dynamic>? _resolveInventoryAsset(InventoryItem item) {
+    final raw = item.raw;
+    if (item.appId == 730 && raw['csgoAsset'] is Map<String, dynamic>) {
+      return raw['csgoAsset'] as Map<String, dynamic>;
+    }
+    if (item.appId == 440 && raw['tf2Asset'] is Map<String, dynamic>) {
+      return raw['tf2Asset'] as Map<String, dynamic>;
+    }
+    if (item.appId == 570 && raw['dota2Asset'] is Map<String, dynamic>) {
+      return raw['dota2Asset'] as Map<String, dynamic>;
+    }
+    return null;
+  }
+
+  String _marketAssetKey(int? appId) {
+    switch (appId) {
+      case 440:
+        return 'tf2Asset';
+      case 570:
+        return 'dota2Asset';
+      case 730:
+      default:
+        return 'csgoAsset';
+    }
+  }
+
+  double? _toDouble(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is num) {
+      return value.toDouble();
+    }
+    return double.tryParse(value.toString());
+  }
+
   int _inventoryFilterToPage(_InventoryStateFilter filter) {
     switch (filter) {
       case _InventoryStateFilter.all:
@@ -444,6 +529,55 @@ class _InventoryPageState extends State<InventoryPage>
       controller.loadMore();
     }
     return false;
+  }
+
+  void _jumpScrollToTop(ScrollController scrollController) {
+    if (!scrollController.hasClients) {
+      return;
+    }
+    final minExtent = scrollController.position.minScrollExtent;
+    if (scrollController.position.pixels == minExtent) {
+      return;
+    }
+    scrollController.jumpTo(minExtent);
+  }
+
+  void _jumpInventoryListsToTop() {
+    _jumpScrollToTop(_allInventoryScroll);
+    _jumpScrollToTop(_sellableInventoryScroll);
+    _jumpScrollToTop(_coolingInventoryScroll);
+  }
+
+  void _syncInventoryViewport(_InventoryStateFilter filter) {
+    final targetPage = _inventoryFilterToPage(filter);
+    if (_inventoryStatePageController.hasClients) {
+      final currentPage =
+          (_inventoryStatePageController.page ??
+                  _inventoryStatePageController.initialPage.toDouble())
+              .round();
+      if (currentPage != targetPage) {
+        _inventoryStatePageController.jumpToPage(targetPage);
+      }
+    }
+    if (_inventoryTabController.index != targetPage) {
+      _inventoryTabController.index = targetPage;
+    }
+    if (_inventoryTabController.offset != 0) {
+      _inventoryTabController.offset = 0;
+    }
+  }
+
+  void _resetInventoryViewportForGameChange() {
+    final targetFilter = _currentInventoryStateFilter();
+    _jumpInventoryListsToTop();
+    _syncInventoryViewport(targetFilter);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _jumpInventoryListsToTop();
+      _syncInventoryViewport(_currentInventoryStateFilter());
+    });
   }
 
   Future<void> _applySearch(String value) async {
@@ -587,10 +721,11 @@ class _InventoryPageState extends State<InventoryPage>
                     schema: schema,
                     schemaMap: visibleSchemas,
                     stickerMap: visibleStickers,
+                    showOnSaleBadge: false,
                     selected: selected,
                     showSelectionControl: showSelectionControl,
                     disabledLabel: disabled ? disabledLabel : null,
-                    onTap: () {
+                    onImageTap: () {
                       if (item.id == null) {
                         return;
                       }
@@ -608,6 +743,7 @@ class _InventoryPageState extends State<InventoryPage>
                       }
                       controller.toggleSelection(item.id!);
                     },
+                    onInfoTap: () => _openInventoryItemDetail(item, schema),
                   );
                 });
               },
@@ -654,31 +790,33 @@ class _InventoryPageState extends State<InventoryPage>
                 _buildHeader(currency),
                 Expanded(
                   child: Obx(() {
-                    if (controller.currentAppId.value == 440) {
+                    final currentAppId = controller.currentAppId.value;
+                    if (currentAppId == 440) {
                       return _buildInventoryListView(
-                        storageKey: 'inventory_scroll_single',
+                        storageKey: 'inventory_scroll_single_$currentAppId',
                         scrollController: _allInventoryScroll,
                         filter: _InventoryStateFilter.all,
                       );
                     }
                     return PageView(
+                      key: ValueKey<int>(currentAppId),
                       controller: _inventoryStatePageController,
                       onPageChanged: (page) {
                         _onInventoryStatePageChanged(page);
                       },
                       children: [
                         _buildInventoryListView(
-                          storageKey: 'inventory_scroll_all',
+                          storageKey: 'inventory_scroll_all_$currentAppId',
                           scrollController: _allInventoryScroll,
                           filter: _InventoryStateFilter.all,
                         ),
                         _buildInventoryListView(
-                          storageKey: 'inventory_scroll_sellable',
+                          storageKey: 'inventory_scroll_sellable_$currentAppId',
                           scrollController: _sellableInventoryScroll,
                           filter: _InventoryStateFilter.sellable,
                         ),
                         _buildInventoryListView(
-                          storageKey: 'inventory_scroll_cooling',
+                          storageKey: 'inventory_scroll_cooling_$currentAppId',
                           scrollController: _coolingInventoryScroll,
                           filter: _InventoryStateFilter.cooling,
                         ),
@@ -905,6 +1043,10 @@ class _InventoryPageState extends State<InventoryPage>
                 return;
               }
               await controller.changeGame(selected);
+              if (!mounted) {
+                return;
+              }
+              _resetInventoryViewportForGameChange();
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),

@@ -35,6 +35,7 @@ class _MarketPageState extends State<MarketPage> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
   late final Worker _keywordWorker;
+  Worker? _gameWorker;
 
   @override
   void initState() {
@@ -52,6 +53,9 @@ class _MarketPageState extends State<MarketPage> {
     if (controller.items.isEmpty && !controller.isLoading.value) {
       controller.refresh();
     }
+    _gameWorker = ever<int>(controller.appId, (_) {
+      _resetMarketViewportForGameChange();
+    });
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >
           _scrollController.position.maxScrollExtent - 200) {
@@ -63,9 +67,31 @@ class _MarketPageState extends State<MarketPage> {
   @override
   void dispose() {
     _keywordWorker.dispose();
+    _gameWorker?.dispose();
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _jumpScrollToTop() {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    final minExtent = _scrollController.position.minScrollExtent;
+    if (_scrollController.position.pixels == minExtent) {
+      return;
+    }
+    _scrollController.jumpTo(minExtent);
+  }
+
+  void _resetMarketViewportForGameChange() {
+    _jumpScrollToTop();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _jumpScrollToTop();
+    });
   }
 
   Future<void> _openFilterSheet() async {
@@ -351,11 +377,12 @@ class _MarketPageState extends State<MarketPage> {
 
   Widget _buildGrid() {
     return Obx(() {
+      final currentAppId = controller.appId.value;
       if (controller.items.isEmpty && controller.isLoading.value) {
-        return _buildLoadingGrid('market-loading');
+        return _buildLoadingGrid('market-loading-$currentAppId');
       }
       return _buildRefreshScrollView(
-        storageKey: 'market-grid',
+        storageKey: 'market-grid-$currentAppId',
         onRefresh: () => controller.refresh(reset: true),
         slivers: [
           if (controller.items.isEmpty)

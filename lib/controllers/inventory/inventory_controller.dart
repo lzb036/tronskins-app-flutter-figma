@@ -188,6 +188,10 @@ class InventoryController extends GetxController {
     if (nextAppId == currentAppId.value) {
       return;
     }
+    if (nextAppId == 440) {
+      sellableOnly.value = false;
+      coolingOnly.value = false;
+    }
     currentAppId.value = nextAppId;
     tags.clear();
     itemName.value = null;

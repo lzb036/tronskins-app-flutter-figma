@@ -25,6 +25,8 @@ class InventoryShowcaseCard extends StatelessWidget {
     this.showSelectionControl = false,
     this.showOnSaleBadge = true,
     this.disabledLabel,
+    this.onImageTap,
+    this.onInfoTap,
     this.onTap,
   });
 
@@ -37,6 +39,8 @@ class InventoryShowcaseCard extends StatelessWidget {
   final bool showSelectionControl;
   final bool showOnSaleBadge;
   final String? disabledLabel;
+  final VoidCallback? onImageTap;
+  final VoidCallback? onInfoTap;
   final VoidCallback? onTap;
 
   @override
@@ -44,6 +48,8 @@ class InventoryShowcaseCard extends StatelessWidget {
     const outerRadiusValue = 0.0;
     final outerRadius = BorderRadius.circular(outerRadiusValue);
     final innerRadius = BorderRadius.circular(outerRadiusValue);
+    final imageTapHandler = onImageTap ?? onTap;
+    final infoTapHandler = onInfoTap ?? onTap;
     final appId = item.appId;
     final isDota = appId == 570;
     final isTf2 = appId == 440;
@@ -97,31 +103,30 @@ class InventoryShowcaseCard extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: outerRadius,
-        child: Ink(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: outerRadius,
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x0A000000),
-                blurRadius: 12,
-                offset: Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: EdgeInsets.zero,
-            child: ClipRRect(
-              borderRadius: innerRadius,
-              child: ColoredBox(
-                color: Colors.white,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
+      child: Ink(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: outerRadius,
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: EdgeInsets.zero,
+          child: ClipRRect(
+            borderRadius: innerRadius,
+            child: ColoredBox(
+              color: Colors.white,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: imageTapHandler,
                       child: Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
@@ -372,39 +377,45 @@ class InventoryShowcaseCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-                      child: Text(
-                        title,
-                        maxLines: 1,
-                        softWrap: false,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _inventoryShowcaseTextPrimary,
-                          fontSize: 10,
-                          height: 12 / 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                      child: Obx(
-                        () => Text(
-                          CurrencyController.to.format(price),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: _inventoryShowcaseBrandBlue,
-                            fontSize: 14,
-                            height: 18 / 14,
-                            fontWeight: FontWeight.w800,
+                  ),
+                  InkWell(
+                    onTap: infoTapHandler,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            maxLines: 1,
+                            softWrap: false,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: _inventoryShowcaseTextPrimary,
+                              fontSize: 10,
+                              height: 12 / 10,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 4),
+                          Obx(
+                            () => Text(
+                              CurrencyController.to.format(price),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: _inventoryShowcaseBrandBlue,
+                                fontSize: 14,
+                                height: 18 / 14,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

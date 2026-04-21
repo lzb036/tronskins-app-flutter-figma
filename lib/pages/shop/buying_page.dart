@@ -93,6 +93,7 @@ class _BuyingPageState extends State<BuyingPage>
         return;
       }
       setState(() => _currentAppId = appId);
+      _resetBuyingViewportForGameChange();
       MarketFilterSheet.preload(appId: appId);
       controller.refreshMyBuying();
       controller.refreshBuyRecords();
@@ -151,6 +152,35 @@ class _BuyingPageState extends State<BuyingPage>
     if (mounted) {
       setState(() {});
     }
+  }
+
+  void _jumpScrollToTop(ScrollController controller) {
+    if (!controller.hasClients) {
+      return;
+    }
+    final minExtent = controller.position.minScrollExtent;
+    if (controller.position.pixels == minExtent) {
+      return;
+    }
+    controller.jumpTo(minExtent);
+  }
+
+  void _resetBuyingViewportForGameChange() {
+    _jumpScrollToTop(_myBuyingScroll);
+    _jumpScrollToTop(_recordScroll);
+    if (_tabController.offset != 0) {
+      _tabController.offset = 0;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _jumpScrollToTop(_myBuyingScroll);
+      _jumpScrollToTop(_recordScroll);
+      if (_tabController.offset != 0) {
+        _tabController.offset = 0;
+      }
+    });
   }
 
   bool _shouldLoadMore(ScrollController scrollController) {

@@ -11,6 +11,8 @@ class ShopSaleItemCard extends StatelessWidget {
     this.stickerMap,
     this.selected = false,
     this.showSelectionControl = false,
+    this.onImageTap,
+    this.onInfoTap,
     this.onTap,
   });
 
@@ -20,6 +22,8 @@ class ShopSaleItemCard extends StatelessWidget {
   final Map<dynamic, dynamic>? stickerMap;
   final bool selected;
   final bool showSelectionControl;
+  final VoidCallback? onImageTap;
+  final VoidCallback? onInfoTap;
   final VoidCallback? onTap;
 
   @override
@@ -63,6 +67,8 @@ class ShopSaleItemCard extends StatelessWidget {
       selected: selected,
       showSelectionControl: showSelectionControl,
       showOnSaleBadge: false,
+      onImageTap: onImageTap,
+      onInfoTap: onInfoTap,
       onTap: onTap,
     );
   }

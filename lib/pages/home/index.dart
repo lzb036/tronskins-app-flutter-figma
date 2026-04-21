@@ -38,6 +38,7 @@ class _HomePageState extends State<HomePage>
   final ScrollController _latestScroll = ScrollController();
   final ScrollController _hotScroll = ScrollController();
   final TextEditingController _searchController = TextEditingController();
+  Worker? _gameWorker;
   String _sortField = '';
   bool _sortAsc = false;
   double? _priceMin;
@@ -51,6 +52,9 @@ class _HomePageState extends State<HomePage>
     _tabController = TabController(length: 2, vsync: this);
     _latestScroll.addListener(_handleLatestScroll);
     _hotScroll.addListener(_handleHotScroll);
+    _gameWorker = ever<int>(controller.appId, (_) {
+      _resetHomeViewportForGameChange();
+    });
   }
 
   @override
@@ -60,8 +64,32 @@ class _HomePageState extends State<HomePage>
     _tabController.dispose();
     _latestScroll.dispose();
     _hotScroll.dispose();
+    _gameWorker?.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _jumpScrollToTop(ScrollController scrollController) {
+    if (!scrollController.hasClients) {
+      return;
+    }
+    final minExtent = scrollController.position.minScrollExtent;
+    if (scrollController.position.pixels == minExtent) {
+      return;
+    }
+    scrollController.jumpTo(minExtent);
+  }
+
+  void _resetHomeViewportForGameChange() {
+    _jumpScrollToTop(_latestScroll);
+    _jumpScrollToTop(_hotScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _jumpScrollToTop(_latestScroll);
+      _jumpScrollToTop(_hotScroll);
+    });
   }
 
   void _handleLatestScroll() {
@@ -225,26 +253,28 @@ class _HomePageState extends State<HomePage>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  Obx(
-                    () => _buildGrid(
-                      'home-latest',
+                  Obx(() {
+                    final currentAppId = controller.appId.value;
+                    return _buildGrid(
+                      'home-latest-$currentAppId',
                       controller.latestItems,
                       controller.isLoadingLatest.value,
                       controller.latestHasMore,
                       _latestScroll,
                       onRefresh: () => controller.fetchLatest(reset: true),
-                    ),
-                  ),
-                  Obx(
-                    () => _buildGrid(
-                      'home-hot',
+                    );
+                  }),
+                  Obx(() {
+                    final currentAppId = controller.appId.value;
+                    return _buildGrid(
+                      'home-hot-$currentAppId',
                       controller.hotItems,
                       controller.isLoadingHot.value,
                       controller.hotHasMore,
                       _hotScroll,
                       onRefresh: () => controller.fetchHot(reset: true),
-                    ),
-                  ),
+                    );
+                  }),
                 ],
               ),
             ),
