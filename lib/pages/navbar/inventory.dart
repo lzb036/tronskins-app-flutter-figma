@@ -17,6 +17,7 @@ import 'package:tronskins_app/components/layout/header_filter_button.dart';
 import 'package:tronskins_app/components/layout/list_end_tip.dart';
 import 'package:tronskins_app/components/market/market_showcase_card.dart';
 import 'package:tronskins_app/controllers/inventory/inventory_controller.dart';
+import 'package:tronskins_app/controllers/navbar/bottom_bar_controller.dart';
 import 'package:tronskins_app/controllers/navbar/nav_controller.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
@@ -43,6 +44,7 @@ class _InventoryPageState extends State<InventoryPage>
       : Get.put(InventoryController());
   final UserController userController = Get.find<UserController>();
   final ApiSteamServer _steamApi = ApiSteamServer();
+  late final BottomBarController _bottomBarController;
   late final PageController _inventoryStatePageController;
   late final TabController _inventoryTabController;
   final ScrollController _allInventoryScroll = ScrollController();
@@ -50,6 +52,7 @@ class _InventoryPageState extends State<InventoryPage>
   final ScrollController _coolingInventoryScroll = ScrollController();
   final TextEditingController _searchController = TextEditingController();
   Worker? _loginWorker;
+  Worker? _selectionBarWorker;
   Worker? _tabWorker;
   bool _steamSessionDialogShowing = false;
 
@@ -90,6 +93,9 @@ class _InventoryPageState extends State<InventoryPage>
   @override
   void initState() {
     super.initState();
+    _bottomBarController = Get.isRegistered<BottomBarController>()
+        ? Get.find<BottomBarController>()
+        : Get.put(BottomBarController(), permanent: true);
     _inventoryStatePageController = PageController(
       initialPage: _inventoryFilterToPage(_currentInventoryStateFilter()),
     );
@@ -117,6 +123,10 @@ class _InventoryPageState extends State<InventoryPage>
         controller.totalPrice.value = 0;
         controller.clearSelection();
       }
+      _syncSelectionActionBar();
+    });
+    _selectionBarWorker = ever(controller.selectedIds, (_) {
+      _syncSelectionActionBar();
     });
 
     if (Get.isRegistered<NavController>()) {
@@ -128,6 +138,7 @@ class _InventoryPageState extends State<InventoryPage>
         }
       });
     }
+    _syncSelectionActionBar();
   }
 
   Future<bool> _checkSteamSessionIfNeeded() async {
@@ -198,8 +209,24 @@ class _InventoryPageState extends State<InventoryPage>
     _coolingInventoryScroll.dispose();
     _searchController.dispose();
     _loginWorker?.dispose();
+    _selectionBarWorker?.dispose();
     _tabWorker?.dispose();
+    _bottomBarController.hideForTab(NavController.tabInventory);
     super.dispose();
+  }
+
+  void _syncSelectionActionBar() {
+    if (!mounted ||
+        !userController.isLoggedIn.value ||
+        controller.selectedIds.isEmpty) {
+      _bottomBarController.hideForTab(NavController.tabInventory);
+      return;
+    }
+
+    _bottomBarController.showForTab(
+      tabIndex: NavController.tabInventory,
+      builder: (_) => _buildInventorySelectionBar(docked: true),
+    );
   }
 
   Future<void> _onRefresh() async {
@@ -663,13 +690,6 @@ class _InventoryPageState extends State<InventoryPage>
             ),
           );
         }),
-        bottomNavigationBar: Obx(() {
-          if (!userController.isLoggedIn.value ||
-              controller.selectedIds.isEmpty) {
-            return const SizedBox.shrink();
-          }
-          return _buildInventorySelectionBar();
-        }),
       ),
     );
   }
@@ -817,7 +837,7 @@ class _InventoryPageState extends State<InventoryPage>
     );
   }
 
-  Widget _buildInventorySelectionBar() {
+  Widget _buildInventorySelectionBar({bool docked = false}) {
     final sellableTotal = controller.items.where(_isItemSelectable).length;
     final selectedCount = controller.selectedIds.length;
     final isAllSelected = sellableTotal > 0 && selectedCount >= sellableTotal;
@@ -835,6 +855,7 @@ class _InventoryPageState extends State<InventoryPage>
           : 'app.common.select_all'.tr,
       selectedCountText: '$selectedCount/$sellableTotal',
       onToggleSelectAll: () => _toggleSelectAllSellable(selectableIds),
+      docked: docked,
       actions: [
         SelectionActionBarButtonData(
           label: 'app.inventory.upshop.text'.tr,

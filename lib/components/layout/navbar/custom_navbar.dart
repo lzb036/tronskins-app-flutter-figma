@@ -8,6 +8,7 @@ import 'package:tronskins_app/common/storage/server_storage.dart';
 import 'package:tronskins_app/controllers/home/home_controller.dart';
 import 'package:tronskins_app/controllers/inventory/inventory_controller.dart';
 import 'package:tronskins_app/controllers/market/market_list_controller.dart';
+import 'package:tronskins_app/controllers/navbar/bottom_bar_controller.dart';
 import 'package:tronskins_app/controllers/navbar/nav_controller.dart';
 import 'package:tronskins_app/controllers/shop/shop_controller.dart';
 import 'package:tronskins_app/controllers/shop/shop_order_controller.dart';
@@ -31,6 +32,7 @@ class CustomNavBar extends StatefulWidget {
 class _CustomNavBarState extends State<CustomNavBar> {
   static const int _tabCount = 5;
   late final NavController navController;
+  late final BottomBarController bottomBarController;
   late final ShopShippingNoticeController shippingNoticeController;
   late final NotifyController notifyController;
   late final Worker _navWorker;
@@ -178,6 +180,9 @@ class _CustomNavBarState extends State<CustomNavBar> {
     navController = Get.isRegistered<NavController>()
         ? Get.find<NavController>()
         : Get.put(NavController(), permanent: true);
+    bottomBarController = Get.isRegistered<BottomBarController>()
+        ? Get.find<BottomBarController>()
+        : Get.put(BottomBarController(), permanent: true);
     shippingNoticeController = Get.isRegistered<ShopShippingNoticeController>()
         ? Get.find<ShopShippingNoticeController>()
         : Get.put(ShopShippingNoticeController(), permanent: true);
@@ -249,109 +254,143 @@ class _CustomNavBarState extends State<CustomNavBar> {
         );
       }),
       bottomNavigationBar: Obx(() {
-        // 监听语言变化，触发底部导航重建
         useLocale.currentLocale;
         final index = navController.currentIndex.value;
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final navBgColor = isDark
-            ? const Color(0xFF141A22)
-            : const Color(0xFFF9F9FA);
-        final selectedColor = isDark
-            ? const Color(0xFF4DA3FF)
-            : const Color(0xFF1765D1);
-        final unselectedColor = isDark
-            ? const Color(0xFF8D96A3)
-            : const Color(0xFF8C939D);
-        final userCtrl = Get.find<UserController>();
-        final pendingTotals = shippingNoticeController.pendingTotalsByGame;
-        final sellBadgeCount = userCtrl.isLoggedIn.value
-            ? pendingTotals.values.fold<int>(
-                0,
-                (total, count) => total + (count > 0 ? count : 0),
-              )
-            : 0;
-        if (userCtrl.isLoggedIn.value) {
-          notifyController.ensureBadgeLoaded();
-        }
-        final mineBadgeText = userCtrl.isLoggedIn.value
-            ? notifyController.unreadBadgeLabel
-            : null;
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            color: navBgColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, -1),
+        bottomBarController.revision.value;
+        final overlayBuilder = bottomBarController.builderFor(index);
+        final child = KeyedSubtree(
+          key: ValueKey<String>(
+            overlayBuilder == null ? 'system-nav-$index' : 'overlay-nav-$index',
+          ),
+          child:
+              overlayBuilder?.call(context) ??
+              _buildSystemBottomNavigationBar(context, index),
+        );
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 260),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          layoutBuilder: (currentChild, previousChildren) {
+            return Stack(
+              alignment: Alignment.bottomCenter,
+              children: [
+                ...previousChildren,
+                if (currentChild != null) currentChild,
+              ],
+            );
+          },
+          transitionBuilder: (child, animation) {
+            final offset = Tween<Offset>(
+              begin: const Offset(0, 0.18),
+              end: Offset.zero,
+            ).animate(animation);
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(position: offset, child: child),
+            );
+          },
+          child: child,
+        );
+      }),
+    );
+  }
+
+  Widget _buildSystemBottomNavigationBar(BuildContext context, int index) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final navBgColor = isDark
+        ? const Color(0xFF141A22)
+        : const Color(0xFFF9F9FA);
+    final selectedColor = isDark
+        ? const Color(0xFF4DA3FF)
+        : const Color(0xFF1765D1);
+    final unselectedColor = isDark
+        ? const Color(0xFF8D96A3)
+        : const Color(0xFF8C939D);
+    final userCtrl = Get.find<UserController>();
+    final pendingTotals = shippingNoticeController.pendingTotalsByGame;
+    final sellBadgeCount = userCtrl.isLoggedIn.value
+        ? pendingTotals.values.fold<int>(
+            0,
+            (total, count) => total + (count > 0 ? count : 0),
+          )
+        : 0;
+    if (userCtrl.isLoggedIn.value) {
+      notifyController.ensureBadgeLoaded();
+    }
+    final mineBadgeText = userCtrl.isLoggedIn.value
+        ? notifyController.unreadBadgeLabel
+        : null;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: navBgColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -1),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            splashFactory: NoSplash.splashFactory,
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            hoverColor: Colors.transparent,
+            focusColor: Colors.transparent,
+          ),
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            currentIndex: index,
+            elevation: 0,
+            selectedItemColor: selectedColor,
+            unselectedItemColor: unselectedColor,
+            backgroundColor: navBgColor,
+            selectedFontSize: 12,
+            unselectedFontSize: 12,
+            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
+            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
+            onTap: (index) {
+              navController.switchTo(index);
+            },
+            items: [
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.home_outlined),
+                label: 'app.tabbar.home'.tr,
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.storefront_outlined),
+                label: 'app.tabbar.market'.tr,
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.backpack_outlined),
+                label: 'app.tabbar.inventory'.tr,
+              ),
+              BottomNavigationBarItem(
+                icon: _buildNavIconWithBadge(
+                  icon: Icons.shopping_cart_outlined,
+                  badgeText: sellBadgeCount > 0
+                      ? (sellBadgeCount > 99 ? '99+' : '$sellBadgeCount')
+                      : null,
+                ),
+                label: 'app.tabbar.sell'.tr,
+              ),
+              BottomNavigationBarItem(
+                icon: _buildNavIconWithBadge(
+                  icon: Icons.person_outline,
+                  badgeText: mineBadgeText,
+                  badgeColor: const Color(0xFFEF4444),
+                ),
+                label: 'app.tabbar.mine'.tr,
               ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-            child: Theme(
-              data: Theme.of(context).copyWith(
-                splashFactory: NoSplash.splashFactory,
-                splashColor: Colors.transparent,
-                highlightColor: Colors.transparent,
-                hoverColor: Colors.transparent,
-                focusColor: Colors.transparent,
-              ),
-              child: BottomNavigationBar(
-                type: BottomNavigationBarType.fixed,
-                currentIndex: index,
-                elevation: 0,
-                selectedItemColor: selectedColor,
-                unselectedItemColor: unselectedColor,
-                backgroundColor: navBgColor,
-                selectedFontSize: 12,
-                unselectedFontSize: 12,
-                selectedLabelStyle: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                ),
-                onTap: (index) {
-                  navController.switchTo(index);
-                },
-                items: [
-                  BottomNavigationBarItem(
-                    icon: const Icon(Icons.home_outlined),
-                    label: 'app.tabbar.home'.tr,
-                  ),
-                  BottomNavigationBarItem(
-                    icon: const Icon(Icons.storefront_outlined),
-                    label: 'app.tabbar.market'.tr,
-                  ),
-                  BottomNavigationBarItem(
-                    icon: const Icon(Icons.backpack_outlined),
-                    label: 'app.tabbar.inventory'.tr,
-                  ),
-                  BottomNavigationBarItem(
-                    icon: _buildNavIconWithBadge(
-                      icon: Icons.shopping_cart_outlined,
-                      badgeText: sellBadgeCount > 0
-                          ? (sellBadgeCount > 99 ? '99+' : '$sellBadgeCount')
-                          : null,
-                    ),
-                    label: 'app.tabbar.sell'.tr,
-                  ),
-                  BottomNavigationBarItem(
-                    icon: _buildNavIconWithBadge(
-                      icon: Icons.person_outline,
-                      badgeText: mineBadgeText,
-                      badgeColor: const Color(0xFFEF4444),
-                    ),
-                    label: 'app.tabbar.mine'.tr,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      }),
+        ),
+      ),
     );
   }
 }

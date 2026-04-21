@@ -23,6 +23,7 @@ import 'package:tronskins_app/components/layout/header_filter_button.dart';
 import 'package:tronskins_app/components/layout/navbar/floating_selection_action_bar.dart';
 import 'package:tronskins_app/components/layout/list_end_tip.dart';
 import 'package:tronskins_app/components/market/market_showcase_card.dart';
+import 'package:tronskins_app/controllers/navbar/bottom_bar_controller.dart';
 import 'package:tronskins_app/controllers/navbar/nav_controller.dart';
 import 'package:tronskins_app/controllers/shop/shop_controller.dart';
 import 'package:tronskins_app/controllers/shop/shop_order_controller.dart';
@@ -70,6 +71,7 @@ class _ShopPageState extends State<ShopPage>
   final NavController navController = Get.isRegistered<NavController>()
       ? Get.find<NavController>()
       : Get.put(NavController(), permanent: true);
+  late final BottomBarController _bottomBarController;
   final UserController userController = Get.find<UserController>();
   final GlobalGameController _globalGameController =
       GlobalGameController.ensureInstance();
@@ -114,6 +116,9 @@ class _ShopPageState extends State<ShopPage>
   @override
   void initState() {
     super.initState();
+    _bottomBarController = Get.isRegistered<BottomBarController>()
+        ? Get.find<BottomBarController>()
+        : Get.put(BottomBarController(), permanent: true);
     _tabController = TabController(length: 3, vsync: this);
     _activeTab = _tabController.index;
     _tabController.addListener(_handleTabChange);
@@ -185,7 +190,9 @@ class _ShopPageState extends State<ShopPage>
         shippingNoticeController.refreshPendingTotals();
         _scheduleInitialOfflineDialogCheck();
       }
+      _syncSelectionActionBar();
     });
+    _syncSelectionActionBar();
   }
 
   @override
@@ -209,7 +216,23 @@ class _ShopPageState extends State<ShopPage>
     _shopStatusWorker?.dispose();
     _shopTabVisibilityWorker?.dispose();
     _gameWorker?.dispose();
+    _bottomBarController.hideForTab(NavController.tabSell);
     super.dispose();
+  }
+
+  void _syncSelectionActionBar() {
+    if (!mounted ||
+        !userController.isLoggedIn.value ||
+        _activeTab != 0 ||
+        _selectedIds.isEmpty) {
+      _bottomBarController.hideForTab(NavController.tabSell);
+      return;
+    }
+
+    _bottomBarController.showForTab(
+      tabIndex: NavController.tabSell,
+      builder: (_) => _buildOnSaleActions(docked: true),
+    );
   }
 
   void _scheduleInitialOfflineDialogCheck() {
@@ -286,6 +309,7 @@ class _ShopPageState extends State<ShopPage>
         _selectedIds.clear();
       }
     });
+    _syncSelectionActionBar();
   }
 
   void _handleOnSaleScroll() {
@@ -321,6 +345,7 @@ class _ShopPageState extends State<ShopPage>
         _selectedIds.add(id);
       }
     });
+    _syncSelectionActionBar();
   }
 
   void _toggleSelectAllOnSale(Set<int> selectableIds) {
@@ -335,6 +360,7 @@ class _ShopPageState extends State<ShopPage>
         _selectedIds.addAll(selectableIds);
       }
     });
+    _syncSelectionActionBar();
   }
 
   Future<void> _confirmDelist() async {
@@ -359,6 +385,7 @@ class _ShopPageState extends State<ShopPage>
               if (res.success) {
                 if (mounted) {
                   setState(_selectedIds.clear);
+                  _syncSelectionActionBar();
                 }
                 if (dialogContext.mounted) {
                   popModalRoute(dialogContext);
@@ -1291,9 +1318,6 @@ class _ShopPageState extends State<ShopPage>
             ),
           );
         }),
-        bottomNavigationBar: _activeTab == 0 && _selectedIds.isNotEmpty
-            ? _buildOnSaleActions()
-            : null,
       ),
     );
   }
@@ -2906,7 +2930,7 @@ class _ShopPageState extends State<ShopPage>
     return const Color(0xFF00288E);
   }
 
-  Widget _buildOnSaleActions() {
+  Widget _buildOnSaleActions({bool docked = false}) {
     final selectableIds = salesController.onSaleItems
         .where((item) => item.id != null)
         .map((item) => item.id!)
@@ -2933,6 +2957,7 @@ class _ShopPageState extends State<ShopPage>
           return;
         }
         setState(_selectedIds.clear);
+        _syncSelectionActionBar();
       }
     }
 
@@ -2948,6 +2973,7 @@ class _ShopPageState extends State<ShopPage>
           : 'app.common.select_all'.tr,
       selectedCountText: '$selectedCount/$selectableTotal',
       onToggleSelectAll: () => _toggleSelectAllOnSale(selectableIds),
+      docked: docked,
       actions: [
         SelectionActionBarButtonData(
           label: _compactPriceChangeLabel(),

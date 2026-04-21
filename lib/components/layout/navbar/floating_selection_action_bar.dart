@@ -25,6 +25,7 @@ class FloatingSelectionActionBar extends StatelessWidget {
     required this.selectedCountText,
     required this.onToggleSelectAll,
     required this.actions,
+    this.docked = false,
   });
 
   final bool isAllSelected;
@@ -33,72 +34,92 @@ class FloatingSelectionActionBar extends StatelessWidget {
   final String selectedCountText;
   final VoidCallback onToggleSelectAll;
   final List<SelectionActionBarButtonData> actions;
+  final bool docked;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final barBackground = isDark
-        ? const Color(0xE6141A22)
-        : Colors.white.withValues(alpha: 0.95);
-    final barBorder = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : const Color(0xFFF1F5F9);
-    final shadowColor = Colors.black.withValues(alpha: isDark ? 0.24 : 0.12);
+    final borderRadius = docked
+        ? const BorderRadius.vertical(top: Radius.circular(18))
+        : BorderRadius.circular(16);
+    final barBackground = docked
+        ? (isDark ? const Color(0xFF141A22) : const Color(0xFFF9F9FA))
+        : (isDark
+              ? const Color(0xE6141A22)
+              : Colors.white.withValues(alpha: 0.95));
+    final barBorder = docked
+        ? null
+        : Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : const Color(0xFFF1F5F9),
+          );
+    final shadowColor = Colors.black.withValues(
+      alpha: isDark ? (docked ? 0.28 : 0.24) : (docked ? 0.05 : 0.12),
+    );
+    final horizontalPadding = docked ? 16.0 : 12.0;
+    final verticalPadding = docked ? 8.0 : 10.0;
 
-    return SafeArea(
-      top: false,
-      minimum: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-      child: Transform.translate(
-        offset: const Offset(0, 8),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: shadowColor,
-                blurRadius: 24,
-                offset: const Offset(0, 4),
-              ),
-            ],
+    final bar = DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: borderRadius,
+        boxShadow: [
+          BoxShadow(
+            color: shadowColor,
+            blurRadius: docked ? 10 : 24,
+            offset: Offset(0, docked ? -1 : 4),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: barBackground,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: barBorder),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: borderRadius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(
+            sigmaX: docked ? 10 : 12,
+            sigmaY: docked ? 10 : 12,
+          ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: barBackground,
+              borderRadius: borderRadius,
+              border: barBorder,
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: verticalPadding,
+              ),
+              child: Row(
+                children: [
+                  Tooltip(
+                    message: toggleTooltip,
+                    child: _SelectAllControl(
+                      isAllSelected: isAllSelected,
+                      label: selectAllLabel,
+                      onTap: onToggleSelectAll,
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      Tooltip(
-                        message: toggleTooltip,
-                        child: _SelectAllControl(
-                          isAllSelected: isAllSelected,
-                          label: selectAllLabel,
-                          onTap: onToggleSelectAll,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      _SelectedCount(countText: selectedCountText),
-                      const SizedBox(width: 10),
-                      Expanded(child: _ActionButtons(actions: actions)),
-                    ],
-                  ),
-                ),
+                  const SizedBox(width: 10),
+                  _SelectedCount(countText: selectedCountText),
+                  const SizedBox(width: 10),
+                  Expanded(child: _ActionButtons(actions: actions)),
+                ],
               ),
             ),
           ),
         ),
       ),
+    );
+
+    return SafeArea(
+      top: false,
+      minimum: docked
+          ? EdgeInsets.zero
+          : const EdgeInsets.fromLTRB(16, 0, 16, 0),
+      child: docked
+          ? bar
+          : Transform.translate(offset: const Offset(0, 8), child: bar),
     );
   }
 }

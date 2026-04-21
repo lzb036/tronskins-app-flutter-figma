@@ -294,20 +294,21 @@ class GameItemImage extends StatelessWidget {
   Widget _buildWearOverlay(BuildContext context) {
     return ClipRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(6, 5, 6, 4),
+          padding: const EdgeInsets.fromLTRB(6, 4, 6, 2),
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              begin: Alignment.topCenter,
+              begin: Alignment(0, -0.55),
               end: Alignment.bottomCenter,
               colors: [
-                Color(0x00090B0E),
-                Color(0x46090B0E),
-                Color(0xA8090B0E),
-                Color(0xE6090B0E),
+                Color(0x00140C09),
+                Color(0x16140C09),
+                Color(0x4A1A100B),
+                Color(0x8D20130D),
+                Color(0xD124150E),
               ],
-              stops: [0, 0.22, 0.62, 1],
+              stops: [0, 0.26, 0.58, 0.82, 1],
             ),
           ),
           child: Text.rich(
@@ -316,11 +317,17 @@ class GameItemImage extends StatelessWidget {
                 TextSpan(
                   text: '${'app.market.csgo.abradability'.tr}: ',
                   style: const TextStyle(
-                    color: Color(0xFFDCE6F1),
+                    color: Color(0xFFF0E5DA),
                     fontSize: 10,
                     height: 12 / 10,
                     fontWeight: FontWeight.w500,
-                    shadows: [Shadow(color: Color(0x99000000), blurRadius: 3)],
+                    shadows: [
+                      Shadow(
+                        color: Color(0xB3000000),
+                        blurRadius: 4,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
                   ),
                 ),
                 TextSpan(
@@ -329,8 +336,14 @@ class GameItemImage extends StatelessWidget {
                     color: Colors.white,
                     fontSize: 10,
                     height: 12 / 10,
-                    fontWeight: FontWeight.w600,
-                    shadows: [Shadow(color: Color(0x99000000), blurRadius: 3)],
+                    fontWeight: FontWeight.w700,
+                    shadows: [
+                      Shadow(
+                        color: Color(0xB3000000),
+                        blurRadius: 4,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
                   ),
                 ),
               ],

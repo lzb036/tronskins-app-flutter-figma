@@ -289,14 +289,15 @@ class InventoryShowcaseCard extends StatelessWidget {
                                                 text:
                                                     '${_isEnglishLocale ? 'Wear' : '磨损'}: ',
                                                 style: const TextStyle(
-                                                  color: Color(0xFFDCE6F1),
+                                                  color: Color(0xFFF0E5DA),
                                                   fontSize: 8,
                                                   height: 10 / 8,
                                                   fontWeight: FontWeight.w500,
                                                   shadows: [
                                                     Shadow(
-                                                      color: Color(0x99000000),
-                                                      blurRadius: 3,
+                                                      color: Color(0xB3000000),
+                                                      blurRadius: 4,
+                                                      offset: Offset(0, 1),
                                                     ),
                                                   ],
                                                 ),
@@ -307,11 +308,12 @@ class InventoryShowcaseCard extends StatelessWidget {
                                                   color: Colors.white,
                                                   fontSize: 8,
                                                   height: 10 / 8,
-                                                  fontWeight: FontWeight.w600,
+                                                  fontWeight: FontWeight.w700,
                                                   shadows: [
                                                     Shadow(
-                                                      color: Color(0x99000000),
-                                                      blurRadius: 3,
+                                                      color: Color(0xB3000000),
+                                                      blurRadius: 4,
+                                                      offset: Offset(0, 1),
                                                     ),
                                                   ],
                                                 ),
@@ -457,23 +459,24 @@ class InventoryShowcaseCard extends StatelessWidget {
   Widget _buildAccessoryOverlay({required Widget child}) {
     return ClipRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: Container(
           width: double.infinity,
-          constraints: const BoxConstraints(minHeight: 30),
+          constraints: const BoxConstraints(minHeight: 20),
           alignment: Alignment.bottomLeft,
-          padding: const EdgeInsets.fromLTRB(6, 6, 6, 4),
+          padding: const EdgeInsets.fromLTRB(6, 4, 6, 2),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              begin: Alignment.topCenter,
+              begin: const Alignment(0, -0.55),
               end: Alignment.bottomCenter,
               colors: [
-                const Color(0x00090B0E),
-                const Color(0x46090B0E),
-                const Color(0xA8090B0E),
-                const Color(0xE6090B0E),
+                const Color(0x00140C09),
+                const Color(0x16140C09),
+                const Color(0x4A1A100B),
+                const Color(0x8D20130D),
+                const Color(0xD124150E),
               ],
-              stops: const [0, 0.22, 0.62, 1],
+              stops: const [0, 0.26, 0.58, 0.82, 1],
             ),
           ),
           child: child,
@@ -498,7 +501,7 @@ class InventoryShowcaseCard extends StatelessWidget {
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: const Color(0xFFD5DEE8).withValues(alpha: 0.32),
+                color: const Color(0xFFF1E3D3).withValues(alpha: 0.38),
               ),
             ),
           ),
