@@ -537,25 +537,6 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     return '$h:$m:00';
   }
 
-  String _formatDurationSummary(Duration duration) {
-    final hour = duration.inHours;
-    final minute = duration.inMinutes.remainder(60);
-    final parts = <String>[];
-
-    if (hour > 0) {
-      parts.add(_text('$hour 小时', '$hour h'));
-    }
-    if (minute > 0) {
-      parts.add(_text('$minute 分钟', '$minute min'));
-    }
-
-    if (parts.isEmpty) {
-      return _text('0 分钟', '0 min');
-    }
-
-    return parts.join(' ');
-  }
-
   String _presetLabel(_AutoOfflinePreset preset) {
     switch (preset.id) {
       case '15m':
@@ -1495,6 +1476,340 @@ class _MetaValueBlock extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _CustomDurationPickerPage extends StatefulWidget {
+  const _CustomDurationPickerPage({
+    required this.initialHour,
+    required this.initialMinute,
+    required this.isZh,
+  });
+
+  final int initialHour;
+  final int initialMinute;
+  final bool isZh;
+
+  @override
+  State<_CustomDurationPickerPage> createState() =>
+      _CustomDurationPickerPageState();
+}
+
+class _CustomDurationPickerPageState extends State<_CustomDurationPickerPage> {
+  late int _selectedHour;
+  late int _selectedMinute;
+  late final FixedExtentScrollController _hourController;
+  late final FixedExtentScrollController _minuteController;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedHour = widget.initialHour.clamp(0, 23);
+    _selectedMinute = widget.initialMinute.clamp(0, 59);
+    _hourController = FixedExtentScrollController(initialItem: _selectedHour);
+    _minuteController = FixedExtentScrollController(
+      initialItem: _selectedMinute,
+    );
+  }
+
+  @override
+  void dispose() {
+    _hourController.dispose();
+    _minuteController.dispose();
+    super.dispose();
+  }
+
+  String _text(String zh, String en) => widget.isZh ? zh : en;
+
+  Duration get _currentDuration => Duration(
+    hours: _selectedHour,
+    minutes: _selectedMinute,
+  );
+
+  String _formatClock(DateTime time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    final second = time.second.toString().padLeft(2, '0');
+    return '$hour:$minute:$second';
+  }
+
+  String _formatDurationSummary(Duration duration) {
+    final hour = duration.inHours;
+    final minute = duration.inMinutes.remainder(60);
+    if (hour > 0 && minute > 0) {
+      return _text('$hour 小时 $minute 分钟', '$hour h $minute min');
+    }
+    if (hour > 0) {
+      return _text('$hour 小时', '$hour h');
+    }
+    if (minute > 0) {
+      return _text('$minute 分钟', '$minute min');
+    }
+    return _text('0 分钟', '0 min');
+  }
+
+  void _apply() {
+    final safeDuration = _currentDuration.inMinutes == 0
+        ? const Duration(minutes: 5)
+        : _currentDuration;
+    Navigator.of(context).pop(safeDuration);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final topInset = MediaQuery.of(context).padding.top;
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final expectedOffline = _formatClock(DateTime.now().add(_currentDuration));
+
+    return Scaffold(
+      backgroundColor: _ShopSettingPageState._pageBg,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 84, 16, 120),
+              child: Padding(
+                padding: EdgeInsets.only(top: topInset),
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 560),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.fromLTRB(24, 24, 24, 22),
+                          decoration: BoxDecoration(
+                            color: const Color.fromRGBO(255, 255, 255, 0.96),
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color.fromRGBO(15, 23, 42, 0.06),
+                                blurRadius: 28,
+                                offset: Offset(0, 16),
+                                spreadRadius: -16,
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _text('AUTO OFFLINE', 'AUTO OFFLINE'),
+                                style: const TextStyle(
+                                  color: _ShopSettingPageState._brandColor,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.2,
+                                  height: 16 / 11,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                _text('自定义离线时长', 'Custom idle duration'),
+                                style: const TextStyle(
+                                  color: _ShopSettingPageState._titleColor,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.8,
+                                  height: 36 / 28,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                _text(
+                                  '选择空闲多久后自动停止营业。这里改成完整页面后，小屏设备也能完整显示选择器和底部操作栏。',
+                                  'Choose how long the shop stays idle before going offline. This is now a full screen so smaller phones can show the picker and actions comfortably.',
+                                ),
+                                style: const TextStyle(
+                                  color: _ShopSettingPageState._mutedColor,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w400,
+                                  height: 22 / 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final compact = constraints.maxWidth < 380;
+                            if (compact) {
+                              return Column(
+                                children: [
+                                  _CustomDurationMetricCard(
+                                    label: _text('IDLE TIME', 'IDLE TIME'),
+                                    value: _formatDurationSummary(
+                                      _currentDuration,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _CustomDurationMetricCard(
+                                    label: _text(
+                                      'EXPECTED OFFLINE',
+                                      'EXPECTED OFFLINE',
+                                    ),
+                                    value: expectedOffline,
+                                    accent: true,
+                                  ),
+                                ],
+                              );
+                            }
+                            return Row(
+                              children: [
+                                Expanded(
+                                  child: _CustomDurationMetricCard(
+                                    label: _text('IDLE TIME', 'IDLE TIME'),
+                                    value: _formatDurationSummary(
+                                      _currentDuration,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _CustomDurationMetricCard(
+                                    label: _text(
+                                      'EXPECTED OFFLINE',
+                                      'EXPECTED OFFLINE',
+                                    ),
+                                    value: expectedOffline,
+                                    accent: true,
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: _CustomDurationPickerColumn(
+                                  label: _text('小时', 'Hours'),
+                                  unitLabel: _text('时', 'h'),
+                                  selectedValue: _selectedHour,
+                                  itemCount: 24,
+                                  controller: _hourController,
+                                  onSelectedItemChanged: (value) {
+                                    setState(() => _selectedHour = value);
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _CustomDurationPickerColumn(
+                                  label: _text('分钟', 'Minutes'),
+                                  unitLabel: _text('分', 'min'),
+                                  selectedValue: _selectedMinute,
+                                  itemCount: 60,
+                                  controller: _minuteController,
+                                  onSelectedItemChanged: (value) {
+                                    setState(() => _selectedMinute = value);
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color.fromRGBO(241, 245, 249, 0.9),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.only(top: 1),
+                                child: Icon(
+                                  Icons.schedule_rounded,
+                                  size: 16,
+                                  color: _ShopSettingPageState._brandColor,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _text(
+                                    '用于无操作后自动停止营业。确认后会回到店铺设置页，并把这里选中的时长写入当前草稿。',
+                                    'Used to stop selling after inactivity. After applying, we return to shop settings and keep this duration in the current draft.',
+                                  ),
+                                  style: const TextStyle(
+                                    color: _ShopSettingPageState._mutedColor,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    height: 18 / 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SettingsStyleTopNavigation(
+            title: _text('自动离线', 'Auto offline'),
+          ),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: Color.fromRGBO(247, 249, 251, 0.96),
+          border: Border(
+            top: BorderSide(color: _ShopSettingPageState._lineColor),
+          ),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          12,
+          16,
+          bottomInset > 0 ? bottomInset : 12,
+        ),
+        child: SafeArea(
+          top: false,
+          child: Row(
+            children: [
+              Expanded(
+                child: _SecondaryFooterButton(
+                  label: 'app.common.cancel'.tr,
+                  onPressed: () => Navigator.of(context).maybePop(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: _PrimaryFooterButton(
+                  label: _text('确认选择', 'Apply duration'),
+                  loading: false,
+                  onPressed: _apply,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
