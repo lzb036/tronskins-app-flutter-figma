@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -5,10 +7,8 @@ import 'package:tronskins_app/api/model/entity/user/user_shop_entity.dart';
 import 'package:tronskins_app/common/http/http_helper.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/login_required_prompt.dart';
-import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/controllers/shop/shop_controller.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
-import 'package:tronskins_app/routes/app_routes.dart';
 
 class ShopSettingPage extends StatefulWidget {
   const ShopSettingPage({super.key});
@@ -18,21 +18,26 @@ class ShopSettingPage extends StatefulWidget {
 }
 
 class _ShopSettingPageState extends State<ShopSettingPage> {
-  static const _pageBg = Color(0xFFF4F6F9);
-  static const _panelBg = Colors.white;
-  static const _sectionBg = Color(0xFFF7F8FB);
-  static const _fieldBg = Color(0xFFECEFF4);
+  static const _pageBg = Color(0xFFF7F9FB);
+  static const _sectionBg = Colors.white;
+  static const _fieldBg = Color(0xFFE0E3E5);
+  static const _chipBg = Color(0xFFE6E8EA);
+  static const _pillBg = Color(0xFFECEEF0);
   static const _titleColor = Color(0xFF191C1E);
-  static const _textColor = Color(0xFF23262F);
-  static const _mutedColor = Color(0xFF8E95A3);
-  static const _brandColor = Color(0xFF1E40AF);
-  static const _brandColorEnd = Color(0xFF3B82F6);
-  static const _brandSoftColor = Color(0xFFEAF1FF);
-  static const _successColor = Color(0xFF16A34A);
+  static const _textColor = Color(0xFF0F172A);
+  static const _mutedColor = Color(0xFF444653);
+  static const _subtleColor = Color(0xFF94A3B8);
+  static const _brandColor = Color(0xFF00288E);
+  static const _brandColorEnd = Color(0xFF0058BE);
+  static const _successColor = Color(0xFF10B981);
   static const _offlineColor = Color(0xFFB93815);
-  static const _warningBg = Color(0xFFFFF4D7);
-  static const _warningText = Color(0xFF9A6805);
-  static const _panelShadow = Color.fromRGBO(15, 23, 42, 0.06);
+  static const _warningBg = Color(0xFFFFFBEB);
+  static const _warningText = Color(0xFF92400E);
+  static const _warningBodyText = Color.fromRGBO(146, 64, 14, 0.8);
+  static const _warningBorder = Color.fromRGBO(245, 158, 11, 0.2);
+  static const _lineColor = Color(0xFFECEEF0);
+  static const _topBarBg = Color.fromRGBO(248, 250, 252, 0.7);
+  static const _footerBg = Color.fromRGBO(255, 255, 255, 0.7);
 
   static const List<_AutoOfflinePreset> _presets = [
     _AutoOfflinePreset(id: '15m', hour: 0, minute: 15),
@@ -47,9 +52,12 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
       ? Get.find<ShopController>()
       : Get.put(ShopController());
   final UserController userController = Get.find<UserController>();
+  final TextEditingController _shopNameController = TextEditingController();
+  final FocusNode _shopNameFocusNode = FocusNode();
 
   bool _draftInitialized = false;
   String? _draftShopIdentity;
+  String _draftShopName = '';
   bool _draftOnline = false;
   bool _draftAutoOffline = false;
   int _draftHour = 0;
@@ -70,10 +78,35 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     }
   }
 
+  @override
+  void dispose() {
+    _shopNameController.dispose();
+    _shopNameFocusNode.dispose();
+    super.dispose();
+  }
+
   String _text(String zh, String en) => _isZh ? zh : en;
 
   String _shopIdentity(UserShopEntity shop) =>
       '${shop.id ?? ''}|${shop.uuid ?? ''}';
+
+  String _resolvedUserAvatarUrl() {
+    final avatar =
+        (userController.user.value?.avatar ??
+                userController.user.value?.config?.avatar ??
+                '')
+            .trim();
+    if (avatar.isEmpty) {
+      return '';
+    }
+    if (avatar.startsWith('//')) {
+      return 'https:$avatar';
+    }
+    if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
+      return avatar;
+    }
+    return 'https://www.tronskins.com/fms/image$avatar';
+  }
 
   Duration? _resolveDelayFromBackendTime({
     required int? hour,
@@ -114,9 +147,11 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
       hour: shop.hour,
       minute: shop.minute,
     );
+    final shopName = _shopName(shop);
 
     _draftInitialized = true;
     _draftShopIdentity = _shopIdentity(shop);
+    _draftShopName = shopName;
     _draftOnline = shop.isOnline ?? false;
     _draftAutoOffline = shop.openAutoClose ?? false;
     _draftHour = draftDelay?.inHours ?? 0;
@@ -124,6 +159,12 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     _syncedDelayHour = _draftHour;
     _syncedDelayMinute = _draftMinute;
     _lastSyncedAt = DateTime.now();
+    if (_shopNameController.text != shopName) {
+      _shopNameController.value = TextEditingValue(
+        text: shopName,
+        selection: TextSelection.collapsed(offset: shopName.length),
+      );
+    }
   }
 
   Future<bool> _confirmSwitch(String messageKey) async {
@@ -190,6 +231,7 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
   bool _hasDurationSet() => _draftHour > 0 || _draftMinute > 0;
 
   bool _hasChanges(UserShopEntity shop) {
+    final nameChanged = _draftShopName != _shopName(shop);
     final statusChanged = _draftOnline != (shop.isOnline ?? false);
     final autoOfflineChanged =
         _draftAutoOffline != (shop.openAutoClose ?? false);
@@ -198,7 +240,8 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     final canPersistSchedule =
         _draftAutoOffline || (shop.openAutoClose ?? false);
 
-    return statusChanged ||
+    return nameChanged ||
+        statusChanged ||
         autoOfflineChanged ||
         (canPersistSchedule && scheduleChanged);
   }
@@ -265,6 +308,23 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     }
   }
 
+  Future<bool> _submitShopName(String name) async {
+    try {
+      await controller.changeShopName(name);
+      return true;
+    } catch (error) {
+      AppSnackbar.error(
+        _resolveExceptionError(
+          error,
+          _text('保存店铺名称失败', 'Failed to save shop name'),
+        ),
+      );
+    }
+
+    await controller.loadShop();
+    return false;
+  }
+
   void _restoreDraftFromController() {
     final refreshedShop = controller.shop.value;
     if (!mounted || refreshedShop == null) {
@@ -278,10 +338,21 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
       return;
     }
 
+    FocusScope.of(context).unfocus();
+
+    final currentShopName = _shopName(shop);
+    final saveShopName = _draftShopName.trim();
+    final nameChanged = saveShopName != currentShopName;
     final currentOnline = shop.isOnline ?? false;
     final currentAutoOffline = shop.openAutoClose ?? false;
     final statusChanged = _draftOnline != currentOnline;
     final autoOfflineChanged = _draftAutoOffline != currentAutoOffline;
+
+    if (nameChanged && saveShopName.isEmpty) {
+      _shopNameFocusNode.requestFocus();
+      AppSnackbar.error('app.user.shop.name.change_placeholder'.tr);
+      return;
+    }
 
     var saveHour = _draftHour;
     var saveMinute = _draftMinute;
@@ -328,6 +399,14 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     setState(() => _isSaving = true);
 
     try {
+      if (nameChanged) {
+        final saved = await _submitShopName(saveShopName);
+        if (!saved) {
+          _restoreDraftFromController();
+          return;
+        }
+      }
+
       if (statusChanged) {
         final saved = await _submitShopStatusChange(_draftOnline);
         if (!saved) {
@@ -373,20 +452,12 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     }
   }
 
-  Future<void> _handleRename() async {
-    await Get.toNamed(Routers.SHOP_RENAME);
-    await controller.loadShop();
-    final refreshedShop = controller.shop.value;
-    if (!mounted || refreshedShop == null) {
-      return;
-    }
-    setState(() => _syncDraftFromShop(refreshedShop));
-  }
-
   void _handleCancel(UserShopEntity shop) {
     if (_isSaving) {
       return;
     }
+
+    FocusScope.of(context).unfocus();
 
     if (_hasChanges(shop)) {
       setState(() => _syncDraftFromShop(shop));
@@ -494,8 +565,11 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     });
   }
 
+  String _shopName(UserShopEntity shop) =>
+      (shop.shopName ?? shop.name ?? '').trim();
+
   String _shopDisplayName(UserShopEntity shop) {
-    final displayName = (shop.shopName ?? shop.name ?? '').trim();
+    final displayName = _draftInitialized ? _draftShopName : _shopName(shop);
     return displayName.isEmpty ? '-' : displayName;
   }
 
@@ -534,16 +608,6 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     final h = hour.toString().padLeft(2, '0');
     final m = minute.toString().padLeft(2, '0');
     return '$h:$m:00';
-  }
-
-  String _formattedBackendClock() {
-    final target = _resolveBackendScheduleFromDraft();
-    if (target == null) {
-      return '--:--';
-    }
-    final hour = target.hour.toString().padLeft(2, '0');
-    final minute = target.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
   }
 
   String _presetLabel(_AutoOfflinePreset preset) {
@@ -593,34 +657,91 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
 
   Widget _buildTopNavigation(UserShopEntity? shop) {
     final canSave = shop != null && _hasChanges(shop) && !_isSaving;
+    final topInset = MediaQuery.of(context).padding.top;
 
-    return SettingsStyleTopNavigation(
-      title: 'app.user.shop.setting'.tr,
-      horizontalPadding: 16,
-      actions: [
-        TextButton(
-          onPressed: canSave ? () => _handleSave(shop) : null,
-          style: TextButton.styleFrom(
-            minimumSize: const Size(44, 36),
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            foregroundColor: _brandColor,
-          ),
-          child: _isSaving
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(
-                  'app.common.save'.tr,
-                  style: TextStyle(
-                    color: canSave ? _brandColor : _mutedColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            color: _topBarBg,
+            padding: EdgeInsets.only(top: topInset),
+            child: SizedBox(
+              height: 64,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  children: [
+                    Material(
+                      color: Colors.transparent,
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () => Navigator.maybeOf(context)?.maybePop(),
+                        child: const SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: Center(
+                            child: Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              size: 16,
+                              color: _textColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'app.user.shop.setting'.tr,
+                        style: const TextStyle(
+                          color: _textColor,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.45,
+                          height: 28 / 18,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: canSave ? () => _handleSave(shop) : null,
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(44, 32),
+                        padding: EdgeInsets.zero,
+                        foregroundColor: _brandColor,
+                      ),
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  _brandColor,
+                                ),
+                              ),
+                            )
+                          : Text(
+                              'app.common.save'.tr,
+                              style: TextStyle(
+                                color: canSave ? _brandColor : _subtleColor,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                height: 24 / 16,
+                              ),
+                            ),
+                    ),
+                  ],
                 ),
+              ),
+            ),
+          ),
         ),
-      ],
+      ),
     );
   }
 
@@ -647,6 +768,7 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
                   : _buildLoggedInBody(shop),
             ),
             _buildTopNavigation(shop),
+            if (loggedIn && shop != null) _buildBottomActionBar(shop),
           ],
         ),
       );
@@ -654,42 +776,53 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
   }
 
   Widget _buildLoggedInBody(UserShopEntity shop) {
+    final viewPadding = MediaQuery.of(context).padding;
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(14, 92, 14, 28),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        viewPadding.top + 80,
+        16,
+        164 + viewPadding.bottom,
+      ),
       child: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 430),
-          child: AbsorbPointer(
-            absorbing: _isSaving,
-            child: Container(
-              decoration: BoxDecoration(
-                color: _panelBg,
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: const [
-                  BoxShadow(
-                    color: _panelShadow,
-                    blurRadius: 28,
-                    offset: Offset(0, 16),
-                    spreadRadius: -18,
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildShopIdentityCard(shop),
-                  const SizedBox(height: 14),
-                  _buildStatusSection(),
-                  const SizedBox(height: 14),
-                  _buildAutoOfflineSection(),
-                  const SizedBox(height: 14),
-                  _buildNoticeBanner(),
-                  const SizedBox(height: 18),
-                  _buildFooterActions(shop),
-                ],
+          constraints: const BoxConstraints(maxWidth: 390),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildShopIdentityCard(shop),
+              const SizedBox(height: 24),
+              _buildStatusSection(),
+              const SizedBox(height: 24),
+              _buildAutoOfflineSection(),
+              const SizedBox(height: 20),
+              _buildNoticeBanner(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomActionBar(UserShopEntity shop) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            color: _footerBg,
+            padding: EdgeInsets.fromLTRB(24, 20, 24, 20 + bottomInset),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 390),
+                child: _buildFooterActions(shop),
               ),
             ),
           ),
@@ -701,39 +834,31 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
   Widget _buildShopIdentityCard(UserShopEntity shop) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: _sectionBg,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _ShopAvatar(imageUrl: (shop.avatar ?? '').trim()),
-              const SizedBox(width: 12),
+              _ShopAvatar(imageUrl: _resolvedUserAvatarUrl()),
+              const SizedBox(width: 20),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _brandSoftColor,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: const Text(
-                        'OFFICIAL VENDOR',
-                        style: TextStyle(
-                          color: _brandColor,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.4,
-                        ),
+                    const Text(
+                      'OFFICIAL VENDOR',
+                      style: TextStyle(
+                        color: _brandColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
+                        height: 16 / 12,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -743,74 +868,91 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: _titleColor,
-                        fontSize: 17,
+                        fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        height: 1.2,
+                        letterSpacing: -0.5,
+                        height: 28 / 20,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      _shopMeta(shop),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _mutedColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        height: 1.3,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            _shopMeta(shop),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: _mutedColor,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              height: 20 / 14,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(
+                          Icons.copy_rounded,
+                          size: 14,
+                          color: _mutedColor,
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Text(
             'app.user.shop.name.label'.tr,
             style: const TextStyle(
               color: _mutedColor,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              height: 20 / 14,
             ),
           ),
           const SizedBox(height: 8),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: _handleRename,
-              borderRadius: BorderRadius.circular(16),
-              child: Ink(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 15,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            decoration: BoxDecoration(
+              color: _fieldBg,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: TextField(
+              controller: _shopNameController,
+              focusNode: _shopNameFocusNode,
+              enabled: !_isSaving,
+              textInputAction: TextInputAction.done,
+              maxLines: 1,
+              cursorColor: _brandColor,
+              onChanged: (value) {
+                final normalized = value.trim();
+                if (normalized == _draftShopName) {
+                  return;
+                }
+                setState(() => _draftShopName = normalized);
+              },
+              onTapOutside: (_) => _shopNameFocusNode.unfocus(),
+              onSubmitted: (_) => _shopNameFocusNode.unfocus(),
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                hintText: 'app.user.shop.name.change_placeholder'.tr,
+                hintStyle: const TextStyle(
+                  color: _subtleColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  height: 24 / 16,
                 ),
-                decoration: BoxDecoration(
-                  color: _fieldBg,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _shopDisplayName(shop),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _textColor,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Icon(
-                      Icons.edit_outlined,
-                      size: 16,
-                      color: _mutedColor,
-                    ),
-                  ],
-                ),
+              ),
+              style: const TextStyle(
+                color: _titleColor,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                height: 24 / 16,
               ),
             ),
           ),
@@ -824,10 +966,10 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: _sectionBg,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -843,17 +985,19 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
                       _text('营业状态', 'Business status'),
                       style: const TextStyle(
                         color: _titleColor,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: -0.45,
+                        height: 28 / 18,
                       ),
                     ),
                     const SizedBox(height: 6),
                     RichText(
                       text: TextSpan(
                         style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          height: 1.4,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          height: 20 / 14,
                         ),
                         children: [
                           TextSpan(
@@ -878,9 +1022,9 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
                     _text('同步时间', 'LAST UPDATE'),
                     style: const TextStyle(
                       color: _mutedColor,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.4,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w400,
+                      letterSpacing: -0.5,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -888,38 +1032,21 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
                     _formatClock(_lastSyncedAt),
                     style: const TextStyle(
                       color: _textColor,
-                      fontSize: 12,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700,
+                      height: 20 / 14,
                     ),
                   ),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: _fieldBg,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _StatusSegment(
-                    label: _text('在线', 'Online'),
-                    selected: _draftOnline,
-                    onTap: () => setState(() => _draftOnline = true),
-                  ),
-                ),
-                Expanded(
-                  child: _StatusSegment(
-                    label: _text('离线', 'Offline'),
-                    selected: !_draftOnline,
-                    onTap: () => setState(() => _draftOnline = false),
-                  ),
-                ),
-              ],
+          const SizedBox(height: 24),
+          Align(
+            alignment: Alignment.center,
+            child: _FigmaStatusToggle(
+              isOnline: _draftOnline,
+              onChanged: (value) => setState(() => _draftOnline = value),
             ),
           ),
         ],
@@ -934,10 +1061,10 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: _sectionBg,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -953,8 +1080,10 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
                       'app.user.shop.automatic_offline'.tr,
                       style: const TextStyle(
                         color: _titleColor,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: -0.45,
+                        height: 28 / 18,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -962,22 +1091,9 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
                       _text('无操作后自动停止营业', 'Stop selling after inactivity'),
                       style: const TextStyle(
                         color: _mutedColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        height: 1.35,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _text(
-                        '保存时会换算成具体离线时刻提交给后端',
-                        'Will be converted to a clock time when saving',
-                      ),
-                      style: const TextStyle(
-                        color: _mutedColor,
-                        fontSize: 10,
+                        fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        height: 1.35,
+                        height: 20 / 14,
                       ),
                     ),
                   ],
@@ -1003,16 +1119,17 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
             opacity: _draftAutoOffline ? 1 : 0.68,
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final chipWidth = (constraints.maxWidth - 16) / 3;
+                final chipWidth = (constraints.maxWidth - 24) / 3;
                 return Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: 12,
+                  runSpacing: 12,
                   children: _presets.map((preset) {
                     return SizedBox(
                       width: chipWidth,
                       child: _DurationChip(
                         label: _presetLabel(preset),
                         selected: _isPresetSelected(preset),
+                        dashed: preset.isCustom,
                         onTap: () {
                           if (preset.isCustom) {
                             _openCustomDurationPicker();
@@ -1030,27 +1147,34 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
               },
             ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _MetaValueBlock(
-                  label: _text('预计离线', 'EXPECTED OFFLINE'),
-                  value: _expectedOfflineValue(),
-                  highlight: _draftAutoOffline,
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.only(top: 9),
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: _lineColor)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _MetaValueBlock(
+                    label: _text('EXPECTED OFFLINE', 'EXPECTED OFFLINE'),
+                    value: _expectedOfflineValue(),
+                    highlight: _draftAutoOffline,
+                    alignEnd: false,
+                    accentBlue: true,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _MetaValueBlock(
-                  label: _text('提交时间', 'BACKEND TIME'),
-                  value: _draftAutoOffline
-                      ? _formattedBackendClock()
-                      : idleLimit,
-                  highlight: _hasDurationSet(),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _MetaValueBlock(
+                    label: _text('IDLE TIME', 'IDLE TIME'),
+                    value: idleLimit,
+                    highlight: _hasDurationSet(),
+                    alignEnd: true,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -1060,10 +1184,11 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
   Widget _buildNoticeBanner() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(21),
       decoration: BoxDecoration(
         color: _warningBg,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _warningBorder),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1072,31 +1197,35 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
             padding: EdgeInsets.only(top: 1),
             child: Icon(
               Icons.warning_amber_rounded,
-              size: 18,
+              size: 22,
               color: _warningText,
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _text('重要提示', 'Important note'),
+                  _text('重要通知', 'Important notice'),
                   style: const TextStyle(
                     color: _warningText,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    height: 20 / 14,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'app.user.shop.notice'.tr,
+                  _text(
+                    '当您的店铺处于离线状态时，所有已上架的商品将自动在市场中隐藏。建议开启自动离线功能以保护您的交易活跃度。',
+                    'When your shop is offline, all listed items will be hidden from the market automatically. Enable auto offline to protect your trading activity.',
+                  ),
                   style: const TextStyle(
-                    color: _warningText,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    height: 1.45,
+                    color: _warningBodyText,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    height: 19.5 / 12,
                   ),
                 ),
               ],
@@ -1118,7 +1247,7 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
             onPressed: () => _handleCancel(shop),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 16),
         Expanded(
           flex: 2,
           child: _PrimaryFooterButton(
@@ -1156,11 +1285,7 @@ class _ShopAvatar extends StatelessWidget {
     Widget child;
     if (imageUrl.isEmpty) {
       child = const Center(
-        child: Icon(
-          Icons.storefront_rounded,
-          size: 24,
-          color: Color(0xFF24409E),
-        ),
+        child: Icon(Icons.person_rounded, size: 36, color: Color(0xFF24409E)),
       );
     } else {
       child = Image.network(
@@ -1169,8 +1294,8 @@ class _ShopAvatar extends StatelessWidget {
         errorBuilder: (context, error, stackTrace) {
           return const Center(
             child: Icon(
-              Icons.storefront_rounded,
-              size: 24,
+              Icons.person_rounded,
+              size: 36,
               color: Color(0xFF24409E),
             ),
           );
@@ -1179,19 +1304,11 @@ class _ShopAvatar extends StatelessWidget {
     }
 
     return Container(
-      width: 48,
-      height: 48,
+      width: 80,
+      height: 80,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: const Color(0xFFDDE7FF),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(37, 99, 235, 0.12),
-            blurRadius: 16,
-            offset: Offset(0, 8),
-            spreadRadius: -10,
-          ),
-        ],
+        color: const Color(0xFFECEEF0),
       ),
       clipBehavior: Clip.antiAlias,
       child: child,
@@ -1199,56 +1316,123 @@ class _ShopAvatar extends StatelessWidget {
   }
 }
 
-class _StatusSegment extends StatelessWidget {
-  const _StatusSegment({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
+class _FigmaStatusToggle extends StatelessWidget {
+  const _FigmaStatusToggle({required this.isOnline, required this.onChanged});
 
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
+  final bool isOnline;
+  final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOutCubic,
-      decoration: BoxDecoration(
-        color: selected ? Colors.white : Colors.transparent,
-        borderRadius: BorderRadius.circular(999),
-        boxShadow: selected
-            ? const [
-                BoxShadow(
-                  color: Color.fromRGBO(15, 23, 42, 0.08),
-                  blurRadius: 16,
-                  offset: Offset(0, 8),
-                  spreadRadius: -12,
+    return SizedBox(
+      width: 240,
+      height: 64,
+      child: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: _ShopSettingPageState._pillBg,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => onChanged(true),
+                    child: Center(
+                      child: Text(
+                        '在线',
+                        style: TextStyle(
+                          color: isOnline
+                              ? Colors.transparent
+                              : _ShopSettingPageState._subtleColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          height: 24 / 16,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ]
-            : const [],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(999),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 11),
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: selected
-                    ? const Color(0xFF1A1F36)
-                    : const Color(0xFF8E95A3),
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+                Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => onChanged(false),
+                    child: Center(
+                      child: Text(
+                        '离线',
+                        style: TextStyle(
+                          color: isOnline
+                              ? _ShopSettingPageState._subtleColor
+                              : Colors.transparent,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          height: 24 / 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AnimatedAlign(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            alignment: isOnline ? Alignment.centerLeft : Alignment.centerRight,
+            child: Container(
+              width: 114,
+              height: 52,
+              margin: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(999),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color.fromRGBO(0, 0, 0, 0.1),
+                    blurRadius: 15,
+                    offset: Offset(0, 10),
+                    spreadRadius: -3,
+                  ),
+                  BoxShadow(
+                    color: Color.fromRGBO(0, 0, 0, 0.1),
+                    blurRadius: 6,
+                    offset: Offset(0, 4),
+                    spreadRadius: -4,
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isOnline) ...[
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: _ShopSettingPageState._successColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      isOnline ? '在线' : '离线',
+                      style: const TextStyle(
+                        color: _ShopSettingPageState._textColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        height: 24 / 16,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -1266,19 +1450,21 @@ class _InlineToggle extends StatelessWidget {
       onTap: () => onChanged(!value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        width: 38,
-        height: 22,
-        padding: const EdgeInsets.all(2),
+        width: 48,
+        height: 24,
+        padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: value ? const Color(0xFF2F63F2) : const Color(0xFFD6DBE5),
+          color: value
+              ? _ShopSettingPageState._brandColor
+              : _ShopSettingPageState._chipBg,
           borderRadius: BorderRadius.circular(999),
         ),
         child: AnimatedAlign(
           duration: const Duration(milliseconds: 180),
           alignment: value ? Alignment.centerRight : Alignment.centerLeft,
           child: Container(
-            width: 18,
-            height: 18,
+            width: 16,
+            height: 16,
             decoration: const BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
@@ -1294,33 +1480,67 @@ class _DurationChip extends StatelessWidget {
   const _DurationChip({
     required this.label,
     required this.selected,
+    this.dashed = false,
     required this.onTap,
   });
 
   final String label;
   final bool selected;
+  final bool dashed;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final decoration = BoxDecoration(
+      color: selected
+          ? _ShopSettingPageState._brandColor
+          : dashed
+          ? _ShopSettingPageState._pillBg
+          : _ShopSettingPageState._chipBg,
+      borderRadius: BorderRadius.circular(8),
+      border: dashed
+          ? Border.all(
+              color: const Color(0xFFC4C5D5),
+              width: 1,
+              strokeAlign: BorderSide.strokeAlignInside,
+            )
+          : null,
+      boxShadow: selected
+          ? const [
+              BoxShadow(
+                color: Color.fromRGBO(30, 58, 138, 0.1),
+                blurRadius: 15,
+                offset: Offset(0, 10),
+                spreadRadius: -3,
+              ),
+              BoxShadow(
+                color: Color.fromRGBO(30, 58, 138, 0.1),
+                blurRadius: 6,
+                offset: Offset(0, 4),
+                spreadRadius: -4,
+              ),
+            ]
+          : const [],
+    );
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         child: Ink(
-          height: 40,
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFF214FDF) : Colors.white,
-            borderRadius: BorderRadius.circular(10),
-          ),
+          height: 44,
+          decoration: decoration,
           child: Center(
             child: Text(
               label,
               style: TextStyle(
-                color: selected ? Colors.white : const Color(0xFF475467),
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+                color: selected
+                    ? Colors.white
+                    : _ShopSettingPageState._mutedColor,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                height: 20 / 14,
               ),
             ),
           ),
@@ -1335,35 +1555,45 @@ class _MetaValueBlock extends StatelessWidget {
     required this.label,
     required this.value,
     required this.highlight,
+    this.alignEnd = false,
+    this.accentBlue = false,
   });
 
   final String label;
   final String value;
   final bool highlight;
+  final bool alignEnd;
+  final bool accentBlue;
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: alignEnd
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: const TextStyle(
-            color: Color(0xFF9AA1AF),
-            fontSize: 9,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.3,
+            color: _ShopSettingPageState._mutedColor,
+            fontSize: 10,
+            fontWeight: FontWeight.w400,
+            letterSpacing: -0.5,
+            height: 15 / 10,
           ),
         ),
-        const SizedBox(height: 5),
+        const SizedBox(height: 2),
         Text(
           value,
           style: TextStyle(
-            color: highlight
-                ? const Color(0xFF214FDF)
-                : const Color(0xFF475467),
-            fontSize: 12,
+            color: accentBlue
+                ? _ShopSettingPageState._brandColor
+                : highlight
+                ? _ShopSettingPageState._titleColor
+                : _ShopSettingPageState._mutedColor,
+            fontSize: 16,
             fontWeight: FontWeight.w800,
+            height: 24 / 16,
           ),
         ),
       ],
@@ -1385,20 +1615,21 @@ class _SecondaryFooterButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onPressed,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           child: Ink(
-            height: 48,
+            height: 52,
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F3F6),
-              borderRadius: BorderRadius.circular(12),
+              color: _ShopSettingPageState._chipBg,
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Center(
               child: Text(
                 label,
                 style: const TextStyle(
-                  color: Color(0xFF475467),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
+                  color: _ShopSettingPageState._titleColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  height: 20 / 14,
                 ),
               ),
             ),
@@ -1433,13 +1664,19 @@ class _PrimaryFooterButton extends StatelessWidget {
               _ShopSettingPageState._brandColorEnd,
             ],
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           boxShadow: const [
             BoxShadow(
-              color: Color.fromRGBO(59, 130, 246, 0.22),
-              blurRadius: 20,
-              offset: Offset(0, 12),
-              spreadRadius: -12,
+              color: Color.fromRGBO(59, 130, 246, 0.2),
+              blurRadius: 25,
+              offset: Offset(0, 20),
+              spreadRadius: -5,
+            ),
+            BoxShadow(
+              color: Color.fromRGBO(59, 130, 246, 0.2),
+              blurRadius: 10,
+              offset: Offset(0, 8),
+              spreadRadius: -6,
             ),
           ],
         ),
@@ -1447,9 +1684,9 @@ class _PrimaryFooterButton extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: enabled ? onPressed : null,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
             child: SizedBox(
-              height: 48,
+              height: 52,
               child: Center(
                 child: loading
                     ? const SizedBox(
@@ -1466,8 +1703,9 @@ class _PrimaryFooterButton extends StatelessWidget {
                         label,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          height: 20 / 14,
                         ),
                       ),
               ),
