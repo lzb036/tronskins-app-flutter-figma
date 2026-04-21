@@ -54,6 +54,8 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
   bool _draftAutoOffline = false;
   int _draftHour = 0;
   int _draftMinute = 0;
+  int _syncedDelayHour = 0;
+  int _syncedDelayMinute = 0;
   bool _isSaving = false;
   DateTime _lastSyncedAt = DateTime.now();
 
@@ -73,13 +75,54 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
   String _shopIdentity(UserShopEntity shop) =>
       '${shop.id ?? ''}|${shop.uuid ?? ''}';
 
+  Duration? _resolveDelayFromBackendTime({
+    required int? hour,
+    required int? minute,
+  }) {
+    if (hour == null || minute == null) {
+      return null;
+    }
+
+    final now = DateTime.now();
+    var scheduled = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      0,
+    ).add(Duration(minutes: minute));
+
+    if (!scheduled.isAfter(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+
+    return scheduled.difference(now);
+  }
+
+  DateTime? _resolveBackendScheduleFromDraft() {
+    if (!_hasDurationSet()) {
+      return null;
+    }
+
+    return DateTime.now().add(
+      Duration(hours: _draftHour, minutes: _draftMinute),
+    );
+  }
+
   void _syncDraftFromShop(UserShopEntity shop) {
+    final draftDelay = _resolveDelayFromBackendTime(
+      hour: shop.hour,
+      minute: shop.minute,
+    );
+
     _draftInitialized = true;
     _draftShopIdentity = _shopIdentity(shop);
     _draftOnline = shop.isOnline ?? false;
     _draftAutoOffline = shop.openAutoClose ?? false;
-    _draftHour = shop.hour ?? 0;
-    _draftMinute = shop.minute ?? 0;
+    _draftHour = draftDelay?.inHours ?? 0;
+    _draftMinute = draftDelay?.inMinutes.remainder(60) ?? 0;
+    _syncedDelayHour = _draftHour;
+    _syncedDelayMinute = _draftMinute;
     _lastSyncedAt = DateTime.now();
   }
 
@@ -147,10 +190,17 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
   bool _hasDurationSet() => _draftHour > 0 || _draftMinute > 0;
 
   bool _hasChanges(UserShopEntity shop) {
-    return _draftOnline != (shop.isOnline ?? false) ||
-        _draftAutoOffline != (shop.openAutoClose ?? false) ||
-        _draftHour != (shop.hour ?? 0) ||
-        _draftMinute != (shop.minute ?? 0);
+    final statusChanged = _draftOnline != (shop.isOnline ?? false);
+    final autoOfflineChanged =
+        _draftAutoOffline != (shop.openAutoClose ?? false);
+    final scheduleChanged =
+        _draftHour != _syncedDelayHour || _draftMinute != _syncedDelayMinute;
+    final canPersistSchedule =
+        _draftAutoOffline || (shop.openAutoClose ?? false);
+
+    return statusChanged ||
+        autoOfflineChanged ||
+        (canPersistSchedule && scheduleChanged);
   }
 
   Future<bool> _submitShopStatusChange(bool targetValue) async {
@@ -207,7 +257,7 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
       AppSnackbar.error(
         _resolveExceptionError(
           error,
-          _text('保存自动离线时长失败', 'Failed to save auto-offline duration'),
+          _text('保存自动离线设置失败', 'Failed to save auto-offline setting'),
         ),
       );
       await controller.loadShop();
@@ -240,7 +290,8 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     }
 
     final durationChanged =
-        saveHour != (shop.hour ?? 0) || saveMinute != (shop.minute ?? 0);
+        saveHour != _syncedDelayHour || saveMinute != _syncedDelayMinute;
+    final shouldSubmitAutoCloseTime = _draftAutoOffline && durationChanged;
 
     if (statusChanged) {
       final confirmed = await _confirmSwitch(
@@ -293,8 +344,14 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
         }
       }
 
-      if (durationChanged) {
-        final saved = await _submitAutoCloseTime(saveHour, saveMinute);
+      if (shouldSubmitAutoCloseTime) {
+        final backendTargetTime = DateTime.now().add(
+          Duration(hours: saveHour, minutes: saveMinute),
+        );
+        final saved = await _submitAutoCloseTime(
+          backendTargetTime.hour,
+          backendTargetTime.minute,
+        );
         if (!saved) {
           _restoreDraftFromController();
           return;
@@ -479,6 +536,16 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     return '$h:$m:00';
   }
 
+  String _formattedBackendClock() {
+    final target = _resolveBackendScheduleFromDraft();
+    if (target == null) {
+      return '--:--';
+    }
+    final hour = target.hour.toString().padLeft(2, '0');
+    final minute = target.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
   String _presetLabel(_AutoOfflinePreset preset) {
     switch (preset.id) {
       case '15m':
@@ -517,13 +584,11 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
   }
 
   String _expectedOfflineValue() {
-    if (!_draftAutoOffline || !_hasDurationSet()) {
+    final target = _resolveBackendScheduleFromDraft();
+    if (!_draftAutoOffline || target == null) {
       return '--:--:--';
     }
-    final expected = DateTime.now().add(
-      Duration(hours: _draftHour, minutes: _draftMinute),
-    );
-    return _formatClock(expected);
+    return _formatClock(target);
   }
 
   Widget _buildTopNavigation(UserShopEntity? shop) {
@@ -902,6 +967,19 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
                         height: 1.35,
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _text(
+                        '保存时会换算成具体离线时刻提交给后端',
+                        'Will be converted to a clock time when saving',
+                      ),
+                      style: const TextStyle(
+                        color: _mutedColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        height: 1.35,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -965,8 +1043,10 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
               const SizedBox(width: 16),
               Expanded(
                 child: _MetaValueBlock(
-                  label: _text('闲置阈值', 'IDLE LIMIT'),
-                  value: idleLimit,
+                  label: _text('提交时间', 'BACKEND TIME'),
+                  value: _draftAutoOffline
+                      ? _formattedBackendClock()
+                      : idleLimit,
                   highlight: _hasDurationSet(),
                 ),
               ),
