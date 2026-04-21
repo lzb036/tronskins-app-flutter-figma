@@ -42,12 +42,8 @@ class InventoryShowcaseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const outerRadiusValue = 0.0;
-    const selectedStrokeWidth = 2.0;
     final outerRadius = BorderRadius.circular(outerRadiusValue);
-    final innerRadiusValue = selected
-        ? (outerRadiusValue - selectedStrokeWidth).clamp(0.0, double.infinity)
-        : outerRadiusValue;
-    final innerRadius = BorderRadius.circular(innerRadiusValue);
+    final innerRadius = BorderRadius.circular(outerRadiusValue);
     final appId = item.appId;
     final isDota = appId == 570;
     final isTf2 = appId == 440;
@@ -106,22 +102,10 @@ class InventoryShowcaseCard extends StatelessWidget {
         borderRadius: outerRadius,
         child: Ink(
           decoration: BoxDecoration(
-            color: selected ? const Color(0xFF3B82F6) : Colors.white,
+            color: Colors.white,
             borderRadius: outerRadius,
-            border: selected
-                ? Border.all(
-                    color: const Color(0xFF3B82F6),
-                    width: selectedStrokeWidth,
-                  )
-                : null,
-            boxShadow: [
-              if (selected)
-                const BoxShadow(
-                  color: Color(0x263B82F6),
-                  blurRadius: 14,
-                  offset: Offset(0, 4),
-                ),
-              const BoxShadow(
+            boxShadow: const [
+              BoxShadow(
                 color: Color(0x0A000000),
                 blurRadius: 12,
                 offset: Offset(0, 4),
@@ -129,7 +113,7 @@ class InventoryShowcaseCard extends StatelessWidget {
             ],
           ),
           child: Padding(
-            padding: EdgeInsets.all(selected ? selectedStrokeWidth : 0),
+            padding: EdgeInsets.zero,
             child: ClipRRect(
               borderRadius: innerRadius,
               child: ColoredBox(
@@ -143,11 +127,7 @@ class InventoryShowcaseCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: const Color(0xFF120C10),
                           borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(
-                              selected
-                                  ? outerRadiusValue - selectedStrokeWidth
-                                  : outerRadiusValue,
-                            ),
+                            top: Radius.circular(outerRadiusValue),
                           ),
                         ),
                         clipBehavior: Clip.antiAlias,
@@ -302,16 +282,44 @@ class InventoryShowcaseCard extends StatelessWidget {
                                           const SizedBox(height: 3),
                                       ],
                                       if (wearDisplay != null) ...[
-                                        Text(
-                                          '${_isEnglishLocale ? 'Wear' : '磨损'}: $wearDisplay',
+                                        Text.rich(
+                                          TextSpan(
+                                            children: [
+                                              TextSpan(
+                                                text:
+                                                    '${_isEnglishLocale ? 'Wear' : '磨损'}: ',
+                                                style: const TextStyle(
+                                                  color: Color(0xFFDCE6F1),
+                                                  fontSize: 8,
+                                                  height: 10 / 8,
+                                                  fontWeight: FontWeight.w500,
+                                                  shadows: [
+                                                    Shadow(
+                                                      color: Color(0x99000000),
+                                                      blurRadius: 3,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              TextSpan(
+                                                text: wearDisplay,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 8,
+                                                  height: 10 / 8,
+                                                  fontWeight: FontWeight.w600,
+                                                  shadows: [
+                                                    Shadow(
+                                                      color: Color(0x99000000),
+                                                      blurRadius: 3,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            color: Color(0xFFE2E8F0),
-                                            fontSize: 7,
-                                            height: 10 / 7,
-                                            fontWeight: FontWeight.w500,
-                                          ),
                                         ),
                                         if (wearValue != null) ...[
                                           const SizedBox(height: 3),
@@ -449,7 +457,7 @@ class InventoryShowcaseCard extends StatelessWidget {
   Widget _buildAccessoryOverlay({required Widget child}) {
     return ClipRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
         child: Container(
           width: double.infinity,
           constraints: const BoxConstraints(minHeight: 30),
@@ -459,13 +467,13 @@ class InventoryShowcaseCard extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: const [
-                Color(0x1F2D1B1B),
-                Color(0x73251919),
-                Color(0xC41A0F0F),
-                Color(0xF0100707),
+              colors: [
+                const Color(0x00090B0E),
+                const Color(0x46090B0E),
+                const Color(0xA8090B0E),
+                const Color(0xE6090B0E),
               ],
-              stops: const [0, 0.34, 0.7, 1],
+              stops: const [0, 0.22, 0.62, 1],
             ),
           ),
           child: child,
@@ -490,7 +498,7 @@ class InventoryShowcaseCard extends StatelessWidget {
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: const Color(0xFFB8C1CC).withValues(alpha: 0.38),
+                color: const Color(0xFFD5DEE8).withValues(alpha: 0.32),
               ),
             ),
           ),

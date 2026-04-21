@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -163,16 +164,7 @@ class GameItemImage extends StatelessWidget {
             left: 0,
             bottom: 0,
             right: 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              color: Colors.black.withValues(alpha: 0.6),
-              child: Text(
-                '${'app.market.csgo.abradability'.tr}: $paintWearText',
-                style: const TextStyle(color: Colors.white, fontSize: 10),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+            child: _buildWearOverlay(context),
           ),
         if (gems.isNotEmpty)
           Positioned(
@@ -297,6 +289,58 @@ class GameItemImage extends StatelessWidget {
       );
     }
     return badges;
+  }
+
+  Widget _buildWearOverlay(BuildContext context) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(6, 5, 6, 4),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0x00090B0E),
+                Color(0x46090B0E),
+                Color(0xA8090B0E),
+                Color(0xE6090B0E),
+              ],
+              stops: [0, 0.22, 0.62, 1],
+            ),
+          ),
+          child: Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: '${'app.market.csgo.abradability'.tr}: ',
+                  style: const TextStyle(
+                    color: Color(0xFFDCE6F1),
+                    fontSize: 10,
+                    height: 12 / 10,
+                    fontWeight: FontWeight.w500,
+                    shadows: [Shadow(color: Color(0x99000000), blurRadius: 3)],
+                  ),
+                ),
+                TextSpan(
+                  text: paintWearText!,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    height: 12 / 10,
+                    fontWeight: FontWeight.w600,
+                    shadows: [Shadow(color: Color(0x99000000), blurRadius: 3)],
+                  ),
+                ),
+              ],
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+    );
   }
 
   Color _chipColor(BuildContext context) {
