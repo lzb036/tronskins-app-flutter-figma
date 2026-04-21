@@ -13,6 +13,7 @@ const Color _marketShowcaseSurfaceCard = Colors.white;
 const Color _marketShowcaseTextPrimary = Color(0xFF191C1E);
 const Color _marketShowcaseTextSecondary = Color(0xFF757684);
 const Color _marketShowcaseBrandBlue = Color(0xFF00288E);
+const Color _marketShowcasePhasePurple = Color(0xCC7C3AED);
 const double _marketShowcaseCardRadius = 0;
 
 class MarketShowcaseCard extends StatelessWidget {
@@ -27,6 +28,8 @@ class MarketShowcaseCard extends StatelessWidget {
     this.quality,
     this.exterior,
     this.patternLabel,
+    this.phaseLabel,
+    this.percentageLabel,
     this.stickers = const <GameItemSticker>[],
     this.gems = const <GameItemGem>[],
     this.wearDisplay,
@@ -44,6 +47,8 @@ class MarketShowcaseCard extends StatelessWidget {
   final TagInfo? quality;
   final TagInfo? exterior;
   final String? patternLabel;
+  final String? phaseLabel;
+  final String? percentageLabel;
   final List<GameItemSticker> stickers;
   final List<GameItemGem> gems;
   final String? wearDisplay;
@@ -58,6 +63,9 @@ class MarketShowcaseCard extends StatelessWidget {
     final normalizedImageUrl = _normalizeMarketImageUrl(imageUrl);
     final conditionLabel = exterior?.label?.trim();
     final rarityLabel = rarity?.label?.trim();
+    final resolvedPatternLabel = _normalizeBadgeLabel(patternLabel);
+    final resolvedPhaseLabel = _normalizePhaseLabel(phaseLabel);
+    final resolvedPercentageLabel = _normalizePercentageLabel(percentageLabel);
     final showQualityRibbon = _shouldShowQualityRibbon(
       quality,
       isDota: isDota,
@@ -178,11 +186,25 @@ class MarketShowcaseCard extends StatelessWidget {
                                 ),
                                 textColor: Colors.white,
                               ),
-                            if (patternLabel != null &&
-                                patternLabel!.isNotEmpty)
+                            if (resolvedPatternLabel != null &&
+                                resolvedPatternLabel.isNotEmpty)
                               _buildBadge(
-                                label: patternLabel!,
+                                label: resolvedPatternLabel,
                                 backgroundColor: const Color(0xCC111827),
+                                textColor: Colors.white,
+                              ),
+                            if (resolvedPhaseLabel != null &&
+                                resolvedPhaseLabel.isNotEmpty)
+                              _buildBadge(
+                                label: resolvedPhaseLabel,
+                                backgroundColor: _marketShowcasePhasePurple,
+                                textColor: Colors.white,
+                              ),
+                            if (resolvedPercentageLabel != null &&
+                                resolvedPercentageLabel.isNotEmpty)
+                              _buildBadge(
+                                label: resolvedPercentageLabel,
+                                backgroundColor: const Color(0xFFF59E0B),
                                 textColor: Colors.white,
                               ),
                           ],
@@ -535,6 +557,39 @@ class MarketShowcaseCard extends StatelessWidget {
       return false;
     }
     return quality.hasLabel;
+  }
+
+  String? _normalizeBadgeLabel(String? rawText) {
+    final text = rawText?.trim();
+    if (text == null || text.isEmpty || _isZeroLikeText(text)) {
+      return null;
+    }
+    return text;
+  }
+
+  String? _normalizePhaseLabel(String? rawText) {
+    final text = _normalizeBadgeLabel(rawText);
+    if (text == null) {
+      return null;
+    }
+    return text;
+  }
+
+  String? _normalizePercentageLabel(String? rawText) {
+    final text = _normalizeBadgeLabel(rawText);
+    if (text == null) {
+      return null;
+    }
+    return text.contains('%') ? text : '$text%';
+  }
+
+  bool _isZeroLikeText(String text) {
+    final normalized = text.trim();
+    if (normalized.isEmpty) {
+      return true;
+    }
+    final parsed = double.tryParse(normalized);
+    return parsed != null && parsed <= 0;
   }
 }
 

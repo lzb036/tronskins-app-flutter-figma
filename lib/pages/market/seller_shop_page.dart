@@ -1677,7 +1677,18 @@ class _SellerShopPageState extends State<SellerShopPage>
     final wearText = _extractText(asset, const ['paint_wear', 'paintWear']);
     final wearValue = _extractDouble(asset, const ['paint_wear', 'paintWear']);
     final wearDisplay = _formatWearText(wearText, wearValue);
-    final patternLabel = _extractText(asset, const ['paint_seed', 'paintSeed']);
+    final patternLabel = _normalizeBadgeLabel(
+      _extractText(asset, const ['paint_seed', 'paintSeed']) ??
+          _extractText(item.raw, const ['paint_seed', 'paintSeed']),
+    );
+    final phaseLabel = _normalizePhaseLabel(
+      _extractText(asset, const ['phase']) ??
+          _extractText(item.raw, const ['phase']),
+    );
+    final percentageLabel = _normalizePercentageLabel(
+      _extractText(asset, const ['percentage']) ??
+          _extractText(item.raw, const ['percentage']),
+    );
     final stickers = _parseStickersForItem(item, asset).take(4).toList();
     final gems = _parseGemsForItem(item, asset).take(4).toList();
     return MarketShowcaseCard(
@@ -1689,6 +1700,8 @@ class _SellerShopPageState extends State<SellerShopPage>
       quality: quality,
       exterior: exterior,
       patternLabel: patternLabel,
+      phaseLabel: phaseLabel,
+      percentageLabel: percentageLabel,
       stickers: stickers,
       gems: gems,
       wearDisplay: wearDisplay,
@@ -1806,13 +1819,37 @@ class _SellerShopPageState extends State<SellerShopPage>
 
   String? _formatWearText(String? rawText, double? rawValue) {
     final text = rawText?.trim();
-    if (text != null && text.isNotEmpty) {
+    if (text != null && text.isNotEmpty && !_isZeroLikeText(text)) {
       return text;
     }
-    if (rawValue == null) {
+    if (rawValue == null || rawValue <= 0) {
       return null;
     }
     return rawValue.toStringAsFixed(8);
+  }
+
+  String? _normalizeBadgeLabel(String? rawText) {
+    final text = rawText?.trim();
+    if (text == null || text.isEmpty || _isZeroLikeText(text)) {
+      return null;
+    }
+    return text;
+  }
+
+  String? _normalizePhaseLabel(String? rawText) {
+    final text = _normalizeBadgeLabel(rawText);
+    if (text == null) {
+      return null;
+    }
+    return text;
+  }
+
+  String? _normalizePercentageLabel(String? rawText) {
+    final text = _normalizeBadgeLabel(rawText);
+    if (text == null) {
+      return null;
+    }
+    return text.contains('%') ? text : '$text%';
   }
 
   List<GameItemSticker> _parseStickersForItem(
@@ -2078,5 +2115,14 @@ class _SellerShopPageState extends State<SellerShopPage>
       }
     }
     return null;
+  }
+
+  bool _isZeroLikeText(String text) {
+    final normalized = text.trim();
+    if (normalized.isEmpty) {
+      return true;
+    }
+    final parsed = double.tryParse(normalized);
+    return parsed != null && parsed <= 0;
   }
 }

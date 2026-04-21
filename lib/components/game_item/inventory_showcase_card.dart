@@ -12,6 +12,7 @@ import 'package:tronskins_app/components/game_item/sticker_row.dart';
 
 const Color _inventoryShowcaseTextPrimary = Color(0xFF191C1E);
 const Color _inventoryShowcaseBrandBlue = Color(0xFF00288E);
+const Color _inventoryShowcasePhasePurple = Color(0xFF7C3AED);
 
 class InventoryShowcaseCard extends StatelessWidget {
   const InventoryShowcaseCard({
@@ -71,6 +72,15 @@ class InventoryShowcaseCard extends StatelessWidget {
     final wearDisplay = _formatWearText(rawWearText, wearValue);
     final patternLabel = _normalizePatternLabel(
       item.paintSeed ?? _extractText(asset, const ['paint_seed', 'paintSeed']),
+    );
+    final phaseLabel = _normalizePhaseLabel(
+      item.phase ??
+          _extractText(asset, const ['phase']) ??
+          _extractText(item.raw, const ['phase']),
+    );
+    final percentageLabel = _normalizePercentageLabel(
+      _extractText(asset, const ['percentage']) ??
+          _extractText(item.raw, const ['percentage']),
     );
     final stickers = parseStickerList(
       asset?['stickers'] ?? item.raw['stickers'],
@@ -233,6 +243,21 @@ class InventoryShowcaseCard extends StatelessWidget {
                                     _buildBadge(
                                       label: patternLabel,
                                       backgroundColor: const Color(0xFF0B8793),
+                                      textColor: Colors.white,
+                                    ),
+                                  if (phaseLabel != null &&
+                                      phaseLabel.isNotEmpty)
+                                    _buildBadge(
+                                      label: phaseLabel,
+                                      backgroundColor:
+                                          _inventoryShowcasePhasePurple,
+                                      textColor: Colors.white,
+                                    ),
+                                  if (percentageLabel != null &&
+                                      percentageLabel.isNotEmpty)
+                                    _buildBadge(
+                                      label: percentageLabel,
+                                      backgroundColor: const Color(0xFFF59E0B),
                                       textColor: Colors.white,
                                     ),
                                   if (cooldownLabel != null &&
@@ -701,6 +726,22 @@ String? _normalizePatternLabel(String? rawText) {
     return null;
   }
   return text;
+}
+
+String? _normalizePhaseLabel(String? rawText) {
+  final text = rawText?.trim();
+  if (text == null || text.isEmpty || _isZeroLikeText(text)) {
+    return null;
+  }
+  return text;
+}
+
+String? _normalizePercentageLabel(String? rawText) {
+  final text = rawText?.trim();
+  if (text == null || text.isEmpty || _isZeroLikeText(text)) {
+    return null;
+  }
+  return text.contains('%') ? text : '$text%';
 }
 
 bool _isZeroLikeText(String text) {
