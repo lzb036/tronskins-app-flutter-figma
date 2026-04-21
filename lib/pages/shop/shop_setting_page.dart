@@ -445,6 +445,9 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
       }
 
       AppSnackbar.success(_text('店铺设置已保存', 'Shop settings saved'));
+      if (mounted) {
+        Get.back(result: true);
+      }
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -556,6 +559,12 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     }
   }
 
+  String _customPresetTimeLabel() {
+    final h = _draftHour.toString().padLeft(2, '0');
+    final m = _draftMinute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
+
   bool _isPresetSelected(_AutoOfflinePreset preset) {
     if (preset.isCustom) {
       if (!_hasDurationSet()) {
@@ -582,9 +591,7 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     return _formatClock(target);
   }
 
-  Widget _buildTopNavigation(UserShopEntity? shop) {
-    final canSave = shop != null && _hasChanges(shop) && !_isSaving;
-
+  Widget _buildTopNavigation() {
     return Positioned(
       top: 0,
       left: 0,
@@ -592,34 +599,6 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
       child: SettingsStyleInlineTopBar(
         title: 'app.user.shop.setting'.tr,
         includeTopInset: true,
-        actions: [
-          TextButton(
-            onPressed: canSave ? () => _handleSave(shop) : null,
-            style: TextButton.styleFrom(
-              minimumSize: const Size(44, 44),
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              foregroundColor: _brandColor,
-            ),
-            child: _isSaving
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(_brandColor),
-                    ),
-                  )
-                : Text(
-                    'app.common.save'.tr,
-                    style: TextStyle(
-                      color: canSave ? _brandColor : _subtleColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      height: 24 / 16,
-                    ),
-                  ),
-          ),
-        ],
       ),
     );
   }
@@ -646,7 +625,7 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
                   ? const _ShopSettingLoadingState()
                   : _buildLoggedInBody(shop),
             ),
-            _buildTopNavigation(shop),
+            _buildTopNavigation(),
             if (loggedIn && shop != null) _buildBottomActionBar(shop),
           ],
         ),
@@ -1003,12 +982,20 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
                   spacing: 12,
                   runSpacing: 12,
                   children: _presets.map((preset) {
+                    final isSelected = _isPresetSelected(preset);
+                    final isCustomSelected = preset.isCustom && isSelected;
                     return SizedBox(
                       width: chipWidth,
                       child: _DurationChip(
-                        label: _presetLabel(preset),
-                        selected: _isPresetSelected(preset),
+                        label: isCustomSelected
+                            ? _customPresetTimeLabel()
+                            : _presetLabel(preset),
+                        subtitle: isCustomSelected
+                            ? _text('自定义', 'Custom')
+                            : null,
+                        selected: isSelected,
                         dashed: preset.isCustom,
+                        special: isCustomSelected,
                         onTap: () {
                           if (preset.isCustom) {
                             _openCustomDurationPicker();
@@ -1358,14 +1345,18 @@ class _InlineToggle extends StatelessWidget {
 class _DurationChip extends StatelessWidget {
   const _DurationChip({
     required this.label,
+    this.subtitle,
     required this.selected,
     this.dashed = false,
+    this.special = false,
     required this.onTap,
   });
 
   final String label;
+  final String? subtitle;
   final bool selected;
   final bool dashed;
+  final bool special;
   final VoidCallback onTap;
 
   @override
@@ -1377,9 +1368,17 @@ class _DurationChip extends StatelessWidget {
           ? _ShopSettingPageState._pillBg
           : _ShopSettingPageState._chipBg,
       borderRadius: BorderRadius.circular(8),
-      border: dashed
+      border: (dashed || special) && !selected
           ? Border.all(
-              color: const Color(0xFFC4C5D5),
+              color: special
+                  ? const Color.fromRGBO(30, 64, 175, 0.42)
+                  : const Color(0xFFC4C5D5),
+              width: 1,
+              strokeAlign: BorderSide.strokeAlignInside,
+            )
+          : special && selected
+          ? Border.all(
+              color: const Color.fromRGBO(255, 255, 255, 0.34),
               width: 1,
               strokeAlign: BorderSide.strokeAlignInside,
             )
@@ -1408,20 +1407,77 @@ class _DurationChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Ink(
-          height: 44,
+          height: subtitle == null ? 44 : 54,
           decoration: decoration,
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: selected
-                    ? Colors.white
-                    : _ShopSettingPageState._mutedColor,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                height: 20 / 14,
+          child: Stack(
+            children: [
+              Center(
+                child: subtitle == null
+                    ? Text(
+                        label,
+                        style: TextStyle(
+                          color: selected
+                              ? Colors.white
+                              : _ShopSettingPageState._mutedColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          height: 20 / 14,
+                        ),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: selected
+                                    ? Colors.white
+                                    : _ShopSettingPageState._titleColor,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                height: 18 / 15,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitle!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: selected
+                                    ? const Color.fromRGBO(255, 255, 255, 0.82)
+                                    : _ShopSettingPageState._brandColor,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                height: 14 / 10,
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
               ),
-            ),
+              if (special)
+                Positioned(
+                  top: 6,
+                  right: 6,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? const Color.fromRGBO(255, 255, 255, 0.92)
+                          : _ShopSettingPageState._brandColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
@@ -1522,32 +1578,8 @@ class _CustomDurationPickerPageState extends State<_CustomDurationPickerPage> {
 
   String _text(String zh, String en) => widget.isZh ? zh : en;
 
-  Duration get _currentDuration => Duration(
-    hours: _selectedHour,
-    minutes: _selectedMinute,
-  );
-
-  String _formatClock(DateTime time) {
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
-    final second = time.second.toString().padLeft(2, '0');
-    return '$hour:$minute:$second';
-  }
-
-  String _formatDurationSummary(Duration duration) {
-    final hour = duration.inHours;
-    final minute = duration.inMinutes.remainder(60);
-    if (hour > 0 && minute > 0) {
-      return _text('$hour 小时 $minute 分钟', '$hour h $minute min');
-    }
-    if (hour > 0) {
-      return _text('$hour 小时', '$hour h');
-    }
-    if (minute > 0) {
-      return _text('$minute 分钟', '$minute min');
-    }
-    return _text('0 分钟', '0 min');
-  }
+  Duration get _currentDuration =>
+      Duration(hours: _selectedHour, minutes: _selectedMinute);
 
   void _apply() {
     final safeDuration = _currentDuration.inMinutes == 0
@@ -1560,7 +1592,6 @@ class _CustomDurationPickerPageState extends State<_CustomDurationPickerPage> {
   Widget build(BuildContext context) {
     final topInset = MediaQuery.of(context).padding.top;
     final bottomInset = MediaQuery.of(context).padding.bottom;
-    final expectedOffline = _formatClock(DateTime.now().add(_currentDuration));
 
     return Scaffold(
       backgroundColor: _ShopSettingPageState._pageBg,
@@ -1633,56 +1664,6 @@ class _CustomDurationPickerPageState extends State<_CustomDurationPickerPage> {
                               ),
                             ],
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final compact = constraints.maxWidth < 380;
-                            if (compact) {
-                              return Column(
-                                children: [
-                                  _CustomDurationMetricCard(
-                                    label: _text('IDLE TIME', 'IDLE TIME'),
-                                    value: _formatDurationSummary(
-                                      _currentDuration,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _CustomDurationMetricCard(
-                                    label: _text(
-                                      'EXPECTED OFFLINE',
-                                      'EXPECTED OFFLINE',
-                                    ),
-                                    value: expectedOffline,
-                                    accent: true,
-                                  ),
-                                ],
-                              );
-                            }
-                            return Row(
-                              children: [
-                                Expanded(
-                                  child: _CustomDurationMetricCard(
-                                    label: _text('IDLE TIME', 'IDLE TIME'),
-                                    value: _formatDurationSummary(
-                                      _currentDuration,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _CustomDurationMetricCard(
-                                    label: _text(
-                                      'EXPECTED OFFLINE',
-                                      'EXPECTED OFFLINE',
-                                    ),
-                                    value: expectedOffline,
-                                    accent: true,
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
                         ),
                         const SizedBox(height: 16),
                         Container(
@@ -1769,9 +1750,7 @@ class _CustomDurationPickerPageState extends State<_CustomDurationPickerPage> {
               ),
             ),
           ),
-          SettingsStyleTopNavigation(
-            title: _text('自动离线', 'Auto offline'),
-          ),
+          SettingsStyleTopNavigation(title: _text('自动离线', 'Auto offline')),
         ],
       ),
       bottomNavigationBar: Container(
@@ -1809,61 +1788,6 @@ class _CustomDurationPickerPageState extends State<_CustomDurationPickerPage> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _CustomDurationMetricCard extends StatelessWidget {
-  const _CustomDurationMetricCard({
-    required this.label,
-    required this.value,
-    this.accent = false,
-  });
-
-  final String label;
-  final String value;
-  final bool accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: accent ? const Color.fromRGBO(30, 64, 175, 0.08) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: accent
-                  ? const Color.fromRGBO(30, 64, 175, 0.72)
-                  : _ShopSettingPageState._mutedColor,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
-              height: 15 / 10,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: accent
-                  ? _ShopSettingPageState._brandColor
-                  : _ShopSettingPageState._titleColor,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.3,
-              height: 24 / 18,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1915,13 +1839,20 @@ class _CustomDurationPickerColumn extends StatelessWidget {
               backgroundColor: Colors.transparent,
               diameterRatio: 1.28,
               squeeze: 1.12,
-              useMagnifier: true,
-              magnification: 1.04,
-              selectionOverlay: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color.fromRGBO(248, 250, 252, 0.98),
-                  borderRadius: BorderRadius.circular(16),
+              useMagnifier: false,
+              selectionOverlay: IgnorePointer(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 2,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color.fromRGBO(30, 64, 175, 0.18),
+                    ),
+                  ),
                 ),
               ),
               onSelectedItemChanged: onSelectedItemChanged,

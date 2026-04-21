@@ -285,10 +285,31 @@ class _ShopPageState extends State<ShopPage>
         onCancel: () => popModalRoute(context),
         onOpenSettings: () {
           popModalRoute(context);
-          Get.toNamed(Routers.SHOP_SETTING);
+          unawaited(_openShopSettings());
         },
       ),
     );
+  }
+
+  Future<void> _openShopSettings() async {
+    final saved = await Get.toNamed(Routers.SHOP_SETTING);
+    if (saved != true || !mounted) {
+      return;
+    }
+
+    await Future.wait<void>([
+      shopController.loadShop(),
+      salesController.refreshOnSale(),
+      orderController.refreshPending(),
+      salesController.refreshSellRecords(),
+      shippingNoticeController.refreshPendingTotals(),
+    ]);
+
+    if (!mounted) {
+      return;
+    }
+
+    _syncSelectionActionBar();
   }
 
   void _switchToShopTab(int targetTab) {
@@ -1377,7 +1398,7 @@ class _ShopPageState extends State<ShopPage>
                   child: _buildTopIconAction(
                     icon: Icons.settings_outlined,
                     tooltip: 'app.user.shop.setting'.tr,
-                    onTap: () => Get.toNamed(Routers.SHOP_SETTING),
+                    onTap: () => unawaited(_openShopSettings()),
                   ),
                 ),
                 const SizedBox(width: 8),
