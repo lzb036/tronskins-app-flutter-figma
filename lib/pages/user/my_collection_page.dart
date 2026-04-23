@@ -199,6 +199,10 @@ class _CollectionAccessoryPreviewData {
 const int _collectionPageSize = 10;
 const int _collectionLoadMorePlaceholderCount = 2;
 const Color _collectionRefreshColor = Color(0xFF0F4FD6);
+const MarketFilterResult _collectionDefaultFilter = MarketFilterResult(
+  sortField: 'price',
+  sortAsc: true,
+);
 
 Widget _buildCollectionRefreshIndicator({
   required Future<void> Function() onRefresh,
@@ -350,7 +354,13 @@ class _MyCollectionPageState extends State<MyCollectionPage>
   _CollectionSortChoice get _currentSortChoice {
     final handle = _activeTabHandle;
     if (handle == null) {
-      return _CollectionSortChoice.defaultOrder;
+      final fallbackFilter = _isCategoryTab
+          ? _categoryControls.filter
+          : _favoriteControls.filter;
+      return _CollectionSortChoice.fromFilter(
+        field: fallbackFilter.sortField,
+        asc: fallbackFilter.sortAsc,
+      );
     }
     return _CollectionSortChoice.fromFilter(
       field: handle.currentFilter.sortField,
@@ -474,6 +484,7 @@ class _MyCollectionPageState extends State<MyCollectionPage>
       child: Column(
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               _CollectionTabPill(
                 label: 'app.user.collection.category'.tr,
@@ -481,7 +492,7 @@ class _MyCollectionPageState extends State<MyCollectionPage>
                 active: _isCategoryTab,
                 onTap: () => _switchTab(0),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               _CollectionTabPill(
                 label: 'app.user.collection.single'.tr,
                 icon: Icons.bookmarks_outlined,
@@ -568,10 +579,7 @@ class _MyCollectionPageState extends State<MyCollectionPage>
 
 class _CollectionTabControls {
   final TextEditingController searchController = TextEditingController();
-  MarketFilterResult filter = const MarketFilterResult(
-    sortField: '',
-    sortAsc: false,
-  );
+  MarketFilterResult filter = _collectionDefaultFilter;
   String keyword = '';
 
   bool get hasActiveFilter {
@@ -732,7 +740,7 @@ abstract class _BaseCollectionTabState<T extends StatefulWidget>
   Future<void> resetFilters() async {
     keyword = '';
     searchController.clear();
-    filter = const MarketFilterResult(sortField: '', sortAsc: false);
+    filter = _collectionDefaultFilter;
     notifyControlsChanged();
     await loadData(refresh: true);
   }
@@ -819,7 +827,7 @@ class _CollectionCategoryTabState
   void didUpdateWidget(covariant _CollectionCategoryTab oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.appId != widget.appId) {
-      filter = const MarketFilterResult(sortField: '', sortAsc: false);
+      filter = _collectionDefaultFilter;
       keyword = '';
       searchController.clear();
       resetScrollPositionForGameChange();
@@ -1024,7 +1032,7 @@ class _CollectionFavoriteTabState
   void didUpdateWidget(covariant _CollectionFavoriteTab oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.appId != widget.appId) {
-      filter = const MarketFilterResult(sortField: '', sortAsc: false);
+      filter = _collectionDefaultFilter;
       keyword = '';
       searchController.clear();
       resetScrollPositionForGameChange();
@@ -1275,55 +1283,53 @@ class _CollectionTabPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.zero,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: active ? Colors.white : const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.zero,
-              boxShadow: active
-                  ? const [
-                      BoxShadow(
-                        color: Color(0x140F172A),
-                        blurRadius: 22,
-                        offset: Offset(0, 10),
-                      ),
-                    ]
-                  : const [],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  size: 16,
-                  color: active
-                      ? const Color(0xFF1D4ED8)
-                      : const Color(0xFF64748B),
-                ),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    label,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          decoration: BoxDecoration(
+            color: active ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: active
+                ? const [
+                    BoxShadow(
+                      color: Color(0x0D000000),
+                      blurRadius: 2,
+                      offset: Offset(0, 1),
+                    ),
+                  ]
+                : const [],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 14,
+                color: active
+                    ? const Color(0xFF1D4ED8)
+                    : const Color(0xFF64748B),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style:
+                    const TextStyle(
+                      fontSize: 14,
+                      height: 20 / 14,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -0.35,
+                    ).copyWith(
                       color: active
-                          ? const Color(0xFF0F172A)
+                          ? const Color(0xFF1D4ED8)
                           : const Color(0xFF64748B),
                     ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
