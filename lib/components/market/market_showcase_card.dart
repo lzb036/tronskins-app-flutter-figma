@@ -236,7 +236,7 @@ class MarketShowcaseCard extends StatelessWidget {
                                     6,
                                     0,
                                     6,
-                                    4,
+                                    2,
                                   ),
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
@@ -249,7 +249,7 @@ class MarketShowcaseCard extends StatelessWidget {
                                           size: 18,
                                         ),
                                         if (gems.isNotEmpty)
-                                          const SizedBox(height: 3),
+                                          const SizedBox(height: 2),
                                       ],
                                       if (gems.isNotEmpty)
                                         GemRow(
@@ -273,13 +273,13 @@ class MarketShowcaseCard extends StatelessWidget {
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
                                           color: Color(0xE6FFFFFF),
-                                          fontSize: 10,
-                                          height: 15 / 10,
+                                          fontSize: 7,
+                                          height: 10 / 7,
                                           fontWeight: FontWeight.w400,
                                         ),
                                       ),
                                       if (wearValue != null) ...[
-                                        const SizedBox(height: 4),
+                                        const SizedBox(height: 3),
                                         _buildWearTrack(
                                           wearValue: wearValue!,
                                           accentColor: exteriorAccentColor,
@@ -387,9 +387,9 @@ class MarketShowcaseCard extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
         child: Container(
           width: double.infinity,
-          constraints: const BoxConstraints(minHeight: 31),
+          constraints: const BoxConstraints(minHeight: 24),
           alignment: Alignment.bottomLeft,
-          padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+          padding: const EdgeInsets.fromLTRB(10, 4, 10, 4),
           decoration: BoxDecoration(color: const Color(0x990F172A)),
           child: child,
         ),
@@ -413,7 +413,7 @@ class MarketShowcaseCard extends StatelessWidget {
             : _conditionColor(_conditionLabelForWear(normalizedWear)));
 
     return SizedBox(
-      height: 4,
+      height: 3,
       child: Stack(
         children: [
           Positioned.fill(
@@ -433,7 +433,7 @@ class MarketShowcaseCard extends StatelessWidget {
                   color: fillColor,
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: const SizedBox(height: 4),
+                child: const SizedBox(height: 3),
               ),
             ),
           ),
