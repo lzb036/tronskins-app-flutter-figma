@@ -12,6 +12,7 @@ import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/login_required_prompt.dart';
 import 'package:tronskins_app/components/filter/filter_models.dart';
 import 'package:tronskins_app/components/filter/market_filter_sheet.dart';
+import 'package:tronskins_app/components/game/game_switch_menu.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/game_item/game_item_utils.dart';
@@ -45,11 +46,48 @@ String _formatCollectionPrice(double? price) {
   }
 }
 
+String _formatCollectionCompactPrice(double? price) {
+  if (price == null) {
+    return '--';
+  }
+  final formatted = _formatCollectionPrice(price);
+  final firstSpace = formatted.indexOf(' ');
+  if (firstSpace <= 0 || firstSpace >= formatted.length - 1) {
+    return formatted.replaceAll(' ', '');
+  }
+  final prefix = formatted.substring(0, firstSpace);
+  final rawNumber = formatted.substring(firstSpace + 1).trim();
+  final cleaned = rawNumber.replaceAll(',', '');
+  final parts = cleaned.split('.');
+  final integerPart = parts.first;
+  final decimalPart = parts.length > 1 ? parts[1] : '';
+  final grouped = integerPart.replaceAllMapped(
+    RegExp(r'\B(?=(\d{3})+(?!\d))'),
+    (_) => ',',
+  );
+  final normalizedDecimal = decimalPart
+      .replaceFirst(RegExp(r'0+$'), '')
+      .replaceFirst(RegExp(r'\.$'), '');
+  if (normalizedDecimal.isEmpty) {
+    return '$prefix$grouped';
+  }
+  return '$prefix$grouped.$normalizedDecimal';
+}
+
 double? _parsePaintWear(String? value) {
   if (value == null || value.isEmpty) {
     return null;
   }
   return double.tryParse(value);
+}
+
+String _gameLabelForAppId(int appId) {
+  for (final option in _collectionGameOptions) {
+    if (option.appId == appId) {
+      return option.label;
+    }
+  }
+  return 'GAME';
 }
 
 enum _CollectionVisualMode { category, single }
@@ -85,9 +123,9 @@ enum _CollectionSortChoice {
       case _CollectionSortChoice.defaultOrder:
         return _collectionText(zh: '默认排序', en: 'Default');
       case _CollectionSortChoice.priceAsc:
-        return _collectionText(zh: '价格从低到高', en: 'Price Low to High');
+        return _collectionText(zh: '价格 ↑', en: 'Price ↑');
       case _CollectionSortChoice.priceDesc:
-        return _collectionText(zh: '价格从高到低', en: 'Price High to Low');
+        return _collectionText(zh: '价格 ↓', en: 'Price ↓');
     }
   }
 
@@ -167,6 +205,7 @@ class _MyCollectionPageState extends State<MyCollectionPage>
   final _favoriteTabKey = GlobalKey<_CollectionFavoriteTabState>();
   final _categoryControls = _CollectionTabControls();
   final _favoriteControls = _CollectionTabControls();
+  final GlobalKey _sortButtonKey = GlobalKey();
   late int _appId;
   int _currentTabIndex = 0;
   Worker? _gameWorker;
@@ -197,9 +236,6 @@ class _MyCollectionPageState extends State<MyCollectionPage>
 
   bool get _isCategoryTab => _currentTabIndex == 0;
 
-  _CollectionTabControls get _activeControls =>
-      _isCategoryTab ? _categoryControls : _favoriteControls;
-
   _CollectionTabHandle? get _activeTabHandle => _isCategoryTab
       ? _categoryTabKey.currentState
       : _favoriteTabKey.currentState;
@@ -218,16 +254,6 @@ class _MyCollectionPageState extends State<MyCollectionPage>
     }
   }
 
-  Future<void> _submitActiveSearch([String? value]) async {
-    await _activeTabHandle?.submitSearch(value);
-    _handleTopBarChanged();
-  }
-
-  Future<void> _openActiveFilterSheet() async {
-    await _activeTabHandle?.openFilter(_appId);
-    _handleTopBarChanged();
-  }
-
   void _switchTab(int index) {
     if (_currentTabIndex == index) {
       return;
@@ -236,6 +262,17 @@ class _MyCollectionPageState extends State<MyCollectionPage>
       index,
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
+    );
+  }
+
+  _CollectionSortChoice get _currentSortChoice {
+    final handle = _activeTabHandle;
+    if (handle == null) {
+      return _CollectionSortChoice.defaultOrder;
+    }
+    return _CollectionSortChoice.fromFilter(
+      field: handle.currentFilter.sortField,
+      asc: handle.currentFilter.sortAsc,
     );
   }
 
@@ -250,124 +287,98 @@ class _MyCollectionPageState extends State<MyCollectionPage>
     _handleTopBarChanged();
   }
 
-  Future<void> _resetActiveFilters() async {
-    await _activeTabHandle?.resetFilters();
-    _handleTopBarChanged();
-  }
-
-  Future<void> _openActiveSearchDialog() async {
-    final initialKeyword = _activeTabHandle?.currentKeyword ?? '';
-    final textController = TextEditingController(text: initialKeyword);
-    final submitted = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) {
-        final colors = Theme.of(dialogContext).colorScheme;
-        return AlertDialog(
-          title: Text(_collectionText(zh: '搜索收藏', en: 'Search Collection')),
-          content: TextField(
-            controller: textController,
-            autofocus: true,
-            textInputAction: TextInputAction.search,
-            onSubmitted: (value) =>
-                Navigator.of(dialogContext).pop(value.trim()),
-            decoration: InputDecoration(
-              hintText: 'app.market.filter.search'.tr,
-              filled: true,
-              fillColor: colors.surfaceContainerHighest,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text('app.common.cancel'.tr),
-            ),
-            if (initialKeyword.trim().isNotEmpty)
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(''),
-                child: Text('app.market.filter.clear'.tr),
-              ),
-            TextButton(
-              onPressed: () =>
-                  Navigator.of(dialogContext).pop(textController.text.trim()),
-              child: Text('app.market.filter.search'.tr),
-            ),
-          ],
-        );
-      },
+  Future<void> _openGameSwitcher(BuildContext iconContext) async {
+    final selected = await showGameSwitchMenu(
+      iconContext: iconContext,
+      currentAppId: _appId,
     );
-    textController.dispose();
-    if (submitted == null) {
+    if (selected == null || selected == _appId) {
       return;
     }
-    _activeControls.searchController.text = submitted;
-    await _submitActiveSearch(submitted);
+    await _globalGameController.switchGame(selected);
   }
 
-  Future<void> _openCollectionActions() async {
-    final handle = _activeTabHandle;
-    if (handle == null) {
+  Future<void> _openSortMenu() async {
+    final currentContext = _sortButtonKey.currentContext;
+    if (currentContext == null) {
       return;
     }
-    final currentSortField = handle.currentFilter.sortField;
-    final currentSortAsc = handle.currentFilter.sortAsc;
-    final currentKeyword = handle.currentKeyword.trim();
-    final hasActiveFilter = handle.hasActiveFilter;
-
-    await showModalBottomSheet<void>(
+    final target = currentContext.findRenderObject() as RenderBox?;
+    final overlay =
+        Overlay.of(currentContext).context.findRenderObject() as RenderBox?;
+    if (target == null || overlay == null) {
+      return;
+    }
+    final topLeft = target.localToGlobal(Offset.zero, ancestor: overlay);
+    final bottomRight = target.localToGlobal(
+      target.size.bottomRight(Offset.zero),
+      ancestor: overlay,
+    );
+    final position = RelativeRect.fromRect(
+      Rect.fromLTWH(topLeft.dx, bottomRight.dy + 6, target.size.width, 0),
+      Offset.zero & overlay.size,
+    );
+    final selected = await showMenu<_CollectionSortChoice>(
       context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        return _CollectionActionSheet(
-          currentAppId: _appId,
-          currentKeyword: currentKeyword,
-          hasActiveFilter: hasActiveFilter,
-          selectedSort: _CollectionSortChoice.fromFilter(
-            field: currentSortField,
-            asc: currentSortAsc,
-          ),
-          onSelectGame: (appId) async {
-            Navigator.of(sheetContext).pop();
-            if (appId == _appId) {
-              return;
-            }
-            await _globalGameController.switchGame(appId);
-          },
-          onSearch: () async {
-            Navigator.of(sheetContext).pop();
-            await _openActiveSearchDialog();
-          },
-          onSortSelected: (choice) async {
-            Navigator.of(sheetContext).pop();
-            await _applyActiveSort(
-              sortField: choice.sortField,
-              sortAsc: choice.sortAsc,
+      position: position,
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      elevation: 10,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      items: _CollectionSortChoice.values
+          .map((choice) {
+            final isSelected = choice == _currentSortChoice;
+            return PopupMenuItem<_CollectionSortChoice>(
+              value: choice,
+              height: 0,
+              padding: EdgeInsets.zero,
+              child: Container(
+                constraints: const BoxConstraints(minWidth: 132),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? const Color(0xFF0F4FD6).withValues(alpha: 0.06)
+                      : Colors.transparent,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        choice.label,
+                        style: TextStyle(
+                          color: isSelected
+                              ? const Color(0xFF0F4FD6)
+                              : const Color(0xFF0F172A),
+                          fontSize: 13,
+                          height: 18 / 13,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    if (isSelected)
+                      const Icon(
+                        Icons.check_rounded,
+                        size: 16,
+                        color: Color(0xFF0F4FD6),
+                      ),
+                  ],
+                ),
+              ),
             );
-          },
-          onAdvancedFilter: () async {
-            Navigator.of(sheetContext).pop();
-            await _openActiveFilterSheet();
-          },
-          onReset: hasActiveFilter
-              ? () async {
-                  Navigator.of(sheetContext).pop();
-                  await _resetActiveFilters();
-                }
-              : null,
-        );
-      },
+          })
+          .toList(growable: false),
+    );
+    if (selected == null) {
+      return;
+    }
+    await _applyActiveSort(
+      sortField: selected.sortField,
+      sortAsc: selected.sortAsc,
     );
   }
 
@@ -378,20 +389,38 @@ class _MyCollectionPageState extends State<MyCollectionPage>
   Widget _buildTopSection() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-      child: Row(
+      child: Column(
         children: [
-          _CollectionTabPill(
-            label: 'app.user.collection.category'.tr,
-            icon: Icons.widgets_outlined,
-            active: _isCategoryTab,
-            onTap: () => _switchTab(0),
+          Row(
+            children: [
+              _CollectionTabPill(
+                label: 'app.user.collection.category'.tr,
+                icon: Icons.widgets_outlined,
+                active: _isCategoryTab,
+                onTap: () => _switchTab(0),
+              ),
+              const SizedBox(width: 12),
+              _CollectionTabPill(
+                label: 'app.user.collection.single'.tr,
+                icon: Icons.bookmarks_outlined,
+                active: !_isCategoryTab,
+                onTap: () => _switchTab(1),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          _CollectionTabPill(
-            label: 'app.user.collection.single'.tr,
-            icon: Icons.bookmarks_outlined,
-            active: !_isCategoryTab,
-            onTap: () => _switchTab(1),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Spacer(),
+              _CollectionToolbarTextAction(
+                actionKey: _sortButtonKey,
+                label: _currentSortChoice.label,
+                color: const Color(0xFF0F4FD6),
+                icon: Icons.keyboard_arrow_down_rounded,
+                iconSize: 16,
+                onTap: _openSortMenu,
+              ),
+            ],
           ),
         ],
       ),
@@ -410,10 +439,14 @@ class _MyCollectionPageState extends State<MyCollectionPage>
             title: Text('app.user.menu.collection'.tr),
             actions: loggedIn
                 ? [
-                    IconButton(
-                      onPressed: _openCollectionActions,
-                      icon: _CollectionOverflowIcon(
-                        highlighted: _activeControls.hasActiveFilter,
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Builder(
+                        builder: (switchContext) =>
+                            _CollectionGameSwitchTrigger(
+                              label: _gameLabelForAppId(_appId),
+                              onTap: () => _openGameSwitcher(switchContext),
+                            ),
                       ),
                     ),
                   ]
@@ -1033,13 +1066,10 @@ class _CollectionFavoriteTabState
   }
 }
 
-BoxDecoration _collectionCardDecoration({
-  Color color = Colors.white,
-  double radius = 28,
-}) {
+BoxDecoration _collectionCardDecoration({Color color = Colors.white}) {
   return BoxDecoration(
     color: color,
-    borderRadius: BorderRadius.circular(radius),
+    borderRadius: BorderRadius.zero,
     boxShadow: const [
       BoxShadow(
         color: Color(0x120F172A),
@@ -1083,36 +1113,6 @@ List<_CollectionAccessoryPreviewData> _favoriteAccessoryItems(
   ];
 }
 
-class _CollectionOverflowIcon extends StatelessWidget {
-  const _CollectionOverflowIcon({required this.highlighted});
-
-  final bool highlighted;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = highlighted
-        ? const Color(0xFF2563EB)
-        : const Color(0xFF475569);
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      width: 36,
-      height: 36,
-      decoration: BoxDecoration(
-        color: highlighted ? const Color(0xFFE8F0FF) : Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0F0F172A),
-            blurRadius: 18,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Icon(Icons.more_vert_rounded, color: color, size: 20),
-    );
-  }
-}
-
 class _CollectionTabPill extends StatelessWidget {
   const _CollectionTabPill({
     required this.label,
@@ -1133,14 +1133,14 @@ class _CollectionTabPill extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.zero,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: active ? Colors.white : const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.zero,
               boxShadow: active
                   ? const [
                       BoxShadow(
@@ -1183,330 +1183,111 @@ class _CollectionTabPill extends StatelessWidget {
   }
 }
 
-class _CollectionActionSheet extends StatelessWidget {
-  const _CollectionActionSheet({
-    required this.currentAppId,
-    required this.currentKeyword,
-    required this.hasActiveFilter,
-    required this.selectedSort,
-    required this.onSelectGame,
-    required this.onSearch,
-    required this.onSortSelected,
-    required this.onAdvancedFilter,
-    this.onReset,
-  });
-
-  final int currentAppId;
-  final String currentKeyword;
-  final bool hasActiveFilter;
-  final _CollectionSortChoice selectedSort;
-  final ValueChanged<int> onSelectGame;
-  final VoidCallback onSearch;
-  final ValueChanged<_CollectionSortChoice> onSortSelected;
-  final VoidCallback onAdvancedFilter;
-  final VoidCallback? onReset;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return SafeArea(
-      top: false,
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x1A0F172A),
-              blurRadius: 40,
-              offset: Offset(0, -8),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 44,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD7E1EC),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                _collectionText(zh: '收藏筛选', en: 'Collection Tools'),
-                style: textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF0F172A),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                _collectionText(
-                  zh: '切换游戏、快速排序，或打开高级筛选',
-                  en: 'Switch games, sort quickly, or open advanced filters',
-                ),
-                style: textTheme.bodyMedium?.copyWith(
-                  height: 1.45,
-                  color: const Color(0xFF64748B),
-                ),
-              ),
-              const SizedBox(height: 20),
-              _CollectionActionPanel(
-                icon: Icons.search_rounded,
-                title: _collectionText(zh: '搜索收藏', en: 'Search Collection'),
-                subtitle: currentKeyword.isNotEmpty
-                    ? currentKeyword
-                    : _collectionText(
-                        zh: '按名称或关键词快速查找',
-                        en: 'Search by name or keyword',
-                      ),
-                onTap: onSearch,
-              ),
-              const SizedBox(height: 14),
-              Text(
-                _collectionText(zh: '游戏', en: 'Game'),
-                style: textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF334155),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  for (final option in _collectionGameOptions)
-                    _CollectionSelectableChip(
-                      selected: option.appId == currentAppId,
-                      leading: Icon(
-                        option.icon,
-                        size: 16,
-                        color: option.appId == currentAppId
-                            ? const Color(0xFF1D4ED8)
-                            : const Color(0xFF64748B),
-                      ),
-                      label: option.label,
-                      subtitle: option.subtitle,
-                      onTap: () => onSelectGame(option.appId),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Text(
-                _collectionText(zh: '价格排序', en: 'Price Sort'),
-                style: textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF334155),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  for (final choice in _CollectionSortChoice.values)
-                    _CollectionSelectableChip(
-                      selected: choice == selectedSort,
-                      label: choice.label,
-                      subtitle: choice == _CollectionSortChoice.defaultOrder
-                          ? _collectionText(
-                              zh: '恢复默认列表顺序',
-                              en: 'Restore the default order',
-                            )
-                          : _collectionText(
-                              zh: '参考网页端的价格筛选逻辑',
-                              en: 'Match the web collection price sort',
-                            ),
-                      onTap: () => onSortSelected(choice),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              _CollectionActionPanel(
-                icon: Icons.tune_rounded,
-                title: _collectionText(zh: '高级筛选', en: 'Advanced Filter'),
-                subtitle: hasActiveFilter
-                    ? _collectionText(
-                        zh: '当前已应用筛选条件，点击继续调整',
-                        en: 'Filters are active, tap to refine them',
-                      )
-                    : _collectionText(
-                        zh: '按属性、价格区间等条件筛选',
-                        en: 'Filter by attributes, price range, and more',
-                      ),
-                onTap: onAdvancedFilter,
-              ),
-              if (onReset != null) ...[
-                const SizedBox(height: 12),
-                _CollectionActionPanel(
-                  icon: Icons.restart_alt_rounded,
-                  title: _collectionText(zh: '清空条件', en: 'Reset Filters'),
-                  subtitle: _collectionText(
-                    zh: '移除当前搜索词和筛选条件',
-                    en: 'Clear the current search and filter settings',
-                  ),
-                  onTap: onReset!,
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CollectionActionPanel extends StatelessWidget {
-  const _CollectionActionPanel({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-          decoration: _collectionCardDecoration(
-            color: Colors.white.withValues(alpha: 0.9),
-            radius: 22,
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F0FF),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, color: const Color(0xFF1D4ED8), size: 20),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF0F172A),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF64748B),
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 14,
-                color: Color(0xFF94A3B8),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CollectionSelectableChip extends StatelessWidget {
-  const _CollectionSelectableChip({
-    required this.selected,
+class _CollectionGameSwitchTrigger extends StatelessWidget {
+  const _CollectionGameSwitchTrigger({
     required this.label,
-    required this.subtitle,
     required this.onTap,
-    this.leading,
   });
 
-  final bool selected;
   final String label;
-  final String subtitle;
   final VoidCallback onTap;
-  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
       child: InkWell(
+        borderRadius: BorderRadius.circular(10),
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOutCubic,
-          constraints: const BoxConstraints(minWidth: 124),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFFEAF1FF) : Colors.white,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (leading != null) ...[leading!, const SizedBox(width: 6)],
-                  Flexible(
-                    child: Text(
-                      label,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: selected
-                            ? const Color(0xFF1D4ED8)
-                            : const Color(0xFF0F172A),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
               Text(
-                subtitle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: selected
-                      ? const Color(0xFF45658D)
-                      : const Color(0xFF64748B),
-                  height: 1.35,
+                label,
+                style: const TextStyle(
+                  color: Color(0xFF191C1E),
+                  fontSize: 14,
+                  height: 20 / 14,
+                  fontWeight: FontWeight.w700,
                 ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                size: 18,
+                color: Color(0xFF191C1E),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionToolbarTextAction extends StatelessWidget {
+  const _CollectionToolbarTextAction({
+    required this.label,
+    required this.color,
+    this.icon,
+    this.iconSize = 14,
+    this.onTap,
+    this.actionKey,
+  });
+
+  final String label;
+  final Color color;
+  final IconData? icon;
+  final double iconSize;
+  final VoidCallback? onTap;
+  final Key? actionKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: color,
+            fontSize: 11,
+            height: 14 / 11,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        if (icon != null) ...[
+          const SizedBox(width: 1),
+          Icon(icon, size: iconSize, color: color),
+        ],
+      ],
+    );
+    if (onTap == null) {
+      return content;
+    }
+    return Material(
+      key: actionKey,
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.zero,
+        overlayColor: WidgetStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(WidgetState.pressed)) {
+            return color.withValues(alpha: 0.12);
+          }
+          if (states.contains(WidgetState.hovered)) {
+            return color.withValues(alpha: 0.06);
+          }
+          return null;
+        }),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: content,
         ),
       ),
     );
@@ -1529,20 +1310,20 @@ class _CollectionCategoryCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.zero,
         child: Container(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(20),
           decoration: _collectionCardDecoration(),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Stack(
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
+                    borderRadius: BorderRadius.zero,
                     child: SizedBox(
-                      width: 96,
-                      height: 96,
+                      width: 80,
+                      height: 80,
                       child: GameItemImage(
                         imageUrl: item.imageUrl,
                         appId: item.appId,
@@ -1554,13 +1335,13 @@ class _CollectionCategoryCard extends StatelessWidget {
                     ),
                   ),
                   Positioned(
-                    top: 9,
-                    right: 9,
+                    top: 4,
+                    right: 4,
                     child: _CollectionRarityDot(color: rarityColor),
                   ),
                 ],
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 24),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1569,27 +1350,32 @@ class _CollectionCategoryCard extends StatelessWidget {
                       title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0F172A),
-                        height: 1.25,
+                      style: const TextStyle(
+                        color: Color(0xFF191C1E),
+                        fontSize: 16,
+                        height: 24 / 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.4,
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 4),
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Expanded(
-                          child: _CollectionPriceMetric(
-                            label: _collectionText(zh: '在售价', en: 'Sale'),
-                            value: _formatCollectionPrice(item.sellMinPrice),
+                        _CollectionPriceMetric(
+                          label: _collectionText(zh: '出售价', en: 'Sale'),
+                          value: _formatCollectionCompactPrice(
+                            item.sellMinPrice,
                           ),
+                          priceColor: const Color(0xFFFF6B35),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _CollectionPriceMetric(
-                            label: _collectionText(zh: '求购价', en: 'Demand'),
-                            value: _formatCollectionPrice(item.buyMaxPrice),
+                        const SizedBox(width: 24),
+                        _CollectionPriceMetric(
+                          label: _collectionText(zh: '求购价', en: 'Demand'),
+                          value: _formatCollectionCompactPrice(
+                            item.buyMaxPrice,
                           ),
+                          priceColor: const Color(0xFF10B981),
                         ),
                       ],
                     ),
@@ -1630,9 +1416,9 @@ class _CollectionFavoriteCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.zero,
         child: Container(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(20),
           decoration: _collectionCardDecoration(),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1640,7 +1426,7 @@ class _CollectionFavoriteCard extends StatelessWidget {
               Stack(
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
+                    borderRadius: BorderRadius.zero,
                     child: SizedBox(
                       width: 96,
                       height: 96,
@@ -1656,8 +1442,8 @@ class _CollectionFavoriteCard extends StatelessWidget {
                     ),
                   ),
                   Positioned(
-                    top: 9,
-                    right: 9,
+                    top: 4,
+                    right: 4,
                     child: _CollectionRarityDot(color: rarityColor),
                   ),
                 ],
@@ -1714,7 +1500,7 @@ class _CollectionFavoriteCard extends StatelessWidget {
                         padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF2F6FA),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.zero,
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1769,39 +1555,45 @@ class _CollectionFavoriteCard extends StatelessWidget {
 }
 
 class _CollectionPriceMetric extends StatelessWidget {
-  const _CollectionPriceMetric({required this.label, required this.value});
+  const _CollectionPriceMetric({
+    required this.label,
+    required this.value,
+    required this.priceColor,
+  });
 
   final String label;
   final String value;
+  final Color priceColor;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF2F6FA),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 2),
+          child: Text(
             label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: const Color(0xFF64748B),
-              fontWeight: FontWeight.w600,
+            style: const TextStyle(
+              color: Color(0xFF444653),
+              fontSize: 10,
+              height: 15 / 10,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
-            ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: priceColor,
+            fontFamily: 'Space Grotesk',
+            fontSize: 18,
+            height: 28 / 18,
+            fontWeight: FontWeight.w700,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -1867,7 +1659,7 @@ class _CollectionAccessoryPreviewTile extends StatelessWidget {
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: const Color(0xFFF2F6FA),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.zero,
         border: item.borderColor == null
             ? null
             : Border.all(color: item.borderColor!, width: 1.2),
@@ -1900,7 +1692,7 @@ class _CollectionAccessoryOverflowTile extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: const Color(0xFFE2E8F0),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.zero,
       ),
       child: Text(
         '+$count',
@@ -1989,8 +1781,8 @@ class _CollectionSuggestionSection extends StatelessWidget {
                 en: 'Collection Filter Tips',
               ),
               subtitle: _collectionText(
-                zh: '支持价格排序、搜索名称和高级属性筛选',
-                en: 'Use price sort, keyword search, and advanced filters',
+                zh: '支持游戏切换与价格排序',
+                en: 'Switch games and sort by price',
               ),
             );
             if (stacked) {
@@ -2033,12 +1825,12 @@ class _CollectionPromoCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.zero,
         child: Container(
           height: 154,
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(26),
+            borderRadius: BorderRadius.zero,
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -2060,7 +1852,7 @@ class _CollectionPromoCard extends StatelessWidget {
                 height: 38,
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.zero,
                 ),
                 child: Icon(icon, color: Colors.white, size: 20),
               ),
@@ -2112,7 +1904,7 @@ class _CollectionInsightCard extends StatelessWidget {
     return Container(
       height: 154,
       padding: const EdgeInsets.all(18),
-      decoration: _collectionCardDecoration(radius: 26),
+      decoration: _collectionCardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2120,7 +1912,7 @@ class _CollectionInsightCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               color: const Color(0xFFEAF1FF),
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.zero,
             ),
             child: Text(
               _collectionText(zh: '网页参考', en: 'Web Reference'),
@@ -2156,8 +1948,8 @@ class _CollectionInsightCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _CollectionMiniStat(
-                  label: _collectionText(zh: '搜索', en: 'Search'),
-                  value: _collectionText(zh: '名称', en: 'Keyword'),
+                  label: _collectionText(zh: '切换', en: 'Switch'),
+                  value: _collectionText(zh: '游戏', en: 'Game'),
                 ),
               ),
               const SizedBox(width: 8),
@@ -2187,7 +1979,7 @@ class _CollectionMiniStat extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       decoration: BoxDecoration(
         color: const Color(0xFFF2F6FA),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.zero,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2234,7 +2026,7 @@ class _CollectionEmptyState extends StatelessWidget {
                 width: 64,
                 height: 64,
                 decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
+                  shape: BoxShape.rectangle,
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -2278,8 +2070,8 @@ class _CollectionEmptyState extends StatelessWidget {
                     horizontal: 18,
                     vertical: 14,
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
                   ),
                 ),
                 child: Text(_collectionText(zh: '前往市场', en: 'Open Market')),
@@ -2357,7 +2149,7 @@ class _CollectionStatusBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: const Color(0xFFEAF1FF),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.zero,
       ),
       child: Text(
         label,
@@ -2378,9 +2170,9 @@ class _CollectionTabSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: const [
-        Expanded(child: _CollectionSkeletonBox(height: 18, radius: 12)),
+        Expanded(child: _CollectionSkeletonBox(height: 18)),
         SizedBox(width: 12),
-        _CollectionSkeletonBox(width: 84, height: 18, radius: 12),
+        _CollectionSkeletonBox(width: 84, height: 18),
       ],
     );
   }
@@ -2401,44 +2193,36 @@ class _CollectionCardSkeleton extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _CollectionSkeletonBox(width: 96, height: 96, radius: 22),
+          const _CollectionSkeletonBox(width: 96, height: 96),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _CollectionSkeletonBox(height: 16, radius: 10),
+                const _CollectionSkeletonBox(height: 16),
                 const SizedBox(height: 8),
-                const _CollectionSkeletonBox(
-                  width: 140,
-                  height: 14,
-                  radius: 10,
-                ),
+                const _CollectionSkeletonBox(width: 140, height: 14),
                 const SizedBox(height: 14),
                 if (mode == _CollectionVisualMode.category)
                   Row(
                     children: const [
-                      Expanded(
-                        child: _CollectionSkeletonBox(height: 58, radius: 16),
-                      ),
+                      Expanded(child: _CollectionSkeletonBox(height: 58)),
                       SizedBox(width: 10),
-                      Expanded(
-                        child: _CollectionSkeletonBox(height: 58, radius: 16),
-                      ),
+                      Expanded(child: _CollectionSkeletonBox(height: 58)),
                     ],
                   )
                 else ...[
-                  const _CollectionSkeletonBox(height: 48, radius: 16),
+                  const _CollectionSkeletonBox(height: 48),
                   const SizedBox(height: 10),
                   Row(
                     children: const [
-                      _CollectionSkeletonBox(width: 28, height: 28, radius: 10),
+                      _CollectionSkeletonBox(width: 28, height: 28),
                       SizedBox(width: 6),
-                      _CollectionSkeletonBox(width: 28, height: 28, radius: 10),
+                      _CollectionSkeletonBox(width: 28, height: 28),
                       SizedBox(width: 6),
-                      _CollectionSkeletonBox(width: 28, height: 28, radius: 10),
+                      _CollectionSkeletonBox(width: 28, height: 28),
                       SizedBox(width: 6),
-                      _CollectionSkeletonBox(width: 28, height: 28, radius: 10),
+                      _CollectionSkeletonBox(width: 28, height: 28),
                     ],
                   ),
                 ],
@@ -2459,12 +2243,12 @@ class _CollectionSuggestionSectionSkeleton extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _CollectionSkeletonBox(width: 180, height: 18, radius: 12),
+        const _CollectionSkeletonBox(width: 180, height: 18),
         const SizedBox(height: 12),
         LayoutBuilder(
           builder: (context, constraints) {
             final stacked = constraints.maxWidth < 360;
-            const card = _CollectionSkeletonBox(height: 154, radius: 26);
+            const card = _CollectionSkeletonBox(height: 154);
             if (stacked) {
               return Column(children: [card, const SizedBox(height: 12), card]);
             }
@@ -2483,15 +2267,10 @@ class _CollectionSuggestionSectionSkeleton extends StatelessWidget {
 }
 
 class _CollectionSkeletonBox extends StatelessWidget {
-  const _CollectionSkeletonBox({
-    this.width,
-    required this.height,
-    required this.radius,
-  });
+  const _CollectionSkeletonBox({this.width, required this.height});
 
   final double? width;
   final double height;
-  final double radius;
 
   @override
   Widget build(BuildContext context) {
@@ -2500,7 +2279,7 @@ class _CollectionSkeletonBox extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         color: const Color(0xFFE8EEF5),
-        borderRadius: BorderRadius.circular(radius),
+        borderRadius: BorderRadius.zero,
       ),
     );
   }
