@@ -42,7 +42,7 @@ Shorebird 需要访问以下地址，国内需要代理：
 在 PowerShell 中临时设置代理（每次打开新窗口需重新执行）：
 
 ```powershell
-$env:HTTPS_PROXY = "http://127.0.0.1:7890"  # 替换为你的代理端口
+$env:HTTPS_PROXY = "http://127.0.0.1:7890" 
 $env:HTTP_PROXY  = "http://127.0.0.1:7890"
 ```
 

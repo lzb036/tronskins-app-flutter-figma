@@ -1,13 +1,10 @@
-﻿import 'package:flutter/material.dart';
-import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:tronskins_app/api/model/notify/notify_models.dart';
-import 'package:tronskins_app/components/notify/notify_trade_deliver_sheet.dart';
-import 'package:tronskins_app/controllers/navbar/nav_controller.dart';
+import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/controllers/user/notify_controller.dart';
-import 'package:tronskins_app/routes/app_routes.dart';
 
 class TradeNoticeDetailPage extends StatefulWidget {
   const TradeNoticeDetailPage({super.key});
@@ -60,209 +57,178 @@ class _TradeNoticeDetailPageState extends State<TradeNoticeDetailPage> {
     }
   }
 
+  bool get _isChineseLocale {
+    final languageCode = Get.locale?.languageCode.toLowerCase();
+    return languageCode != null && languageCode.startsWith('zh');
+  }
+
+  String _text({required String zh, required String en}) {
+    return _isChineseLocale ? zh : en;
+  }
+
   String _formatTime(int? value) {
     if (value == null) return '--';
     final ts = value < 1000000000000 ? value * 1000 : value;
-    return DateFormat(
-      'yyyy-MM-dd HH:mm:ss',
-    ).format(DateTime.fromMillisecondsSinceEpoch(ts));
+    return DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(ts));
   }
 
-  Future<void> _handleTradeAction(TradeNotifyItem item) async {
-    final status = item.status;
-    final buyerId = item.buyerId ?? '';
-    if (buyerId.isNotEmpty && (status == 2 || status == 3)) {
-      await showNotifyTradeDeliverSheet(
-        context,
-        buyerId: buyerId,
-        status: status,
-        onDelivered: () => _notifyController.loadTradeList(refresh: true),
-      );
-      return;
+  String _stripHtml(String? value) {
+    if (value == null || value.isEmpty) {
+      return '';
     }
-    if (status == 4) {
-      Get.toNamed(Routers.SHOP_PURCHASE, arguments: {'initialTab': 1});
-      return;
-    }
-    final type = item.type ?? -1;
-    if (type == 1) {
-      _switchToTab(3);
-      return;
-    }
-    if (type == 3) {
-      Get.toNamed(Routers.SHOP_PURCHASE);
-    }
+    return value
+        .replaceAll(RegExp(r'<[^>]*>'), ' ')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
   }
 
-  void _switchToTab(int index) {
-    final navCtrl = Get.isRegistered<NavController>()
-        ? Get.find<NavController>()
-        : Get.put(NavController(), permanent: true);
-    navCtrl.switchTo(index);
-    if (Get.currentRoute != Routers.HOME) {
-      Get.offAllNamed(Routers.HOME);
+  String _statusHeadline(TradeNotifyItem item) {
+    final cancelDesc = item.cancelDesc?.trim();
+    if (cancelDesc != null && cancelDesc.isNotEmpty) {
+      return cancelDesc;
     }
+
+    final plainMessage = _stripHtml(item.message).toLowerCase();
+    if (plainMessage.contains('cancel') || plainMessage.contains('取消')) {
+      return _text(zh: '订单已取消', en: 'Order Cancelled');
+    }
+    if (plainMessage.contains('shipped') || plainMessage.contains('已发货')) {
+      return _text(zh: '卖家已发货', en: 'Seller Shipped');
+    }
+    if (plainMessage.contains('deliver') || plainMessage.contains('发货')) {
+      return _text(zh: '准备发货', en: 'Ready to Deliver');
+    }
+    if (plainMessage.contains('receive') || plainMessage.contains('收货')) {
+      return _text(zh: '待确认收货', en: 'Ready to Receive');
+    }
+    if (plainMessage.contains('ban') || plainMessage.contains('封禁')) {
+      return _text(zh: '店铺已封禁', en: 'Store Suspended');
+    }
+    return 'app.system.notice.transaction'.tr;
   }
 
-  String? _actionLabel(TradeNotifyItem item) {
-    final status = item.status;
-    final buyerId = item.buyerId ?? '';
-    if (buyerId.isNotEmpty && (status == 2 || status == 3)) {
-      return 'app.trade.deliver.go'.tr;
-    }
-    if (status == 4) {
-      return 'app.user.menu.buy'.tr;
-    }
-    final type = item.type ?? -1;
-    if (type == 1) {
-      return 'app.tabbar.sell'.tr;
-    }
-    if (type == 3) {
-      return 'app.user.menu.buy'.tr;
-    }
-    return null;
+  String _viewOrderLabel() {
+    return _text(zh: '查看订单', en: 'View Order');
   }
 
   Widget _buildMessage(BuildContext context, TradeNotifyItem item) {
+    const bodyColor = Color(0xFF444653);
+    const emphasisColor = Color(0xFF191C1E);
     final message = item.message ?? '';
-    final textStyle = Theme.of(context).textTheme.bodyMedium;
     if (message.isEmpty) {
       return Text(
         'app.common.no_data'.tr,
-        style: Theme.of(context).textTheme.bodySmall,
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: const Color(0xFF757684)),
       );
     }
+
     return Html(
       data: message,
       style: {
         '*': Style(
           margin: Margins.zero,
           padding: HtmlPaddings.zero,
-          color: textStyle?.color,
-          fontSize: FontSize(textStyle?.fontSize ?? 14),
-          fontWeight: textStyle?.fontWeight,
-          lineHeight: LineHeight.number(1.4),
+          color: bodyColor,
+          fontSize: FontSize(14),
+          fontWeight: FontWeight.w400,
+          lineHeight: LineHeight.number(1.625),
         ),
+        'html': Style(margin: Margins.zero, padding: HtmlPaddings.zero),
         'body': Style(margin: Margins.zero, padding: HtmlPaddings.zero),
+        'p': Style(margin: Margins.zero, padding: HtmlPaddings.zero),
+        'span': Style(color: bodyColor),
+        'strong': Style(color: emphasisColor, fontWeight: FontWeight.w600),
+        'b': Style(color: emphasisColor, fontWeight: FontWeight.w600),
       },
     );
   }
 
-  Widget _buildHeader(BuildContext context, TradeNotifyItem item) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-    final borderColor = theme.dividerColor.withOpacity(isDark ? 0.2 : 0.6);
-    final gradient = LinearGradient(
-      colors: [
-        colorScheme.surface,
-        colorScheme.primary.withOpacity(isDark ? 0.18 : 0.08),
-      ],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
+  Widget _buildViewOrderButton(BuildContext context) {
+    final textStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
+      color: Colors.white,
+      fontWeight: FontWeight.w600,
+      height: 20 / 14,
     );
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: borderColor),
-        boxShadow: isDark
-            ? null
-            : [
+
+    return Semantics(
+      button: true,
+      enabled: false,
+      child: IgnorePointer(
+        child: SizedBox(
+          width: double.infinity,
+          height: 44,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E40AF),
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: const [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 14,
-                  offset: const Offset(0, 6),
+                  color: Color.fromRGBO(0, 0, 0, 0.05),
+                  blurRadius: 2,
+                  offset: Offset(0, 1),
                 ),
               ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: colorScheme.primaryContainer,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.notifications_active_outlined,
-                color: colorScheme.onPrimaryContainer,
-                size: 22,
-              ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'app.system.notice.transaction'.tr,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Text(
-                        _formatTime(item.createTime),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurface.withOpacity(0.6),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _ReadDot(read: item.read),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
+            child: Center(child: Text(_viewOrderLabel(), style: textStyle)),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildContentCard(BuildContext context, TradeNotifyItem item) {
+  Widget _buildDetailCard(BuildContext context, TradeNotifyItem item) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: theme.dividerColor.withOpacity(isDark ? 0.2 : 0.6),
-        ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromRGBO(0, 0, 0, 0.04),
+            blurRadius: 20,
+            offset: Offset(0, 8),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.subject_rounded,
-                  size: 18,
-                  color: colorScheme.primary,
+                Expanded(
+                  child: Text(
+                    _statusHeadline(item),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: const Color(0xFF191C1E),
+                      fontWeight: FontWeight.w700,
+                      height: 20 / 16,
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'app.system.notice.transaction'.tr,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: colorScheme.onSurface.withOpacity(0.7),
-                    fontWeight: FontWeight.w600,
+                const SizedBox(width: 12),
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    _formatTime(item.createTime),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: const Color(0xFF757684),
+                      fontWeight: FontWeight.w500,
+                      height: 16 / 12,
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             _buildMessage(context, item),
+            const SizedBox(height: 20),
+            _buildViewOrderButton(context),
           ],
         ),
       ),
@@ -272,62 +238,24 @@ class _TradeNoticeDetailPageState extends State<TradeNoticeDetailPage> {
   @override
   Widget build(BuildContext context) {
     final item = _item;
-    final actionLabel = item == null ? null : _actionLabel(item);
-    final theme = Theme.of(context);
     return Scaffold(
-      appBar: SettingsStyleAppBar(title: Text('app.system.notice.transaction'.tr)),
-      body: item == null
-          ? Center(child: Text('app.common.no_data'.tr))
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              children: [
-                _buildHeader(context, item),
-                const SizedBox(height: 16),
-                _buildContentCard(context, item),
-              ],
-            ),
-      bottomNavigationBar: actionLabel == null
-          ? null
-          : SafeArea(
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-                decoration: BoxDecoration(
-                  color: theme.scaffoldBackgroundColor,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 16,
-                      offset: const Offset(0, -6),
-                    ),
-                  ],
-                ),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: FilledButton(
-                    onPressed: () => _handleTradeAction(item!),
-                    child: Text(actionLabel),
+      appBar: SettingsStyleAppBar(
+        title: Text('app.system.notice.transaction'.tr),
+      ),
+      body: Container(
+        color: const Color(0xFFF7F9FB),
+        child: item == null
+            ? Center(child: Text('app.common.no_data'.tr))
+            : Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 390),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+                    children: [_buildDetailCard(context, item)],
                   ),
                 ),
               ),
-            ),
-    );
-  }
-}
-
-class _ReadDot extends StatelessWidget {
-  final bool read;
-
-  const _ReadDot({required this.read});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: BoxDecoration(
-        color: read ? Colors.transparent : Theme.of(context).colorScheme.error,
-        shape: BoxShape.circle,
       ),
     );
   }
