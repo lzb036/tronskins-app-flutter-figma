@@ -101,6 +101,11 @@ class InventoryShowcaseCard extends StatelessWidget {
     final hasAccessoryDetails =
         stickers.isNotEmpty || gems.isNotEmpty || wearDisplay != null;
     final conditionLabel = exterior?.label?.trim();
+    final exteriorAccentColor =
+        parseHexColor(exterior?.color) ??
+        (conditionLabel != null && conditionLabel.isNotEmpty
+            ? _conditionColor(conditionLabel)
+            : null);
     final rarityLabel = rarity?.label?.trim();
     final statusLabel = disabledLabel?.trim();
     final cooldownLabel = _resolveCooldownLabel(item, asset);
@@ -233,9 +238,9 @@ class InventoryShowcaseCard extends StatelessWidget {
                                       conditionLabel.isNotEmpty)
                                     _buildBadge(
                                       label: conditionLabel.toUpperCase(),
-                                      backgroundColor: _conditionColor(
-                                        conditionLabel,
-                                      ),
+                                      backgroundColor:
+                                          exteriorAccentColor ??
+                                          _conditionColor(conditionLabel),
                                       textColor: Colors.white,
                                     ),
                                   if (patternLabel != null &&
@@ -380,6 +385,8 @@ class InventoryShowcaseCard extends StatelessWidget {
                                               const SizedBox(height: 3),
                                               _buildWearTrack(
                                                 wearValue: wearValue,
+                                                accentColor:
+                                                    exteriorAccentColor,
                                                 conditionLabel: conditionLabel,
                                               ),
                                             ],
@@ -545,14 +552,20 @@ class InventoryShowcaseCard extends StatelessWidget {
     );
   }
 
-  Widget _buildWearTrack({required double wearValue, String? conditionLabel}) {
+  Widget _buildWearTrack({
+    required double wearValue,
+    Color? accentColor,
+    String? conditionLabel,
+  }) {
     final normalizedWear = wearValue.clamp(0.0, 1.0).toDouble();
     final fillFactor = normalizedWear <= 0
         ? 0
         : normalizedWear.clamp(0.06, 1.0);
-    final fillColor = conditionLabel?.trim().isNotEmpty == true
-        ? _conditionColor(conditionLabel!)
-        : _conditionColor(_conditionLabelForWear(normalizedWear));
+    final fillColor =
+        accentColor ??
+        (conditionLabel?.trim().isNotEmpty == true
+            ? _conditionColor(conditionLabel!)
+            : _conditionColor(_conditionLabelForWear(normalizedWear)));
 
     return SizedBox(
       height: 2,

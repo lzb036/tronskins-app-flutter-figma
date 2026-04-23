@@ -16,6 +16,7 @@ import 'package:tronskins_app/components/filter/market_filter_sheet.dart';
 import 'package:tronskins_app/components/game/game_switch_menu.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
+import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 import 'package:tronskins_app/components/game_item/gem_row.dart';
 import 'package:tronskins_app/components/game_item/sticker_row.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
@@ -942,6 +943,7 @@ class _CollectionFavoriteTabState
                         final exterior = TagInfo.fromMarketTag(
                           item.tags?.exterior,
                         );
+                        final wearAccentColor = parseHexColor(exterior?.color);
                         final stickers = parseStickerList(item.stickerRaw);
                         final keychains = parseStickerList(item.keychainRaw);
                         final gems = parseGemList(item.gemRaw);
@@ -1110,6 +1112,7 @@ class _CollectionFavoriteTabState
                                                 child: WearProgressBar(
                                                   paintWear: paintWearValue,
                                                   height: 16,
+                                                  accentColor: wearAccentColor,
                                                 ),
                                               ),
                                             if (hasAccessories) ...[

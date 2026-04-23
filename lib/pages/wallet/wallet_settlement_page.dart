@@ -10,6 +10,7 @@ import 'package:tronskins_app/common/storage/game_storage.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
+import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 import 'package:tronskins_app/components/layout/list_end_tip.dart';
 import 'package:tronskins_app/controllers/wallet/wallet_controller.dart';
@@ -550,6 +551,7 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
     }
 
     final schema = _findSchema(detail);
+    final exterior = _schemaTag(schema, 'exterior');
     final wearText = _paintWearText(detail);
     final wearValue = _paintWearValue(detail);
 
@@ -605,6 +607,7 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
                         paintWear: wearValue,
                         height: 10,
                         style: WearProgressBarStyle.figmaCompact,
+                        accentColor: parseHexColor(exterior?.color),
                       ),
                     ),
                   ],

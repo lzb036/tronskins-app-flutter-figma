@@ -4,6 +4,7 @@ import 'package:tronskins_app/api/model/market/market_models.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
+import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 import 'package:tronskins_app/components/game_item/quality_ribbon.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 
@@ -21,6 +22,7 @@ class MarketItemCard extends StatelessWidget {
     final rarity = TagInfo.fromMarketTag(item.tags?.rarity);
     final quality = TagInfo.fromMarketTag(item.tags?.quality);
     final exterior = TagInfo.fromMarketTag(item.tags?.exterior);
+    final wearAccentColor = parseHexColor(exterior?.color);
     final isDota = item.appId == 570;
     final paintWearText = item.paintWear;
     final paintWearValue = double.tryParse(item.paintWear ?? '');
@@ -66,7 +68,11 @@ class MarketItemCard extends StatelessWidget {
               SizedBox(
                 height: hasWearProgress ? 14 : 4,
                 child: hasWearProgress
-                    ? WearProgressBar(paintWear: paintWearValue, height: 14)
+                    ? WearProgressBar(
+                        paintWear: paintWearValue,
+                        height: 14,
+                        accentColor: wearAccentColor,
+                      )
                     : const SizedBox.shrink(),
               ),
             Padding(

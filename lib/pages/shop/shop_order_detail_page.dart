@@ -17,6 +17,7 @@ import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
+import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 import 'package:tronskins_app/controllers/shop/shop_order_controller.dart';
 import 'package:tronskins_app/controllers/shop/shop_shipping_notice_controller.dart';
@@ -108,7 +109,7 @@ class ShopOrderDetailPage extends StatelessWidget {
                           onCopy: order.id == null
                               ? null
                               : () =>
-                                  _copyOrderId(context, order.id!.toString()),
+                                    _copyOrderId(context, order.id!.toString()),
                         ),
                         if (pendingBuyer != null) ...[
                           const SizedBox(height: 16),
@@ -1001,12 +1002,17 @@ class ShopOrderDetailPage extends StatelessWidget {
         ),
         if (paintWear != null && paintWear > 0 && wearText != null) ...[
           const SizedBox(height: 12),
-          _buildWearSection(wearText: wearText, paintWear: paintWear),
+          _buildWearSection(
+            wearText: wearText,
+            paintWear: paintWear,
+            accentColor: parseHexColor(exterior?.color),
+          ),
         ] else if (paintWear != null && paintWear > 0) ...[
           const SizedBox(height: 12),
           _buildWearSection(
             wearText: paintWear.toString(),
             paintWear: paintWear,
+            accentColor: parseHexColor(exterior?.color),
           ),
         ],
         if (stickerDetails.isNotEmpty) ...[
@@ -1049,6 +1055,7 @@ class ShopOrderDetailPage extends StatelessWidget {
   Widget _buildWearSection({
     required String wearText,
     required double paintWear,
+    Color? accentColor,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1087,6 +1094,7 @@ class ShopOrderDetailPage extends StatelessWidget {
             paintWear: paintWear,
             height: 18,
             style: WearProgressBarStyle.figmaCompact,
+            accentColor: accentColor,
           ),
         ),
       ],

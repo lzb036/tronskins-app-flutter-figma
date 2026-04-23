@@ -4,6 +4,7 @@ import 'package:tronskins_app/api/model/shop/shop_models.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
+import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 import 'package:tronskins_app/components/game_item/quality_ribbon.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 
@@ -40,6 +41,7 @@ class InventoryItemCard extends StatelessWidget {
     final quality = TagInfo.fromRaw(tags is Map ? tags['quality'] : null);
     final rarity = TagInfo.fromRaw(tags is Map ? tags['rarity'] : null);
     final exterior = TagInfo.fromRaw(tags is Map ? tags['exterior'] : null);
+    final wearAccentColor = parseHexColor(exterior?.color);
     final asset = _resolveAsset(item);
     final paintWearValue =
         item.paintWear ?? _extractDouble(asset, ['paint_wear', 'paintWear']);
@@ -129,7 +131,10 @@ class InventoryItemCard extends StatelessWidget {
               ),
             ),
             if (paintWearValue != null)
-              WearProgressBar(paintWear: paintWearValue),
+              WearProgressBar(
+                paintWear: paintWearValue,
+                accentColor: wearAccentColor,
+              ),
             if (paintWearValue == null && appId == 730)
               const SizedBox(height: 4),
             Padding(

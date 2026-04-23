@@ -62,6 +62,11 @@ class MarketShowcaseCard extends StatelessWidget {
     final isTf2 = appId == 440;
     final normalizedImageUrl = _normalizeMarketImageUrl(imageUrl);
     final conditionLabel = exterior?.label?.trim();
+    final exteriorAccentColor =
+        parseHexColor(exterior?.color) ??
+        (conditionLabel != null && conditionLabel.isNotEmpty
+            ? _conditionColor(conditionLabel)
+            : null);
     final rarityLabel = rarity?.label?.trim();
     final resolvedPatternLabel = _normalizeBadgeLabel(patternLabel);
     final resolvedPhaseLabel = _normalizePhaseLabel(phaseLabel);
@@ -181,9 +186,9 @@ class MarketShowcaseCard extends StatelessWidget {
                                 conditionLabel.isNotEmpty)
                               _buildBadge(
                                 label: conditionLabel.toUpperCase(),
-                                backgroundColor: _conditionColor(
-                                  conditionLabel,
-                                ),
+                                backgroundColor:
+                                    exteriorAccentColor ??
+                                    _conditionColor(conditionLabel),
                                 textColor: Colors.white,
                               ),
                             if (resolvedPatternLabel != null &&
@@ -277,6 +282,7 @@ class MarketShowcaseCard extends StatelessWidget {
                                         const SizedBox(height: 3),
                                         _buildWearTrack(
                                           wearValue: wearValue!,
+                                          accentColor: exteriorAccentColor,
                                           conditionLabel: conditionLabel,
                                         ),
                                       ],
@@ -403,14 +409,20 @@ class MarketShowcaseCard extends StatelessWidget {
     );
   }
 
-  Widget _buildWearTrack({required double wearValue, String? conditionLabel}) {
+  Widget _buildWearTrack({
+    required double wearValue,
+    Color? accentColor,
+    String? conditionLabel,
+  }) {
     final normalizedWear = wearValue.clamp(0.0, 1.0).toDouble();
     final fillFactor = normalizedWear <= 0
         ? 0
         : normalizedWear.clamp(0.06, 1.0);
-    final fillColor = conditionLabel?.trim().isNotEmpty == true
-        ? _conditionColor(conditionLabel!)
-        : _conditionColor(_conditionLabelForWear(normalizedWear));
+    final fillColor =
+        accentColor ??
+        (conditionLabel?.trim().isNotEmpty == true
+            ? _conditionColor(conditionLabel!)
+            : _conditionColor(_conditionLabelForWear(normalizedWear)));
 
     return SizedBox(
       height: 2,

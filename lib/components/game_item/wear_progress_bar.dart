@@ -8,20 +8,26 @@ class WearProgressBar extends StatelessWidget {
     required this.paintWear,
     this.height = 18,
     this.style = WearProgressBarStyle.classic,
+    this.accentColor,
   });
 
   final double paintWear;
   final double height;
   final WearProgressBarStyle style;
+  final Color? accentColor;
 
   @override
   Widget build(BuildContext context) {
     if (style == WearProgressBarStyle.figmaCompact) {
-      return _FigmaCompactWearProgressBar(paintWear: paintWear, height: height);
+      return _FigmaCompactWearProgressBar(
+        paintWear: paintWear,
+        height: height,
+        accentColor: accentColor,
+      );
     }
 
     final colorScheme = Theme.of(context).colorScheme;
-    final wear = paintWear.clamp(0.0, 0.8);
+    final wear = paintWear.clamp(0.0, 0.8).toDouble();
     final barHeight = (height * 0.45).clamp(4.0, 10.0).toDouble();
     final markerWidth = (height * 0.46).clamp(7.0, 10.0).toDouble();
     final markerHeight = (height * 0.66).clamp(8.0, 11.0).toDouble();
@@ -32,73 +38,93 @@ class WearProgressBar extends StatelessWidget {
         final indicatorLeft = ((wear * width) - (markerWidth / 2))
             .clamp(0.0, maxLeft)
             .toDouble();
+        final fillFactor = wear <= 0 ? 0.0 : wear.clamp(0.04, 1.0).toDouble();
         final barTop = ((height - barHeight) / 2)
             .clamp(0.0, height - barHeight)
             .toDouble();
         final markerTop = (barTop - (markerHeight * 0.42))
             .clamp(0.0, height - markerHeight)
             .toDouble();
+        final accent = accentColor;
         return SizedBox(
           height: height,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              Positioned(
-                left: 0,
-                right: 0,
-                top: barTop,
-                child: SizedBox(
-                  height: barHeight,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 7,
-                        child: _BarSegment(
-                          color: const Color(0xFF008000),
-                          height: barHeight,
+              if (accent != null)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: barTop,
+                  child: _AccentBarTrack(
+                    height: barHeight,
+                    fillFactor: fillFactor,
+                    accentColor: accent,
+                  ),
+                )
+              else
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: barTop,
+                  child: SizedBox(
+                    height: barHeight,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 7,
+                          child: _BarSegment(
+                            color: const Color(0xFF008000),
+                            height: barHeight,
+                          ),
                         ),
-                      ),
-                      Expanded(
-                        flex: 8,
-                        child: _BarSegment(
-                          color: const Color(0xFF5CB85C),
-                          height: barHeight,
+                        Expanded(
+                          flex: 8,
+                          child: _BarSegment(
+                            color: const Color(0xFF5CB85C),
+                            height: barHeight,
+                          ),
                         ),
-                      ),
-                      Expanded(
-                        flex: 23,
-                        child: _BarSegment(
-                          color: const Color(0xFFF0AD4E),
-                          height: barHeight,
+                        Expanded(
+                          flex: 23,
+                          child: _BarSegment(
+                            color: const Color(0xFFF0AD4E),
+                            height: barHeight,
+                          ),
                         ),
-                      ),
-                      Expanded(
-                        flex: 7,
-                        child: _BarSegment(
-                          color: const Color(0xFFD9534F),
-                          height: barHeight,
+                        Expanded(
+                          flex: 7,
+                          child: _BarSegment(
+                            color: const Color(0xFFD9534F),
+                            height: barHeight,
+                          ),
                         ),
-                      ),
-                      Expanded(
-                        flex: 65,
-                        child: _BarSegment(
-                          color: const Color(0xFF993A38),
-                          height: barHeight,
+                        Expanded(
+                          flex: 65,
+                          child: _BarSegment(
+                            color: const Color(0xFF993A38),
+                            height: barHeight,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
               Positioned(
                 left: indicatorLeft,
                 top: markerTop,
                 child: CustomPaint(
                   size: Size(markerWidth, markerHeight),
                   painter: _WearMarkerPainter(
-                    fillColor: colorScheme.surface,
-                    strokeColor: colorScheme.onSurface,
-                    highlightColor: colorScheme.onSurfaceVariant,
+                    fillColor: accent == null
+                        ? colorScheme.surface
+                        : _markerColor(accent),
+                    strokeColor: accent == null
+                        ? colorScheme.onSurface
+                        : Colors.white,
+                    highlightColor: accent == null
+                        ? colorScheme.onSurfaceVariant
+                        : _markerHighlightColor(accent),
                   ),
                 ),
               ),
@@ -114,14 +140,17 @@ class _FigmaCompactWearProgressBar extends StatelessWidget {
   const _FigmaCompactWearProgressBar({
     required this.paintWear,
     required this.height,
+    this.accentColor,
   });
 
   final double paintWear;
   final double height;
+  final Color? accentColor;
 
   @override
   Widget build(BuildContext context) {
     final wear = paintWear.clamp(0.0, 1.0).toDouble();
+    final fillFactor = wear <= 0 ? 0.0 : wear.clamp(0.04, 1.0).toDouble();
     final totalHeight = height.clamp(8.0, 14.0).toDouble();
     final markerWidth = (totalHeight * 0.30).clamp(3.0, 4.0).toDouble();
     final markerHeight = (totalHeight * 0.92).clamp(8.0, 12.0).toDouble();
@@ -146,36 +175,48 @@ class _FigmaCompactWearProgressBar extends StatelessWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              Positioned(
-                left: 0,
-                right: 0,
-                top: barTop,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(barHeight / 2),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x12000000),
-                        blurRadius: 2,
-                        offset: Offset(0, 0.5),
-                      ),
-                    ],
-                    gradient: const LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      stops: [0.0, 0.16, 0.42, 0.72, 1.0],
-                      colors: [
-                        Color(0xFF14A89A),
-                        Color(0xFF7EC24D),
-                        Color(0xFFD4CF59),
-                        Color(0xFFE09B3D),
-                        Color(0xFFD65745),
-                      ],
-                    ),
+              if (accentColor != null)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: barTop,
+                  child: _AccentBarTrack(
+                    height: barHeight,
+                    fillFactor: fillFactor,
+                    accentColor: accentColor!,
                   ),
-                  child: SizedBox(height: barHeight),
+                )
+              else
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: barTop,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(barHeight / 2),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x12000000),
+                          blurRadius: 2,
+                          offset: Offset(0, 0.5),
+                        ),
+                      ],
+                      gradient: const LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        stops: [0.0, 0.16, 0.42, 0.72, 1.0],
+                        colors: [
+                          Color(0xFF14A89A),
+                          Color(0xFF7EC24D),
+                          Color(0xFFD4CF59),
+                          Color(0xFFE09B3D),
+                          Color(0xFFD65745),
+                        ],
+                      ),
+                    ),
+                    child: SizedBox(height: barHeight),
+                  ),
                 ),
-              ),
               Positioned(
                 left: indicatorLeft,
                 top: markerTop,
@@ -183,7 +224,9 @@ class _FigmaCompactWearProgressBar extends StatelessWidget {
                   width: markerWidth,
                   height: markerHeight,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0B5A5C),
+                    color: accentColor == null
+                        ? const Color(0xFF0B5A5C)
+                        : _markerColor(accentColor!),
                     borderRadius: BorderRadius.circular(markerWidth),
                     boxShadow: const [
                       BoxShadow(
@@ -198,7 +241,9 @@ class _FigmaCompactWearProgressBar extends StatelessWidget {
                       width: 1,
                       height: markerHeight - 3,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFBFE8E3),
+                        color: accentColor == null
+                            ? const Color(0xFFBFE8E3)
+                            : _markerHighlightColor(accentColor!),
                         borderRadius: BorderRadius.circular(1),
                       ),
                     ),
@@ -209,6 +254,63 @@ class _FigmaCompactWearProgressBar extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _AccentBarTrack extends StatelessWidget {
+  const _AccentBarTrack({
+    required this.height,
+    required this.fillFactor,
+    required this.accentColor,
+  });
+
+  final double height;
+  final double fillFactor;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(height / 2);
+    return SizedBox(
+      height: height,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: _trackColor(accentColor),
+                borderRadius: radius,
+              ),
+            ),
+          ),
+          if (fillFactor > 0)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: fillFactor,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: radius,
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [_fillLeadingColor(accentColor), accentColor],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: accentColor.withValues(alpha: 0.18),
+                        blurRadius: 3,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: SizedBox(height: height),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -301,4 +403,24 @@ class _BarSegment extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(height: height, color: color);
   }
+}
+
+Color _trackColor(Color accentColor) {
+  return Color.lerp(
+    const Color(0xFFE2E8F0),
+    accentColor,
+    0.22,
+  )!.withValues(alpha: 0.95);
+}
+
+Color _fillLeadingColor(Color accentColor) {
+  return Color.lerp(accentColor, Colors.white, 0.16) ?? accentColor;
+}
+
+Color _markerColor(Color accentColor) {
+  return Color.lerp(accentColor, const Color(0xFF0F172A), 0.24) ?? accentColor;
+}
+
+Color _markerHighlightColor(Color accentColor) {
+  return Color.lerp(accentColor, Colors.white, 0.74) ?? Colors.white;
 }
