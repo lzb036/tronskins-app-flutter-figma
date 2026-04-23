@@ -837,7 +837,6 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
   Widget _buildTopNavigation(BuildContext context) {
     return SettingsStyleTopNavigation(
       title: 'app.trade.order.details'.tr,
-      horizontalPadding: 16,
       onBack: () => Navigator.of(context).maybePop(),
     );
   }

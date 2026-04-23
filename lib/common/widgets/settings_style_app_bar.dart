@@ -36,9 +36,9 @@ class SettingsStyleAppBar extends AppBar {
     double? scrolledUnderElevation,
   }) : super(
          centerTitle: centerTitle ?? false,
-         toolbarHeight: toolbarHeight ?? 64,
-         leadingWidth: leadingWidth ?? 48,
-         titleSpacing: titleSpacing ?? 8,
+         toolbarHeight: toolbarHeight ?? settingsTopBarToolbarHeight,
+         leadingWidth: leadingWidth ?? settingsTopBarLeadingWidth,
+         titleSpacing: titleSpacing ?? settingsTopBarTitleSpacing,
          elevation: elevation ?? 0,
          scrolledUnderElevation: scrolledUnderElevation ?? 0,
          shadowColor: shadowColor ?? Colors.transparent,
@@ -76,7 +76,7 @@ class SettingsStyleTopNavigation extends StatelessWidget {
     required this.title,
     this.actions = const [],
     this.onBack,
-    this.horizontalPadding = 24,
+    this.horizontalPadding = settingsTopBarInlineHorizontalPadding,
   });
 
   final String title;
@@ -107,7 +107,7 @@ class SettingsStyleInlineTopBar extends StatelessWidget {
     required this.title,
     this.actions = const [],
     this.onBack,
-    this.horizontalPadding = 24,
+    this.horizontalPadding = settingsTopBarInlineHorizontalPadding,
     this.includeTopInset = false,
   });
 
@@ -144,14 +144,14 @@ class SettingsStyleInlineTopBar extends StatelessWidget {
 }
 
 class SettingsStyleNavigationRow extends StatelessWidget {
-  static const double _backButtonSize = 44;
+  static const double _backButtonSize = settingsTopBarLeadingWidth;
 
   const SettingsStyleNavigationRow({
     super.key,
     required this.title,
     this.actions = const [],
     this.onBack,
-    this.horizontalPadding = 24,
+    this.horizontalPadding = settingsTopBarInlineHorizontalPadding,
   });
 
   final String title;
@@ -170,7 +170,7 @@ class SettingsStyleNavigationRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 64,
+      height: settingsTopBarToolbarHeight,
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
         child: Row(
@@ -194,7 +194,7 @@ class SettingsStyleNavigationRow extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: settingsTopBarTitleSpacing),
             Expanded(
               child: Text(
                 title,

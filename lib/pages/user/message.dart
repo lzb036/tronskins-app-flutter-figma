@@ -120,7 +120,6 @@ class _UserMessageState extends State<UserMessage>
   Widget _buildTopNavigation() {
     return SettingsStyleTopNavigation(
       title: 'app.system.notice.title'.tr,
-      horizontalPadding: 20,
       actions: [
         _TopActionButton(
           icon: Icons.mark_email_read_rounded,

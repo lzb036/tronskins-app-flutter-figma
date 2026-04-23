@@ -109,7 +109,6 @@ class WalletSettlementDetailPage extends StatelessWidget {
   Widget _buildTopNavigation(BuildContext context) {
     return SettingsStyleTopNavigation(
       title: _pageTitle(),
-      horizontalPadding: 16,
       onBack: () => Navigator.of(context).maybePop(),
     );
   }

@@ -5,6 +5,10 @@ const settingsTopBarBackground = Color(0xFFF8FAFC);
 const settingsTopBarBlurBackground = Color.fromRGBO(248, 250, 252, 0.7);
 const settingsTopBarBorderColor = Color.fromRGBO(226, 232, 240, 0.5);
 const settingsTopBarBrandColor = Color(0xFF1E3A8A);
+const settingsTopBarToolbarHeight = 64.0;
+const settingsTopBarLeadingWidth = 48.0;
+const settingsTopBarTitleSpacing = 8.0;
+const settingsTopBarInlineHorizontalPadding = 0.0;
 
 const settingsTopBarTitleTextStyle = TextStyle(
   color: settingsTopBarBrandColor,
@@ -17,9 +21,9 @@ const settingsTopBarTitleTextStyle = TextStyle(
 AppBarTheme settingsTopBarAppBarTheme() {
   return const AppBarTheme(
     centerTitle: false,
-    leadingWidth: 48,
-    titleSpacing: 8,
-    toolbarHeight: 64,
+    leadingWidth: settingsTopBarLeadingWidth,
+    titleSpacing: settingsTopBarTitleSpacing,
+    toolbarHeight: settingsTopBarToolbarHeight,
     backgroundColor: settingsTopBarBackground,
     foregroundColor: settingsTopBarBrandColor,
     elevation: 0,
@@ -31,8 +35,6 @@ AppBarTheme settingsTopBarAppBarTheme() {
     titleTextStyle: settingsTopBarTitleTextStyle,
     toolbarTextStyle: settingsTopBarTitleTextStyle,
     systemOverlayStyle: SystemUiOverlayStyle.dark,
-    shape: Border(
-      bottom: BorderSide(color: settingsTopBarBorderColor),
-    ),
+    shape: Border(bottom: BorderSide(color: settingsTopBarBorderColor)),
   );
 }
