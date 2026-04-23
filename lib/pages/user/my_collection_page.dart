@@ -388,7 +388,7 @@ class _MyCollectionPageState extends State<MyCollectionPage>
 
   Widget _buildTopSection() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Column(
         children: [
           Row(
@@ -408,7 +408,7 @@ class _MyCollectionPageState extends State<MyCollectionPage>
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
           Row(
             children: [
               const Spacer(),
@@ -827,7 +827,6 @@ class _CollectionCategoryTabState
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final showSuggestions = !hasMore && !loadingMore && _items.isNotEmpty;
     return BackToTopScope(
       enabled: true,
       child: loading
@@ -848,10 +847,6 @@ class _CollectionCategoryTabState
                           ),
                           if (i != _items.length - 1)
                             const SizedBox(height: 16),
-                        ],
-                        if (showSuggestions) ...[
-                          const SizedBox(height: 28),
-                          const _CollectionSuggestionSection(),
                         ],
                         const SizedBox(height: 10),
                         _CollectionFooter(
@@ -1027,7 +1022,6 @@ class _CollectionFavoriteTabState
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final showSuggestions = !hasMore && !loadingMore && _items.isNotEmpty;
     return BackToTopScope(
       enabled: true,
       child: loading
@@ -1049,10 +1043,6 @@ class _CollectionFavoriteTabState
                           ),
                           if (i != _items.length - 1)
                             const SizedBox(height: 16),
-                        ],
-                        if (showSuggestions) ...[
-                          const SizedBox(height: 28),
-                          const _CollectionSuggestionSection(),
                         ],
                         const SizedBox(height: 10),
                         _CollectionFooter(
@@ -1137,7 +1127,7 @@ class _CollectionTabPill extends StatelessWidget {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: active ? Colors.white : const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.zero,
@@ -1156,17 +1146,18 @@ class _CollectionTabPill extends StatelessWidget {
               children: [
                 Icon(
                   icon,
-                  size: 18,
+                  size: 16,
                   color: active
                       ? const Color(0xFF1D4ED8)
                       : const Color(0xFF64748B),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Flexible(
                   child: Text(
                     label,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontSize: 13,
                       fontWeight: FontWeight.w700,
                       color: active
                           ? const Color(0xFF0F172A)
@@ -1732,280 +1723,6 @@ class _CollectionRarityDot extends StatelessWidget {
   }
 }
 
-class _CollectionSuggestionSection extends StatelessWidget {
-  const _CollectionSuggestionSection();
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                _collectionText(zh: '可能感兴趣', en: 'You May Also Like'),
-                style: textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF0F172A),
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Get.toNamed(Routers.MARKET),
-              child: Text(_collectionText(zh: '前往市场', en: 'Open Market')),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final stacked = constraints.maxWidth < 360;
-            final promoCard = _CollectionPromoCard(
-              title: _collectionText(
-                zh: '继续逛逛热门饰品',
-                en: 'Explore Trending Skins',
-              ),
-              subtitle: _collectionText(
-                zh: '从市场中继续发现你感兴趣的收藏目标',
-                en: 'Keep browsing the market for your next favorite item',
-              ),
-              cta: _collectionText(zh: '进入市场', en: 'Go to Market'),
-              icon: Icons.north_east_rounded,
-              onTap: () => Get.toNamed(Routers.MARKET),
-            );
-            final insightCard = _CollectionInsightCard(
-              title: _collectionText(
-                zh: '收藏筛选提示',
-                en: 'Collection Filter Tips',
-              ),
-              subtitle: _collectionText(
-                zh: '支持游戏切换与价格排序',
-                en: 'Switch games and sort by price',
-              ),
-            );
-            if (stacked) {
-              return Column(
-                children: [promoCard, const SizedBox(height: 12), insightCard],
-              );
-            }
-            return Row(
-              children: [
-                Expanded(child: promoCard),
-                const SizedBox(width: 12),
-                Expanded(child: insightCard),
-              ],
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _CollectionPromoCard extends StatelessWidget {
-  const _CollectionPromoCard({
-    required this.title,
-    required this.subtitle,
-    required this.cta,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final String cta;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.zero,
-        child: Container(
-          height: 154,
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.zero,
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)],
-            ),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x241D4ED8),
-                blurRadius: 28,
-                offset: Offset(0, 14),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.zero,
-                ),
-                child: Icon(icon, color: Colors.white, size: 20),
-              ),
-              const Spacer(),
-              Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                  height: 1.25,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                subtitle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.86),
-                  height: 1.45,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                cta,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CollectionInsightCard extends StatelessWidget {
-  const _CollectionInsightCard({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 154,
-      padding: const EdgeInsets.all(18),
-      decoration: _collectionCardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEAF1FF),
-              borderRadius: BorderRadius.zero,
-            ),
-            child: Text(
-              _collectionText(zh: '网页参考', en: 'Web Reference'),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF1D4ED8),
-              ),
-            ),
-          ),
-          const Spacer(),
-          Text(
-            title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
-              height: 1.25,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: const Color(0xFF64748B),
-              height: 1.45,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _CollectionMiniStat(
-                  label: _collectionText(zh: '切换', en: 'Switch'),
-                  value: _collectionText(zh: '游戏', en: 'Game'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _CollectionMiniStat(
-                  label: _collectionText(zh: '排序', en: 'Sort'),
-                  value: _collectionText(zh: '价格', en: 'Price'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CollectionMiniStat extends StatelessWidget {
-  const _CollectionMiniStat({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF2F6FA),
-        borderRadius: BorderRadius.zero,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF64748B),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _CollectionEmptyState extends StatelessWidget {
   const _CollectionEmptyState();
 
@@ -2101,8 +1818,6 @@ class _CollectionLoadingState extends StatelessWidget {
           _CollectionCardSkeleton(mode: mode),
           if (i != 2) const SizedBox(height: 16),
         ],
-        const SizedBox(height: 28),
-        const _CollectionSuggestionSectionSkeleton(),
       ],
     );
   }
@@ -2231,37 +1946,6 @@ class _CollectionCardSkeleton extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _CollectionSuggestionSectionSkeleton extends StatelessWidget {
-  const _CollectionSuggestionSectionSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _CollectionSkeletonBox(width: 180, height: 18),
-        const SizedBox(height: 12),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final stacked = constraints.maxWidth < 360;
-            const card = _CollectionSkeletonBox(height: 154);
-            if (stacked) {
-              return Column(children: [card, const SizedBox(height: 12), card]);
-            }
-            return Row(
-              children: [
-                Expanded(child: card),
-                const SizedBox(width: 12),
-                Expanded(child: card),
-              ],
-            );
-          },
-        ),
-      ],
     );
   }
 }
