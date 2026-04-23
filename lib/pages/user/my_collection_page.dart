@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/api/market.dart';
@@ -9,6 +10,7 @@ import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/hooks/game/global_game_controller.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
+import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/login_required_prompt.dart';
 import 'package:tronskins_app/components/filter/filter_models.dart';
 import 'package:tronskins_app/components/filter/market_filter_sheet.dart';
@@ -212,6 +214,60 @@ Widget _buildCollectionRefreshIndicator({
     onRefresh: onRefresh,
     child: child,
   );
+}
+
+Future<bool> _showCollectionUncollectConfirmDialog(BuildContext context) async {
+  final confirmed = await showFigmaModal<bool>(
+    context: context,
+    child: FigmaConfirmationDialog(
+      title: 'app.system.tips.title'.tr,
+      message: 'app.user.collection.uncollect_tips'.tr,
+      primaryLabel: 'app.common.confirm'.tr,
+      onPrimary: () => Navigator.of(context).pop(true),
+      secondaryLabel: 'app.common.cancel'.tr,
+      onSecondary: () => Navigator.of(context).pop(false),
+      icon: Icons.bookmark_remove_rounded,
+      accentColor: const Color(0xFFDC2626),
+      iconColor: const Color(0xFFDC2626),
+      iconBackgroundColor: const Color(0x1ADC2626),
+    ),
+  );
+  return confirmed == true;
+}
+
+class _CollectionSwipeAction extends StatelessWidget {
+  const _CollectionSwipeAction({
+    required this.child,
+    required this.onPressed,
+    required this.slidableKey,
+    this.radius = 0,
+  });
+
+  final Widget child;
+  final VoidCallback onPressed;
+  final Key slidableKey;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Slidable(
+      key: slidableKey,
+      endActionPane: ActionPane(
+        motion: const StretchMotion(),
+        extentRatio: 0.20,
+        children: [
+          SlidableAction(
+            onPressed: (_) => onPressed(),
+            backgroundColor: const Color(0xFFDC2626),
+            foregroundColor: Colors.white,
+            icon: Icons.bookmark_remove_rounded,
+            borderRadius: BorderRadius.circular(radius),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
 }
 
 class MyCollectionPage extends StatefulWidget {
@@ -738,6 +794,7 @@ class _CollectionFavoriteTab extends StatefulWidget {
 
 class _CollectionCategoryTabState
     extends _BaseCollectionTabState<_CollectionCategoryTab> {
+  final ApiMarketServer _marketApi = ApiMarketServer();
   final ApiShopProductServer _api = ApiShopProductServer();
   final List<CollectionTemplateItem> _items = <CollectionTemplateItem>[];
 
@@ -856,6 +913,31 @@ class _CollectionCategoryTabState
     await loadData(refresh: true);
   }
 
+  Future<void> _cancelCollection(CollectionTemplateItem item) async {
+    final schemaId = item.schemaId;
+    if (schemaId == null) {
+      AppSnackbar.error('app.trade.filter.failed'.tr);
+      return;
+    }
+    final confirmed = await _showCollectionUncollectConfirmDialog(context);
+    if (!confirmed) {
+      return;
+    }
+    try {
+      final res = await _marketApi.removeCollection(schemaId: schemaId);
+      if (!res.success) {
+        AppSnackbar.error(
+          res.message.isNotEmpty ? res.message : 'app.trade.filter.failed'.tr,
+        );
+        return;
+      }
+      AppSnackbar.success('app.user.collection.uncollect_success'.tr);
+      await loadData(refresh: true);
+    } catch (_) {
+      AppSnackbar.error('app.trade.filter.failed'.tr);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -868,39 +950,47 @@ class _CollectionCategoryTabState
               onRefresh: () => loadData(refresh: true),
               child: _items.isEmpty
                   ? const _CollectionEmptyState()
-                  : ListView(
-                      controller: scrollController,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
-                      children: [
-                        for (var i = 0; i < _items.length; i++) ...[
-                          _CollectionCategoryCard(
-                            item: _items[i],
-                            onTap: () => _openDetail(_items[i]),
-                          ),
-                          if (i != _items.length - 1)
-                            const SizedBox(height: 16),
-                        ],
-                        if (showLoadMorePlaceholders) ...[
-                          const SizedBox(height: 16),
-                          for (
-                            var i = 0;
-                            i < _collectionLoadMorePlaceholderCount;
-                            i++
-                          ) ...[
-                            const _CollectionCardSkeleton(
-                              mode: _CollectionVisualMode.category,
+                  : SlidableAutoCloseBehavior(
+                      child: ListView(
+                        controller: scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+                        children: [
+                          for (var i = 0; i < _items.length; i++) ...[
+                            _CollectionSwipeAction(
+                              slidableKey: ValueKey(
+                                'collection-category-${_items[i].schemaId ?? i}',
+                              ),
+                              onPressed: () => _cancelCollection(_items[i]),
+                              child: _CollectionCategoryCard(
+                                item: _items[i],
+                                onTap: () => _openDetail(_items[i]),
+                              ),
                             ),
-                            if (i != _collectionLoadMorePlaceholderCount - 1)
+                            if (i != _items.length - 1)
                               const SizedBox(height: 16),
                           ],
+                          if (showLoadMorePlaceholders) ...[
+                            const SizedBox(height: 16),
+                            for (
+                              var i = 0;
+                              i < _collectionLoadMorePlaceholderCount;
+                              i++
+                            ) ...[
+                              const _CollectionCardSkeleton(
+                                mode: _CollectionVisualMode.category,
+                              ),
+                              if (i != _collectionLoadMorePlaceholderCount - 1)
+                                const SizedBox(height: 16),
+                            ],
+                          ],
+                          const SizedBox(height: 10),
+                          _CollectionFooter(
+                            showLoading: false,
+                            showNoMore: !hasMore && !loadingMore,
+                          ),
                         ],
-                        const SizedBox(height: 10),
-                        _CollectionFooter(
-                          showLoading: false,
-                          showNoMore: !hasMore && !loadingMore,
-                        ),
-                      ],
+                      ),
                     ),
             ),
     );
@@ -1034,23 +1124,8 @@ class _CollectionFavoriteTabState
       AppSnackbar.error('app.trade.filter.failed'.tr);
       return;
     }
-    final confirmed = await Get.dialog<bool>(
-      AlertDialog(
-        title: Text('app.system.tips.title'.tr),
-        content: Text('app.user.collection.uncollect_tips'.tr),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(result: false),
-            child: Text('app.common.cancel'.tr),
-          ),
-          TextButton(
-            onPressed: () => Get.back(result: true),
-            child: Text('app.common.confirm'.tr),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) {
+    final confirmed = await _showCollectionUncollectConfirmDialog(context);
+    if (!confirmed) {
       return;
     }
     try {
@@ -1080,40 +1155,48 @@ class _CollectionFavoriteTabState
               onRefresh: () => loadData(refresh: true),
               child: _items.isEmpty
                   ? const _CollectionEmptyState()
-                  : ListView(
-                      controller: scrollController,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
-                      children: [
-                        for (var i = 0; i < _items.length; i++) ...[
-                          _CollectionFavoriteCard(
-                            item: _items[i],
-                            onTap: () => _openDetail(_items[i]),
-                            onCancel: () => _cancelFavorite(_items[i]),
-                          ),
-                          if (i != _items.length - 1)
-                            const SizedBox(height: 16),
-                        ],
-                        if (showLoadMorePlaceholders) ...[
-                          const SizedBox(height: 16),
-                          for (
-                            var i = 0;
-                            i < _collectionLoadMorePlaceholderCount;
-                            i++
-                          ) ...[
-                            const _CollectionCardSkeleton(
-                              mode: _CollectionVisualMode.single,
+                  : SlidableAutoCloseBehavior(
+                      child: ListView(
+                        controller: scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+                        children: [
+                          for (var i = 0; i < _items.length; i++) ...[
+                            _CollectionSwipeAction(
+                              slidableKey: ValueKey(
+                                'collection-favorite-${_items[i].itemId ?? i}',
+                              ),
+                              onPressed: () => _cancelFavorite(_items[i]),
+                              radius: 12,
+                              child: _CollectionFavoriteCard(
+                                item: _items[i],
+                                onTap: () => _openDetail(_items[i]),
+                              ),
                             ),
-                            if (i != _collectionLoadMorePlaceholderCount - 1)
+                            if (i != _items.length - 1)
                               const SizedBox(height: 16),
                           ],
+                          if (showLoadMorePlaceholders) ...[
+                            const SizedBox(height: 16),
+                            for (
+                              var i = 0;
+                              i < _collectionLoadMorePlaceholderCount;
+                              i++
+                            ) ...[
+                              const _CollectionCardSkeleton(
+                                mode: _CollectionVisualMode.single,
+                              ),
+                              if (i != _collectionLoadMorePlaceholderCount - 1)
+                                const SizedBox(height: 16),
+                            ],
+                          ],
+                          const SizedBox(height: 10),
+                          _CollectionFooter(
+                            showLoading: false,
+                            showNoMore: !hasMore && !loadingMore,
+                          ),
                         ],
-                        const SizedBox(height: 10),
-                        _CollectionFooter(
-                          showLoading: false,
-                          showNoMore: !hasMore && !loadingMore,
-                        ),
-                      ],
+                      ),
                     ),
             ),
     );
@@ -1130,6 +1213,16 @@ BoxDecoration _collectionCardDecoration({Color color = Colors.white}) {
         blurRadius: 28,
         offset: Offset(0, 12),
       ),
+    ],
+  );
+}
+
+BoxDecoration _collectionFavoriteCardDecoration({Color color = Colors.white}) {
+  return BoxDecoration(
+    color: color,
+    borderRadius: BorderRadius.circular(12),
+    boxShadow: const [
+      BoxShadow(color: Color(0x0D0F172A), blurRadius: 2, offset: Offset(0, 1)),
     ],
   );
 }
@@ -1445,54 +1538,63 @@ class _CollectionCategoryCard extends StatelessWidget {
 }
 
 class _CollectionFavoriteCard extends StatelessWidget {
-  const _CollectionFavoriteCard({
-    required this.item,
-    required this.onTap,
-    required this.onCancel,
-  });
+  const _CollectionFavoriteCard({required this.item, required this.onTap});
 
   final CollectionFavoriteItem item;
   final VoidCallback onTap;
-  final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context) {
     final tags = _favoriteItemTags(item);
+    final quality = TagInfo.fromMarketTag(tags?.quality);
+    final rarity = TagInfo.fromMarketTag(tags?.rarity);
+    final exterior = TagInfo.fromMarketTag(tags?.exterior);
     final title = _collectionTitle(item.marketHashName, item.marketName);
     final wear = _parsePaintWear(item.paintWear);
     final accessories = _favoriteAccessoryItems(item);
-    final exteriorColor = parseHexColor(tags?.exterior?.color);
-    final statusLabel = (item.statusName ?? '').trim();
+    final compactPrice = item.price == null
+        ? null
+        : _formatCollectionCompactPrice(item.price);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.zero,
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: _collectionCardDecoration(),
+          padding: const EdgeInsets.all(16),
+          decoration: _collectionFavoriteCardDecoration(),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Stack(
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.zero,
+                    borderRadius: BorderRadius.circular(8),
                     child: SizedBox(
-                      width: 96,
-                      height: 96,
+                      width: 80,
+                      height: 80,
                       child: GameItemImage(
                         imageUrl: item.imageUrl,
                         appId: item.appId,
-                        quality: TagInfo.fromMarketTag(tags?.quality),
-                        rarity: TagInfo.fromMarketTag(tags?.rarity),
-                        exterior: TagInfo.fromMarketTag(tags?.exterior),
-                        compactTopLeftBadges: true,
-                        avoidTopLeftBadgeOverlap: true,
+                        quality: quality,
+                        rarity: rarity,
+                        exterior: exterior,
+                        showTopBadges: false,
                       ),
                     ),
                   ),
+                  if (exterior?.hasLabel == true)
+                    Positioned(
+                      top: 4,
+                      left: 4,
+                      child: _CollectionCompactExteriorBadge(
+                        label: exterior!.label!,
+                        color:
+                            parseHexColor(exterior.color) ??
+                            const Color(0xFF397439),
+                      ),
+                    ),
                 ],
               ),
               const SizedBox(width: 16),
@@ -1504,91 +1606,57 @@ class _CollectionFavoriteCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: Text(
-                            title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF0F172A),
-                                  height: 1.28,
-                                ),
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 1),
+                            child: Text(
+                              title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF191C1E),
+                                fontSize: 15,
+                                height: 18.75 / 15,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              _formatCollectionPrice(item.price),
-                              style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF0F172A),
-                                  ),
-                            ),
-                            const SizedBox(height: 6),
-                            _CollectionTextAction(
-                              label: 'app.user.collection.uncollect'.tr,
-                              onTap: onCancel,
-                            ),
-                          ],
                         ),
                       ],
                     ),
-                    if (item.hasStatusTag && statusLabel.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      _CollectionStatusBadge(label: statusLabel),
-                    ],
                     if (wear != null) ...[
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF2F6FA),
-                          borderRadius: BorderRadius.zero,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  _collectionText(zh: '磨损度', en: 'Wear'),
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: const Color(0xFF64748B),
-                                      ),
-                                ),
-                                const Spacer(),
-                                Text(
-                                  wear.toStringAsFixed(4),
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: const Color(0xFF0F172A),
-                                      ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            WearProgressBar(
-                              paintWear: wear,
-                              height: 10,
-                              style: WearProgressBarStyle.figmaCompact,
-                              accentColor: exteriorColor,
-                            ),
-                          ],
-                        ),
-                      ),
+                      const SizedBox(height: 12),
+                      _CollectionFavoriteWearMetric(wear: wear),
                     ],
-                    if (accessories.isNotEmpty) ...[
-                      SizedBox(height: wear != null ? 8 : 10),
-                      _CollectionAccessoryPreviewRow(items: accessories),
+                    if (accessories.isNotEmpty || compactPrice != null) ...[
+                      const SizedBox(height: 12),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          if (accessories.isNotEmpty)
+                            Expanded(
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: _CollectionAccessoryPreviewRow(
+                                  items: accessories,
+                                ),
+                              ),
+                            )
+                          else
+                            const Spacer(),
+                          if (compactPrice != null)
+                            Text(
+                              compactPrice,
+                              style: const TextStyle(
+                                color: Color(0x99444653),
+                                fontFamily: 'Space Grotesk',
+                                fontSize: 10,
+                                height: 15 / 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                        ],
+                      ),
                     ],
                   ],
                 ),
@@ -1645,27 +1713,67 @@ class _CollectionPriceMetric extends StatelessWidget {
   }
 }
 
-class _CollectionTextAction extends StatelessWidget {
-  const _CollectionTextAction({required this.label, required this.onTap});
+class _CollectionFavoriteWearMetric extends StatelessWidget {
+  const _CollectionFavoriteWearMetric({required this.wear});
 
-  final String label;
-  final VoidCallback onTap;
+  final double wear;
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: onTap,
-      style: TextButton.styleFrom(
-        padding: EdgeInsets.zero,
-        minimumSize: Size.zero,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        foregroundColor: const Color(0xFF64748B),
+    return Row(
+      children: [
+        SizedBox(
+          width: 48,
+          child: Text(
+            wear.toStringAsFixed(4),
+            style: const TextStyle(
+              color: Color(0xFF191C1E),
+              fontFamily: 'Space Grotesk',
+              fontSize: 12,
+              height: 18 / 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: WearProgressBar(
+            paintWear: wear,
+            height: 12,
+            style: WearProgressBarStyle.figmaCompact,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CollectionCompactExteriorBadge extends StatelessWidget {
+  const _CollectionCompactExteriorBadge({
+    required this.label,
+    required this.color,
+  });
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.84),
+        borderRadius: BorderRadius.circular(2),
       ),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: const Color(0xFF64748B),
-          fontWeight: FontWeight.w600,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Color(0xFFD6E38B),
+          fontSize: 8.2,
+          height: 1,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
@@ -1681,12 +1789,14 @@ class _CollectionAccessoryPreviewRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final visibleItems = items.take(4).toList(growable: false);
     final overflow = items.length - visibleItems.length;
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        for (final item in visibleItems)
-          _CollectionAccessoryPreviewTile(item: item),
+        for (var i = 0; i < visibleItems.length; i++) ...[
+          _CollectionAccessoryPreviewTile(item: visibleItems[i]),
+          if (i != visibleItems.length - 1 || overflow > 0)
+            const SizedBox(width: 8),
+        ],
         if (overflow > 0) _CollectionAccessoryOverflowTile(count: overflow),
       ],
     );
@@ -1701,26 +1811,34 @@ class _CollectionAccessoryPreviewTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 28,
-      height: 28,
-      padding: const EdgeInsets.all(4),
+      width: 24,
+      height: 24,
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F6FA),
-        borderRadius: BorderRadius.zero,
+        color: const Color(0xFFECEEF0),
+        borderRadius: BorderRadius.circular(6),
         border: item.borderColor == null
             ? null
             : Border.all(color: item.borderColor!, width: 1.2),
       ),
-      child: Image.network(
-        item.imageUrl,
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) {
-          return const Icon(
-            Icons.auto_awesome_rounded,
-            size: 14,
-            color: Color(0xFF94A3B8),
-          );
-        },
+      child: Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: Opacity(
+            opacity: 0.8,
+            child: Image.network(
+              item.imageUrl,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(
+                  Icons.auto_awesome_rounded,
+                  size: 12,
+                  color: Color(0xFF94A3B8),
+                );
+              },
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1734,19 +1852,20 @@ class _CollectionAccessoryOverflowTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 28,
-      height: 28,
+      width: 24,
+      height: 24,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: const Color(0xFFE2E8F0),
-        borderRadius: BorderRadius.zero,
+        color: const Color(0xFFECEEF0),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         '+$count',
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+        style: const TextStyle(
+          color: Color(0xFF475569),
           fontSize: 10,
+          height: 15 / 10,
           fontWeight: FontWeight.w800,
-          color: const Color(0xFF475569),
         ),
       ),
     );
@@ -1909,31 +2028,6 @@ class _CollectionFooter extends StatelessWidget {
   }
 }
 
-class _CollectionStatusBadge extends StatelessWidget {
-  const _CollectionStatusBadge({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEAF1FF),
-        borderRadius: BorderRadius.zero,
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: const Color(0xFF1D4ED8),
-        ),
-      ),
-    );
-  }
-}
-
 class _CollectionTabSkeleton extends StatelessWidget {
   const _CollectionTabSkeleton();
 
@@ -1957,14 +2051,21 @@ class _CollectionCardSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: _collectionCardDecoration(
-        color: Colors.white.withValues(alpha: 0.92),
-      ),
+      padding: EdgeInsets.all(mode == _CollectionVisualMode.single ? 16 : 18),
+      decoration: mode == _CollectionVisualMode.single
+          ? _collectionFavoriteCardDecoration(
+              color: Colors.white.withValues(alpha: 0.92),
+            )
+          : _collectionCardDecoration(
+              color: Colors.white.withValues(alpha: 0.92),
+            ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _CollectionSkeletonBox(width: 96, height: 96),
+          _CollectionSkeletonBox(
+            width: mode == _CollectionVisualMode.single ? 80 : 96,
+            height: mode == _CollectionVisualMode.single ? 80 : 96,
+          ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -1983,17 +2084,17 @@ class _CollectionCardSkeleton extends StatelessWidget {
                     ],
                   )
                 else ...[
-                  const _CollectionSkeletonBox(height: 48),
-                  const SizedBox(height: 10),
+                  const _CollectionSkeletonBox(height: 12),
+                  const SizedBox(height: 12),
+                  const _CollectionSkeletonBox(height: 12),
+                  const SizedBox(height: 12),
                   Row(
                     children: const [
-                      _CollectionSkeletonBox(width: 28, height: 28),
-                      SizedBox(width: 6),
-                      _CollectionSkeletonBox(width: 28, height: 28),
-                      SizedBox(width: 6),
-                      _CollectionSkeletonBox(width: 28, height: 28),
-                      SizedBox(width: 6),
-                      _CollectionSkeletonBox(width: 28, height: 28),
+                      _CollectionSkeletonBox(width: 24, height: 24),
+                      SizedBox(width: 8),
+                      _CollectionSkeletonBox(width: 24, height: 24),
+                      SizedBox(width: 8),
+                      _CollectionSkeletonBox(width: 24, height: 24),
                     ],
                   ),
                 ],
