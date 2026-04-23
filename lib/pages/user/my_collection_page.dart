@@ -35,6 +35,12 @@ String _collectionTitle(String? marketHashName, String? marketName) {
   return fallback.isNotEmpty ? fallback : '--';
 }
 
+Color _collectionExteriorAccentColor(MarketItemTags? tags) {
+  return parseHexColor(tags?.exterior?.color) ??
+      parseHexColor(tags?.rarity?.color) ??
+      const Color(0xFF3B82F6);
+}
+
 String _formatCollectionPrice(double? price) {
   if (price == null) {
     return '--';
@@ -1353,8 +1359,7 @@ class _CollectionCategoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final title = _collectionTitle(item.marketHashName, item.marketName);
     final tags = item.tags;
-    final rarityColor =
-        parseHexColor(tags?.rarity?.color) ?? const Color(0xFF3B82F6);
+    final accentColor = _collectionExteriorAccentColor(tags);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1386,7 +1391,7 @@ class _CollectionCategoryCard extends StatelessWidget {
                   Positioned(
                     top: 4,
                     right: 4,
-                    child: _CollectionRarityDot(color: rarityColor),
+                    child: _CollectionRarityDot(color: accentColor),
                   ),
                 ],
               ),
@@ -1454,8 +1459,6 @@ class _CollectionFavoriteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tags = _favoriteItemTags(item);
     final title = _collectionTitle(item.marketHashName, item.marketName);
-    final rarityColor =
-        parseHexColor(tags?.rarity?.color) ?? const Color(0xFF3B82F6);
     final wear = _parsePaintWear(item.paintWear);
     final accessories = _favoriteAccessoryItems(item);
     final exteriorColor = parseHexColor(tags?.exterior?.color);
@@ -1489,11 +1492,6 @@ class _CollectionFavoriteCard extends StatelessWidget {
                         avoidTopLeftBadgeOverlap: true,
                       ),
                     ),
-                  ),
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: _CollectionRarityDot(color: rarityColor),
                   ),
                 ],
               ),
