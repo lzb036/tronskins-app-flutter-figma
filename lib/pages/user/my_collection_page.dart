@@ -188,6 +188,26 @@ class _CollectionAccessoryPreviewData {
   final Color? borderColor;
 }
 
+const int _collectionPageSize = 10;
+const int _collectionLoadMorePlaceholderCount = 2;
+const Color _collectionRefreshColor = Color(0xFF0F4FD6);
+
+Widget _buildCollectionRefreshIndicator({
+  required Future<void> Function() onRefresh,
+  required Widget child,
+}) {
+  return RefreshIndicator(
+    color: _collectionRefreshColor,
+    backgroundColor: Colors.white,
+    strokeWidth: 2.2,
+    displacement: 22,
+    edgeOffset: 2,
+    elevation: 0,
+    onRefresh: onRefresh,
+    child: child,
+  );
+}
+
 class MyCollectionPage extends StatefulWidget {
   const MyCollectionPage({super.key});
 
@@ -533,12 +553,16 @@ abstract class _BaseCollectionTabState<T extends StatefulWidget>
   bool loadingMore = false;
   int page = 1;
   int total = 0;
+  int lastBatchSize = 0;
+  bool hasPagerTotal = false;
 
   _CollectionTabControls get controls;
 
   VoidCallback? get onControlsChangedCallback;
 
-  bool get hasMore => itemsLength < total;
+  bool get hasMore => hasPagerTotal
+      ? itemsLength < total
+      : lastBatchSize >= _collectionPageSize;
 
   int get itemsLength;
 
@@ -763,7 +787,7 @@ class _CollectionCategoryTabState
             <String, dynamic>{
               'appId': widget.appId,
               'page': nextPage,
-              'pageSize': 20,
+              'pageSize': _collectionPageSize,
               'field': filter.sortField,
               'asc': filter.sortField.isEmpty ? null : filter.sortAsc,
               'keywords': keyword.trim(),
@@ -790,7 +814,9 @@ class _CollectionCategoryTabState
       final payload = res.datas!;
       setState(() {
         page = nextPage;
-        total = payload.pager?.total ?? payload.items.length;
+        hasPagerTotal = payload.pager != null;
+        total = payload.pager?.total ?? 0;
+        lastBatchSize = payload.items.length;
         if (refresh) {
           _items
             ..clear()
@@ -827,11 +853,12 @@ class _CollectionCategoryTabState
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final showLoadMorePlaceholders = loadingMore && _items.isNotEmpty;
     return BackToTopScope(
       enabled: true,
       child: loading
           ? const _CollectionLoadingState(mode: _CollectionVisualMode.category)
-          : RefreshIndicator(
+          : _buildCollectionRefreshIndicator(
               onRefresh: () => loadData(refresh: true),
               child: _items.isEmpty
                   ? const _CollectionEmptyState()
@@ -848,10 +875,24 @@ class _CollectionCategoryTabState
                           if (i != _items.length - 1)
                             const SizedBox(height: 16),
                         ],
+                        if (showLoadMorePlaceholders) ...[
+                          const SizedBox(height: 16),
+                          for (
+                            var i = 0;
+                            i < _collectionLoadMorePlaceholderCount;
+                            i++
+                          ) ...[
+                            const _CollectionCardSkeleton(
+                              mode: _CollectionVisualMode.category,
+                            ),
+                            if (i != _collectionLoadMorePlaceholderCount - 1)
+                              const SizedBox(height: 16),
+                          ],
+                        ],
                         const SizedBox(height: 10),
                         _CollectionFooter(
-                          showLoading: loadingMore,
-                          showNoMore: !hasMore,
+                          showLoading: false,
+                          showNoMore: !hasMore && !loadingMore,
                         ),
                       ],
                     ),
@@ -918,7 +959,7 @@ class _CollectionFavoriteTabState
             <String, dynamic>{
               'appId': widget.appId,
               'page': nextPage,
-              'pageSize': 20,
+              'pageSize': _collectionPageSize,
               'field': filter.sortField,
               'asc': filter.sortField.isEmpty ? null : filter.sortAsc,
               'keywords': keyword.trim(),
@@ -945,7 +986,9 @@ class _CollectionFavoriteTabState
       final payload = res.datas!;
       setState(() {
         page = nextPage;
-        total = payload.pager?.total ?? payload.items.length;
+        hasPagerTotal = payload.pager != null;
+        total = payload.pager?.total ?? 0;
+        lastBatchSize = payload.items.length;
         if (refresh) {
           _items
             ..clear()
@@ -1022,11 +1065,12 @@ class _CollectionFavoriteTabState
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final showLoadMorePlaceholders = loadingMore && _items.isNotEmpty;
     return BackToTopScope(
       enabled: true,
       child: loading
           ? const _CollectionLoadingState(mode: _CollectionVisualMode.single)
-          : RefreshIndicator(
+          : _buildCollectionRefreshIndicator(
               onRefresh: () => loadData(refresh: true),
               child: _items.isEmpty
                   ? const _CollectionEmptyState()
@@ -1044,10 +1088,24 @@ class _CollectionFavoriteTabState
                           if (i != _items.length - 1)
                             const SizedBox(height: 16),
                         ],
+                        if (showLoadMorePlaceholders) ...[
+                          const SizedBox(height: 16),
+                          for (
+                            var i = 0;
+                            i < _collectionLoadMorePlaceholderCount;
+                            i++
+                          ) ...[
+                            const _CollectionCardSkeleton(
+                              mode: _CollectionVisualMode.single,
+                            ),
+                            if (i != _collectionLoadMorePlaceholderCount - 1)
+                              const SizedBox(height: 16),
+                          ],
+                        ],
                         const SizedBox(height: 10),
                         _CollectionFooter(
-                          showLoading: loadingMore,
-                          showNoMore: !hasMore,
+                          showLoading: false,
+                          showNoMore: !hasMore && !loadingMore,
                         ),
                       ],
                     ),
