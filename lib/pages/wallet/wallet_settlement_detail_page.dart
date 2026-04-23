@@ -12,7 +12,6 @@ import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
-import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 import 'package:tronskins_app/components/game_item/sticker_row.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
@@ -400,7 +399,6 @@ class WalletSettlementDetailPage extends StatelessWidget {
                 paintWear: wearValue,
                 height: 18,
                 style: WearProgressBarStyle.figmaCompact,
-                accentColor: parseHexColor(exterior?.color),
               ),
             ),
           ],

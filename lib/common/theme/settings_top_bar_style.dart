@@ -9,6 +9,10 @@ const settingsTopBarToolbarHeight = 64.0;
 const settingsTopBarLeadingWidth = 48.0;
 const settingsTopBarTitleSpacing = 8.0;
 const settingsTopBarInlineHorizontalPadding = 0.0;
+const settingsTopBarActionTrailingPadding = 16.0;
+const settingsTopBarActionsPadding = EdgeInsetsDirectional.only(
+  end: settingsTopBarActionTrailingPadding,
+);
 
 const settingsTopBarTitleTextStyle = TextStyle(
   color: settingsTopBarBrandColor,
@@ -36,5 +40,6 @@ AppBarTheme settingsTopBarAppBarTheme() {
     toolbarTextStyle: settingsTopBarTitleTextStyle,
     systemOverlayStyle: SystemUiOverlayStyle.dark,
     shape: Border(bottom: BorderSide(color: settingsTopBarBorderColor)),
+    actionsPadding: settingsTopBarActionsPadding,
   );
 }

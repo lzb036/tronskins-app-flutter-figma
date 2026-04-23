@@ -3071,10 +3071,6 @@ class _MarketDetailPageState extends State<MarketDetailPage>
                 paintWear: paintWearValue,
                 height: 5,
                 style: WearProgressBarStyle.figmaCompact,
-                accentColor: parseHexColor(
-                  _templateDetail?.schema?.tags?.exterior?.color ??
-                      controller.item.tags?.exterior?.color,
-                ),
               ),
             ],
           ],

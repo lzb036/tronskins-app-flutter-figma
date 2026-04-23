@@ -16,7 +16,6 @@ import 'package:tronskins_app/controllers/wallet/wallet_controller.dart';
 import 'package:tronskins_app/api/model/wallet/wallet_models.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
-import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 import 'package:tronskins_app/components/game_item/sticker_row.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 import 'package:tronskins_app/components/notify/notify_trade_deliver_sheet.dart';
@@ -1093,7 +1092,6 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
                 paintWear: paintWear,
                 height: 18,
                 style: WearProgressBarStyle.figmaCompact,
-                accentColor: parseHexColor(exterior?.color),
               ),
             ),
           ],

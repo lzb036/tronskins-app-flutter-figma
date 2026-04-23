@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tronskins_app/common/theme/settings_top_bar_style.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 
 class _RecordingNavigatorObserver extends NavigatorObserver {
@@ -76,4 +77,53 @@ void main() {
       expect(observer.didPopCount, 1);
     },
   );
+
+  testWidgets('SettingsStyleNavigationRow pads trailing actions', (
+    tester,
+  ) async {
+    const actionKey = Key('top-action');
+    const rowWidth = 400.0;
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: rowWidth,
+            child: SettingsStyleNavigationRow(
+              title: 'Filter',
+              actions: [SizedBox(key: actionKey, width: 32, height: 32)],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      tester.getTopRight(find.byKey(actionKey)).dx,
+      rowWidth - settingsTopBarActionTrailingPadding,
+    );
+  });
+
+  testWidgets('SettingsStyleAppBar pads trailing actions', (tester) async {
+    const actionKey = Key('app-bar-action');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          appBar: SettingsStyleAppBar(
+            title: const Text('Title'),
+            actions: const [SizedBox(key: actionKey, width: 32, height: 32)],
+          ),
+        ),
+      ),
+    );
+
+    final screenWidth =
+        tester.view.physicalSize.width / tester.view.devicePixelRatio;
+    expect(
+      tester.getTopRight(find.byKey(actionKey)).dx,
+      screenWidth - settingsTopBarActionTrailingPadding,
+    );
+  });
 }

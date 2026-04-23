@@ -18,7 +18,6 @@ import 'package:tronskins_app/components/filter/order_filter_sheet.dart';
 import 'package:tronskins_app/components/game/game_switch_menu.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
-import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 import 'package:tronskins_app/components/layout/app_search_bar.dart';
 import 'package:tronskins_app/components/layout/header_filter_button.dart';
@@ -701,11 +700,7 @@ class _MyPurchasePageState extends State<MyPurchasePage>
     );
   }
 
-  Widget _buildBuyRecordWearInfo(
-    ShopOrderDetail detail,
-    double wear, {
-    Color? accentColor,
-  }) {
+  Widget _buildBuyRecordWearInfo(ShopOrderDetail detail, double wear) {
     final wearText = _formatBuyRecordWearValue(detail, wear);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -731,7 +726,6 @@ class _MyPurchasePageState extends State<MyPurchasePage>
           paintWear: wear,
           height: 12,
           style: WearProgressBarStyle.figmaCompact,
-          accentColor: accentColor,
         ),
       ],
     );
@@ -895,13 +889,7 @@ class _MyPurchasePageState extends State<MyPurchasePage>
                           ),
                           if (showWearInfo) ...[
                             const SizedBox(height: 6),
-                            _buildBuyRecordWearInfo(
-                              detail!,
-                              wear!,
-                              accentColor: parseHexColor(
-                                _schemaTag(schema, 'exterior')?.color,
-                              ),
-                            ),
+                            _buildBuyRecordWearInfo(detail!, wear!),
                           ],
                         ],
                       ),
@@ -1036,13 +1024,7 @@ class _MyPurchasePageState extends State<MyPurchasePage>
                           ),
                           if (showWearInfo) ...[
                             const SizedBox(height: 6),
-                            _buildBuyRecordWearInfo(
-                              detail!,
-                              wear!,
-                              accentColor: parseHexColor(
-                                _schemaTag(schema, 'exterior')?.color,
-                              ),
-                            ),
+                            _buildBuyRecordWearInfo(detail!, wear!),
                           ],
                         ],
                       ),

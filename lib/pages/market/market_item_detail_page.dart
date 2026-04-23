@@ -15,7 +15,6 @@ import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/common/widgets/steam_style_confirm_dialog.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
-import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 import 'package:tronskins_app/components/game_item/gem_row.dart';
 import 'package:tronskins_app/components/game_item/sticker_row.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
@@ -1930,7 +1929,6 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
                             paintWear: paintWearValue,
                             height: 8,
                             style: WearProgressBarStyle.figmaCompact,
-                            accentColor: parseHexColor(exterior?.color),
                           ),
                           const SizedBox(height: 6),
                           const Row(

@@ -28,6 +28,7 @@ class SettingsStyleAppBar extends AppBar {
     super.bottomOpacity = 1.0,
     double? toolbarHeight,
     double? leadingWidth,
+    EdgeInsetsGeometry? actionsPadding,
     TextStyle? toolbarTextStyle,
     TextStyle? titleTextStyle,
     SystemUiOverlayStyle? systemOverlayStyle,
@@ -51,6 +52,7 @@ class SettingsStyleAppBar extends AppBar {
          toolbarTextStyle: toolbarTextStyle ?? settingsTopBarTitleTextStyle,
          titleTextStyle: titleTextStyle ?? settingsTopBarTitleTextStyle,
          systemOverlayStyle: systemOverlayStyle ?? SystemUiOverlayStyle.dark,
+         actionsPadding: actionsPadding ?? settingsTopBarActionsPadding,
          flexibleSpace:
              flexibleSpace ?? const _SettingsStyleAppBarBlurBackground(),
        );
@@ -77,12 +79,14 @@ class SettingsStyleTopNavigation extends StatelessWidget {
     this.actions = const [],
     this.onBack,
     this.horizontalPadding = settingsTopBarInlineHorizontalPadding,
+    this.trailingPadding = settingsTopBarActionTrailingPadding,
   });
 
   final String title;
   final List<Widget> actions;
   final VoidCallback? onBack;
   final double horizontalPadding;
+  final double trailingPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -95,6 +99,7 @@ class SettingsStyleTopNavigation extends StatelessWidget {
         actions: actions,
         onBack: onBack,
         horizontalPadding: horizontalPadding,
+        trailingPadding: trailingPadding,
         includeTopInset: true,
       ),
     );
@@ -108,6 +113,7 @@ class SettingsStyleInlineTopBar extends StatelessWidget {
     this.actions = const [],
     this.onBack,
     this.horizontalPadding = settingsTopBarInlineHorizontalPadding,
+    this.trailingPadding = settingsTopBarActionTrailingPadding,
     this.includeTopInset = false,
   });
 
@@ -115,6 +121,7 @@ class SettingsStyleInlineTopBar extends StatelessWidget {
   final List<Widget> actions;
   final VoidCallback? onBack;
   final double horizontalPadding;
+  final double trailingPadding;
   final bool includeTopInset;
 
   @override
@@ -136,6 +143,7 @@ class SettingsStyleInlineTopBar extends StatelessWidget {
             actions: actions,
             onBack: onBack,
             horizontalPadding: horizontalPadding,
+            trailingPadding: trailingPadding,
           ),
         ),
       ),
@@ -152,12 +160,14 @@ class SettingsStyleNavigationRow extends StatelessWidget {
     this.actions = const [],
     this.onBack,
     this.horizontalPadding = settingsTopBarInlineHorizontalPadding,
+    this.trailingPadding = settingsTopBarActionTrailingPadding,
   });
 
   final String title;
   final List<Widget> actions;
   final VoidCallback? onBack;
   final double horizontalPadding;
+  final double trailingPadding;
 
   void _handleDefaultBack(BuildContext context) {
     final navigator = Navigator.maybeOf(context);
@@ -172,7 +182,10 @@ class SettingsStyleNavigationRow extends StatelessWidget {
     return SizedBox(
       height: settingsTopBarToolbarHeight,
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+        padding: EdgeInsetsDirectional.only(
+          start: horizontalPadding,
+          end: trailingPadding,
+        ),
         child: Row(
           children: [
             Material(

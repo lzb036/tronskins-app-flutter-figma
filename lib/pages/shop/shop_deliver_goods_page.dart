@@ -14,6 +14,7 @@ import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
+import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
@@ -29,7 +30,6 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
   static const _cardBg = Colors.white;
   static const _titleColor = Color(0xFF191C1E);
   static const _mutedColor = Color(0xFF757684);
-  static const _bodyColor = Color(0xFF444653);
   static const _lineColor = Color(0xFFECEEF0);
   static const _brandColor = Color(0xFF00288E);
 
@@ -682,7 +682,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
   ) {
     final primary = order.details.first;
     final title = _detailTitle(primary);
-    final wearText = _paintWearText(primary);
+    final wearInfo = _wearInfo(primary);
     final stickers = _detailStickers(primary);
     final price = _orderTotalPrice(order);
 
@@ -719,19 +719,10 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
               if (stickers.isNotEmpty) ...[
                 const SizedBox(height: 7),
                 _buildStickerPreview(stickers),
-              ] else if (wearText != null && wearText.isNotEmpty) ...[
-                const SizedBox(height: 5),
-                Text(
-                  wearText,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _bodyColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    height: 14 / 11,
-                  ),
-                ),
+              ],
+              if (wearInfo != null) ...[
+                const SizedBox(height: 7),
+                _buildWearInfo(wearInfo),
               ],
             ],
           ),
@@ -745,7 +736,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     CurrencyController? currency,
   ) {
     final title = _detailTitle(detail);
-    final wearText = _paintWearText(detail);
+    final wearInfo = _wearInfo(detail);
     final price =
         detail.totalPrice ?? ((detail.price ?? 0) * (detail.count ?? 1));
     final stickers = _detailStickers(detail);
@@ -783,22 +774,55 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
               if (stickers.isNotEmpty) ...[
                 const SizedBox(height: 7),
                 _buildStickerPreview(stickers),
-              ] else if (wearText != null && wearText.isNotEmpty) ...[
-                const SizedBox(height: 5),
-                Text(
-                  wearText,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _bodyColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    height: 14 / 11,
-                  ),
-                ),
+              ],
+              if (wearInfo != null) ...[
+                const SizedBox(height: 7),
+                _buildWearInfo(wearInfo),
               ],
             ],
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWearInfo(_DetailWearInfo wearInfo) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              _isEnglishLocale ? 'Wear' : '磨损度',
+              style: const TextStyle(
+                color: Color(0xFF64748B),
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                height: 12 / 10,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                wearInfo.text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+                style: const TextStyle(
+                  color: _titleColor,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  height: 12 / 10,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        WearProgressBar(
+          paintWear: wearInfo.value,
+          height: 14,
+          style: WearProgressBarStyle.figmaCompact,
         ),
       ],
     );
@@ -1256,12 +1280,33 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     );
   }
 
-  String? _paintWearText(ShopOrderDetail detail) {
-    final value = detail.raw['paint_wear'] ?? detail.raw['paintWear'];
+  _DetailWearInfo? _wearInfo(ShopOrderDetail detail) {
+    final schema = _lookupSchema(detail);
+    if (_resolveDetailAppId(detail, schema) != 730) {
+      return null;
+    }
+    final value = _paintWearValue(detail);
     if (value == null) {
       return null;
     }
-    return value.toString();
+    final text = _paintWearText(detail) ?? value.toString();
+    return _DetailWearInfo(value: value, text: text);
+  }
+
+  double? _paintWearValue(ShopOrderDetail detail) {
+    final value = detail.raw['paint_wear'] ?? detail.raw['paintWear'];
+    if (value is num) {
+      return value.toDouble();
+    }
+    if (value != null) {
+      return double.tryParse(value.toString());
+    }
+    return detail.paintWear;
+  }
+
+  String? _paintWearText(ShopOrderDetail detail) {
+    final value = detail.raw['paint_wear'] ?? detail.raw['paintWear'];
+    return value?.toString() ?? detail.paintWear?.toString();
   }
 
   String _formatCurrency(double value, CurrencyController? currency) {
@@ -1288,6 +1333,13 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     }
     return total;
   }
+}
+
+class _DetailWearInfo {
+  const _DetailWearInfo({required this.value, required this.text});
+
+  final double value;
+  final String text;
 }
 
 class _ShopDeliverGoodsArgs {
