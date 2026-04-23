@@ -3214,7 +3214,15 @@ class _ShopPageState extends State<ShopPage>
   }
 
   Future<void> _openDeliverGoodsPage(ShopOrderItem order) async {
-    await _openPendingShipmentDetail(order);
+    final buyerId = (order.buyerId ?? order.user?.id ?? '').trim();
+    final delivered = await Get.toNamed(
+      Routers.SHOP_DELIVER_GOODS,
+      arguments: {'buyerId': buyerId, 'status': order.status},
+    );
+    if (delivered == true) {
+      orderController.refreshPending();
+      shippingNoticeController.refreshPendingTotals();
+    }
   }
 
   Future<void> _openPendingShipmentDetail(ShopOrderItem order) async {

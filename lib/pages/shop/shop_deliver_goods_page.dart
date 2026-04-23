@@ -12,7 +12,8 @@ import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/game_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
-import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
+import 'package:tronskins_app/components/game_item/game_item_image.dart';
+import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
@@ -105,12 +106,10 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildBuyerCard(currency),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 18),
                             _buildSteamBuyerCard(),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 20),
                             _buildOrdersCard(currency),
-                            const SizedBox(height: 16),
-                            _buildTipsCard(),
                           ],
                         ),
                 ),
@@ -288,94 +287,38 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     }
   }
 
-  Widget _buildBuyerCard(CurrencyController? currency) {
+  Widget _buildBuyerCard(CurrencyController? _) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.10),
-            blurRadius: 15,
-            offset: Offset(0, 10),
-          ),
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.10),
-            blurRadius: 6,
-            offset: Offset(0, 4),
-          ),
-        ],
+        color: const Color(0xFFFFF7E6),
+        borderRadius: BorderRadius.circular(2),
+        border: Border.all(color: const Color(0xFFFDE8B8)),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 41,
-                height: 41,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(20.5),
-                ),
-                child: const Icon(
-                  Icons.local_shipping_outlined,
-                  color: Colors.white,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  _isEnglishLocale ? 'Ready to Deliver' : '准备发货',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    height: 32 / 24,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'app.trade.order.seller_tips_3'.tr,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              height: 20 / 13,
+          const Padding(
+            padding: EdgeInsets.only(top: 1),
+            child: Icon(
+              Icons.warning_amber_rounded,
+              size: 15,
+              color: Color(0xFFE28A00),
             ),
           ),
-          const SizedBox(height: 20),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
-            ),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _buildGlassMetricChip(
-                  label: _isEnglishLocale ? 'Items' : '发货数量',
-                  value: _totalItems().toString(),
-                ),
-                _buildGlassMetricChip(
-                  label: _isEnglishLocale ? 'Total' : '订单金额',
-                  value: _formatCurrency(_totalAmount(), currency),
-                ),
-              ],
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _isEnglishLocale
+                  ? 'When confirming in Steam Guard, carefully verify the buyer Steam account and item information.'
+                  : '在 Steam 令牌确认时，请仔细核对买家的 Steam 账号与商品信息。',
+              style: const TextStyle(
+                color: Color(0xFF7C4A03),
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                height: 17 / 11,
+              ),
             ),
           ),
         ],
@@ -389,55 +332,69 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
         ? buyer!.nickname!
         : (_isEnglishLocale ? 'Steam Buyer' : 'Steam 买家');
     final level = buyer?.level;
-    final yearsLevel = buyer?.yearsLevel;
 
-    return _buildCard(
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFF1F5F9)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x05000000),
+            blurRadius: 12,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           _buildSteamBuyerAvatar(buyer),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  _isEnglishLocale ? 'Buyer Steam Info' : '买家 Steam 信息',
-                  style: const TextStyle(
-                    color: _mutedColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    height: 18 / 12,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _titleColor,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    height: 24 / 18,
-                  ),
-                ),
-                const SizedBox(height: 10),
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          if (level != null) _buildSteamLevelBadge(level),
-                          if (yearsLevel != null)
-                            _buildSteamYearsBadge(yearsLevel),
-                        ],
+                    Flexible(
+                      fit: FlexFit.loose,
+                      child: Text(
+                        displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _titleColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          height: 14 / 11,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 4),
                     _buildSteamRefreshButton(),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildSteamLevelBadge(level),
+                    const SizedBox(width: 5),
+                    const Text(
+                      'STEAM LEVEL',
+                      style: TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800,
+                        height: 10 / 8,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -451,11 +408,11 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
   Widget _buildSteamBuyerAvatar(ShopUserInfo? buyer) {
     final avatar = (buyer?.avatar ?? '').trim();
     return Container(
-      width: 56,
-      height: 56,
+      width: 42,
+      height: 42,
       decoration: BoxDecoration(
         color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(21),
       ),
       clipBehavior: Clip.antiAlias,
       child: avatar.isEmpty
@@ -469,38 +426,24 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     );
   }
 
-  Widget _buildSteamLevelBadge(int level) {
+  Widget _buildSteamLevelBadge(int? level) {
     return Container(
-      height: 24,
-      constraints: const BoxConstraints(minWidth: 24),
+      height: 13,
+      constraints: const BoxConstraints(minWidth: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 5),
       alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0x1F444653)),
+        color: const Color(0xFF2F6FED),
         borderRadius: BorderRadius.circular(999),
-        color: Colors.white,
       ),
       child: Text(
-        '$level',
+        level?.toString() ?? '--',
         style: const TextStyle(
-          color: Color(0xFF444653),
-          fontSize: 11,
-          height: 16 / 11,
-          fontWeight: FontWeight.w700,
+          color: Colors.white,
+          fontSize: 8,
+          height: 10 / 8,
+          fontWeight: FontWeight.w800,
         ),
-      ),
-    );
-  }
-
-  Widget _buildSteamYearsBadge(int yearsLevel) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(6),
-      child: Image.network(
-        'https://community.cloudflare.steamstatic.com/public/images/badges/02_years/steamyears${yearsLevel}_80.png',
-        width: 24,
-        height: 24,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
       ),
     );
   }
@@ -512,10 +455,10 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
         borderRadius: BorderRadius.circular(999),
         onTap: _refreshingBuyer ? null : _refreshBuyer,
         child: Container(
-          width: 28,
-          height: 28,
+          width: 16,
+          height: 16,
           decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
+            color: Colors.transparent,
             borderRadius: BorderRadius.circular(999),
           ),
           alignment: Alignment.center,
@@ -528,64 +471,69 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
                     color: _brandColor,
                   ),
                 )
-              : const Icon(Icons.refresh_rounded, size: 16, color: _brandColor),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGlassMetricChip({required String label, required String value}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: RichText(
-        text: TextSpan(
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            height: 16 / 12,
-          ),
-          children: [
-            TextSpan(text: '$label  '),
-            TextSpan(
-              text: value,
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
-          ],
+              : const Icon(Icons.refresh_rounded, size: 12, color: _brandColor),
         ),
       ),
     );
   }
 
   Widget _buildOrdersCard(CurrencyController? currency) {
-    return _buildCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionTitle(
-            '${_isEnglishLocale ? 'Delivery Items' : '待发货商品'} (${_totalItems()})',
-          ),
-          const SizedBox(height: 16),
-          for (var index = 0; index < _orders.length; index++) ...[
-            if (index > 0) const SizedBox(height: 16),
-            _buildOrderBlock(_orders[index], currency),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildShipmentHeader(),
+        const SizedBox(height: 10),
+        for (var index = 0; index < _orders.length; index++) ...[
+          if (index > 0) const SizedBox(height: 14),
+          _buildOrderBlock(_orders[index], currency),
         ],
-      ),
+      ],
+    );
+  }
+
+  Widget _buildShipmentHeader() {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            '${_isEnglishLocale ? 'Shipment Count' : '发货数量'} (${_totalItems()})',
+            style: const TextStyle(
+              color: _titleColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              height: 18 / 13,
+            ),
+          ),
+        ),
+        Text(
+          _isEnglishLocale ? 'LIST SUMMARY' : '清单摘要',
+          style: const TextStyle(
+            color: Color(0xFF94A3B8),
+            fontSize: 8,
+            fontWeight: FontWeight.w900,
+            height: 10 / 8,
+            letterSpacing: 1.0,
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildOrderBlock(ShopOrderItem order, CurrencyController? currency) {
+    final useBatchPreview = _shouldUseOrderBatchPreview(order);
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: _cardBg,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -594,57 +542,54 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
             children: [
               Expanded(
                 child: Text(
-                  '${_isEnglishLocale ? 'Order No' : '订单号'}: ${order.id ?? '--'}',
+                  _orderIdLabel(order.id),
                   style: const TextStyle(
-                    color: _titleColor,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF94A3B8),
+                    fontSize: 7,
+                    fontWeight: FontWeight.w800,
+                    height: 10 / 7,
                   ),
                 ),
               ),
               Text(
                 _formatTime(order.createTime),
                 style: const TextStyle(
-                  color: _mutedColor,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF94A3B8),
+                  fontSize: 8,
+                  fontWeight: FontWeight.w700,
+                  height: 10 / 8,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          for (var index = 0; index < order.details.length; index++) ...[
-            if (index > 0) const Divider(height: 20, color: _lineColor),
-            _buildDetailItem(order.details[index], currency),
-          ],
+          const SizedBox(height: 8),
+          if (useBatchPreview)
+            _buildOrderBatchItem(order, currency)
+          else
+            for (var index = 0; index < order.details.length; index++) ...[
+              if (index > 0) const Divider(height: 14, color: _lineColor),
+              _buildDetailItem(order.details[index], currency),
+            ],
         ],
       ),
     );
   }
 
-  Widget _buildDetailItem(
-    ShopOrderDetail detail,
+  Widget _buildOrderBatchItem(
+    ShopOrderItem order,
     CurrencyController? currency,
   ) {
-    final schema = _lookupSchema(detail);
-    final title =
-        detail.marketName ??
-        detail.marketHashName ??
-        schema?.marketName ??
-        schema?.marketHashName ??
-        '-';
-    final imageUrl = detail.imageUrl ?? schema?.imageUrl ?? '';
-    final wearValue = _paintWearValue(detail);
-    final wearText = _paintWearText(detail);
-    final count = detail.count ?? 1;
-    final price =
-        detail.totalPrice ?? ((detail.price ?? 0) * (detail.count ?? 1));
+    final primary = order.details.first;
+    final title = _detailTitle(primary);
+    final wearText = _paintWearText(primary);
+    final stickers = _detailStickers(primary);
+    final price = _orderTotalPrice(order);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildProductImage(imageUrl),
-        const SizedBox(width: 16),
+        _buildOrderBatchPreview(order),
+        const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -655,183 +600,295 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: _titleColor,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  height: 22 / 15,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  height: 15 / 11,
                 ),
               ),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _buildInfoChip(
-                    label: '${_isEnglishLocale ? 'Qty' : '数量'} x$count',
-                    background: const Color(0xFFEFF6FF),
-                    foreground: const Color(0xFF1D4ED8),
-                  ),
-                  if (wearText != null && wearText.isNotEmpty)
-                    _buildInfoChip(
-                      label: wearText,
-                      background: const Color(0xFFF8FAFC),
-                      foreground: const Color(0xFF475569),
-                    ),
-                ],
+              const SizedBox(height: 3),
+              Text(
+                _formatCurrency(price, currency),
+                style: const TextStyle(
+                  color: Color(0xFFE31B2F),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  height: 14 / 11,
+                ),
               ),
-              if (wearValue != null) ...[
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: WearProgressBar(paintWear: wearValue, height: 16),
+              if (stickers.isNotEmpty) ...[
+                const SizedBox(height: 5),
+                _buildStickerPreview(stickers),
+              ] else if (wearText != null && wearText.isNotEmpty) ...[
+                const SizedBox(height: 3),
+                Text(
+                  wearText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _bodyColor,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    height: 12 / 9,
+                  ),
                 ),
               ],
             ],
           ),
         ),
-        const SizedBox(width: 12),
-        Text(
-          _formatCurrency(price, currency),
-          style: const TextStyle(
-            color: _brandColor,
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-            height: 22 / 15,
-          ),
-        ),
       ],
     );
   }
 
-  Widget _buildProductImage(String imageUrl) {
-    return Container(
-      width: 76,
-      height: 56,
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: imageUrl.isEmpty
-          ? const Icon(Icons.image_not_supported_outlined, color: _mutedColor)
-          : CachedNetworkImage(
-              imageUrl: imageUrl,
-              fit: BoxFit.contain,
-              placeholder: (_, __) => const Center(
-                child: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-              errorWidget: (_, __, ___) =>
-                  const Icon(Icons.image_not_supported_outlined),
-            ),
-    );
-  }
+  Widget _buildDetailItem(
+    ShopOrderDetail detail,
+    CurrencyController? currency,
+  ) {
+    final title = _detailTitle(detail);
+    final wearText = _paintWearText(detail);
+    final price =
+        detail.totalPrice ?? ((detail.price ?? 0) * (detail.count ?? 1));
+    final stickers = _detailStickers(detail);
 
-  Widget _buildInfoChip({
-    required String label,
-    required Color background,
-    required Color foreground,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: foreground,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          height: 16 / 12,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTipsCard() {
-    return _buildCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionTitle(_isEnglishLocale ? 'Shipping Notes' : '发货提醒'),
-          const SizedBox(height: 14),
-          _buildTipLine(
-            _isEnglishLocale
-                ? 'Verify the buyer information in Steam before sending the trade offer.'
-                : '前往 Steam 发货前，请先核对买家 Steam 信息，避免误发。',
-          ),
-          const SizedBox(height: 12),
-          _buildTipLine(
-            _isEnglishLocale
-                ? 'After the trade offer is sent, return here to confirm the latest order status.'
-                : '发出报价后可返回此处刷新，确认订单状态是否已更新。',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTipLine(String text) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 6,
-          height: 6,
-          margin: const EdgeInsets.only(top: 8),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF59E0B),
-            borderRadius: BorderRadius.circular(99),
-          ),
-        ),
-        const SizedBox(width: 12),
+        _buildDetailPreview(detail),
+        const SizedBox(width: 10),
         Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(
-              color: _bodyColor,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              height: 22 / 14,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _titleColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  height: 15 / 11,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                _formatCurrency(price, currency),
+                style: const TextStyle(
+                  color: Color(0xFFE31B2F),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  height: 14 / 11,
+                ),
+              ),
+              if (stickers.isNotEmpty) ...[
+                const SizedBox(height: 5),
+                _buildStickerPreview(stickers),
+              ] else if (wearText != null && wearText.isNotEmpty) ...[
+                const SizedBox(height: 3),
+                Text(
+                  wearText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _bodyColor,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    height: 12 / 9,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ],
     );
   }
 
-  Widget _buildCard({required Widget child}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: _cardBg,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.05),
-            blurRadius: 2,
-            offset: Offset(0, 1),
+  Widget _buildOrderBatchPreview(ShopOrderItem order) {
+    final previewDetails = _orderPreviewDetails(order);
+    final count = _orderItemQuantity(order);
+    if (previewDetails.isEmpty) {
+      return const SizedBox(
+        width: 48,
+        height: 48,
+        child: DecoratedBox(
+          decoration: BoxDecoration(color: Color(0xFFECEEF0)),
+          child: Icon(
+            Icons.image_not_supported_outlined,
+            size: 18,
+            color: _mutedColor,
+          ),
+        ),
+      );
+    }
+
+    const tileSize = 48.0;
+    const horizontalPeek = 5.0;
+    const verticalPeek = 3.0;
+    const badgeSize = 18.0;
+    const badgeOverlap = 5.0;
+    final stackCount = previewDetails.length > 3 ? 3 : previewDetails.length;
+    return SizedBox(
+      width: tileSize + ((stackCount - 1) * horizontalPeek),
+      height: tileSize + ((stackCount - 1) * verticalPeek),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          for (var layer = stackCount - 1; layer >= 0; layer--)
+            Positioned(
+              left: layer * horizontalPeek,
+              top: layer * verticalPeek,
+              child: _buildDetailImageTile(
+                previewDetails[layer],
+                isFront: layer == 0,
+                opacity: layer == 0 ? 1 : (layer == 1 ? 0.74 : 0.52),
+              ),
+            ),
+          Positioned(
+            left: tileSize - badgeSize + badgeOverlap,
+            top: -badgeOverlap,
+            child: _buildCountBadge(count),
           ),
         ],
       ),
-      child: child,
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        color: _titleColor,
-        fontSize: 18,
-        fontWeight: FontWeight.w700,
-        height: 24 / 18,
+  Widget _buildDetailPreview(ShopOrderDetail detail) {
+    final count = detail.count ?? 1;
+    if (count > 1) {
+      return _buildStackedDetailPreview(detail, count);
+    }
+    return _buildDetailImageTile(detail, isFront: true, opacity: 1);
+  }
+
+  Widget _buildStackedDetailPreview(ShopOrderDetail detail, int count) {
+    const tileSize = 48.0;
+    const horizontalPeek = 5.0;
+    const verticalPeek = 3.0;
+    const badgeSize = 18.0;
+    const badgeOverlap = 5.0;
+    final stackCount = count > 3 ? 3 : count;
+    return SizedBox(
+      width: tileSize + ((stackCount - 1) * horizontalPeek),
+      height: tileSize + ((stackCount - 1) * verticalPeek),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          for (var layer = stackCount - 1; layer >= 0; layer--)
+            Positioned(
+              left: layer * horizontalPeek,
+              top: layer * verticalPeek,
+              child: _buildDetailImageTile(
+                detail,
+                isFront: layer == 0,
+                opacity: layer == 0 ? 1 : (layer == 1 ? 0.74 : 0.52),
+              ),
+            ),
+          Positioned(
+            left: tileSize - badgeSize + badgeOverlap,
+            top: -badgeOverlap,
+            child: _buildCountBadge(count),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildCountBadge(int count) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 18),
+      height: 18,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      decoration: BoxDecoration(
+        color: _brandColor,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white, width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1A0F172A),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        _countLabel(count),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 8,
+          fontWeight: FontWeight.w900,
+          height: 1,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailImageTile(
+    ShopOrderDetail detail, {
+    required bool isFront,
+    required double opacity,
+  }) {
+    final schema = _lookupSchema(detail);
+    final imageUrl = detail.imageUrl ?? schema?.imageUrl ?? '';
+    final appId = _resolveDetailAppId(detail, schema);
+    final rarity = _schemaTag(schema, 'rarity');
+    final quality = _schemaTag(schema, 'quality');
+    final exterior = _schemaTag(schema, 'exterior');
+    final phase = _detailText(detail, const ['phase']);
+    final percentage = _detailText(detail, const ['percentage']);
+
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: isFront ? const Color(0xFFECEEF0) : const Color(0xFFE5E7EB),
+        borderRadius: BorderRadius.circular(4),
+        boxShadow: isFront
+            ? const [
+                BoxShadow(
+                  color: Color(0x12000000),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ]
+            : null,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Opacity(
+        opacity: opacity,
+        child: GameItemImage(
+          imageUrl: imageUrl,
+          appId: appId,
+          rarity: rarity,
+          quality: quality,
+          exterior: exterior,
+          phase: phase,
+          percentage: percentage,
+          showTopBadges: false,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStickerPreview(List<GameItemSticker> stickers) {
+    final visible = stickers.length > 3 ? stickers.take(3) : stickers;
+    return Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      children: [
+        for (final sticker in visible)
+          Container(
+            width: 12,
+            height: 12,
+            color: const Color(0xFFF1F5F9),
+            child: Image.network(
+              sticker.imageUrl,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+          ),
+      ],
     );
   }
 
@@ -855,43 +912,32 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
                 ),
               ],
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildBottomButton(
-                    icon: Icons.support_agent_rounded,
-                    label: _isEnglishLocale ? 'Contact' : '联系客服',
-                    background: const Color(0xFFF1F5F9),
-                    foreground: const Color(0xFF475569),
-                    onTap: () => Get.toNamed(Routers.FEEDBACK_LIST),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildBottomButton(
-                    icon: Icons.local_shipping_outlined,
-                    label: _isEnglishLocale ? 'Deliver Now' : '立即发货',
-                    background: null,
-                    foreground: Colors.white,
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 672),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildSteamConfirmButton(
+                      onTap: status == 2 && !_submitting ? _submit : null,
                     ),
-                    onTap: status == 2 && !_submitting ? _submit : null,
-                    trailing: _submitting
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : null,
-                  ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _isEnglishLocale
+                          ? 'STEAM MOBILE CONFIRMATION REQUIRED\nAPI KEY VERIFIED SECURE'
+                          : '需要前往 STEAM 手机端确认\nAPI KEY 已安全验证',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 7,
+                        fontWeight: FontWeight.w900,
+                        height: 11 / 7,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -899,38 +945,53 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     );
   }
 
-  Widget _buildBottomButton({
-    required IconData icon,
-    required String label,
-    required Color? background,
-    required Color foreground,
-    Gradient? gradient,
-    required VoidCallback? onTap,
-    Widget? trailing,
-  }) {
+  Widget _buildSteamConfirmButton({required VoidCallback? onTap}) {
     return Opacity(
       opacity: onTap == null ? 0.6 : 1,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          height: 48,
+          alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: background,
-            gradient: gradient,
-            borderRadius: BorderRadius.circular(8),
+            color: const Color(0xFF111827),
+            borderRadius: BorderRadius.circular(6),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x26000000),
+                blurRadius: 12,
+                offset: Offset(0, 6),
+              ),
+            ],
           ),
-          child: Column(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              trailing ?? Icon(icon, size: 20, color: foreground),
-              const SizedBox(height: 4),
+              _submitting
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.bolt_rounded,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+              const SizedBox(width: 8),
               Text(
-                label,
-                style: TextStyle(
-                  color: foreground,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  height: 16 / 12,
+                _isEnglishLocale
+                    ? 'Go to Steam APP to confirm'
+                    : '前往 Steam APP 确认',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  height: 18 / 13,
                 ),
               ),
             ],
@@ -965,23 +1026,141 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     return null;
   }
 
+  String _orderIdLabel(int? id) {
+    if (id == null) {
+      return _isEnglishLocale ? 'ORDER ID: --' : '订单 ID: --';
+    }
+    return _isEnglishLocale ? 'ORDER ID: $id' : '订单 ID: $id';
+  }
+
+  String _countLabel(int count) {
+    if (count > 99) {
+      return '99+';
+    }
+    return '$count';
+  }
+
+  bool _shouldUseOrderBatchPreview(ShopOrderItem order) {
+    final quantity = _orderItemQuantity(order);
+    if (quantity <= 1 || order.details.isEmpty) {
+      return false;
+    }
+    if (order.details.length == 1) {
+      return true;
+    }
+    final firstIdentity = _detailIdentity(order.details.first);
+    return order.details.skip(1).every((detail) {
+      return _detailIdentity(detail) == firstIdentity;
+    });
+  }
+
+  String _detailIdentity(ShopOrderDetail detail) {
+    final schemaId = detail.schemaId;
+    if (schemaId != null && schemaId > 0) {
+      return 'schema:$schemaId';
+    }
+    final hashName = (detail.marketHashName ?? '').trim();
+    if (hashName.isNotEmpty) {
+      return 'hash:$hashName';
+    }
+    final marketName = (detail.marketName ?? '').trim();
+    if (marketName.isNotEmpty) {
+      return 'name:$marketName';
+    }
+    final imageUrl = (detail.imageUrl ?? '').trim();
+    return 'image:$imageUrl';
+  }
+
+  int _orderItemQuantity(ShopOrderItem order) {
+    if (order.nums != null && order.nums! > 0) {
+      return order.nums!;
+    }
+    var total = 0;
+    for (final detail in order.details) {
+      total += detail.count ?? 1;
+    }
+    return total > 0 ? total : 1;
+  }
+
+  List<ShopOrderDetail> _orderPreviewDetails(ShopOrderItem order) {
+    final previews = <ShopOrderDetail>[];
+    for (final detail in order.details) {
+      final detailCount = detail.count ?? 1;
+      final repeat = detailCount > 0 ? detailCount : 1;
+      for (var index = 0; index < repeat; index++) {
+        previews.add(detail);
+        if (previews.length >= 3) {
+          return previews;
+        }
+      }
+    }
+    return previews;
+  }
+
+  double _orderTotalPrice(ShopOrderItem order) {
+    final orderTotal = order.totalPrice ?? order.price;
+    if (orderTotal != null) {
+      return orderTotal;
+    }
+    var total = 0.0;
+    for (final detail in order.details) {
+      total += detail.totalPrice ?? ((detail.price ?? 0) * (detail.count ?? 1));
+    }
+    return total;
+  }
+
+  String _detailTitle(ShopOrderDetail detail) {
+    final schema = _lookupSchema(detail);
+    return detail.marketName ??
+        detail.marketHashName ??
+        schema?.marketName ??
+        schema?.marketHashName ??
+        '-';
+  }
+
+  int? _resolveDetailAppId(ShopOrderDetail detail, ShopSchemaInfo? schema) {
+    final detailAppId = _asInt(detail.raw['app_id'] ?? detail.raw['appId']);
+    if (detailAppId != null) {
+      return detailAppId;
+    }
+    final schemaAppId = _asInt(schema?.raw['app_id'] ?? schema?.raw['appId']);
+    return schemaAppId ?? GameStorage.getGameType();
+  }
+
+  TagInfo? _schemaTag(ShopSchemaInfo? schema, String key) {
+    final tags = schema?.raw['tags'];
+    if (tags is Map) {
+      return TagInfo.fromRaw(tags[key]);
+    }
+    return null;
+  }
+
+  String? _detailText(ShopOrderDetail detail, List<String> keys) {
+    for (final key in keys) {
+      final value = detail.raw[key];
+      if (value != null && value.toString().trim().isNotEmpty) {
+        return value.toString();
+      }
+    }
+    return null;
+  }
+
+  List<GameItemSticker> _detailStickers(ShopOrderDetail detail) {
+    final rawAsset = detail.raw['asset'];
+    final rawCsgoAsset = detail.raw['csgoAsset'];
+    return parseStickerList(
+      detail.raw['stickers'] ??
+          (rawAsset is Map ? rawAsset['stickers'] : null) ??
+          (rawCsgoAsset is Map ? rawCsgoAsset['stickers'] : null),
+    );
+  }
+
   String? _paintWearText(ShopOrderDetail detail) {
     final value = detail.raw['paint_wear'] ?? detail.raw['paintWear'];
     if (value == null) {
       return null;
     }
     return value.toString();
-  }
-
-  double? _paintWearValue(ShopOrderDetail detail) {
-    final value = detail.raw['paint_wear'] ?? detail.raw['paintWear'];
-    if (value is num) {
-      return value.toDouble();
-    }
-    if (value != null) {
-      return double.tryParse(value.toString());
-    }
-    return detail.paintWear;
   }
 
   String _formatCurrency(double value, CurrencyController? currency) {
@@ -1005,22 +1184,6 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
       total += order.details.fold<int>(0, (sum, detail) {
         return sum + (detail.count ?? 1);
       });
-    }
-    return total;
-  }
-
-  double _totalAmount() {
-    var total = 0.0;
-    for (final order in _orders) {
-      final orderTotal = order.totalPrice ?? order.price;
-      if (orderTotal != null) {
-        total += orderTotal;
-        continue;
-      }
-      for (final detail in order.details) {
-        total +=
-            detail.totalPrice ?? ((detail.price ?? 0) * (detail.count ?? 1));
-      }
     }
     return total;
   }
