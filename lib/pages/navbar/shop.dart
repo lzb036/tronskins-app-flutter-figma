@@ -1809,72 +1809,64 @@ class _ShopPageState extends State<ShopPage>
   Widget _buildPendingLoadingCard() {
     return _buildPendingCardShell(
       padding: const EdgeInsets.all(16),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEDF1F4),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildLoadingLine(width: 72, height: 11, radius: 6),
-                    const SizedBox(height: 8),
-                    _buildLoadingLine(height: 16, radius: 8),
-                    const SizedBox(height: 10),
-                    _buildLoadingLine(width: 110, height: 16, radius: 8),
-                    const SizedBox(height: 12),
-                    _buildLoadingLine(width: 136, height: 11, radius: 6),
-                    const SizedBox(height: 6),
-                    _buildLoadingLine(width: 124, height: 11, radius: 6),
-                  ],
-                ),
-              ),
-            ],
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEDF1F4),
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
-          const SizedBox(height: 12),
-          _buildLoadingLine(width: 96, height: 24, radius: 999),
-          const SizedBox(height: 12),
-          Column(
-            children: [
-              _buildInsetPanel(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEDF1F4),
-                        borderRadius: BorderRadius.circular(8),
+          const SizedBox(width: 16),
+          Expanded(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 80),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildLoadingLine(width: 168, height: 16, radius: 8),
+                  const SizedBox(height: 8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLoadingLine(width: 64, height: 16, radius: 8),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 14,
+                                  height: 14,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFF2F4F6),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                _buildLoadingLine(
+                                  width: 52,
+                                  height: 11,
+                                  radius: 6,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(child: _buildLoadingLine(height: 12, radius: 8)),
-                    const SizedBox(width: 12),
-                    _buildLoadingLine(width: 34, height: 18, radius: 999),
-                  ],
-                ),
+                      const SizedBox(width: 12),
+                      _buildLoadingLine(width: 92, height: 40, radius: 8),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(child: _buildLoadingLine(height: 40, radius: 8)),
-              const SizedBox(width: 12),
-              _buildLoadingLine(width: 104, height: 40, radius: 8),
-            ],
+            ),
           ),
         ],
       ),
