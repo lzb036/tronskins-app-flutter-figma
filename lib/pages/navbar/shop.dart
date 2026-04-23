@@ -691,12 +691,81 @@ class _ShopPageState extends State<ShopPage>
     return total;
   }
 
-  int _pendingItemQuantity(ShopOrderItem order) {
-    if (order.nums != null && order.nums! > 0) {
+  List<ShopOrderDetail> _pendingVisibleDetails(ShopOrderItem order) {
+    return order.details
+        .where((detail) => !_isPendingHiddenAccessoryDetail(detail))
+        .toList(growable: false);
+  }
+
+  bool _isPendingHiddenAccessoryDetail(ShopOrderDetail detail) {
+    final schema = _lookupSchema(
+      orderController.schemas,
+      detail.marketHashName,
+      detail.schemaId,
+    );
+    final appId = _resolveDetailAppId(detail, schema);
+    final title = [
+      detail.marketName,
+      detail.marketHashName,
+      schema?.marketName,
+      schema?.marketHashName,
+    ].whereType<String>().join(' ').trim().toLowerCase();
+    if (appId == 730) {
+      return title.startsWith('sticker |') || title.contains(' sticker |');
+    }
+    if (appId == 570) {
+      return _isPendingDotaAccessoryDetail(title, schema);
+    }
+    return false;
+  }
+
+  bool _isPendingDotaAccessoryDetail(String title, ShopSchemaInfo? schema) {
+    final typeText = _pendingSchemaTagText(schema, const ['type', 'category']);
+    final searchable = '$title $typeText';
+    const accessoryPhrases = [
+      'inscribed gem',
+      'kinetic gem',
+      'prismatic gem',
+      'ethereal gem',
+      'ascendant gem',
+      'spectator gem',
+      'autograph rune',
+      'strange modifier',
+    ];
+    return accessoryPhrases.any(searchable.contains);
+  }
+
+  String _pendingSchemaTagText(ShopSchemaInfo? schema, List<String> keys) {
+    final tags = schema?.raw['tags'];
+    if (tags is! Map) {
+      return '';
+    }
+    final parts = <String>[];
+    for (final key in keys) {
+      final tag = tags[key];
+      if (tag is Map) {
+        parts.add(tag['name']?.toString() ?? '');
+        parts.add(tag['localized_name']?.toString() ?? '');
+        parts.add(tag['localizedName']?.toString() ?? '');
+      }
+    }
+    return parts
+        .where((part) => part.trim().isNotEmpty)
+        .join(' ')
+        .toLowerCase();
+  }
+
+  int _pendingItemQuantity(
+    ShopOrderItem order, {
+    List<ShopOrderDetail>? details,
+  }) {
+    final visibleDetails = details ?? _pendingVisibleDetails(order);
+    final isFullDetailList = visibleDetails.length == order.details.length;
+    if (isFullDetailList && order.nums != null && order.nums! > 0) {
       return order.nums!;
     }
     var total = 0;
-    for (final detail in order.details) {
+    for (final detail in visibleDetails) {
       total += detail.count ?? 1;
     }
     return total > 0 ? total : 1;
@@ -719,15 +788,16 @@ class _ShopPageState extends State<ShopPage>
   }
 
   bool _shouldUsePendingBatchPreview(ShopOrderItem order) {
-    final quantity = _pendingItemQuantity(order);
+    final details = _pendingVisibleDetails(order);
+    final quantity = _pendingItemQuantity(order, details: details);
     if (quantity <= 1) {
       return false;
     }
-    if (order.details.length <= 1) {
+    if (details.length <= 1) {
       return true;
     }
-    final baseIdentity = _pendingDetailIdentity(order.details.first);
-    for (final detail in order.details.skip(1)) {
+    final baseIdentity = _pendingDetailIdentity(details.first);
+    for (final detail in details.skip(1)) {
       if (_pendingDetailIdentity(detail) != baseIdentity) {
         return false;
       }
@@ -736,12 +806,13 @@ class _ShopPageState extends State<ShopPage>
   }
 
   List<ShopOrderDetail> _pendingPreviewDetails(ShopOrderItem order) {
-    if (order.details.isEmpty) {
+    final details = _pendingVisibleDetails(order);
+    if (details.isEmpty) {
       return const <ShopOrderDetail>[];
     }
     final previews = <ShopOrderDetail>[];
-    final quantity = _pendingItemQuantity(order);
-    for (final detail in order.details) {
+    final quantity = _pendingItemQuantity(order, details: details);
+    for (final detail in details) {
       final repeat = (detail.count ?? 1) > 0 ? (detail.count ?? 1) : 1;
       for (var index = 0; index < repeat; index++) {
         previews.add(detail);
@@ -751,7 +822,7 @@ class _ShopPageState extends State<ShopPage>
       }
     }
     while (previews.length < 3 && previews.length < quantity) {
-      previews.add(order.details.first);
+      previews.add(details.first);
     }
     return previews;
   }
@@ -2125,7 +2196,7 @@ class _ShopPageState extends State<ShopPage>
     required ShopOrderItem order,
     required CurrencyController currency,
   }) {
-    final details = order.details;
+    final details = _pendingVisibleDetails(order);
     final primary = details.isNotEmpty ? details.first : null;
     final primarySchema = primary == null
         ? null
@@ -2142,7 +2213,7 @@ class _ShopPageState extends State<ShopPage>
     final totalPrice = _sumOrderPrice(order);
     final isBatchPreview = _shouldUsePendingBatchPreview(order);
     final primaryCount = primary?.count ?? 1;
-    final totalItemCount = _pendingItemQuantity(order);
+    final totalItemCount = _pendingItemQuantity(order, details: details);
     final extraDetails = details.length > 1 ? details.sublist(1) : const [];
     final showCountdown = _showPendingCountdown(order);
     final deadlineMs = _pendingDeadlineMs(order);
