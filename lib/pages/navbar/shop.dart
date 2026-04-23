@@ -5,13 +5,11 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:tronskins_app/api/model/market/market_models.dart';
 import 'package:tronskins_app/api/model/shop/shop_models.dart';
-import 'package:tronskins_app/api/steam.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/hooks/game/global_game_controller.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
-import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/common/widgets/login_required_prompt.dart';
 import 'package:tronskins_app/components/game/game_switch_menu.dart';
 import 'package:tronskins_app/components/filter/filter_models.dart';
@@ -87,7 +85,6 @@ class _ShopPageState extends State<ShopPage>
       TextEditingController();
   final TextEditingController _recordSearchController = TextEditingController();
   final Set<int> _selectedIds = <int>{};
-  final Set<int> _refreshingPendingBuyerOrderIds = <int>{};
   Worker? _loginWorker;
   Worker? _shopTargetTabWorker;
   Worker? _shopStatusWorker;
@@ -694,6 +691,79 @@ class _ShopPageState extends State<ShopPage>
     return total;
   }
 
+  int _pendingItemQuantity(ShopOrderItem order) {
+    if (order.nums != null && order.nums! > 0) {
+      return order.nums!;
+    }
+    var total = 0;
+    for (final detail in order.details) {
+      total += detail.count ?? 1;
+    }
+    return total > 0 ? total : 1;
+  }
+
+  String _pendingDetailIdentity(ShopOrderDetail detail) {
+    final schemaId = detail.schemaId;
+    if (schemaId != null && schemaId > 0) {
+      return 'schema:$schemaId';
+    }
+    final marketHashName = (detail.marketHashName ?? '').trim();
+    if (marketHashName.isNotEmpty) {
+      return 'hash:$marketHashName';
+    }
+    final marketName = (detail.marketName ?? '').trim();
+    if (marketName.isNotEmpty) {
+      return 'name:$marketName';
+    }
+    return 'raw:${detail.hashCode}';
+  }
+
+  bool _shouldUsePendingBatchPreview(ShopOrderItem order) {
+    final quantity = _pendingItemQuantity(order);
+    if (quantity <= 1) {
+      return false;
+    }
+    if (order.details.length <= 1) {
+      return true;
+    }
+    final baseIdentity = _pendingDetailIdentity(order.details.first);
+    for (final detail in order.details.skip(1)) {
+      if (_pendingDetailIdentity(detail) != baseIdentity) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  List<ShopOrderDetail> _pendingPreviewDetails(ShopOrderItem order) {
+    if (order.details.isEmpty) {
+      return const <ShopOrderDetail>[];
+    }
+    final previews = <ShopOrderDetail>[];
+    final quantity = _pendingItemQuantity(order);
+    for (final detail in order.details) {
+      final repeat = (detail.count ?? 1) > 0 ? (detail.count ?? 1) : 1;
+      for (var index = 0; index < repeat; index++) {
+        previews.add(detail);
+        if (previews.length >= 3) {
+          return previews;
+        }
+      }
+    }
+    while (previews.length < 3 && previews.length < quantity) {
+      previews.add(order.details.first);
+    }
+    return previews;
+  }
+
+  String _pendingBatchCountLabel(ShopOrderItem order) {
+    final quantity = _pendingItemQuantity(order);
+    if (quantity > 99) {
+      return '99+';
+    }
+    return '$quantity';
+  }
+
   int _pendingShippingType(ShopOrderItem order) {
     for (final detail in order.details) {
       if (detail.type == 2) {
@@ -743,153 +813,22 @@ class _ShopPageState extends State<ShopPage>
     return _pendingRemainMs(order) > 0;
   }
 
-  int _pendingOrderKey(ShopOrderItem order) {
-    return order.id ?? order.hashCode;
-  }
-
-  ShopOrderItem _copyOrderWithUser(ShopOrderItem source, ShopUserInfo? user) {
-    return ShopOrderItem(
-      raw: source.raw,
-      id: source.id,
-      status: source.status,
-      statusName: source.statusName,
-      createTime: source.createTime,
-      changeTime: source.changeTime,
-      price: source.price,
-      totalPrice: source.totalPrice,
-      nums: source.nums,
-      protectionTime: source.protectionTime,
-      type: source.type,
-      tradeOfferId: source.tradeOfferId,
-      cancelDesc: source.cancelDesc,
-      buyerId: source.buyerId,
-      details: source.details,
-      user: user,
-    );
-  }
-
-  Future<void> _refreshPendingBuyer(ShopOrderItem order) async {
-    final buyerId = (order.buyerId ?? order.user?.id ?? '').trim();
-    if (buyerId.isEmpty) {
-      return;
-    }
-    final orderKey = _pendingOrderKey(order);
-    if (_refreshingPendingBuyerOrderIds.contains(orderKey)) {
-      return;
-    }
-    setState(() {
-      _refreshingPendingBuyerOrderIds.add(orderKey);
-    });
-    try {
-      final res = await ApiSteamServer().getSteamUserInfo(id: buyerId);
-      final data = res.datas;
-      if (res.code == 0 && data != null) {
-        final mergedUser = ShopUserInfo(
-          id: data['id']?.toString() ?? order.user?.id ?? buyerId,
-          uuid: data['uuid']?.toString() ?? order.user?.uuid,
-          avatar: data['avatar']?.toString() ?? order.user?.avatar,
-          nickname: data['nickname']?.toString() ?? order.user?.nickname,
-          level: _asInt(data['level']) ?? order.user?.level,
-          yearsLevel: _asInt(data['yearsLevel']) ?? order.user?.yearsLevel,
-        );
-        orderController.users[buyerId] = mergedUser;
-        final updated = orderController.pendingShipments
-            .map((item) {
-              final sameOrder = order.id != null && item.id == order.id;
-              final sameBuyer = item.buyerId == buyerId;
-              if (!sameOrder && !sameBuyer) {
-                return item;
-              }
-              return _copyOrderWithUser(item, mergedUser);
-            })
-            .toList(growable: false);
-        orderController.pendingShipments.assignAll(updated);
-        if (mounted) {
-          unawaited(
-            showGlassNoticeDialog(
-              context,
-              message: 'app.steam.message.refresh_info_success'.tr,
-              icon: Icons.check_circle_outline_rounded,
-              barrierLabel: 'refresh_pending_buyer_success',
-            ),
-          );
-        }
-      } else {
-        final dataText = _extractApiErrorText(data);
-        final message = (dataText?.isNotEmpty ?? false)
-            ? dataText!
-            : (res.message.trim().isNotEmpty
-                  ? res.message
-                  : 'app.trade.filter.failed'.tr);
-        if (mounted) {
-          unawaited(
-            showGlassNoticeDialog(
-              context,
-              message: message,
-              icon: Icons.error_outline_rounded,
-              barrierLabel: 'refresh_pending_buyer_failed',
-            ),
-          );
-        }
-      }
-    } catch (_) {
-      if (mounted) {
-        unawaited(
-          showGlassNoticeDialog(
-            context,
-            message: 'app.trade.filter.failed'.tr,
-            icon: Icons.error_outline_rounded,
-            barrierLabel: 'refresh_pending_buyer_failed',
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _refreshingPendingBuyerOrderIds.remove(orderKey);
-        });
-      }
-    }
-  }
-
-  String? _extractApiErrorText(Map<String, dynamic>? data) {
-    if (data == null) {
-      return null;
-    }
-    final candidates = [
-      data['_message'],
-      data['message'],
-      data['msg'],
-      data['datas'],
-      data['error'],
-    ];
-    for (final candidate in candidates) {
-      final text = candidate?.toString().trim();
-      if (text != null && text.isNotEmpty) {
-        return text;
-      }
-    }
-    return null;
-  }
-
-  Widget _buildPendingBuyerInfo(ShopOrderItem order) {
-    final user = order.user;
-    final nickname = (user?.nickname ?? '').trim();
-    final level = user?.level;
-    final yearsLevel = user?.yearsLevel;
-    final refreshing = _refreshingPendingBuyerOrderIds.contains(
-      _pendingOrderKey(order),
-    );
-    final buyerLabel = _isEnglishLocale ? 'Buyer' : 'app.market.buyer'.tr;
-    final displayName = nickname.isEmpty ? '-' : nickname;
-
+  Widget _buildPendingInlineCountdown(ShopOrderItem order, int? deadlineMs) {
+    final showCountdown = deadlineMs != null && deadlineMs > 0;
     return _buildPendingMetaLine(
-      icon: Icons.person_outline_rounded,
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              '$buyerLabel: $displayName',
+      icon: Icons.schedule_rounded,
+      child: showCountdown
+          ? _PendingShipmentCountdown(
+              endTimeMs: deadlineMs,
+              style: const TextStyle(
+                color: Color(0xFF444653),
+                fontSize: 11,
+                height: 16.5 / 11,
+                fontWeight: FontWeight.w400,
+              ),
+            )
+          : Text(
+              _formatTime(order.createTime),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -899,72 +838,6 @@ class _ShopPageState extends State<ShopPage>
                 fontWeight: FontWeight.w400,
               ),
             ),
-          ),
-          if (level != null) ...[
-            const SizedBox(width: 4),
-            Container(
-              height: 20,
-              constraints: const BoxConstraints(minWidth: 20),
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0x1F444653)),
-                borderRadius: BorderRadius.circular(999),
-                color: Colors.white,
-              ),
-              child: Text(
-                '$level',
-                style: const TextStyle(
-                  color: Color(0xFF444653),
-                  fontSize: 10,
-                  height: 14 / 10,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-          if (yearsLevel != null) ...[
-            const SizedBox(width: 4),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: Image.network(
-                'https://community.cloudflare.steamstatic.com/public/images/badges/02_years/steamyears${yearsLevel}_80.png',
-                width: 20,
-                height: 20,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-              ),
-            ),
-          ],
-          if (user != null) ...[
-            const SizedBox(width: 4),
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(999),
-                onTap: refreshing ? null : () => _refreshPendingBuyer(order),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: Center(
-                    child: refreshing
-                        ? const SizedBox(
-                            width: 10,
-                            height: 10,
-                            child: CircularProgressIndicator(strokeWidth: 1.8),
-                          )
-                        : const Icon(
-                            Icons.refresh_rounded,
-                            size: 14,
-                            color: Color(0xFF00288E),
-                          ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
     );
   }
 
@@ -1038,7 +911,7 @@ class _ShopPageState extends State<ShopPage>
     final status = order.status;
     if (status == 2) {
       return _buildPendingActionButton(
-        label: 'app.market.product.deliver'.tr,
+        label: _isEnglishLocale ? 'Delivery' : '发货',
         primary: true,
         onTap: () => _openDeliverGoodsPage(order),
       );
@@ -2275,11 +2148,9 @@ class _ShopPageState extends State<ShopPage>
         primary?.marketHashName ??
         '-';
     final totalPrice = _sumOrderPrice(order);
+    final isBatchPreview = _shouldUsePendingBatchPreview(order);
     final primaryCount = primary?.count ?? 1;
-    final totalItemCount = details.fold<int>(
-      0,
-      (sum, detail) => sum + (detail.count ?? 1),
-    );
+    final totalItemCount = _pendingItemQuantity(order);
     final extraDetails = details.length > 1 ? details.sublist(1) : const [];
     final showCountdown = _showPendingCountdown(order);
     final deadlineMs = _pendingDeadlineMs(order);
@@ -2293,12 +2164,18 @@ class _ShopPageState extends State<ShopPage>
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildPendingPreview(detail: primary, schema: primarySchema),
+              _buildPendingPreview(
+                order: order,
+                detail: primary,
+                schema: primarySchema,
+                useBatchPreview: isBatchPreview,
+              ),
               const SizedBox(width: 16),
               Expanded(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(minHeight: 80),
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
@@ -2318,7 +2195,7 @@ class _ShopPageState extends State<ShopPage>
                               ),
                             ),
                           ),
-                          if (primaryCount > 1) ...[
+                          if (!isBatchPreview && primaryCount > 1) ...[
                             const SizedBox(width: 8),
                             _buildInfoChip(
                               text: 'x$primaryCount',
@@ -2328,34 +2205,42 @@ class _ShopPageState extends State<ShopPage>
                           ],
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        currency.format(totalPrice),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFFBA1A1A),
-                          fontSize: 16,
-                          height: 24 / 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
                       const SizedBox(height: 8),
-                      _buildPendingBuyerInfo(order),
-                      const SizedBox(height: 4),
-                      _buildPendingMetaLine(
-                        icon: Icons.access_time_rounded,
-                        child: Text(
-                          _formatTime(order.createTime),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF444653),
-                            fontSize: 11,
-                            height: 16.5 / 11,
-                            fontWeight: FontWeight.w400,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  currency.format(totalPrice),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Color(0xFFBA1A1A),
+                                    fontSize: 16,
+                                    height: 24 / 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                _buildPendingInlineCountdown(
+                                  order,
+                                  showCountdown ? deadlineMs : null,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 12),
+                          ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minWidth: _isEnglishLocale ? 92 : 84,
+                              maxWidth: _isEnglishLocale ? 100 : 92,
+                            ),
+                            child: _buildPendingStatusAction(order),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -2374,7 +2259,8 @@ class _ShopPageState extends State<ShopPage>
                 fontWeight: FontWeight.w500,
               ),
             ),
-          ] else if (extraDetails.isNotEmpty || primaryCount > 1) ...[
+          ] else if (!isBatchPreview &&
+              (extraDetails.isNotEmpty || primaryCount > 1)) ...[
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -2388,7 +2274,7 @@ class _ShopPageState extends State<ShopPage>
               ],
             ),
           ],
-          if (extraDetails.isNotEmpty) ...[
+          if (!isBatchPreview && extraDetails.isNotEmpty) ...[
             const SizedBox(height: 12),
             Column(
               children: extraDetails.asMap().entries.map((entry) {
@@ -2401,24 +2287,16 @@ class _ShopPageState extends State<ShopPage>
               }).toList(),
             ),
           ],
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(child: _buildPendingStatusAction(order)),
-              if (showCountdown) ...[
-                const SizedBox(width: 12),
-                _buildPendingCountdownBadge(deadlineMs),
-              ],
-            ],
-          ),
         ],
       ),
     );
   }
 
   Widget _buildPendingPreview({
+    required ShopOrderItem order,
     required ShopOrderDetail? detail,
     required ShopSchemaInfo? schema,
+    required bool useBatchPreview,
   }) {
     if (detail == null) {
       return Container(
@@ -2434,6 +2312,10 @@ class _ShopPageState extends State<ShopPage>
           color: Color(0xFF94A3B8),
         ),
       );
+    }
+
+    if (useBatchPreview) {
+      return _buildPendingBatchPreview(order);
     }
 
     final appId = _resolveDetailAppId(detail, schema);
@@ -2461,6 +2343,134 @@ class _ShopPageState extends State<ShopPage>
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPendingBatchPreview(ShopOrderItem order) {
+    final previewDetails = _pendingPreviewDetails(order);
+    if (previewDetails.isEmpty) {
+      return _buildPendingPreview(
+        order: order,
+        detail: null,
+        schema: null,
+        useBatchPreview: false,
+      );
+    }
+    const tileSize = 80.0;
+    const horizontalPeek = 8.0;
+    const verticalPeek = 4.0;
+    const badgeSize = 24.0;
+    const badgeOverlap = 8.0;
+    final stackCount = previewDetails.length > 3 ? 3 : previewDetails.length;
+    final width = tileSize + ((stackCount - 1) * horizontalPeek);
+    final height = tileSize + ((stackCount - 1) * verticalPeek);
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          for (var layer = stackCount - 1; layer >= 0; layer--)
+            Positioned(
+              left: layer * horizontalPeek,
+              top: layer * verticalPeek,
+              child: _buildPendingBatchPreviewTile(
+                previewDetails[layer],
+                isFront: layer == 0,
+                opacity: layer == 0 ? 1 : (layer == 1 ? 0.74 : 0.52),
+              ),
+            ),
+          Positioned(
+            left: tileSize - badgeSize + badgeOverlap,
+            top: -badgeOverlap,
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 24),
+              height: 24,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00288E),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.white, width: 1.5),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x1A0F172A),
+                    blurRadius: 15,
+                    offset: Offset(0, 4),
+                    spreadRadius: -2,
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                _pendingBatchCountLabel(order),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  height: 1,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPendingBatchPreviewTile(
+    ShopOrderDetail detail, {
+    required bool isFront,
+    required double opacity,
+  }) {
+    final schema = _lookupSchema(
+      orderController.schemas,
+      detail.marketHashName,
+      detail.schemaId,
+    );
+    final appId = _resolveDetailAppId(detail, schema);
+    final imageUrl = detail.imageUrl ?? schema?.imageUrl ?? '';
+    final rarity = _schemaTag(schema, 'rarity');
+    final quality = _schemaTag(schema, 'quality');
+
+    return Container(
+      width: 80,
+      height: 80,
+      decoration: BoxDecoration(
+        color: isFront ? const Color(0xFFECEEF0) : const Color(0xFFE6E8EA),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: isFront
+            ? const [
+                BoxShadow(
+                  color: Color(0x1A000000),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+                BoxShadow(
+                  color: Color(0x1A000000),
+                  blurRadius: 4,
+                  offset: Offset(0, 1),
+                  spreadRadius: -2,
+                ),
+              ]
+            : const [
+                BoxShadow(
+                  color: Color(0x0D000000),
+                  blurRadius: 2,
+                  offset: Offset(0, 1),
+                ),
+              ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Opacity(
+        opacity: opacity,
+        child: GameItemImage(
+          imageUrl: imageUrl,
+          appId: appId,
+          rarity: rarity,
+          quality: quality,
+          showTopBadges: false,
         ),
       ),
     );
@@ -2536,37 +2546,6 @@ class _ShopPageState extends State<ShopPage>
         const SizedBox(width: 4),
         Expanded(child: child),
       ],
-    );
-  }
-
-  Widget _buildPendingCountdownBadge(int deadlineMs) {
-    return Container(
-      height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF3F5F7),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.schedule_rounded,
-            size: 14,
-            color: Color(0xFF6B7280),
-          ),
-          const SizedBox(width: 6),
-          _PendingShipmentCountdown(
-            endTimeMs: deadlineMs,
-            style: const TextStyle(
-              color: Color(0xFF444653),
-              fontSize: 12,
-              height: 18 / 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
