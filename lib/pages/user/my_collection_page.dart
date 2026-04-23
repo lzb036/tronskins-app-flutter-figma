@@ -1,9 +1,8 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/api/market.dart';
+import 'package:tronskins_app/api/model/market/market_models.dart';
 import 'package:tronskins_app/api/model/user/collection_models.dart';
 import 'package:tronskins_app/api/shop_product.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
@@ -13,16 +12,143 @@ import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/login_required_prompt.dart';
 import 'package:tronskins_app/components/filter/filter_models.dart';
 import 'package:tronskins_app/components/filter/market_filter_sheet.dart';
-import 'package:tronskins_app/components/game/game_switch_menu.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/game_item/game_item_utils.dart';
-import 'package:tronskins_app/components/game_item/gem_row.dart';
-import 'package:tronskins_app/components/game_item/sticker_row.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 import 'package:tronskins_app/components/layout/list_end_tip.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
+
+String _collectionText({required String zh, required String en}) {
+  final languageCode = Get.locale?.languageCode.toLowerCase();
+  return languageCode == 'zh' ? zh : en;
+}
+
+String _collectionTitle(String? marketHashName, String? marketName) {
+  final title = marketHashName?.trim() ?? '';
+  if (title.isNotEmpty) {
+    return title;
+  }
+  final fallback = marketName?.trim() ?? '';
+  return fallback.isNotEmpty ? fallback : '--';
+}
+
+String _formatCollectionPrice(double? price) {
+  if (price == null) {
+    return '--';
+  }
+  try {
+    return CurrencyController.to.format(price);
+  } catch (_) {
+    return '\$ ${price.toStringAsFixed(2)}';
+  }
+}
+
+double? _parsePaintWear(String? value) {
+  if (value == null || value.isEmpty) {
+    return null;
+  }
+  return double.tryParse(value);
+}
+
+enum _CollectionVisualMode { category, single }
+
+enum _CollectionSortChoice {
+  defaultOrder,
+  priceAsc,
+  priceDesc;
+
+  String get sortField {
+    switch (this) {
+      case _CollectionSortChoice.defaultOrder:
+        return '';
+      case _CollectionSortChoice.priceAsc:
+      case _CollectionSortChoice.priceDesc:
+        return 'price';
+    }
+  }
+
+  bool get sortAsc {
+    switch (this) {
+      case _CollectionSortChoice.defaultOrder:
+        return false;
+      case _CollectionSortChoice.priceAsc:
+        return true;
+      case _CollectionSortChoice.priceDesc:
+        return false;
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case _CollectionSortChoice.defaultOrder:
+        return _collectionText(zh: '默认排序', en: 'Default');
+      case _CollectionSortChoice.priceAsc:
+        return _collectionText(zh: '价格从低到高', en: 'Price Low to High');
+      case _CollectionSortChoice.priceDesc:
+        return _collectionText(zh: '价格从高到低', en: 'Price High to Low');
+    }
+  }
+
+  static _CollectionSortChoice fromFilter({
+    required String field,
+    required bool asc,
+  }) {
+    if (field == 'price') {
+      return asc
+          ? _CollectionSortChoice.priceAsc
+          : _CollectionSortChoice.priceDesc;
+    }
+    return _CollectionSortChoice.defaultOrder;
+  }
+}
+
+class _CollectionGameOption {
+  const _CollectionGameOption({
+    required this.appId,
+    required this.label,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  final int appId;
+  final String label;
+  final String subtitle;
+  final IconData icon;
+}
+
+const List<_CollectionGameOption> _collectionGameOptions =
+    <_CollectionGameOption>[
+      _CollectionGameOption(
+        appId: 730,
+        label: 'CS2',
+        subtitle: 'Counter-Strike 2',
+        icon: Icons.sports_esports_outlined,
+      ),
+      _CollectionGameOption(
+        appId: 570,
+        label: 'DOTA2',
+        subtitle: 'Defense of the Ancients',
+        icon: Icons.auto_awesome_outlined,
+      ),
+      _CollectionGameOption(
+        appId: 440,
+        label: 'TF2',
+        subtitle: 'Team Fortress 2',
+        icon: Icons.extension_outlined,
+      ),
+    ];
+
+class _CollectionAccessoryPreviewData {
+  const _CollectionAccessoryPreviewData({
+    required this.imageUrl,
+    this.borderColor,
+  });
+
+  final String imageUrl;
+  final Color? borderColor;
+}
 
 class MyCollectionPage extends StatefulWidget {
   const MyCollectionPage({super.key});
@@ -51,8 +177,6 @@ class _MyCollectionPageState extends State<MyCollectionPage>
     _appId = _globalGameController.appId;
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(_handleTabChange);
-    _categoryControls.searchController.addListener(_handleTopBarChanged);
-    _favoriteControls.searchController.addListener(_handleTopBarChanged);
     _gameWorker = ever<int>(_globalGameController.currentAppId, (appId) {
       if (!mounted || appId == _appId) {
         return;
@@ -65,8 +189,6 @@ class _MyCollectionPageState extends State<MyCollectionPage>
   void dispose() {
     _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
-    _categoryControls.searchController.removeListener(_handleTopBarChanged);
-    _favoriteControls.searchController.removeListener(_handleTopBarChanged);
     _gameWorker?.dispose();
     _categoryControls.dispose();
     _favoriteControls.dispose();
@@ -106,15 +228,147 @@ class _MyCollectionPageState extends State<MyCollectionPage>
     _handleTopBarChanged();
   }
 
-  Future<void> _showGameMenu(BuildContext iconContext) async {
-    final result = await showGameSwitchMenu(
-      iconContext: iconContext,
-      currentAppId: _appId,
-    );
-    if (result == null || result == _appId) {
+  void _switchTab(int index) {
+    if (_currentTabIndex == index) {
       return;
     }
-    await _globalGameController.switchGame(result);
+    _tabController.animateTo(
+      index,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  Future<void> _applyActiveSort({
+    required String sortField,
+    required bool sortAsc,
+  }) async {
+    await _activeTabHandle?.applyQuickSort(
+      sortField: sortField,
+      sortAsc: sortAsc,
+    );
+    _handleTopBarChanged();
+  }
+
+  Future<void> _resetActiveFilters() async {
+    await _activeTabHandle?.resetFilters();
+    _handleTopBarChanged();
+  }
+
+  Future<void> _openActiveSearchDialog() async {
+    final initialKeyword = _activeTabHandle?.currentKeyword ?? '';
+    final textController = TextEditingController(text: initialKeyword);
+    final submitted = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        final colors = Theme.of(dialogContext).colorScheme;
+        return AlertDialog(
+          title: Text(_collectionText(zh: '搜索收藏', en: 'Search Collection')),
+          content: TextField(
+            controller: textController,
+            autofocus: true,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (value) =>
+                Navigator.of(dialogContext).pop(value.trim()),
+            decoration: InputDecoration(
+              hintText: 'app.market.filter.search'.tr,
+              filled: true,
+              fillColor: colors.surfaceContainerHighest,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text('app.common.cancel'.tr),
+            ),
+            if (initialKeyword.trim().isNotEmpty)
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(''),
+                child: Text('app.market.filter.clear'.tr),
+              ),
+            TextButton(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(textController.text.trim()),
+              child: Text('app.market.filter.search'.tr),
+            ),
+          ],
+        );
+      },
+    );
+    textController.dispose();
+    if (submitted == null) {
+      return;
+    }
+    _activeControls.searchController.text = submitted;
+    await _submitActiveSearch(submitted);
+  }
+
+  Future<void> _openCollectionActions() async {
+    final handle = _activeTabHandle;
+    if (handle == null) {
+      return;
+    }
+    final currentSortField = handle.currentFilter.sortField;
+    final currentSortAsc = handle.currentFilter.sortAsc;
+    final currentKeyword = handle.currentKeyword.trim();
+    final hasActiveFilter = handle.hasActiveFilter;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return _CollectionActionSheet(
+          currentAppId: _appId,
+          currentKeyword: currentKeyword,
+          hasActiveFilter: hasActiveFilter,
+          selectedSort: _CollectionSortChoice.fromFilter(
+            field: currentSortField,
+            asc: currentSortAsc,
+          ),
+          onSelectGame: (appId) async {
+            Navigator.of(sheetContext).pop();
+            if (appId == _appId) {
+              return;
+            }
+            await _globalGameController.switchGame(appId);
+          },
+          onSearch: () async {
+            Navigator.of(sheetContext).pop();
+            await _openActiveSearchDialog();
+          },
+          onSortSelected: (choice) async {
+            Navigator.of(sheetContext).pop();
+            await _applyActiveSort(
+              sortField: choice.sortField,
+              sortAsc: choice.sortAsc,
+            );
+          },
+          onAdvancedFilter: () async {
+            Navigator.of(sheetContext).pop();
+            await _openActiveFilterSheet();
+          },
+          onReset: hasActiveFilter
+              ? () async {
+                  Navigator.of(sheetContext).pop();
+                  await _resetActiveFilters();
+                }
+              : null,
+        );
+      },
+    );
   }
 
   Widget _buildLoginPrompt() {
@@ -122,128 +376,23 @@ class _MyCollectionPageState extends State<MyCollectionPage>
   }
 
   Widget _buildTopSection() {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? colors.surface : Colors.white,
-        border: Border(
-          bottom: BorderSide(color: colors.outline.withValues(alpha: 0.08)),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            offset: const Offset(0, 3),
-            blurRadius: 6,
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      child: Row(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final dragWidth = constraints.maxWidth;
-                final maxIndex = (_tabController.length - 1).toDouble();
-
-                void settleToClosestTab() {
-                  if (_tabController.indexIsChanging) {
-                    return;
-                  }
-                  final value =
-                      _tabController.animation?.value ??
-                      _tabController.index.toDouble();
-                  final targetIndex = value.round().clamp(
-                    0,
-                    _tabController.length - 1,
-                  );
-                  if (targetIndex == _tabController.index) {
-                    _tabController.offset = 0;
-                    return;
-                  }
-                  _tabController.animateTo(
-                    targetIndex,
-                    duration: const Duration(milliseconds: 180),
-                    curve: Curves.easeOutCubic,
-                  );
-                }
-
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onHorizontalDragUpdate: (details) {
-                    if (_tabController.indexIsChanging || dragWidth <= 0) {
-                      return;
-                    }
-                    final currentValue =
-                        _tabController.animation?.value ??
-                        _tabController.index.toDouble();
-                    final nextValue =
-                        (currentValue - (details.delta.dx / dragWidth))
-                            .clamp(0.0, maxIndex)
-                            .toDouble();
-                    final nextOffset = (nextValue - _tabController.index)
-                        .clamp(-1.0, 1.0)
-                        .toDouble();
-                    if (nextOffset >= 0.98 &&
-                        _tabController.index < _tabController.length - 1) {
-                      _tabController.index = _tabController.index + 1;
-                      _tabController.offset = 0;
-                      return;
-                    }
-                    if (nextOffset <= -0.98 && _tabController.index > 0) {
-                      _tabController.index = _tabController.index - 1;
-                      _tabController.offset = 0;
-                      return;
-                    }
-                    _tabController.offset = nextOffset;
-                  },
-                  onHorizontalDragEnd: (_) => settleToClosestTab(),
-                  onHorizontalDragCancel: settleToClosestTab,
-                  child: TabBar(
-                    controller: _tabController,
-                    isScrollable: false,
-                    indicatorSize: TabBarIndicatorSize.tab,
-                    indicator: BoxDecoration(
-                      color: colors.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    dividerColor: Colors.transparent,
-                    labelColor: colors.primary,
-                    unselectedLabelColor: colors.onSurface.withValues(
-                      alpha: 0.6,
-                    ),
-                    labelStyle: theme.textTheme.labelMedium?.copyWith(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      height: 1,
-                    ),
-                    unselectedLabelStyle: theme.textTheme.labelMedium?.copyWith(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      height: 1,
-                    ),
-                    splashBorderRadius: BorderRadius.circular(16),
-                    tabs: [
-                      Tab(height: 30, text: 'app.user.collection.category'.tr),
-                      Tab(height: 30, text: 'app.user.collection.single'.tr),
-                    ],
-                  ),
-                );
-              },
-            ),
+          _CollectionTabPill(
+            label: 'app.user.collection.category'.tr,
+            icon: Icons.widgets_outlined,
+            active: _isCategoryTab,
+            onTap: () => _switchTab(0),
           ),
-          _CollectionSearchBar(
-            controller: _activeControls.searchController,
-            onSubmitted: _submitActiveSearch,
-            onSearch: _submitActiveSearch,
-            onFilter: _openActiveFilterSheet,
-            filterActive: _activeControls.hasActiveFilter,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+          const SizedBox(width: 12),
+          _CollectionTabPill(
+            label: 'app.user.collection.single'.tr,
+            icon: Icons.bookmarks_outlined,
+            active: !_isCategoryTab,
+            onTap: () => _switchTab(1),
           ),
-          const SizedBox(height: 6),
         ],
       ),
     );
@@ -256,23 +405,15 @@ class _MyCollectionPageState extends State<MyCollectionPage>
       return BackToTopScope(
         enabled: false,
         child: Scaffold(
+          backgroundColor: const Color(0xFFF7F9FB),
           appBar: SettingsStyleAppBar(
             title: Text('app.user.menu.collection'.tr),
             actions: loggedIn
                 ? [
-                    Builder(
-                      builder: (iconContext) => IconButton(
-                        onPressed: () => _showGameMenu(iconContext),
-                        icon: ClipRRect(
-                          borderRadius: BorderRadius.circular(999),
-                          child: Image.asset(
-                            'assets/images/game/icon/$_appId.png',
-                            width: 24,
-                            height: 24,
-                            errorBuilder: (context, _, __) =>
-                                const Icon(Icons.games),
-                          ),
-                        ),
+                    IconButton(
+                      onPressed: _openCollectionActions,
+                      icon: _CollectionOverflowIcon(
+                        highlighted: _activeControls.hasActiveFilter,
                       ),
                     ),
                   ]
@@ -335,8 +476,15 @@ class _CollectionTabControls {
 abstract class _CollectionTabHandle {
   TextEditingController get searchController;
   bool get hasActiveFilter;
+  MarketFilterResult get currentFilter;
+  String get currentKeyword;
   Future<void> submitSearch([String? value]);
   Future<void> clearSearch();
+  Future<void> applyQuickSort({
+    required String sortField,
+    required bool sortAsc,
+  });
+  Future<void> resetFilters();
   Future<void> openFilter(int appId);
 }
 
@@ -374,6 +522,12 @@ abstract class _BaseCollectionTabState<T extends StatefulWidget>
 
   @override
   bool get hasActiveFilter => controls.hasActiveFilter;
+
+  @override
+  MarketFilterResult get currentFilter => filter;
+
+  @override
+  String get currentKeyword => keyword;
 
   @override
   bool get wantKeepAlive => true;
@@ -436,6 +590,35 @@ abstract class _BaseCollectionTabState<T extends StatefulWidget>
   Future<void> clearSearch() => submitSearch('');
 
   @override
+  Future<void> applyQuickSort({
+    required String sortField,
+    required bool sortAsc,
+  }) async {
+    filter = MarketFilterResult(
+      sortField: sortField,
+      sortAsc: sortAsc,
+      priceMin: filter.priceMin,
+      priceMax: filter.priceMax,
+      tags: filter.tags,
+      itemName: filter.itemName,
+      statusList: filter.statusList,
+      startDate: filter.startDate,
+      endDate: filter.endDate,
+    );
+    notifyControlsChanged();
+    await loadData(refresh: true);
+  }
+
+  @override
+  Future<void> resetFilters() async {
+    keyword = '';
+    searchController.clear();
+    filter = const MarketFilterResult(sortField: '', sortAsc: false);
+    notifyControlsChanged();
+    await loadData(refresh: true);
+  }
+
+  @override
   Future<void> openFilter(int appId) async {
     final result = await MarketFilterSheet.showFromRight(
       context: context,
@@ -443,7 +626,7 @@ abstract class _BaseCollectionTabState<T extends StatefulWidget>
       sortOptions: sortOptions,
       initial: filter,
       showPriceRange: true,
-      showSort: true,
+      showSort: false,
     );
     if (result == null) {
       return;
@@ -611,140 +794,38 @@ class _CollectionCategoryTabState
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final currency = Get.find<CurrencyController>();
+    final showSuggestions = !hasMore && !loadingMore && _items.isNotEmpty;
     return BackToTopScope(
       enabled: true,
       child: loading
-          ? const _CollectionLoadingState()
+          ? const _CollectionLoadingState(mode: _CollectionVisualMode.category)
           : RefreshIndicator(
               onRefresh: () => loadData(refresh: true),
               child: _items.isEmpty
                   ? const _CollectionEmptyState()
-                  : ListView.separated(
+                  : ListView(
                       controller: scrollController,
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
-                      itemCount: _items.length + 1,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        if (index >= _items.length) {
-                          return _CollectionFooter(
-                            showLoading: loadingMore,
-                            showNoMore: !hasMore,
-                          );
-                        }
-                        final item = _items[index];
-                        final rarity = TagInfo.fromMarketTag(item.tags?.rarity);
-                        final quality = TagInfo.fromMarketTag(
-                          item.tags?.quality,
-                        );
-                        final exterior = TagInfo.fromMarketTag(
-                          item.tags?.exterior,
-                        );
-                        final saleLabel = Get.locale?.languageCode == 'en'
-                            ? 'Sale'
-                            : 'app.trade.sale.text'.tr;
-                        return Card(
-                          margin: EdgeInsets.zero,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.zero,
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+                      children: [
+                        for (var i = 0; i < _items.length; i++) ...[
+                          _CollectionCategoryCard(
+                            item: _items[i],
+                            onTap: () => _openDetail(_items[i]),
                           ),
-                          clipBehavior: Clip.antiAlias,
-                          child: InkWell(
-                            onTap: () => _openDetail(item),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(
-                                    width: 84,
-                                    height: 52,
-                                    child: GameItemImage(
-                                      imageUrl: item.imageUrl,
-                                      appId: item.appId,
-                                      rarity: rarity,
-                                      quality: quality,
-                                      exterior: exterior,
-                                      avoidTopLeftBadgeOverlap: true,
-                                      compactTopLeftBadges: true,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                item.marketName ?? '',
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .titleSmall
-                                                    ?.copyWith(
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Icon(
-                                              Icons.chevron_right,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.onSurfaceVariant,
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 10),
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              flex: 9,
-                                              child: _CollectionInlinePrice(
-                                                label: saleLabel,
-                                                valueBuilder: () =>
-                                                    currency.format(
-                                                      item.sellMinPrice ?? 0,
-                                                    ),
-                                                valueColor: Theme.of(
-                                                  context,
-                                                ).colorScheme.primary,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Expanded(
-                                              flex: 10,
-                                              child: _CollectionInlinePrice(
-                                                label: 'app.trade.purchase.text'
-                                                    .tr,
-                                                valueBuilder: () =>
-                                                    currency.format(
-                                                      item.buyMaxPrice ?? 0,
-                                                    ),
-                                                valueColor: Theme.of(
-                                                  context,
-                                                ).colorScheme.secondary,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
+                          if (i != _items.length - 1)
+                            const SizedBox(height: 16),
+                        ],
+                        if (showSuggestions) ...[
+                          const SizedBox(height: 28),
+                          const _CollectionSuggestionSection(),
+                        ],
+                        const SizedBox(height: 10),
+                        _CollectionFooter(
+                          showLoading: loadingMore,
+                          showNoMore: !hasMore,
+                        ),
+                      ],
                     ),
             ),
     );
@@ -913,591 +994,515 @@ class _CollectionFavoriteTabState
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final currency = Get.find<CurrencyController>();
+    final showSuggestions = !hasMore && !loadingMore && _items.isNotEmpty;
     return BackToTopScope(
       enabled: true,
       child: loading
-          ? const _CollectionLoadingState()
+          ? const _CollectionLoadingState(mode: _CollectionVisualMode.single)
           : RefreshIndicator(
               onRefresh: () => loadData(refresh: true),
               child: _items.isEmpty
                   ? const _CollectionEmptyState()
-                  : ListView.separated(
+                  : ListView(
                       controller: scrollController,
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
-                      itemCount: _items.length + 1,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        if (index >= _items.length) {
-                          return _CollectionFooter(
-                            showLoading: loadingMore,
-                            showNoMore: !hasMore,
-                          );
-                        }
-                        final item = _items[index];
-                        final rarity = TagInfo.fromMarketTag(item.tags?.rarity);
-                        final quality = TagInfo.fromMarketTag(
-                          item.tags?.quality,
-                        );
-                        final exterior = TagInfo.fromMarketTag(
-                          item.tags?.exterior,
-                        );
-                        final wearAccentColor = parseHexColor(exterior?.color);
-                        final stickers = parseStickerList(item.stickerRaw);
-                        final keychains = parseStickerList(item.keychainRaw);
-                        final gems = parseGemList(item.gemRaw);
-                        final paintWearValue = double.tryParse(
-                          item.paintWear ?? '',
-                        );
-                        final rawStatusName =
-                            (item.raw['statusName'] ?? item.raw['status_name'])
-                                ?.toString()
-                                .trim() ??
-                            '';
-                        final showStatus = item.hasStatusTag;
-                        final hasAccessories =
-                            stickers.isNotEmpty ||
-                            keychains.isNotEmpty ||
-                            gems.isNotEmpty;
-                        return Card(
-                          margin: EdgeInsets.zero,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.zero,
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+                      children: [
+                        for (var i = 0; i < _items.length; i++) ...[
+                          _CollectionFavoriteCard(
+                            item: _items[i],
+                            onTap: () => _openDetail(_items[i]),
+                            onCancel: () => _cancelFavorite(_items[i]),
                           ),
-                          clipBehavior: Clip.antiAlias,
-                          child: InkWell(
-                            onTap: () => _openDetail(item),
-                            child: Padding(
-                              padding: const EdgeInsets.all(10),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      SizedBox(
-                                        width: 84,
-                                        height: 52,
-                                        child: GameItemImage(
-                                          imageUrl: item.imageUrl,
-                                          appId: item.appId,
-                                          rarity: rarity,
-                                          quality: quality,
-                                          exterior: exterior,
-                                          percentage: item.percentage,
-                                          phase: item.phase,
-                                          avoidTopLeftBadgeOverlap: true,
-                                          compactTopLeftBadges: true,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    item.marketName ?? '',
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: Theme.of(context)
-                                                        .textTheme
-                                                        .titleSmall
-                                                        ?.copyWith(
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          height: 1.15,
-                                                        ),
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 8),
-                                                _CollectionInlineActionChip(
-                                                  label:
-                                                      'app.user.collection.uncollect'
-                                                          .tr,
-                                                  onPressed: () =>
-                                                      _cancelFavorite(item),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 6),
-                                            Row(
-                                              children: [
-                                                if (showStatus &&
-                                                    rawStatusName
-                                                        .isNotEmpty) ...[
-                                                  _CollectionStatusBadge(
-                                                    text: rawStatusName,
-                                                    status: item.status,
-                                                  ),
-                                                  const SizedBox(width: 6),
-                                                ],
-                                                Expanded(
-                                                  child: Obx(
-                                                    () => Text(
-                                                      currency.format(
-                                                        item.price ?? 0,
-                                                      ),
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: Theme.of(context)
-                                                          .textTheme
-                                                          .titleSmall
-                                                          ?.copyWith(
-                                                            color:
-                                                                Theme.of(
-                                                                      context,
-                                                                    )
-                                                                    .colorScheme
-                                                                    .primary,
-                                                            fontWeight:
-                                                                FontWeight.w700,
-                                                            height: 1.1,
-                                                          ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  if ((item.paintWear?.isNotEmpty ??
-                                      false)) ...[
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      '${'app.market.csgo.abradability'.tr}: '
-                                      '${item.paintWear}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.left,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant,
-                                            height: 1.1,
-                                          ),
-                                    ),
-                                  ],
-                                  if (paintWearValue != null ||
-                                      hasAccessories) ...[
-                                    const SizedBox(height: 8),
-                                    LayoutBuilder(
-                                      builder: (context, constraints) {
-                                        final wearWidth = math.min(
-                                          176.0,
-                                          constraints.maxWidth * 0.5,
-                                        );
-                                        return Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            if (paintWearValue != null)
-                                              SizedBox(
-                                                width: wearWidth,
-                                                child: WearProgressBar(
-                                                  paintWear: paintWearValue,
-                                                  height: 16,
-                                                  accentColor: wearAccentColor,
-                                                ),
-                                              ),
-                                            if (hasAccessories) ...[
-                                              if (paintWearValue != null)
-                                                const SizedBox(width: 10),
-                                              Expanded(
-                                                child: Align(
-                                                  alignment:
-                                                      Alignment.centerRight,
-                                                  child:
-                                                      _CollectionAccessoryWrap(
-                                                        stickers: stickers,
-                                                        keychains: keychains,
-                                                        gems: gems,
-                                                      ),
-                                                ),
-                                              ),
-                                            ],
-                                          ],
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
+                          if (i != _items.length - 1)
+                            const SizedBox(height: 16),
+                        ],
+                        if (showSuggestions) ...[
+                          const SizedBox(height: 28),
+                          const _CollectionSuggestionSection(),
+                        ],
+                        const SizedBox(height: 10),
+                        _CollectionFooter(
+                          showLoading: loadingMore,
+                          showNoMore: !hasMore,
+                        ),
+                      ],
                     ),
             ),
     );
   }
 }
 
-class _CollectionSearchBar extends StatelessWidget {
-  const _CollectionSearchBar({
-    required this.controller,
-    required this.onSubmitted,
-    required this.onSearch,
-    required this.onFilter,
-    this.filterActive = false,
-    this.padding = const EdgeInsets.fromLTRB(12, 10, 12, 8),
-  });
+BoxDecoration _collectionCardDecoration({
+  Color color = Colors.white,
+  double radius = 28,
+}) {
+  return BoxDecoration(
+    color: color,
+    borderRadius: BorderRadius.circular(radius),
+    boxShadow: const [
+      BoxShadow(
+        color: Color(0x120F172A),
+        blurRadius: 28,
+        offset: Offset(0, 12),
+      ),
+    ],
+  );
+}
 
-  final TextEditingController controller;
-  final ValueChanged<String> onSubmitted;
-  final VoidCallback onSearch;
-  final VoidCallback onFilter;
-  final bool filterActive;
-  final EdgeInsetsGeometry padding;
+MarketItemTags? _favoriteItemTags(CollectionFavoriteItem item) {
+  if (item.tags != null) {
+    return item.tags;
+  }
+  final rawTags = item.asset?['tags'];
+  if (rawTags is Map<String, dynamic>) {
+    return MarketItemTags.fromJson(rawTags);
+  }
+  if (rawTags is Map) {
+    return MarketItemTags.fromJson(Map<String, dynamic>.from(rawTags));
+  }
+  return null;
+}
+
+List<_CollectionAccessoryPreviewData> _favoriteAccessoryItems(
+  CollectionFavoriteItem item,
+) {
+  final stickers = <GameItemSticker>[
+    ...parseStickerList(item.stickerRaw),
+    ...parseStickerList(item.keychainRaw),
+  ];
+  final gems = parseGemList(item.gemRaw);
+  return [
+    for (final sticker in stickers)
+      _CollectionAccessoryPreviewData(imageUrl: sticker.imageUrl),
+    for (final gem in gems)
+      _CollectionAccessoryPreviewData(
+        imageUrl: gem.imageUrl,
+        borderColor: gem.borderColor,
+      ),
+  ];
+}
+
+class _CollectionOverflowIcon extends StatelessWidget {
+  const _CollectionOverflowIcon({required this.highlighted});
+
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-    final fillColor = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : colors.surfaceContainerHighest;
-    final hintColor = isDark ? Colors.white38 : colors.onSurfaceVariant;
-    final hasKeyword = controller.text.trim().isNotEmpty;
-
-    return Padding(
-      padding: padding,
-      child: Row(
-        children: [
-          Expanded(
-            child: SizedBox(
-              height: 36,
-              child: Material(
-                color: fillColor,
-                borderRadius: BorderRadius.circular(9),
-                child: TextField(
-                  controller: controller,
-                  onSubmitted: onSubmitted,
-                  textAlignVertical: TextAlignVertical.center,
-                  decoration: InputDecoration(
-                    hintText: 'app.market.filter.search'.tr,
-                    hintStyle: TextStyle(color: hintColor, fontSize: 13),
-                    prefixIcon: Icon(Icons.search, color: hintColor, size: 18),
-                    suffixIcon: hasKeyword
-                        ? IconButton(
-                            icon: const Icon(Icons.close, size: 16),
-                            onPressed: () {
-                              controller.clear();
-                              onSubmitted('');
-                            },
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: fillColor,
-                    contentPadding: EdgeInsets.zero,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(9),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(9),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(9),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
-          _CollectionActionButton(
-            tooltip: 'app.market.filter.search'.tr,
-            icon: Icons.send,
-            onTap: onSearch,
-          ),
-          const SizedBox(width: 6),
-          _CollectionActionButton(
-            tooltip: 'app.market.filter.text'.tr,
-            icon: Icons.filter_alt_outlined,
-            onTap: onFilter,
-            active: filterActive,
+    final color = highlighted
+        ? const Color(0xFF2563EB)
+        : const Color(0xFF475569);
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: highlighted ? const Color(0xFFE8F0FF) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0F0F172A),
+            blurRadius: 18,
+            offset: Offset(0, 8),
           ),
         ],
       ),
+      child: Icon(Icons.more_vert_rounded, color: color, size: 20),
     );
   }
 }
 
-class _CollectionActionButton extends StatelessWidget {
-  const _CollectionActionButton({
-    required this.tooltip,
-    required this.icon,
-    required this.onTap,
-    this.active = false,
-  });
-
-  final String tooltip;
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-    final baseColor = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : colors.surfaceContainerHighest;
-    final background = active
-        ? colors.primary.withValues(alpha: 0.12)
-        : baseColor;
-    final iconColor = active ? colors.primary : colors.onSurfaceVariant;
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: background,
-        borderRadius: BorderRadius.circular(9),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(9),
-          onTap: onTap,
-          child: SizedBox(
-            width: 36,
-            height: 36,
-            child: Icon(icon, color: iconColor, size: 18),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CollectionInlinePrice extends StatelessWidget {
-  const _CollectionInlinePrice({
+class _CollectionTabPill extends StatelessWidget {
+  const _CollectionTabPill({
     required this.label,
-    required this.valueBuilder,
-    required this.valueColor,
+    required this.icon,
+    required this.active,
+    required this.onTap,
   });
 
   final String label;
-  final String Function() valueBuilder;
-  final Color valueColor;
+  final IconData icon;
+  final bool active;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            fontSize: 12,
-          ),
-        ),
-        const SizedBox(width: 4),
-        Expanded(
-          child: Obx(
-            () => Text(
-              valueBuilder(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.start,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: valueColor,
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-              ),
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(22),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: active ? Colors.white : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: active
+                  ? const [
+                      BoxShadow(
+                        color: Color(0x140F172A),
+                        blurRadius: 22,
+                        offset: Offset(0, 10),
+                      ),
+                    ]
+                  : const [],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: active
+                      ? const Color(0xFF1D4ED8)
+                      : const Color(0xFF64748B),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: active
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFF64748B),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
 
-class _CollectionInlineActionChip extends StatelessWidget {
-  const _CollectionInlineActionChip({
-    required this.label,
-    required this.onPressed,
+class _CollectionActionSheet extends StatelessWidget {
+  const _CollectionActionSheet({
+    required this.currentAppId,
+    required this.currentKeyword,
+    required this.hasActiveFilter,
+    required this.selectedSort,
+    required this.onSelectGame,
+    required this.onSearch,
+    required this.onSortSelected,
+    required this.onAdvancedFilter,
+    this.onReset,
   });
 
-  final String label;
-  final VoidCallback onPressed;
+  final int currentAppId;
+  final String currentKeyword;
+  final bool hasActiveFilter;
+  final _CollectionSortChoice selectedSort;
+  final ValueChanged<int> onSelectGame;
+  final VoidCallback onSearch;
+  final ValueChanged<_CollectionSortChoice> onSortSelected;
+  final VoidCallback onAdvancedFilter;
+  final VoidCallback? onReset;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return TextButton(
-      onPressed: onPressed,
-      style: TextButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        minimumSize: const Size(0, 28),
-        backgroundColor: colors.surfaceContainerHighest,
-        foregroundColor: colors.onSurfaceVariant,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        textStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          height: 1,
-        ),
-      ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 60),
-        child: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-        ),
-      ),
-    );
-  }
-}
-
-class _CollectionAccessoryWrap extends StatelessWidget {
-  const _CollectionAccessoryWrap({
-    required this.stickers,
-    required this.keychains,
-    required this.gems,
-  });
-
-  final List<GameItemSticker> stickers;
-  final List<GameItemSticker> keychains;
-  final List<GameItemGem> gems;
-
-  @override
-  Widget build(BuildContext context) {
-    final children = <Widget>[
-      if (stickers.isNotEmpty) StickerRow(stickers: stickers, size: 20),
-      if (keychains.isNotEmpty) StickerRow(stickers: keychains, size: 20),
-      if (gems.isNotEmpty) GemRow(gems: gems, size: 20),
-    ];
-    if (children.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return Wrap(
-      spacing: 6,
-      runSpacing: 4,
-      alignment: WrapAlignment.end,
-      children: children,
-    );
-  }
-}
-
-class _CollectionStatusBadge extends StatelessWidget {
-  const _CollectionStatusBadge({required this.text, this.status});
-
-  final String text;
-  final int? status;
-
-  ({Color bg, Color fg, Color border, Color dot}) _palette(
-    BuildContext context,
-  ) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-
-    if ([5, 6].contains(status)) {
-      final accent = isDark ? const Color(0xFF6EE7B7) : const Color(0xFF15803D);
-      return (
-        bg: accent.withValues(alpha: isDark ? 0.16 : 0.08),
-        fg: accent,
-        border: accent.withValues(alpha: isDark ? 0.28 : 0.14),
-        dot: accent,
-      );
-    }
-
-    if ([2, 3, 4].contains(status)) {
-      final accent = isDark ? const Color(0xFFFDA4AF) : const Color(0xFFB42318);
-      return (
-        bg: accent.withValues(alpha: isDark ? 0.16 : 0.07),
-        fg: accent,
-        border: accent.withValues(alpha: isDark ? 0.26 : 0.12),
-        dot: accent,
-      );
-    }
-
-    final accent = colors.onSurfaceVariant;
-    return (
-      bg: colors.surfaceContainerHighest.withValues(
-        alpha: isDark ? 0.66 : 0.82,
-      ),
-      fg: accent,
-      border: colors.outline.withValues(alpha: isDark ? 0.22 : 0.08),
-      dot: accent,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final label = text.trim();
-    if (label.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    final palette = _palette(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 120),
-      child: DecoratedBox(
+    final textTheme = Theme.of(context).textTheme;
+    return SafeArea(
+      top: false,
+      child: Container(
         decoration: BoxDecoration(
-          color: palette.bg,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: palette.border),
-          boxShadow: isDark
-              ? null
-              : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+          color: const Color(0xFFF8FAFC),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1A0F172A),
+              blurRadius: 40,
+              offset: Offset(0, -8),
+            ),
+          ],
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 5,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: palette.dot,
-                  shape: BoxShape.circle,
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD7E1EC),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
                 ),
               ),
-              const SizedBox(width: 5),
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: palette.fg,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 10.5,
-                    height: 1,
-                    letterSpacing: 0.1,
+              const SizedBox(height: 18),
+              Text(
+                _collectionText(zh: '收藏筛选', en: 'Collection Tools'),
+                style: textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _collectionText(
+                  zh: '切换游戏、快速排序，或打开高级筛选',
+                  en: 'Switch games, sort quickly, or open advanced filters',
+                ),
+                style: textTheme.bodyMedium?.copyWith(
+                  height: 1.45,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+              const SizedBox(height: 20),
+              _CollectionActionPanel(
+                icon: Icons.search_rounded,
+                title: _collectionText(zh: '搜索收藏', en: 'Search Collection'),
+                subtitle: currentKeyword.isNotEmpty
+                    ? currentKeyword
+                    : _collectionText(
+                        zh: '按名称或关键词快速查找',
+                        en: 'Search by name or keyword',
+                      ),
+                onTap: onSearch,
+              ),
+              const SizedBox(height: 14),
+              Text(
+                _collectionText(zh: '游戏', en: 'Game'),
+                style: textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF334155),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final option in _collectionGameOptions)
+                    _CollectionSelectableChip(
+                      selected: option.appId == currentAppId,
+                      leading: Icon(
+                        option.icon,
+                        size: 16,
+                        color: option.appId == currentAppId
+                            ? const Color(0xFF1D4ED8)
+                            : const Color(0xFF64748B),
+                      ),
+                      label: option.label,
+                      subtitle: option.subtitle,
+                      onTap: () => onSelectGame(option.appId),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Text(
+                _collectionText(zh: '价格排序', en: 'Price Sort'),
+                style: textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF334155),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final choice in _CollectionSortChoice.values)
+                    _CollectionSelectableChip(
+                      selected: choice == selectedSort,
+                      label: choice.label,
+                      subtitle: choice == _CollectionSortChoice.defaultOrder
+                          ? _collectionText(
+                              zh: '恢复默认列表顺序',
+                              en: 'Restore the default order',
+                            )
+                          : _collectionText(
+                              zh: '参考网页端的价格筛选逻辑',
+                              en: 'Match the web collection price sort',
+                            ),
+                      onTap: () => onSortSelected(choice),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              _CollectionActionPanel(
+                icon: Icons.tune_rounded,
+                title: _collectionText(zh: '高级筛选', en: 'Advanced Filter'),
+                subtitle: hasActiveFilter
+                    ? _collectionText(
+                        zh: '当前已应用筛选条件，点击继续调整',
+                        en: 'Filters are active, tap to refine them',
+                      )
+                    : _collectionText(
+                        zh: '按属性、价格区间等条件筛选',
+                        en: 'Filter by attributes, price range, and more',
+                      ),
+                onTap: onAdvancedFilter,
+              ),
+              if (onReset != null) ...[
+                const SizedBox(height: 12),
+                _CollectionActionPanel(
+                  icon: Icons.restart_alt_rounded,
+                  title: _collectionText(zh: '清空条件', en: 'Reset Filters'),
+                  subtitle: _collectionText(
+                    zh: '移除当前搜索词和筛选条件',
+                    en: 'Clear the current search and filter settings',
                   ),
+                  onTap: onReset!,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionActionPanel extends StatelessWidget {
+  const _CollectionActionPanel({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+          decoration: _collectionCardDecoration(
+            color: Colors.white.withValues(alpha: 0.9),
+            radius: 22,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F0FF),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: const Color(0xFF1D4ED8), size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFF64748B),
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 14,
+                color: Color(0xFF94A3B8),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionSelectableChip extends StatelessWidget {
+  const _CollectionSelectableChip({
+    required this.selected,
+    required this.label,
+    required this.subtitle,
+    required this.onTap,
+    this.leading,
+  });
+
+  final bool selected;
+  final String label;
+  final String subtitle;
+  final VoidCallback onTap;
+  final Widget? leading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          constraints: const BoxConstraints(minWidth: 124),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFEAF1FF) : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (leading != null) ...[leading!, const SizedBox(width: 6)],
+                  Flexible(
+                    child: Text(
+                      label,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: selected
+                            ? const Color(0xFF1D4ED8)
+                            : const Color(0xFF0F172A),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: selected
+                      ? const Color(0xFF45658D)
+                      : const Color(0xFF64748B),
+                  height: 1.35,
                 ),
               ),
             ],
@@ -1508,41 +1513,778 @@ class _CollectionStatusBadge extends StatelessWidget {
   }
 }
 
+class _CollectionCategoryCard extends StatelessWidget {
+  const _CollectionCategoryCard({required this.item, required this.onTap});
+
+  final CollectionTemplateItem item;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = _collectionTitle(item.marketHashName, item.marketName);
+    final tags = item.tags;
+    final rarityColor =
+        parseHexColor(tags?.rarity?.color) ?? const Color(0xFF3B82F6);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(28),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: _collectionCardDecoration(),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: SizedBox(
+                      width: 96,
+                      height: 96,
+                      child: GameItemImage(
+                        imageUrl: item.imageUrl,
+                        appId: item.appId,
+                        quality: TagInfo.fromMarketTag(tags?.quality),
+                        rarity: TagInfo.fromMarketTag(tags?.rarity),
+                        exterior: TagInfo.fromMarketTag(tags?.exterior),
+                        showTopBadges: false,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 9,
+                    right: 9,
+                    child: _CollectionRarityDot(color: rarityColor),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF0F172A),
+                        height: 1.25,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _CollectionPriceMetric(
+                            label: _collectionText(zh: '在售价', en: 'Sale'),
+                            value: _formatCollectionPrice(item.sellMinPrice),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _CollectionPriceMetric(
+                            label: _collectionText(zh: '求购价', en: 'Demand'),
+                            value: _formatCollectionPrice(item.buyMaxPrice),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionFavoriteCard extends StatelessWidget {
+  const _CollectionFavoriteCard({
+    required this.item,
+    required this.onTap,
+    required this.onCancel,
+  });
+
+  final CollectionFavoriteItem item;
+  final VoidCallback onTap;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final tags = _favoriteItemTags(item);
+    final title = _collectionTitle(item.marketHashName, item.marketName);
+    final rarityColor =
+        parseHexColor(tags?.rarity?.color) ?? const Color(0xFF3B82F6);
+    final wear = _parsePaintWear(item.paintWear);
+    final accessories = _favoriteAccessoryItems(item);
+    final exteriorColor = parseHexColor(tags?.exterior?.color);
+    final statusLabel = (item.statusName ?? '').trim();
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(28),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: _collectionCardDecoration(),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: SizedBox(
+                      width: 96,
+                      height: 96,
+                      child: GameItemImage(
+                        imageUrl: item.imageUrl,
+                        appId: item.appId,
+                        quality: TagInfo.fromMarketTag(tags?.quality),
+                        rarity: TagInfo.fromMarketTag(tags?.rarity),
+                        exterior: TagInfo.fromMarketTag(tags?.exterior),
+                        compactTopLeftBadges: true,
+                        avoidTopLeftBadgeOverlap: true,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 9,
+                    right: 9,
+                    child: _CollectionRarityDot(color: rarityColor),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF0F172A),
+                                  height: 1.28,
+                                ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              _formatCollectionPrice(item.price),
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF0F172A),
+                                  ),
+                            ),
+                            const SizedBox(height: 6),
+                            _CollectionTextAction(
+                              label: 'app.user.collection.uncollect'.tr,
+                              onTap: onCancel,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    if (item.hasStatusTag && statusLabel.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      _CollectionStatusBadge(label: statusLabel),
+                    ],
+                    if (wear != null) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF2F6FA),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  _collectionText(zh: '磨损度', en: 'Wear'),
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF64748B),
+                                      ),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  wear.toStringAsFixed(4),
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: const Color(0xFF0F172A),
+                                      ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            WearProgressBar(
+                              paintWear: wear,
+                              height: 10,
+                              style: WearProgressBarStyle.figmaCompact,
+                              accentColor: exteriorColor,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    if (accessories.isNotEmpty) ...[
+                      SizedBox(height: wear != null ? 8 : 10),
+                      _CollectionAccessoryPreviewRow(items: accessories),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionPriceMetric extends StatelessWidget {
+  const _CollectionPriceMetric({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F6FA),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF64748B),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF0F172A),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CollectionTextAction extends StatelessWidget {
+  const _CollectionTextAction({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: onTap,
+      style: TextButton.styleFrom(
+        padding: EdgeInsets.zero,
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        foregroundColor: const Color(0xFF64748B),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: const Color(0xFF64748B),
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionAccessoryPreviewRow extends StatelessWidget {
+  const _CollectionAccessoryPreviewRow({required this.items});
+
+  final List<_CollectionAccessoryPreviewData> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleItems = items.take(4).toList(growable: false);
+    final overflow = items.length - visibleItems.length;
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        for (final item in visibleItems)
+          _CollectionAccessoryPreviewTile(item: item),
+        if (overflow > 0) _CollectionAccessoryOverflowTile(count: overflow),
+      ],
+    );
+  }
+}
+
+class _CollectionAccessoryPreviewTile extends StatelessWidget {
+  const _CollectionAccessoryPreviewTile({required this.item});
+
+  final _CollectionAccessoryPreviewData item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 28,
+      height: 28,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F6FA),
+        borderRadius: BorderRadius.circular(10),
+        border: item.borderColor == null
+            ? null
+            : Border.all(color: item.borderColor!, width: 1.2),
+      ),
+      child: Image.network(
+        item.imageUrl,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return const Icon(
+            Icons.auto_awesome_rounded,
+            size: 14,
+            color: Color(0xFF94A3B8),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _CollectionAccessoryOverflowTile extends StatelessWidget {
+  const _CollectionAccessoryOverflowTile({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 28,
+      height: 28,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE2E8F0),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        '+$count',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: const Color(0xFF475569),
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionRarityDot extends StatelessWidget {
+  const _CollectionRarityDot({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 12,
+      height: 12,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.35),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CollectionSuggestionSection extends StatelessWidget {
+  const _CollectionSuggestionSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _collectionText(zh: '可能感兴趣', en: 'You May Also Like'),
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Get.toNamed(Routers.MARKET),
+              child: Text(_collectionText(zh: '前往市场', en: 'Open Market')),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final stacked = constraints.maxWidth < 360;
+            final promoCard = _CollectionPromoCard(
+              title: _collectionText(
+                zh: '继续逛逛热门饰品',
+                en: 'Explore Trending Skins',
+              ),
+              subtitle: _collectionText(
+                zh: '从市场中继续发现你感兴趣的收藏目标',
+                en: 'Keep browsing the market for your next favorite item',
+              ),
+              cta: _collectionText(zh: '进入市场', en: 'Go to Market'),
+              icon: Icons.north_east_rounded,
+              onTap: () => Get.toNamed(Routers.MARKET),
+            );
+            final insightCard = _CollectionInsightCard(
+              title: _collectionText(
+                zh: '收藏筛选提示',
+                en: 'Collection Filter Tips',
+              ),
+              subtitle: _collectionText(
+                zh: '支持价格排序、搜索名称和高级属性筛选',
+                en: 'Use price sort, keyword search, and advanced filters',
+              ),
+            );
+            if (stacked) {
+              return Column(
+                children: [promoCard, const SizedBox(height: 12), insightCard],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(child: promoCard),
+                const SizedBox(width: 12),
+                Expanded(child: insightCard),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _CollectionPromoCard extends StatelessWidget {
+  const _CollectionPromoCard({
+    required this.title,
+    required this.subtitle,
+    required this.cta,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final String cta;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(26),
+        child: Container(
+          height: 154,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(26),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)],
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x241D4ED8),
+                blurRadius: 28,
+                offset: Offset(0, 14),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: Colors.white, size: 20),
+              ),
+              const Spacer(),
+              Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  height: 1.25,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.86),
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                cta,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionInsightCard extends StatelessWidget {
+  const _CollectionInsightCard({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 154,
+      padding: const EdgeInsets.all(18),
+      decoration: _collectionCardDecoration(radius: 26),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF1FF),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              _collectionText(zh: '网页参考', en: 'Web Reference'),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1D4ED8),
+              ),
+            ),
+          ),
+          const Spacer(),
+          Text(
+            title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF0F172A),
+              height: 1.25,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF64748B),
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _CollectionMiniStat(
+                  label: _collectionText(zh: '搜索', en: 'Search'),
+                  value: _collectionText(zh: '名称', en: 'Keyword'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _CollectionMiniStat(
+                  label: _collectionText(zh: '排序', en: 'Sort'),
+                  value: _collectionText(zh: '价格', en: 'Price'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CollectionMiniStat extends StatelessWidget {
+  const _CollectionMiniStat({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F6FA),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF0F172A),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CollectionEmptyState extends StatelessWidget {
   const _CollectionEmptyState();
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 20),
       children: [
-        const SizedBox(height: 120),
-        Center(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-            decoration: BoxDecoration(
-              color: colors.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.favorite_border,
-                  size: 28,
-                  color: colors.onSurfaceVariant,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'app.common.no_data'.tr,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: colors.onSurfaceVariant,
+        const SizedBox(height: 84),
+        Container(
+          padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
+          decoration: _collectionCardDecoration(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF1E40AF), Color(0xFF60A5FA)],
                   ),
                 ),
-              ],
-            ),
+                child: const Icon(
+                  Icons.bookmark_outline_rounded,
+                  color: Colors.white,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                _collectionText(zh: '还没有收藏内容', en: 'No Collections Yet'),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _collectionText(
+                  zh: '去市场里逛逛，把感兴趣的饰品或品类收藏起来吧。',
+                  en: 'Browse the market and save the items or categories you like.',
+                ),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF64748B),
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 18),
+              FilledButton(
+                onPressed: () => Get.toNamed(Routers.MARKET),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF1D4ED8),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+                child: Text(_collectionText(zh: '前往市场', en: 'Open Market')),
+              ),
+            ],
           ),
         ),
       ],
@@ -1551,29 +2293,24 @@ class _CollectionEmptyState extends StatelessWidget {
 }
 
 class _CollectionLoadingState extends StatelessWidget {
-  const _CollectionLoadingState();
+  const _CollectionLoadingState({required this.mode});
+
+  final _CollectionVisualMode mode;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final height = MediaQuery.of(context).size.height * 0.56;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
       children: [
-        SizedBox(
-          height: height,
-          child: Center(
-            child: SizedBox(
-              width: 34,
-              height: 34,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                color: colors.primary,
-              ),
-            ),
-          ),
-        ),
+        const _CollectionTabSkeleton(),
+        const SizedBox(height: 18),
+        for (var i = 0; i < 3; i++) ...[
+          _CollectionCardSkeleton(mode: mode),
+          if (i != 2) const SizedBox(height: 16),
+        ],
+        const SizedBox(height: 28),
+        const _CollectionSuggestionSectionSkeleton(),
       ],
     );
   }
@@ -1592,7 +2329,7 @@ class _CollectionFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     if (showLoading) {
       return const Padding(
-        padding: EdgeInsets.fromLTRB(0, 6, 0, 12),
+        padding: EdgeInsets.fromLTRB(0, 10, 0, 14),
         child: Center(
           child: SizedBox(
             width: 22,
@@ -1606,5 +2343,165 @@ class _CollectionFooter extends StatelessWidget {
       return const ListEndTip(padding: EdgeInsets.fromLTRB(8, 6, 8, 12));
     }
     return const SizedBox(height: 4);
+  }
+}
+
+class _CollectionStatusBadge extends StatelessWidget {
+  const _CollectionStatusBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF1FF),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: const Color(0xFF1D4ED8),
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionTabSkeleton extends StatelessWidget {
+  const _CollectionTabSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: const [
+        Expanded(child: _CollectionSkeletonBox(height: 18, radius: 12)),
+        SizedBox(width: 12),
+        _CollectionSkeletonBox(width: 84, height: 18, radius: 12),
+      ],
+    );
+  }
+}
+
+class _CollectionCardSkeleton extends StatelessWidget {
+  const _CollectionCardSkeleton({required this.mode});
+
+  final _CollectionVisualMode mode;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: _collectionCardDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _CollectionSkeletonBox(width: 96, height: 96, radius: 22),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _CollectionSkeletonBox(height: 16, radius: 10),
+                const SizedBox(height: 8),
+                const _CollectionSkeletonBox(
+                  width: 140,
+                  height: 14,
+                  radius: 10,
+                ),
+                const SizedBox(height: 14),
+                if (mode == _CollectionVisualMode.category)
+                  Row(
+                    children: const [
+                      Expanded(
+                        child: _CollectionSkeletonBox(height: 58, radius: 16),
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: _CollectionSkeletonBox(height: 58, radius: 16),
+                      ),
+                    ],
+                  )
+                else ...[
+                  const _CollectionSkeletonBox(height: 48, radius: 16),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: const [
+                      _CollectionSkeletonBox(width: 28, height: 28, radius: 10),
+                      SizedBox(width: 6),
+                      _CollectionSkeletonBox(width: 28, height: 28, radius: 10),
+                      SizedBox(width: 6),
+                      _CollectionSkeletonBox(width: 28, height: 28, radius: 10),
+                      SizedBox(width: 6),
+                      _CollectionSkeletonBox(width: 28, height: 28, radius: 10),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CollectionSuggestionSectionSkeleton extends StatelessWidget {
+  const _CollectionSuggestionSectionSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _CollectionSkeletonBox(width: 180, height: 18, radius: 12),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final stacked = constraints.maxWidth < 360;
+            const card = _CollectionSkeletonBox(height: 154, radius: 26);
+            if (stacked) {
+              return Column(children: [card, const SizedBox(height: 12), card]);
+            }
+            return Row(
+              children: [
+                Expanded(child: card),
+                const SizedBox(width: 12),
+                Expanded(child: card),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _CollectionSkeletonBox extends StatelessWidget {
+  const _CollectionSkeletonBox({
+    this.width,
+    required this.height,
+    required this.radius,
+  });
+
+  final double? width;
+  final double height;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8EEF5),
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
   }
 }
