@@ -254,6 +254,20 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
     return false;
   }
 
+  double? _groupWarningPrice(_InventoryMergeGroup group) {
+    for (final item in group.items) {
+      final id = item.id;
+      if (id == null) {
+        continue;
+      }
+      final price = _prices[id] ?? 0;
+      if (price > 0 && _isPriceWarning(item, price)) {
+        return price;
+      }
+    }
+    return null;
+  }
+
   void _handlePriceChangedForIds(List<int> ids, String value, {int? sourceId}) {
     if (ids.isEmpty) {
       return;
@@ -806,6 +820,14 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
     return '${currency.symbol}$number';
   }
 
+  String _pricingWarningText(CurrencyController currency, double? price) {
+    final label = 'app.inventory.pricing_abnormal'.tr;
+    if (price == null || price <= 0) {
+      return label;
+    }
+    return '$label ${_formatConvertedCurrency(currency, price, trimTrailingZeros: true)}';
+  }
+
   String _titleText() {
     return 'app.inventory.upshop.text'.tr;
   }
@@ -1146,6 +1168,7 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
     final subtitle = _buildItemSubtitle(exterior, quality, rarity);
     final itemCount = _groupTotalCount(group);
     final showWarning = _groupHasWarning(group);
+    final warningPrice = _groupWarningPrice(group);
     final minPrice = _suggestedMinPrice(schema);
     final averagePrice = _suggestedAveragePrice(schema);
     final maxPrice = _suggestedMaxPrice(schema);
@@ -1362,6 +1385,20 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
                 ],
               ),
             ),
+            if (showWarning) ...[
+              const SizedBox(height: 6),
+              Text(
+                _pricingWarningText(currency, warningPrice),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFFDC2626),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  height: 1.45,
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1425,43 +1462,6 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
                 ),
               ],
             ),
-            if (showWarning) ...[
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF1F2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.warning_amber_rounded,
-                      size: 16,
-                      color: Color(0xFFDC2626),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        'app.inventory.pricing_abnormal'.tr,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFFDC2626),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          height: 1.45,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ],
         ),
       ),
