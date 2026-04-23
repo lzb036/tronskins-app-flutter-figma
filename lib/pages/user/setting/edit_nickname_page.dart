@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/api/user_profile.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/login_required_prompt.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
@@ -100,6 +101,40 @@ class _EditNicknamePageState extends State<EditNicknamePage> {
       if (mounted) {
         setState(() => _saving = false);
       }
+    }
+  }
+
+  Future<void> _requestSubmit() async {
+    final nickname = _controller.text.trim();
+    if (nickname.isEmpty) {
+      _showErrorSnack('app.user.setting.nickname_placeholder'.tr);
+      return;
+    }
+    if (_saving) {
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    final confirmed = await showFigmaModal<bool>(
+      context: context,
+      child: FigmaConfirmationDialog(
+        icon: Icons.drive_file_rename_outline_rounded,
+        iconColor: _buttonStart,
+        iconBackgroundColor: const Color.fromRGBO(30, 64, 175, 0.10),
+        accentColor: _buttonStart,
+        title: _localizedText(zh: '确认保存昵称？', en: 'Save nickname changes?'),
+        message: _localizedText(
+          zh: '保存后，你的新昵称会同步显示在平台内。',
+          en: 'Your new nickname will be updated across the platform.',
+        ),
+        highlightText: _previewNickname,
+        primaryLabel: _localizedText(zh: '确认保存', en: 'Save Changes'),
+        secondaryLabel: 'app.common.cancel'.tr,
+        onPrimary: () => popModalRoute(context, true),
+        onSecondary: () => popModalRoute(context, false),
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await _submit();
     }
   }
 
@@ -200,7 +235,7 @@ class _EditNicknamePageState extends State<EditNicknamePage> {
         TextField(
           controller: _controller,
           textInputAction: TextInputAction.done,
-          onSubmitted: (_) => _submit(),
+          onSubmitted: (_) => _requestSubmit(),
           inputFormatters: [LengthLimitingTextInputFormatter(20)],
           cursorColor: _buttonEnd,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -337,7 +372,7 @@ class _EditNicknamePageState extends State<EditNicknamePage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _NicknamePrimaryButton(
-                    onPressed: _saving ? null : _submit,
+                    onPressed: _saving ? null : _requestSubmit,
                     child: _saving
                         ? Row(
                             mainAxisAlignment: MainAxisAlignment.center,
