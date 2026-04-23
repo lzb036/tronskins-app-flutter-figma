@@ -267,19 +267,19 @@ class MarketShowcaseCard extends StatelessWidget {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        '${_isEnglishLocale ? 'Wear' : '磨损'}: '
+                                        '${_isEnglishLocale ? 'Wear' : '磨损度'}: '
                                         '$wearDisplay',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
-                                          color: Color(0xFFE2E8F0),
-                                          fontSize: 7,
-                                          height: 10 / 7,
-                                          fontWeight: FontWeight.w500,
+                                          color: Color(0xE6FFFFFF),
+                                          fontSize: 10,
+                                          height: 15 / 10,
+                                          fontWeight: FontWeight.w400,
                                         ),
                                       ),
                                       if (wearValue != null) ...[
-                                        const SizedBox(height: 3),
+                                        const SizedBox(height: 4),
                                         _buildWearTrack(
                                           wearValue: wearValue!,
                                           accentColor: exteriorAccentColor,
@@ -384,25 +384,13 @@ class MarketShowcaseCard extends StatelessWidget {
   Widget _buildAccessoryOverlay({required Widget child}) {
     return ClipRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+        filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
         child: Container(
           width: double.infinity,
-          constraints: const BoxConstraints(minHeight: 30),
+          constraints: const BoxConstraints(minHeight: 31),
           alignment: Alignment.bottomLeft,
-          padding: const EdgeInsets.fromLTRB(6, 6, 6, 4),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: const [
-                Color(0x1F2D1B1B),
-                Color(0x73251919),
-                Color(0xC41A0F0F),
-                Color(0xF0100707),
-              ],
-              stops: const [0, 0.34, 0.7, 1],
-            ),
-          ),
+          padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+          decoration: BoxDecoration(color: const Color(0x990F172A)),
           child: child,
         ),
       ),
@@ -425,13 +413,14 @@ class MarketShowcaseCard extends StatelessWidget {
             : _conditionColor(_conditionLabelForWear(normalizedWear)));
 
     return SizedBox(
-      height: 2,
+      height: 4,
       child: Stack(
         children: [
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: const Color(0xFFB8C1CC).withValues(alpha: 0.38),
+                color: const Color(0x80334155),
+                borderRadius: BorderRadius.circular(999),
               ),
             ),
           ),
@@ -440,8 +429,11 @@ class MarketShowcaseCard extends StatelessWidget {
             child: FractionallySizedBox(
               widthFactor: fillFactor.toDouble(),
               child: DecoratedBox(
-                decoration: BoxDecoration(color: fillColor),
-                child: const SizedBox(height: 2),
+                decoration: BoxDecoration(
+                  color: fillColor,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const SizedBox(height: 4),
               ),
             ),
           ),

@@ -334,55 +334,19 @@ class InventoryShowcaseCard extends StatelessWidget {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            Text.rich(
-                                              TextSpan(
-                                                children: [
-                                                  TextSpan(
-                                                    text:
-                                                        '${_isEnglishLocale ? 'Wear' : '磨损'}: ',
-                                                    style: const TextStyle(
-                                                      color: Color(0xFFF0E5DA),
-                                                      fontSize: 8,
-                                                      height: 10 / 8,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                      shadows: [
-                                                        Shadow(
-                                                          color: Color(
-                                                            0xB3000000,
-                                                          ),
-                                                          blurRadius: 4,
-                                                          offset: Offset(0, 1),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  TextSpan(
-                                                    text: wearDisplay,
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 8,
-                                                      height: 10 / 8,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      shadows: [
-                                                        Shadow(
-                                                          color: Color(
-                                                            0xB3000000,
-                                                          ),
-                                                          blurRadius: 4,
-                                                          offset: Offset(0, 1),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
+                                            Text(
+                                              '${_isEnglishLocale ? 'Wear' : '磨损度'}: $wearDisplay',
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                color: Color(0xE6FFFFFF),
+                                                fontSize: 10,
+                                                height: 15 / 10,
+                                                fontWeight: FontWeight.w400,
+                                              ),
                                             ),
                                             if (wearValue != null) ...[
-                                              const SizedBox(height: 3),
+                                              const SizedBox(height: 4),
                                               _buildWearTrack(
                                                 wearValue: wearValue,
                                                 accentColor:
@@ -526,26 +490,13 @@ class InventoryShowcaseCard extends StatelessWidget {
   Widget _buildAccessoryOverlay({required Widget child}) {
     return ClipRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
         child: Container(
           width: double.infinity,
-          constraints: const BoxConstraints(minHeight: 20),
+          constraints: const BoxConstraints(minHeight: 31),
           alignment: Alignment.bottomLeft,
-          padding: const EdgeInsets.fromLTRB(6, 4, 6, 2),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: const Alignment(0, -0.55),
-              end: Alignment.bottomCenter,
-              colors: [
-                const Color(0x00140C09),
-                const Color(0x16140C09),
-                const Color(0x4A1A100B),
-                const Color(0x8D20130D),
-                const Color(0xD124150E),
-              ],
-              stops: const [0, 0.26, 0.58, 0.82, 1],
-            ),
-          ),
+          padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+          decoration: BoxDecoration(color: const Color(0x990F172A)),
           child: child,
         ),
       ),
@@ -568,13 +519,14 @@ class InventoryShowcaseCard extends StatelessWidget {
             : _conditionColor(_conditionLabelForWear(normalizedWear)));
 
     return SizedBox(
-      height: 2,
+      height: 4,
       child: Stack(
         children: [
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: const Color(0xFFF1E3D3).withValues(alpha: 0.38),
+                color: const Color(0x80334155),
+                borderRadius: BorderRadius.circular(999),
               ),
             ),
           ),
@@ -583,8 +535,11 @@ class InventoryShowcaseCard extends StatelessWidget {
             child: FractionallySizedBox(
               widthFactor: fillFactor.toDouble(),
               child: DecoratedBox(
-                decoration: BoxDecoration(color: fillColor),
-                child: const SizedBox(height: 2),
+                decoration: BoxDecoration(
+                  color: fillColor,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const SizedBox(height: 4),
               ),
             ),
           ),
