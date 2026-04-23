@@ -7,6 +7,7 @@ import 'package:tronskins_app/api/shop_product.dart';
 import 'package:tronskins_app/api/steam.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
@@ -562,6 +563,17 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
     return warningLines;
   }
 
+  String _pricingWarningPreviewText(List<String> warningLines) {
+    if (warningLines.isEmpty) {
+      return '';
+    }
+    final previewLines = warningLines.take(3).toList();
+    if (warningLines.length > previewLines.length) {
+      previewLines.add('...');
+    }
+    return previewLines.join('\n');
+  }
+
   Future<void> _submit() async {
     if (_isSubmitting) {
       return;
@@ -582,6 +594,18 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
 
     final currency = Get.find<CurrencyController>();
     final warningLines = _buildWarningLines(payload);
+    if (warningLines.isNotEmpty) {
+      await showFigmaModal<void>(
+        context: context,
+        child: FigmaConfirmationDialog(
+          title: 'app.inventory.pricing_abnormal'.tr,
+          content: Text(_pricingWarningPreviewText(warningLines)),
+          primaryLabel: 'app.common.confirm'.tr,
+          onPrimary: () => Get.back(),
+        ),
+      );
+      return;
+    }
     final expectedIncomeText = _loadingParams
         ? '--'
         : currency.format(_totalIncome());
