@@ -307,11 +307,13 @@ class _ExchangeRatePageState extends State<ExchangeRatePage> {
   }
 
   String _usdPreview(String code, double rate) {
-    final usdAmount = rate > 0 ? 1 / rate : 0.0;
     final fractionDigits = const {'JPY', 'KRW', 'VND', 'IDR'}.contains(code)
-        ? 4
+        ? 0
         : 2;
-    return '1 $code ≈ ${_ctrl.formatUsd(usdAmount, fractionDigits: fractionDigits)} USD';
+    final displayRate = rate > 0
+        ? rate.toStringAsFixed(fractionDigits)
+        : 0.toStringAsFixed(fractionDigits);
+    return '1 USD ≈ $displayRate $code';
   }
 
   Widget _singleLineFittedText(
