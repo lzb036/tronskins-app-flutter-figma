@@ -978,6 +978,27 @@ class _ShopPageState extends State<ShopPage>
     );
   }
 
+  Widget _buildPendingStatusText({
+    required String label,
+    required Color color,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: Text(
+        label,
+        maxLines: 3,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.right,
+        style: TextStyle(
+          color: color,
+          fontSize: 10.5,
+          height: 14 / 10.5,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
   Widget _buildPendingStatusAction(ShopOrderItem order) {
     final status = order.status;
     if (status == 2) {
@@ -999,12 +1020,7 @@ class _ShopPageState extends State<ShopPage>
               ? Theme.of(context).colorScheme.onSurfaceVariant
               : Theme.of(context).colorScheme.error);
 
-    return _buildPendingActionButton(
-      label: statusText,
-      primary: false,
-      foregroundColor: statusColor,
-      backgroundColor: statusColor.withValues(alpha: 0.10),
-    );
+    return _buildPendingStatusText(label: statusText, color: statusColor);
   }
 
   Widget _buildSellRecordDetailImage({
@@ -2272,7 +2288,8 @@ class _ShopPageState extends State<ShopPage>
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Expanded(
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 96),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -2295,14 +2312,8 @@ class _ShopPageState extends State<ShopPage>
                               ],
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          ConstrainedBox(
-                            constraints: BoxConstraints(
-                              minWidth: _isEnglishLocale ? 92 : 84,
-                              maxWidth: _isEnglishLocale ? 100 : 92,
-                            ),
-                            child: _buildPendingStatusAction(order),
-                          ),
+                          const SizedBox(width: 10),
+                          Expanded(child: _buildPendingStatusAction(order)),
                         ],
                       ),
                     ],
