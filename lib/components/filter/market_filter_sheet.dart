@@ -420,6 +420,8 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
   final Map<String, String?> _selectedTags = {};
   final Map<String, List<String>> _selectedMultiTags = {};
   final ScrollController _scrollController = ScrollController();
+  final ScrollController _weaponTypeTabScrollController = ScrollController();
+  final PageController _weaponTypePageController = PageController();
   String? _selectedItemName;
   List<_AttributeGroup> _groups = [];
   bool _isLoading = true;
@@ -430,9 +432,13 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
   bool _showAllDotaHeroes = false;
   final Map<String, GlobalKey> _selectionAnchorKeys = {};
   final GlobalKey _dotaHeroToggleKey = GlobalKey();
+  final GlobalKey _weaponTypeTabViewportKey = GlobalKey();
   final Set<String> _loggedDotaHeroImageIssues = <String>{};
   final Set<String> _expandedAccordionSections = <String>{};
   final Set<String> _knownAccordionSections = <String>{};
+  int _weaponTypePageIndex = 0;
+  bool _isWeaponTypePageAnimating = false;
+  bool _isWeaponTypePageDragging = false;
 
   bool get _isDota => widget.appId == 570;
   bool get _isLegacyTfPriceOnly =>
@@ -678,6 +684,8 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _weaponTypeTabScrollController.dispose();
+    _weaponTypePageController.dispose();
     _minController.dispose();
     _maxController.dispose();
     super.dispose();
@@ -1414,86 +1422,348 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
     if (options.isEmpty) {
       return const SizedBox.shrink();
     }
-    final active = _activeWeaponTypeOption(options);
-    final subOptions = active?.subOptions ?? const <_AttributeOption>[];
+    final activeIndex = _activeWeaponTypeIndex(options);
+    _syncWeaponTypePage(activeIndex);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildWeaponTypeTabs(group: group, options: options, active: active),
-        if (subOptions.isNotEmpty) ...[
-          const SizedBox(height: 18),
-          _buildWeaponSubtypeGrid(group: group, options: subOptions),
-        ],
+        _buildWeaponTypeTabs(
+          group: group,
+          options: options,
+          activeIndex: activeIndex,
+        ),
+        const SizedBox(height: 18),
+        _buildWeaponSubtypePager(group: group, options: options),
       ],
     );
   }
 
-  _AttributeOption? _activeWeaponTypeOption(List<_AttributeOption> options) {
+  int _activeWeaponTypeIndex(List<_AttributeOption> options) {
     final selectedType = (_selectedTags['type'] ?? '').trim();
     if (selectedType.isNotEmpty) {
-      for (final option in options) {
+      for (var i = 0; i < options.length; i += 1) {
+        final option = options[i];
         if (option.name == selectedType) {
-          return option;
+          return i;
         }
       }
     }
 
     final selectedItemName = (_selectedItemName ?? '').trim();
     if (selectedItemName.isNotEmpty) {
-      for (final option in options) {
+      for (var i = 0; i < options.length; i += 1) {
+        final option = options[i];
         for (final sub in option.subOptions) {
           if (sub.name == selectedItemName) {
-            return option;
+            return i;
           }
         }
       }
     }
 
-    return options.isEmpty ? null : options.first;
+    return _weaponTypePageIndex.clamp(0, options.length - 1);
+  }
+
+  void _syncWeaponTypePage(int activeIndex) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          !_weaponTypePageController.hasClients ||
+          _isWeaponTypePageAnimating ||
+          _isWeaponTypePageDragging) {
+        return;
+      }
+      final page =
+          _weaponTypePageController.page ??
+          _weaponTypePageController.initialPage.toDouble();
+      if ((page - activeIndex).abs() > 0.01) {
+        _weaponTypePageController.jumpToPage(activeIndex);
+      }
+    });
   }
 
   Widget _buildWeaponTypeTabs({
     required _AttributeGroup group,
     required List<_AttributeOption> options,
-    required _AttributeOption? active,
+    required int activeIndex,
   }) {
-    return Stack(
-      alignment: Alignment.bottomLeft,
-      children: [
-        const Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: ColoredBox(
-            color: FilterSheetStyle.divider,
-            child: SizedBox(height: 1),
-          ),
-        ),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          child: Row(
-            children: [
-              for (final option in options) ...[
-                _buildWeaponTypeTab(
-                  label: option.label.tr,
-                  selected: active?.name == option.name,
-                  onTap: () => _selectOption(group.key, option),
+    return AnimatedBuilder(
+      animation: _weaponTypePageController,
+      builder: (context, _) {
+        final page = _weaponTypePageController.hasClients
+            ? (_weaponTypePageController.page ?? activeIndex.toDouble())
+            : activeIndex.toDouble();
+        return Stack(
+          alignment: Alignment.bottomLeft,
+          children: [
+            const Positioned(
+              left: 0,
+              right: 0,
+              bottom: 8,
+              child: ColoredBox(
+                color: FilterSheetStyle.divider,
+                child: SizedBox(height: 1),
+              ),
+            ),
+            Scrollbar(
+              controller: _weaponTypeTabScrollController,
+              thumbVisibility: true,
+              trackVisibility: false,
+              thickness: 3,
+              radius: const Radius.circular(999),
+              notificationPredicate: (notification) =>
+                  notification.metrics.axis == Axis.horizontal,
+              child: SingleChildScrollView(
+                key: _weaponTypeTabViewportKey,
+                controller: _weaponTypeTabScrollController,
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    for (var index = 0; index < options.length; index += 1) ...[
+                      KeyedSubtree(
+                        key: _selectionAnchorKeys.putIfAbsent(
+                          'weapon-type-tab::${options[index].name}',
+                          GlobalKey.new,
+                        ),
+                        child: _buildWeaponTypeTab(
+                          label: options[index].label.tr,
+                          selectedProgress: (1 - (page - index).abs()).clamp(
+                            0.0,
+                            1.0,
+                          ),
+                          onTap: () => _selectWeaponTypeOption(
+                            group: group,
+                            options: options,
+                            index: index,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 22),
+                    ],
+                  ],
                 ),
-                const SizedBox(width: 22),
-              ],
-            ],
-          ),
-        ),
-      ],
+              ),
+            ),
+          ],
+        );
+      },
     );
+  }
+
+  Widget _buildWeaponSubtypePager({
+    required _AttributeGroup group,
+    required List<_AttributeOption> options,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final pageHeights = options
+            .map(
+              (option) =>
+                  _weaponSubtypePageHeight(option, constraints.maxWidth),
+            )
+            .toList(growable: false);
+        return AnimatedBuilder(
+          animation: _weaponTypePageController,
+          builder: (context, _) {
+            final fallbackIndex = _weaponTypePageIndex
+                .clamp(0, options.length - 1)
+                .toInt();
+            final page = _weaponTypePageController.hasClients
+                ? (_weaponTypePageController.page ?? fallbackIndex.toDouble())
+                : fallbackIndex.toDouble();
+            final height = _interpolatedWeaponSubtypeHeight(pageHeights, page);
+            return SizedBox(
+              height: height,
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) =>
+                    _handleWeaponTypePageNotification(
+                      notification: notification,
+                      group: group,
+                      options: options,
+                    ),
+                child: PageView.builder(
+                  controller: _weaponTypePageController,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: options.length,
+                  itemBuilder: (context, index) {
+                    final subOptions = options[index].subOptions;
+                    return Align(
+                      alignment: Alignment.topLeft,
+                      child: subOptions.isEmpty
+                          ? const SizedBox.shrink()
+                          : _buildWeaponSubtypeGrid(
+                              group: group,
+                              options: subOptions,
+                            ),
+                    );
+                  },
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  double _weaponSubtypePageHeight(_AttributeOption option, double width) {
+    const runSpacing = 12.0;
+    const minTileWidth = 98.0;
+    const maxColumns = 3;
+    const tileHeight = 48.0;
+    if (width <= 0) {
+      return tileHeight;
+    }
+    final columns = (width / minTileWidth).floor().clamp(1, maxColumns).toInt();
+    final count = option.subOptions.length;
+    if (count <= 0) {
+      return tileHeight;
+    }
+    final rows = math.max(1, (count / columns).ceil());
+    return tileHeight * rows + runSpacing * (rows - 1);
+  }
+
+  double _interpolatedWeaponSubtypeHeight(List<double> heights, double page) {
+    if (heights.isEmpty) {
+      return 0;
+    }
+    final safePage = page
+        .clamp(0.0, (heights.length - 1).toDouble())
+        .toDouble();
+    final lowerIndex = safePage.floor().clamp(0, heights.length - 1).toInt();
+    final upperIndex = safePage.ceil().clamp(0, heights.length - 1).toInt();
+    if (lowerIndex == upperIndex) {
+      return heights[lowerIndex];
+    }
+    final progress = safePage - lowerIndex;
+    final lowerHeight = heights[lowerIndex];
+    final upperHeight = heights[upperIndex];
+    return lowerHeight + (upperHeight - lowerHeight) * progress;
+  }
+
+  bool _handleWeaponTypePageNotification({
+    required ScrollNotification notification,
+    required _AttributeGroup group,
+    required List<_AttributeOption> options,
+  }) {
+    if (notification.depth != 0 ||
+        notification.metrics.axis != Axis.horizontal) {
+      return false;
+    }
+    if (notification is ScrollStartNotification &&
+        notification.dragDetails != null) {
+      _isWeaponTypePageDragging = true;
+      return false;
+    }
+    if (notification is ScrollEndNotification) {
+      final shouldCommit = _isWeaponTypePageDragging;
+      _isWeaponTypePageDragging = false;
+      if (shouldCommit) {
+        _commitWeaponTypePage(group: group, options: options);
+      }
+    }
+    return false;
+  }
+
+  void _commitWeaponTypePage({
+    required _AttributeGroup group,
+    required List<_AttributeOption> options,
+  }) {
+    if (options.isEmpty || !_weaponTypePageController.hasClients) {
+      return;
+    }
+    final page =
+        _weaponTypePageController.page ?? _weaponTypePageIndex.toDouble();
+    final index = page.round().clamp(0, options.length - 1).toInt();
+    final option = options[index];
+    final currentType = (_selectedTags[group.key] ?? '').trim();
+    if (currentType == option.name) {
+      if (_weaponTypePageIndex != index) {
+        setState(() {
+          _weaponTypePageIndex = index;
+        });
+      }
+      _scrollWeaponTypeTabIntoView(option.name);
+      return;
+    }
+    setState(() {
+      _weaponTypePageIndex = index;
+      _selectedItemName = null;
+      _selectedTags[group.key] = option.name;
+    });
+    _scrollWeaponTypeTabIntoView(option.name);
+  }
+
+  void _selectWeaponTypeOption({
+    required _AttributeGroup group,
+    required List<_AttributeOption> options,
+    required int index,
+  }) {
+    if (index < 0 || index >= options.length) {
+      return;
+    }
+    final option = options[index];
+    setState(() {
+      _weaponTypePageIndex = index;
+      _selectedItemName = null;
+      _selectedTags[group.key] = option.name;
+    });
+    _scrollWeaponTypeTabIntoView(option.name);
+    if (!_weaponTypePageController.hasClients) {
+      return;
+    }
+    _isWeaponTypePageAnimating = true;
+    _weaponTypePageController
+        .animateToPage(
+          index,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+        )
+        .whenComplete(() {
+          _isWeaponTypePageAnimating = false;
+        });
+  }
+
+  void _scrollWeaponTypeTabIntoView(String optionName) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_weaponTypeTabScrollController.hasClients) {
+        return;
+      }
+      final tabContext =
+          _selectionAnchorKeys['weapon-type-tab::$optionName']?.currentContext;
+      if (tabContext == null) {
+        return;
+      }
+      final tabBox = tabContext.findRenderObject();
+      final scrollBox = _weaponTypeTabViewportKey.currentContext
+          ?.findRenderObject();
+      if (tabBox is! RenderBox || scrollBox is! RenderBox) {
+        return;
+      }
+      final tabLeft = tabBox.localToGlobal(Offset.zero, ancestor: scrollBox).dx;
+      final tabWidth = tabBox.size.width;
+      final viewportWidth = scrollBox.size.width;
+      final currentOffset = _weaponTypeTabScrollController.offset;
+      final targetOffset =
+          (currentOffset + tabLeft - ((viewportWidth - tabWidth) / 2)).clamp(
+            _weaponTypeTabScrollController.position.minScrollExtent,
+            _weaponTypeTabScrollController.position.maxScrollExtent,
+          );
+      _weaponTypeTabScrollController.animateTo(
+        targetOffset.toDouble(),
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+      );
+    });
   }
 
   Widget _buildWeaponTypeTab({
     required String label,
-    required bool selected,
+    required double selectedProgress,
     required VoidCallback onTap,
   }) {
+    final progress = selectedProgress.clamp(0.0, 1.0);
     return InkWell(
       borderRadius: BorderRadius.circular(8),
       onTap: onTap,
@@ -1508,22 +1778,24 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
               softWrap: false,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: selected
-                    ? FilterSheetStyle.primary
-                    : const Color(0xFF6B7280),
+                color: Color.lerp(
+                  const Color(0xFF6B7280),
+                  FilterSheetStyle.primary,
+                  progress,
+                ),
                 fontSize: 14,
                 height: 21 / 14,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                fontWeight: progress > 0.5 ? FontWeight.w700 : FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
             AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              width: 52,
+              duration: const Duration(milliseconds: 80),
+              width: 52 * progress,
               height: 3,
               decoration: BoxDecoration(
-                color: selected
-                    ? FilterSheetStyle.primaryBright
+                color: progress > 0
+                    ? FilterSheetStyle.primaryBright.withValues(alpha: progress)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(999),
               ),
