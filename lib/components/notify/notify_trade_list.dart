@@ -66,12 +66,7 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
     ).format(DateTime.fromMillisecondsSinceEpoch(ts));
   }
 
-  Future<void> _handleRead(TradeNotifyItem item) async {
-    await widget.controller.readTrade(item);
-  }
-
-  Future<void> _openDetail(TradeNotifyItem item) async {
-    await _handleRead(item);
+  void _openDetail(TradeNotifyItem item) {
     Get.toNamed(Routers.TRADE_NOTICE_DETAIL, arguments: item);
   }
 

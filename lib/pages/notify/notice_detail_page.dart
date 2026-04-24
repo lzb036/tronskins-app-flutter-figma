@@ -1,9 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:tronskins_app/api/model/notify/notify_models.dart';
 import 'package:tronskins_app/api/notify.dart';
+import 'package:tronskins_app/controllers/user/notify_controller.dart';
 
 class NoticeDetailPage extends StatefulWidget {
   const NoticeDetailPage({super.key});
@@ -14,15 +15,52 @@ class NoticeDetailPage extends StatefulWidget {
 
 class _NoticeDetailPageState extends State<NoticeDetailPage> {
   final ApiNotifyServer _api = ApiNotifyServer();
+  final NotifyController _notifyController =
+      Get.isRegistered<NotifyController>()
+      ? Get.find<NotifyController>()
+      : Get.put(NotifyController());
+
   NoticeDetail? _detail;
+  NoticeMessageItem? _item;
   bool _loading = true;
   String? _id;
 
   @override
   void initState() {
     super.initState();
-    _id = Get.arguments?.toString();
+    _resolveArgument();
     _loadDetail();
+    _markRead();
+  }
+
+  void _resolveArgument() {
+    final arg = Get.arguments;
+    if (arg is NoticeMessageItem) {
+      _item = arg;
+      _id = arg.id;
+      return;
+    }
+
+    _id = arg?.toString();
+    final id = _id;
+    if (id == null || id.isEmpty) {
+      return;
+    }
+
+    for (final element in _notifyController.noticeList) {
+      if (element.id == id) {
+        _item = element;
+        break;
+      }
+    }
+  }
+
+  Future<void> _markRead() async {
+    final item = _item;
+    if (item == null) {
+      return;
+    }
+    await _notifyController.readNotice(item);
   }
 
   Future<void> _loadDetail() async {

@@ -82,11 +82,10 @@ class _NotifyBulletinListState extends State<NotifyBulletinList> {
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () async {
-            await widget.controller.readNotice(item);
+          onTap: () {
             final id = item.id;
             if (id != null) {
-              Get.toNamed(Routers.NOTICE_DETAIL, arguments: id);
+              Get.toNamed(Routers.NOTICE_DETAIL, arguments: item);
             }
           },
           child: ConstrainedBox(
