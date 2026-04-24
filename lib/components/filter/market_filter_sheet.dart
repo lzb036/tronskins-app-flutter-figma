@@ -1087,6 +1087,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         _buildAccordionSection(
           sectionKey: 'price',
           title: 'app.market.filter.price_range'.tr,
+          summary: _priceSectionSummary(),
           contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
           child: _buildPriceSectionContent(),
         ),
@@ -1099,6 +1100,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
           _buildAccordionSection(
             sectionKey: 'status',
             title: 'app.trade.order.status'.tr,
+            summary: _statusSectionSummary(),
             contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
             child: _buildStatusSectionContent(),
           ),
@@ -1109,6 +1111,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
           _buildAccordionSection(
             sectionKey: 'date',
             title: 'app.trade.order.date'.tr,
+            summary: _dateSectionSummary(),
             contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
             child: _buildDateSectionContent(),
           ),
@@ -1119,6 +1122,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
           _buildAccordionSection(
             sectionKey: 'sort',
             title: 'app.market.filter.sort'.tr,
+            summary: _sortSectionSummary(),
             contentPadding: EdgeInsets.zero,
             child: _buildSortSectionContent(),
           ),
@@ -1136,6 +1140,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         _buildAccordionSection(
           sectionKey: 'status',
           title: 'app.trade.order.status'.tr,
+          summary: _statusSectionSummary(),
           contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
           child: _buildStatusSectionContent(),
         ),
@@ -1146,6 +1151,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         _buildAccordionSection(
           sectionKey: 'date',
           title: 'app.trade.order.date'.tr,
+          summary: _dateSectionSummary(),
           contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
           child: _buildDateSectionContent(),
         ),
@@ -1156,6 +1162,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         _buildAccordionSection(
           sectionKey: 'sort',
           title: 'app.market.filter.sort'.tr,
+          summary: _sortSectionSummary(),
           contentPadding: EdgeInsets.zero,
           child: _buildSortSectionContent(),
         ),
@@ -1175,6 +1182,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         _buildAccordionSection(
           sectionKey: 'hero',
           title: heroGroup.label.tr,
+          summary: _marketGroupSummary(heroGroup),
           showDivider: true,
           contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           child: _buildDotaHeroGroupSection(heroGroup),
@@ -1192,6 +1200,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         _buildAccordionSection(
           sectionKey: group.key,
           title: _formatDotaSectionTitle(group.key, group.label.tr),
+          summary: _marketGroupSummary(group),
           contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
           child: _buildDotaTagSection([group], matchWeaponTypeStyle: true),
         ),
@@ -1208,6 +1217,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
             qualityGroup.key,
             qualityGroup.label.tr,
           ),
+          summary: _marketGroupSummary(qualityGroup),
           contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
           child: _buildDotaQualitySection(qualityGroup),
         ),
@@ -1221,6 +1231,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         _buildAccordionSection(
           sectionKey: 'rarity',
           title: _formatDotaSectionTitle(rarityGroup.key, rarityGroup.label.tr),
+          summary: _marketGroupSummary(rarityGroup),
           contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
           child: _buildDotaRaritySection(rarityGroup),
         ),
@@ -1235,6 +1246,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         _buildAccordionSection(
           sectionKey: group.key,
           title: _formatDotaSectionTitle(group.key, group.label.tr),
+          summary: _marketGroupSummary(group),
           contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
           child: _buildDotaFallbackSection(group),
         ),
@@ -1246,6 +1258,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         _buildAccordionSection(
           sectionKey: 'price',
           title: 'app.market.filter.price_range'.tr,
+          summary: _priceSectionSummary(),
           contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
           child: _buildDotaPriceSection(),
         ),
@@ -1256,6 +1269,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         _buildAccordionSection(
           sectionKey: 'sort',
           title: 'app.market.filter.sort'.tr,
+          summary: _sortSectionSummary(),
           contentPadding: EdgeInsets.zero,
           child: _buildDotaSortSection(),
         ),
@@ -1266,6 +1280,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         _buildAccordionSection(
           sectionKey: 'status',
           title: 'app.trade.order.status'.tr,
+          summary: _statusSectionSummary(),
           contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
           child: _buildStatusSectionContent(),
         ),
@@ -1276,6 +1291,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         _buildAccordionSection(
           sectionKey: 'date',
           title: 'app.trade.order.date'.tr,
+          summary: _dateSectionSummary(),
           contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
           child: _buildDateSectionContent(),
         ),
@@ -1319,6 +1335,139 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
       return <String>{};
     }
     return <String>{selected};
+  }
+
+  String? _priceSectionSummary() {
+    final min = _parseDisplayPriceOrNull(_minController.text);
+    final max = _parseDisplayPriceOrNull(_maxController.text);
+    if (min == null && max == null) {
+      return null;
+    }
+    if (min != null && max != null) {
+      return '${_formatDisplayPrice(min)} - ${_formatDisplayPrice(max)}';
+    }
+    if (min != null) {
+      return '${_formatDisplayPrice(min)}+';
+    }
+    return '<= ${_formatDisplayPrice(max!)}';
+  }
+
+  String? _sortSectionSummary() {
+    if (_sortField == _defaultSortField() && _sortAsc == _defaultSortAsc()) {
+      return null;
+    }
+    for (final choice in _buildSortChoices()) {
+      if (choice.field == _sortField && choice.asc == _sortAsc) {
+        return choice.label;
+      }
+    }
+    return null;
+  }
+
+  String? _statusSectionSummary() {
+    if (_selectedStatusIndex < 0 ||
+        _selectedStatusIndex >= widget.statusOptions.length) {
+      return null;
+    }
+    return widget.statusOptions[_selectedStatusIndex].labelKey.tr;
+  }
+
+  String? _dateSectionSummary() {
+    if (_startDate == null && _endDate == null) {
+      return null;
+    }
+    final start = _startDate == null ? '' : _formatDate(_startDate);
+    final end = _endDate == null ? '' : _formatDate(_endDate);
+    if (start.isNotEmpty && end.isNotEmpty) {
+      return '$start - $end';
+    }
+    if (start.isNotEmpty) {
+      return '$start+';
+    }
+    return '<= $end';
+  }
+
+  String? _marketGroupSummary(_AttributeGroup group) {
+    if (group.key == 'exterior') {
+      return _exteriorSectionSummary(group);
+    }
+    if (group.key == 'type') {
+      return _typeSectionSummary(group);
+    }
+
+    final multiValues = _selectedMultiTags[group.key]
+        ?.where((value) => value.trim().isNotEmpty && value != 'unlimited')
+        .toList(growable: false);
+    if (multiValues != null && multiValues.isNotEmpty) {
+      return _joinSummaryLabels(
+        multiValues
+            .map((value) => _optionLabelForValue(group, value))
+            .whereType<String>()
+            .toList(growable: false),
+      );
+    }
+
+    final selected = (_selectedTags[group.key] ?? '').trim();
+    if (selected.isEmpty || selected == 'unlimited') {
+      return null;
+    }
+    return _optionLabelForValue(group, selected);
+  }
+
+  String? _typeSectionSummary(_AttributeGroup group) {
+    final selectedItemName = (_selectedItemName ?? '').trim();
+    if (selectedItemName.isNotEmpty) {
+      return _optionLabelForValue(group, selectedItemName);
+    }
+    final selectedType = (_selectedTags[group.key] ?? '').trim();
+    if (selectedType.isEmpty || selectedType == 'unlimited') {
+      return null;
+    }
+    return _optionLabelForValue(group, selectedType);
+  }
+
+  String? _exteriorSectionSummary(_AttributeGroup group) {
+    final selected = (_selectedTags[group.key] ?? '').trim();
+    if (selected.isNotEmpty && selected != 'unlimited') {
+      return _optionLabelForValue(group, selected);
+    }
+    if (_wearMin == null && _wearMax == null) {
+      return null;
+    }
+    final range = _currentWearRange();
+    return '${_formatWearValue(range.start)} - ${_formatWearValue(range.end)}';
+  }
+
+  String? _optionLabelForValue(_AttributeGroup group, String value) {
+    final normalized = value.trim();
+    if (normalized.isEmpty || normalized == 'unlimited') {
+      return null;
+    }
+    for (final option in group.options) {
+      if (option.name == normalized) {
+        return option.label.tr;
+      }
+      for (final subOption in option.subOptions) {
+        if (subOption.name == normalized) {
+          return subOption.label.tr;
+        }
+      }
+    }
+    return normalized;
+  }
+
+  String? _joinSummaryLabels(List<String> labels) {
+    final cleanLabels = labels
+        .map((label) => label.trim())
+        .where((label) => label.isNotEmpty)
+        .toList(growable: false);
+    if (cleanLabels.isEmpty) {
+      return null;
+    }
+    if (cleanLabels.length <= 2) {
+      return cleanLabels.join(', ');
+    }
+    return '${cleanLabels.take(2).join(', ')} +${cleanLabels.length - 2}';
   }
 
   List<_AttributeOption> _visibleOptions(_AttributeGroup group) {
@@ -1969,6 +2118,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
   Widget _buildAccordionSection({
     required String sectionKey,
     required String title,
+    String? summary,
     required Widget child,
     EdgeInsetsGeometry contentPadding = const EdgeInsets.fromLTRB(
       20,
@@ -1979,6 +2129,14 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
     bool showDivider = false,
   }) {
     final expanded = _isAccordionExpanded(sectionKey);
+    final summaryText = summary?.trim();
+    const titleStyle = TextStyle(
+      color: FilterSheetStyle.title,
+      fontSize: 18,
+      height: 28 / 18,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.45,
+    );
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -1995,18 +2153,46 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
               child: Row(
                 children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: const TextStyle(
-                        color: FilterSheetStyle.title,
-                        fontSize: 18,
-                        height: 28 / 18,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.45,
+                  if (summaryText == null || summaryText.isEmpty)
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: titleStyle,
+                      ),
+                    )
+                  else
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: titleStyle,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              summaryText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(
+                                color: FilterSheetStyle.primaryBright,
+                                fontSize: 13,
+                                height: 18 / 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
+                  const SizedBox(width: 12),
                   AnimatedRotation(
                     turns: expanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 180),
@@ -2973,43 +3159,23 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            FilterSheetOptionChip(
+            _buildMarketOutlineChip(
               label: _defaultFilterLabel,
               selected: _isDefaultExteriorSelected(),
-              selectedStyle: FilterChipSelectedStyle.soft,
-              unselectedColor: const Color(0xFFECEEF0),
-              unselectedBorderColor: Colors.transparent,
-              selectedColor: FilterSheetStyle.selectedSoft,
-              selectedBorderColor: FilterSheetStyle.selectedSoftBorder,
-              selectedTextColor: FilterSheetStyle.primary,
-              unselectedTextColor: FilterSheetStyle.body,
-              borderRadius: FilterSheetStyle.chipRadius,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              minHeight: 36,
               fontSize: 12,
+              minHeight: 36,
               height: 18 / 12,
               onTap: () => _selectDefaultForGroup(group.key),
             ),
             for (final preset in presets)
               () {
                 final labelColor = _marketExteriorLabelColor(preset.option);
-                return FilterSheetOptionChip(
+                return _buildMarketOutlineChip(
                   label: preset.option.label.tr,
                   selected: _isWearPresetActive(preset, range),
-                  selectedStyle: FilterChipSelectedStyle.soft,
-                  unselectedColor: labelColor.withValues(alpha: 0.04),
-                  unselectedBorderColor: labelColor.withValues(alpha: 0.14),
-                  selectedColor: labelColor.withValues(alpha: 0.10),
-                  selectedBorderColor: labelColor.withValues(alpha: 0.30),
-                  selectedTextColor: labelColor,
-                  unselectedTextColor: labelColor,
-                  borderRadius: FilterSheetStyle.chipRadius,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 9,
-                  ),
-                  minHeight: 36,
+                  textColor: labelColor,
                   fontSize: 12,
+                  minHeight: 36,
                   height: 18 / 12,
                   onTap: () => _applyWearPreset(group, preset),
                 );
@@ -3029,38 +3195,11 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
       spacing: 8,
       runSpacing: 8,
       children: [
-        FilterSheetOptionChip(
+        _buildMarketOutlineChip(
           label: _defaultFilterLabel,
           selected: _isDefaultSelectedForGroup(group.key),
-          selectedStyle: FilterChipSelectedStyle.soft,
-          selectedColor: useQualityColors
-              ? FilterSheetStyle.selectedSoft
-              : Colors.transparent,
-          selectedBorderColor: useQualityColors
-              ? FilterSheetStyle.selectedSoftBorder
-              : const Color(0xFFFF9500),
-          selectedTextColor: useQualityColors
-              ? FilterSheetStyle.primary
-              : const Color(0xFFFF9500),
-          unselectedColor: useQualityColors
-              ? const Color(0xFFF5F6F7)
-              : Colors.transparent,
-          unselectedBorderColor: useQualityColors
-              ? const Color(0xFFD8DDE3)
-              : FilterSheetStyle.border,
-          unselectedTextColor: FilterSheetStyle.body,
-          borderRadius: const BorderRadius.all(Radius.circular(4)),
-          padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 9),
           minHeight: 40,
           fontSize: 14,
-          height: 21 / 14,
-          boxShadow: const <BoxShadow>[
-            BoxShadow(
-              color: Color(0x0D000000),
-              blurRadius: 2,
-              offset: Offset(0, 1),
-            ),
-          ],
           onTap: () => _selectDefaultForGroup(group.key),
         ),
         for (final option in options)
@@ -3070,44 +3209,12 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                       ? _marketCs2QualityColor(option)
                       : _marketCs2CategoryColor(option))
                 : null;
-            final selectedColor = qualityColor?.withValues(alpha: 0.08);
-            final selectedBorderColor = qualityColor?.withValues(alpha: 0.28);
-            final unselectedColor = qualityColor?.withValues(alpha: 0.03);
-            final unselectedBorderColor = qualityColor?.withValues(alpha: 0.12);
-            return FilterSheetOptionChip(
+            return _buildMarketOutlineChip(
               label: option.label.tr,
               selected: _selectedTags[group.key] == option.name,
-              selectedStyle: FilterChipSelectedStyle.soft,
-              selectedColor: useQualityColors
-                  ? selectedColor
-                  : Colors.transparent,
-              selectedBorderColor: useQualityColors
-                  ? selectedBorderColor
-                  : const Color(0xFFFF9500),
-              selectedTextColor: useQualityColors
-                  ? qualityColor
-                  : const Color(0xFFFF9500),
-              unselectedColor: useQualityColors
-                  ? unselectedColor
-                  : Colors.transparent,
-              unselectedBorderColor: useQualityColors
-                  ? unselectedBorderColor
-                  : FilterSheetStyle.border,
-              unselectedTextColor: useQualityColors
-                  ? qualityColor
-                  : FilterSheetStyle.body,
-              borderRadius: const BorderRadius.all(Radius.circular(4)),
-              padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 9),
+              textColor: qualityColor,
               minHeight: 40,
               fontSize: 14,
-              height: 21 / 14,
-              boxShadow: const <BoxShadow>[
-                BoxShadow(
-                  color: Color(0x0D000000),
-                  blurRadius: 2,
-                  offset: Offset(0, 1),
-                ),
-              ],
               onTap: () {
                 setState(() {
                   if (_selectedTags[group.key] == option.name) {
@@ -3120,6 +3227,39 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
             );
           }(),
       ],
+    );
+  }
+
+  Widget _buildMarketOutlineChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+    Color? textColor,
+    double fontSize = 14,
+    double minHeight = 40,
+    double? height,
+  }) {
+    final resolvedHeight = height ?? 21 / fontSize;
+    final selectedTextColor = textColor ?? FilterSheetStyle.primaryBright;
+    final unselectedTextColor = textColor ?? FilterSheetStyle.body;
+    return FilterSheetOptionChip(
+      label: label,
+      selected: selected,
+      selectedStyle: FilterChipSelectedStyle.soft,
+      selectedColor: Colors.white,
+      selectedBorderColor: const Color(0xFF3B82F6),
+      selectedTextColor: selectedTextColor,
+      unselectedColor: Colors.white,
+      unselectedBorderColor: const Color(0xFFE2E8F0),
+      unselectedTextColor: unselectedTextColor,
+      borderRadius: FilterSheetStyle.chipRadius,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      minHeight: minHeight,
+      fontSize: fontSize,
+      height: resolvedHeight,
+      selectedFontWeight: FontWeight.w600,
+      unselectedFontWeight: FontWeight.w500,
+      onTap: onTap,
     );
   }
 
@@ -3932,6 +4072,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         return _buildAccordionSection(
           sectionKey: group.key,
           title: _weaponTypeSectionTitle(group),
+          summary: _marketGroupSummary(group),
           contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
           child: _buildWeaponTypeSectionContent(group),
         );
@@ -3939,6 +4080,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         return _buildAccordionSection(
           sectionKey: group.key,
           title: group.label.tr,
+          summary: _marketGroupSummary(group),
           contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
           child: _buildWearConditionSectionContent(group),
         );
@@ -3946,6 +4088,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         return _buildAccordionSection(
           sectionKey: group.key,
           title: group.label.tr,
+          summary: _marketGroupSummary(group),
           contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
           child: _buildCategorySectionContent(group, useQualityColors: true),
         );
@@ -3953,6 +4096,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         return _buildAccordionSection(
           sectionKey: group.key,
           title: group.label.tr,
+          summary: _marketGroupSummary(group),
           contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
           child: _buildRaritySectionContent(group),
         );
@@ -3960,6 +4104,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         return _buildAccordionSection(
           sectionKey: group.key,
           title: group.label.tr,
+          summary: _marketGroupSummary(group),
           contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
           child: _buildCategorySectionContent(group),
         );
@@ -3967,6 +4112,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         return _buildAccordionSection(
           sectionKey: group.key,
           title: group.label.tr,
+          summary: _marketGroupSummary(group),
           contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
           child: _buildFallbackGroupSectionContent(group),
         );
