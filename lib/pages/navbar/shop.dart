@@ -16,6 +16,7 @@ import 'package:tronskins_app/components/filter/filter_models.dart';
 import 'package:tronskins_app/components/filter/market_filter_sheet.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
+import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 import 'package:tronskins_app/components/game_item/shop_sale_item_card.dart';
 import 'package:tronskins_app/components/layout/app_search_bar.dart';
 import 'package:tronskins_app/components/layout/header_filter_button.dart';
@@ -2325,6 +2326,8 @@ class _ShopPageState extends State<ShopPage>
     final imageUrl = detail.imageUrl ?? schema?.imageUrl ?? '';
     final rarity = _schemaTag(schema, 'rarity');
     final quality = _schemaTag(schema, 'quality');
+    final exterior = _schemaTag(schema, 'exterior');
+    final exteriorColor = parseHexColor(exterior?.color);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
@@ -2345,6 +2348,13 @@ class _ShopPageState extends State<ShopPage>
                 ),
               ),
             ),
+            if (exteriorColor != null)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: _buildPendingExteriorColorBar(exteriorColor),
+              ),
           ],
         ),
       ),
@@ -2436,6 +2446,8 @@ class _ShopPageState extends State<ShopPage>
     final imageUrl = detail.imageUrl ?? schema?.imageUrl ?? '';
     final rarity = _schemaTag(schema, 'rarity');
     final quality = _schemaTag(schema, 'quality');
+    final exterior = _schemaTag(schema, 'exterior');
+    final exteriorColor = parseHexColor(exterior?.color);
 
     final imageOpacity = isFront ? 1.0 : (visualDepth == 1 ? 0.9 : 0.78);
 
@@ -2468,15 +2480,44 @@ class _ShopPageState extends State<ShopPage>
               ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Opacity(
-        opacity: imageOpacity,
-        child: GameItemImage(
-          imageUrl: imageUrl,
-          appId: appId,
-          rarity: rarity,
-          quality: quality,
-          showTopBadges: false,
-        ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Opacity(
+              opacity: imageOpacity,
+              child: GameItemImage(
+                imageUrl: imageUrl,
+                appId: appId,
+                rarity: rarity,
+                quality: quality,
+                showTopBadges: false,
+              ),
+            ),
+          ),
+          if (isFront && exteriorColor != null)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _buildPendingExteriorColorBar(exteriorColor),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPendingExteriorColorBar(Color color) {
+    return Container(
+      height: 4,
+      decoration: BoxDecoration(
+        color: color,
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.28),
+            blurRadius: 8,
+            offset: const Offset(0, -1),
+          ),
+        ],
       ),
     );
   }

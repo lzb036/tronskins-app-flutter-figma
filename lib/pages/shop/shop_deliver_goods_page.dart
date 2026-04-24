@@ -770,7 +770,6 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     VoidCallback? onTap,
   }) {
     final title = _detailTitle(detail);
-    final wearInfo = _wearInfo(detail);
     final price =
         detail.totalPrice ?? ((detail.price ?? 0) * (detail.count ?? 1));
     final stickers = _detailStickers(detail);
@@ -782,11 +781,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildPreviewColumn(
-            preview: _buildDetailPreview(detail),
-            width: previewWidth,
-            wearInfo: wearInfo,
-          ),
+          SizedBox(width: previewWidth, child: _buildDetailPreview(detail)),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -825,68 +820,6 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     );
   }
 
-  Widget _buildPreviewColumn({
-    required Widget preview,
-    required double width,
-    required _DetailWearInfo? wearInfo,
-  }) {
-    return SizedBox(
-      width: width,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          preview,
-          if (wearInfo != null) ...[
-            const SizedBox(height: 6),
-            _buildCompactWearInfo(wearInfo),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCompactWearInfo(_DetailWearInfo wearInfo) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              _isEnglishLocale ? 'Wear' : '磨损度',
-              style: const TextStyle(
-                color: Color(0xFF64748B),
-                fontSize: 8,
-                fontWeight: FontWeight.w700,
-                height: 10 / 8,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Expanded(
-              child: Text(
-                wearInfo.text,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                  color: _titleColor,
-                  fontSize: 8,
-                  fontWeight: FontWeight.w800,
-                  height: 10 / 8,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 3),
-        WearProgressBar(
-          paintWear: wearInfo.value,
-          height: 10,
-          style: WearProgressBarStyle.figmaCompact,
-        ),
-      ],
-    );
-  }
-
   Widget _buildDetailPreview(ShopOrderDetail detail) {
     return _buildDetailImageTile(detail, isFront: true, opacity: 1);
   }
@@ -908,6 +841,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     final exterior = _schemaTag(schema, 'exterior');
     final phase = _detailText(detail, const ['phase']);
     final percentage = _detailText(detail, const ['percentage']);
+    final wearInfo = _wearOverlayInfo(detail);
 
     return Container(
       width: 64,
@@ -926,17 +860,79 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
             : null,
       ),
       clipBehavior: Clip.antiAlias,
-      child: Opacity(
-        opacity: opacity,
-        child: GameItemImage(
-          imageUrl: imageUrl,
-          appId: appId,
-          rarity: rarity,
-          quality: quality,
-          exterior: exterior,
-          phase: phase,
-          percentage: percentage,
-          showTopBadges: false,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Opacity(
+              opacity: opacity,
+              child: GameItemImage(
+                imageUrl: imageUrl,
+                appId: appId,
+                rarity: rarity,
+                quality: quality,
+                exterior: exterior,
+                phase: phase,
+                percentage: percentage,
+                showTopBadges: false,
+              ),
+            ),
+          ),
+          if (wearInfo != null)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _buildDetailImageWearOverlay(wearInfo),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailImageWearOverlay(_DetailWearInfo wearInfo) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(5, 4, 5, 3),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0x00140C09), Color(0x6B111827), Color(0xE6111827)],
+              stops: [0, 0.42, 1],
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${_isEnglishLocale ? 'Wear' : '磨损度'}: ${wearInfo.text}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFFE5E7EB),
+                  fontSize: 6.5,
+                  fontWeight: FontWeight.w700,
+                  height: 8 / 6.5,
+                  shadows: [
+                    Shadow(
+                      color: Color(0xB3000000),
+                      blurRadius: 3,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 2),
+              WearProgressBar(
+                paintWear: wearInfo.value,
+                height: 7,
+                style: WearProgressBarStyle.figmaCompact,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1310,7 +1306,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     return null;
   }
 
-  _DetailWearInfo? _wearInfo(ShopOrderDetail detail) {
+  _DetailWearInfo? _wearOverlayInfo(ShopOrderDetail detail) {
     final schema = _lookupSchema(detail);
     if (_resolveDetailAppId(detail, schema) != 730) {
       return null;
@@ -1319,8 +1315,10 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     if (value == null) {
       return null;
     }
-    final text = _paintWearText(detail) ?? value.toString();
-    return _DetailWearInfo(value: value, text: text);
+    return _DetailWearInfo(
+      value: value,
+      text: _paintWearText(detail) ?? value.toString(),
+    );
   }
 
   double? _paintWearValue(ShopOrderDetail detail) {
