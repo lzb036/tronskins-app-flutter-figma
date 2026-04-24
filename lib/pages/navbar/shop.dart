@@ -3303,7 +3303,7 @@ class _ShopPageState extends State<ShopPage>
         'order': order,
         'schemas': Map<String, ShopSchemaInfo>.from(orderController.schemas),
         'users': Map<String, ShopUserInfo>.from(orderController.users),
-        'stickers': Map<String, dynamic>.from(salesController.stickers),
+        'stickers': Map<String, dynamic>.from(orderController.stickers),
         'disableOrderActions': true,
       },
     );

@@ -463,6 +463,7 @@ class _MyPurchasePageState extends State<MyPurchasePage>
         'order': order,
         'schemas': Map<String, ShopSchemaInfo>.from(controller.schemas),
         'users': Map<String, ShopUserInfo>.from(controller.users),
+        'stickers': Map<String, dynamic>.from(controller.stickers),
       },
     );
   }

@@ -16,6 +16,7 @@ class ShopOrderController extends GetxController {
   final RxList<ShopOrderItem> buyRecords = <ShopOrderItem>[].obs;
   final RxMap<String, ShopSchemaInfo> schemas = <String, ShopSchemaInfo>{}.obs;
   final RxMap<String, ShopUserInfo> users = <String, ShopUserInfo>{}.obs;
+  final RxMap<String, dynamic> stickers = <String, dynamic>{}.obs;
 
   final RxBool isLoadingPending = false.obs;
   final RxBool isLoadingWaiting = false.obs;
@@ -151,6 +152,7 @@ class ShopOrderController extends GetxController {
       }
       schemas.addAll(data?.schemas ?? const {});
       users.addAll(data?.users ?? const {});
+      stickers.addAll(data?.stickers ?? const {});
     } finally {
       isLoadingPending.value = false;
     }
@@ -203,6 +205,7 @@ class ShopOrderController extends GetxController {
       }
       schemas.addAll(data?.schemas ?? const {});
       users.addAll(data?.users ?? const {});
+      stickers.addAll(data?.stickers ?? const {});
     } finally {
       isLoadingWaiting.value = false;
     }
@@ -257,6 +260,7 @@ class ShopOrderController extends GetxController {
       }
       schemas.addAll(data?.schemas ?? const {});
       users.addAll(data?.users ?? const {});
+      stickers.addAll(data?.stickers ?? const {});
     } finally {
       isLoadingRecords.value = false;
     }

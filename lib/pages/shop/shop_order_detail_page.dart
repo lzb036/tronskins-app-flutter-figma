@@ -17,7 +17,6 @@ import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
-import 'package:tronskins_app/components/game_item/sticker_row.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 import 'package:tronskins_app/controllers/shop/shop_order_controller.dart';
 import 'package:tronskins_app/controllers/shop/shop_shipping_notice_controller.dart';
@@ -924,18 +923,10 @@ class ShopOrderDetailPage extends StatelessWidget {
     final wearText = _buildWearText(detail, paintWear);
     final stickerDetails = _resolveDetailStickerDetails(
       detail: detail,
+      schema: schema,
       appId: appId,
       stickerMap: stickers,
     );
-    final stickerIcons = stickerDetails.isNotEmpty
-        ? stickerDetails
-              .map((sticker) => GameItemSticker(sticker.imageUrl))
-              .toList(growable: false)
-        : _resolveDetailStickerIcons(
-            detail: detail,
-            appId: appId,
-            stickerMap: stickers,
-          );
     final exterior = _schemaTag(schema, 'exterior');
     final rarity = _schemaTag(schema, 'rarity');
     final quality = _schemaTag(schema, 'quality');
@@ -1011,10 +1002,6 @@ class ShopOrderDetailPage extends StatelessWidget {
                           ),
                       ],
                     ),
-                    if (stickerIcons.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      StickerRow(stickers: stickerIcons, size: 24),
-                    ],
                   ],
                 ),
               ),
@@ -1207,6 +1194,20 @@ class ShopOrderDetailPage extends StatelessWidget {
                     height: 18 / 13,
                   ),
                 ),
+                if (sticker.price != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatStickerPrice(sticker.price!),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFFBA1A1A),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      height: 16 / 12,
+                    ),
+                  ),
+                ],
                 if (metaLabels.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Wrap(
@@ -2356,10 +2357,11 @@ class ShopOrderDetailPage extends StatelessWidget {
 
   List<_OrderStickerDetailData> _resolveDetailStickerDetails({
     required ShopOrderDetail detail,
+    required ShopSchemaInfo? schema,
     required int appId,
     required Map<String, dynamic> stickerMap,
   }) {
-    for (final candidate in _detailStickerCandidates(detail, appId)) {
+    for (final candidate in _detailStickerCandidates(detail, schema, appId)) {
       final entries = _normalizeStickerEntries(candidate);
       if (entries.isEmpty) {
         continue;
@@ -2375,34 +2377,23 @@ class ShopOrderDetailPage extends StatelessWidget {
     return const [];
   }
 
-  List<GameItemSticker> _resolveDetailStickerIcons({
-    required ShopOrderDetail detail,
-    required int appId,
-    required Map<String, dynamic> stickerMap,
-  }) {
-    for (final candidate in _detailStickerCandidates(detail, appId)) {
-      final entries = _normalizeStickerEntries(candidate);
-      if (entries.isEmpty) {
-        continue;
-      }
-      final stickers = parseStickerList(
-        entries,
-        stickerMap: stickerMap,
-        schemaMap: stickerMap,
-      );
-      if (stickers.isNotEmpty) {
-        return stickers;
-      }
-    }
-    return const [];
-  }
-
-  List<dynamic> _detailStickerCandidates(ShopOrderDetail detail, int appId) {
+  List<dynamic> _detailStickerCandidates(
+    ShopOrderDetail detail,
+    ShopSchemaInfo? schema,
+    int appId,
+  ) {
     final raw = detail.raw;
+    final schemaRaw = schema?.raw;
     final rawAsset = _pickAssetRaw(raw, appId);
     final rawCsgoAsset = _asMap(raw['csgoAsset']);
     final rawTf2Asset = _asMap(raw['tf2Asset']);
     final rawDotaAsset = _asMap(raw['dota2Asset']);
+    final schemaAsset = schemaRaw == null
+        ? null
+        : _pickAssetRaw(schemaRaw, appId);
+    final schemaCsgoAsset = _asMap(schemaRaw?['csgoAsset']);
+    final schemaTf2Asset = _asMap(schemaRaw?['tf2Asset']);
+    final schemaDotaAsset = _asMap(schemaRaw?['dota2Asset']);
 
     return [
       raw['stickers'],
@@ -2425,6 +2416,26 @@ class ShopOrderDetailPage extends StatelessWidget {
       rawDotaAsset?['stickerList'],
       rawDotaAsset?['sticker_list'],
       rawDotaAsset?['sticker'],
+      schemaRaw?['stickers'],
+      schemaRaw?['stickerList'],
+      schemaRaw?['sticker_list'],
+      schemaRaw?['sticker'],
+      schemaAsset?['stickers'],
+      schemaAsset?['stickerList'],
+      schemaAsset?['sticker_list'],
+      schemaAsset?['sticker'],
+      schemaCsgoAsset?['stickers'],
+      schemaCsgoAsset?['stickerList'],
+      schemaCsgoAsset?['sticker_list'],
+      schemaCsgoAsset?['sticker'],
+      schemaTf2Asset?['stickers'],
+      schemaTf2Asset?['stickerList'],
+      schemaTf2Asset?['sticker_list'],
+      schemaTf2Asset?['sticker'],
+      schemaDotaAsset?['stickers'],
+      schemaDotaAsset?['stickerList'],
+      schemaDotaAsset?['sticker_list'],
+      schemaDotaAsset?['sticker'],
     ];
   }
 
@@ -2483,6 +2494,7 @@ class ShopOrderDetailPage extends StatelessWidget {
     String? stickerId;
     String? slotLabel;
     String? wearText;
+    double? price;
 
     if (entry is Map) {
       imageUrl = _findTextValue(entry, const [
@@ -2496,6 +2508,17 @@ class ShopOrderDetailPage extends StatelessWidget {
         'localized_name',
         'localizedName',
         'name',
+      ]);
+      price = _findNumericValue(entry, const [
+        'market_price',
+        'marketPrice',
+        'price',
+        'reference_price',
+        'referencePrice',
+        'buff_price',
+        'buffPrice',
+        'steam_price',
+        'steamPrice',
       ]);
       stickerId = _findTextValue(entry, const [
         'sticker_id',
@@ -2555,6 +2578,17 @@ class ShopOrderDetailPage extends StatelessWidget {
       'localizedName',
       'name',
     ]);
+    price ??= _findNumericValue(stickerMeta, const [
+      'market_price',
+      'marketPrice',
+      'price',
+      'reference_price',
+      'referencePrice',
+      'buff_price',
+      'buffPrice',
+      'steam_price',
+      'steamPrice',
+    ]);
     slotLabel ??= _findTextValue(stickerMeta, const [
       'slot_name',
       'slotName',
@@ -2588,6 +2622,7 @@ class ShopOrderDetailPage extends StatelessWidget {
       name: name,
       slotLabel: slotLabel,
       wearText: wearText,
+      price: price,
     );
   }
 
@@ -2672,6 +2707,13 @@ class ShopOrderDetailPage extends StatelessWidget {
       return null;
     }
     return wear.toString();
+  }
+
+  String _formatStickerPrice(double price) {
+    final currency = Get.isRegistered<CurrencyController>()
+        ? Get.find<CurrencyController>()
+        : null;
+    return _formatPrice(currency, price);
   }
 
   String _stickerFallbackName(int index) =>
@@ -3093,10 +3135,12 @@ class _OrderStickerDetailData {
     this.name,
     this.slotLabel,
     this.wearText,
+    this.price,
   });
 
   final String imageUrl;
   final String? name;
   final String? slotLabel;
   final String? wearText;
+  final double? price;
 }
