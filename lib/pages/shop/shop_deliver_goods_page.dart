@@ -510,6 +510,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
         ? buyer!.nickname!
         : (_isEnglishLocale ? 'Steam Buyer' : 'Steam 买家');
     final level = buyer?.level;
+    final yearsLevel = buyer?.yearsLevel;
 
     return Container(
       width: double.infinity,
@@ -575,6 +576,26 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
                     ),
                   ],
                 ),
+                if (yearsLevel != null) ...[
+                  const SizedBox(height: 5),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildSteamAccountAgeBadge(yearsLevel),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'STEAM ACCOUNT AGE',
+                        style: TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          height: 12 / 9,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -622,6 +643,21 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
           height: 12 / 9,
           fontWeight: FontWeight.w800,
         ),
+      ),
+    );
+  }
+
+  Widget _buildSteamAccountAgeBadge(int yearsLevel) {
+    return CachedNetworkImage(
+      imageUrl:
+          'https://community.cloudflare.steamstatic.com/public/images/badges/02_years/steamyears${yearsLevel}_80.png',
+      width: 18,
+      height: 18,
+      fit: BoxFit.contain,
+      errorWidget: (_, __, ___) => const Icon(
+        Icons.calendar_month_rounded,
+        size: 16,
+        color: Color(0xFF94A3B8),
       ),
     );
   }
