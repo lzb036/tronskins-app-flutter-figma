@@ -214,6 +214,7 @@ class FilterSheetOptionChip extends StatelessWidget {
     this.unselectedBoxShadow,
     this.scaleDownLabel = false,
     this.maxLines = 2,
+    this.overflow = TextOverflow.ellipsis,
     this.contentAlignment = Alignment.center,
     this.textAlign = TextAlign.center,
   });
@@ -240,7 +241,8 @@ class FilterSheetOptionChip extends StatelessWidget {
   final List<BoxShadow>? selectedBoxShadow;
   final List<BoxShadow>? unselectedBoxShadow;
   final bool scaleDownLabel;
-  final int maxLines;
+  final int? maxLines;
+  final TextOverflow? overflow;
   final AlignmentGeometry contentAlignment;
   final TextAlign textAlign;
 
@@ -305,7 +307,7 @@ class FilterSheetOptionChip extends StatelessWidget {
                   label,
                   textAlign: textAlign,
                   maxLines: maxLines,
-                  overflow: TextOverflow.ellipsis,
+                  overflow: overflow,
                   style: TextStyle(
                     color: textColor,
                     fontSize: fontSize,

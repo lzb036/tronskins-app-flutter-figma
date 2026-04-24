@@ -67,11 +67,7 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
   }
 
   Future<void> _handleRead(TradeNotifyItem item) async {
-    final message = await widget.controller.readTrade(item);
-    if (message == null || message.isEmpty || item.status == 2) {
-      return;
-    }
-    AppSnackbar.info(message);
+    await widget.controller.readTrade(item);
   }
 
   Future<void> _openDetail(TradeNotifyItem item) async {

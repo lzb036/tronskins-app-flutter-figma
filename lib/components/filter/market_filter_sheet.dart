@@ -911,6 +911,9 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         }
         return;
       }
+      if (key == 'type') {
+        _selectedItemName = null;
+      }
       _selectedTags[key] = option.name;
     });
   }
@@ -1408,19 +1411,178 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
 
   Widget _buildWeaponTypeSectionContent(_AttributeGroup group) {
     final options = _visibleOptions(group);
-    return _buildLeftAlignedChipWrap([
-      _buildFigmaWeaponTypeChip(
-        label: _defaultFilterLabel,
-        selected: _isDefaultSelectedForGroup(group.key),
-        onTap: () => _selectDefaultForGroup(group.key),
-      ),
-      for (final option in options)
-        _buildFigmaWeaponTypeChip(
-          label: option.label.tr,
-          selected: _isGroupSelected(group.key, option),
-          onTap: () => _selectOption(group.key, option),
+    if (options.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final active = _activeWeaponTypeOption(options);
+    final subOptions = active?.subOptions ?? const <_AttributeOption>[];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildWeaponTypeTabs(group: group, options: options, active: active),
+        if (subOptions.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          _buildWeaponSubtypeGrid(group: group, options: subOptions),
+        ],
+      ],
+    );
+  }
+
+  _AttributeOption? _activeWeaponTypeOption(List<_AttributeOption> options) {
+    final selectedType = (_selectedTags['type'] ?? '').trim();
+    if (selectedType.isNotEmpty) {
+      for (final option in options) {
+        if (option.name == selectedType) {
+          return option;
+        }
+      }
+    }
+
+    final selectedItemName = (_selectedItemName ?? '').trim();
+    if (selectedItemName.isNotEmpty) {
+      for (final option in options) {
+        for (final sub in option.subOptions) {
+          if (sub.name == selectedItemName) {
+            return option;
+          }
+        }
+      }
+    }
+
+    return options.isEmpty ? null : options.first;
+  }
+
+  Widget _buildWeaponTypeTabs({
+    required _AttributeGroup group,
+    required List<_AttributeOption> options,
+    required _AttributeOption? active,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 18,
+          runSpacing: 10,
+          children: [
+            for (final option in options)
+              _buildWeaponTypeTab(
+                label: option.label.tr,
+                selected: active?.name == option.name,
+                onTap: () => _selectOption(group.key, option),
+              ),
+          ],
         ),
-    ]);
+        const SizedBox(height: 10),
+        const Divider(height: 1, thickness: 1, color: FilterSheetStyle.divider),
+      ],
+    );
+  }
+
+  Widget _buildWeaponTypeTab({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 72, maxWidth: 124),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                label,
+                softWrap: true,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: selected
+                      ? FilterSheetStyle.primary
+                      : const Color(0xFF6B7280),
+                  fontSize: 14,
+                  height: 21 / 14,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                height: 3,
+                margin: const EdgeInsets.symmetric(horizontal: 6),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? FilterSheetStyle.primaryBright
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWeaponSubtypeGrid({
+    required _AttributeGroup group,
+    required List<_AttributeOption> options,
+  }) {
+    final sectionKey = 'group:${group.key}';
+    final selected = (_selectedItemName ?? '').trim();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const spacing = 10.0;
+        const maxColumns = 3;
+        const minTileWidth = 98.0;
+        final columns = (constraints.maxWidth / minTileWidth)
+            .floor()
+            .clamp(1, maxColumns)
+            .toInt();
+        final itemWidth =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: 12,
+          children: [
+            for (final option in options)
+              SizedBox(
+                width: itemWidth,
+                child: KeyedSubtree(
+                  key: _selectionAnchorKey(sectionKey, option.name),
+                  child: FilterSheetOptionChip(
+                    label: option.label.tr,
+                    selected: selected == option.name,
+                    fullWidth: true,
+                    selectedStyle: FilterChipSelectedStyle.soft,
+                    selectedColor: Colors.white,
+                    selectedBorderColor: const Color(0xFF3B82F6),
+                    selectedTextColor: FilterSheetStyle.primaryBright,
+                    unselectedColor: Colors.white,
+                    unselectedBorderColor: const Color(0xFFE2E8F0),
+                    unselectedTextColor: const Color(0xFF4B5563),
+                    borderRadius: FilterSheetStyle.chipRadius,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 10,
+                    ),
+                    minHeight: 48,
+                    fontSize: 14,
+                    height: 20 / 14,
+                    selectedFontWeight: FontWeight.w600,
+                    unselectedFontWeight: FontWeight.w500,
+                    maxLines: null,
+                    overflow: null,
+                    onTap: () => _selectSubOption(group, option),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
   }
 
   String _formatDotaSectionTitle(String key, String title) {
@@ -3403,12 +3565,19 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
     return ordered;
   }
 
+  String _weaponTypeSectionTitle(_AttributeGroup group) {
+    if (widget.appId != 730) {
+      return group.label.tr;
+    }
+    return Get.locale?.languageCode == 'en' ? 'Weapon Type' : '武器类型';
+  }
+
   Widget _buildMarketGroupSection(_AttributeGroup group) {
     switch (group.key) {
       case 'type':
         return _buildAccordionSection(
           sectionKey: group.key,
-          title: group.label.tr,
+          title: _weaponTypeSectionTitle(group),
           contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
           child: _buildWeaponTypeSectionContent(group),
         );
