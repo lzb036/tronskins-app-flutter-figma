@@ -185,6 +185,19 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     return int.tryParse(value.toString());
   }
 
+  double? _asDouble(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is double) {
+      return value;
+    }
+    if (value is num) {
+      return value.toDouble();
+    }
+    return double.tryParse(value.toString());
+  }
+
   bool _isOwnOnSaleItem() {
     if (_item.own == true) {
       return true;
@@ -757,12 +770,14 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
 
   String get _buyNowLabel => _isEnglishLocale ? 'Buy Now' : '立即购买';
 
-  String get _viewStoreLabel => _isEnglishLocale ? 'View Store' : '查看店铺';
-
   String get _patternTemplateLabel =>
       _isEnglishLocale ? 'Pattern Template' : '图案模板';
 
   String get _skinNumberLabel => _isEnglishLocale ? 'Skin Number' : '皮肤编号';
+
+  String get _avgShipLabel => _isEnglishLocale ? 'AVG. SHIP' : '平均发货';
+
+  String get _rateLabel => _isEnglishLocale ? 'RATE' : '发货率';
 
   String _shopDeliverLabel() {
     return 'app.user.shop.deliver'.tr;
@@ -878,6 +893,86 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     );
   }
 
+  String _deliverySuccessRate({required int total, required int notSend}) {
+    if (total <= 0) {
+      return '0%';
+    }
+    final rate = ((total - notSend) / total * 100).clamp(0, 100);
+    return '${rate.toStringAsFixed(1)}%';
+  }
+
+  String _formatAverageShip(double? value) {
+    if (value == null || value <= 0) {
+      return _isEnglishLocale ? '0 mins' : '0 分钟';
+    }
+    if (value < 2) {
+      return _isEnglishLocale ? '< 2 mins' : '< 2 分钟';
+    }
+    final text = value.toStringAsFixed(value >= 10 ? 0 : 1);
+    return _isEnglishLocale ? '$text mins' : '$text 分钟';
+  }
+
+  String _last7DaysRate(Map<String, dynamic>? shopInfo) {
+    final total = _asInt(shopInfo?['last7daysNums']) ?? 0;
+    final notSend = _asInt(shopInfo?['last7daysNotSend']) ?? 0;
+    return _deliverySuccessRate(total: total, notSend: notSend);
+  }
+
+  Widget _buildShopInlineMetrics(Map<String, dynamic>? shopInfo) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildShopMetricValue(
+          label: _avgShipLabel,
+          value: _formatAverageShip(_asDouble(shopInfo?['last7daysAvg'])),
+        ),
+        Container(
+          width: 1,
+          height: 18,
+          margin: const EdgeInsets.symmetric(horizontal: 6),
+          color: const Color(0xFFE2E8F0),
+        ),
+        _buildShopMetricValue(
+          label: _rateLabel,
+          value: _last7DaysRate(shopInfo),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildShopMetricValue({required String label, required String value}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          softWrap: false,
+          style: const TextStyle(
+            color: _textSecondary,
+            fontSize: 8,
+            height: 11 / 8,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.4,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          maxLines: 1,
+          softWrap: false,
+          style: const TextStyle(
+            color: _brandBlue,
+            fontSize: 13,
+            height: 15 / 13,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildShopInfoCard() {
     if (_loadingShopInfo) {
       return _buildShopInfoLoadingCard();
@@ -902,146 +997,142 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
         shopInfo?['isOnline'] == true || shopInfo?['is_online'] == true;
     final canOpenStore = (_resolveSellerUuid()?.isNotEmpty ?? false);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _surfaceSoft,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: canOpenStore ? _openSellerStore : null,
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Row(
-              children: [
-                Stack(
-                  clipBehavior: Clip.none,
+        child: Ink(
+          padding: const EdgeInsets.fromLTRB(16, 16, 8, 16),
+          decoration: BoxDecoration(
+            color: _surfaceSoft,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Row(
                   children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: ClipOval(
-                        child: avatar.isEmpty
-                            ? const Icon(
-                                Icons.storefront_outlined,
-                                size: 20,
-                                color: _textSecondary,
-                              )
-                            : CachedNetworkImage(
-                                imageUrl: avatar,
-                                fit: BoxFit.cover,
-                                errorWidget: (context, _, __) => const Icon(
-                                  Icons.storefront_outlined,
-                                  size: 20,
-                                  color: _textSecondary,
-                                ),
-                              ),
-                      ),
-                    ),
-                    if (isOnline)
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                          width: 12,
-                          height: 12,
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
                           decoration: BoxDecoration(
-                            color: _successGreen,
+                            color: Colors.white,
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 2),
                           ),
+                          child: ClipOval(
+                            child: avatar.isEmpty
+                                ? const Icon(
+                                    Icons.storefront_outlined,
+                                    size: 20,
+                                    color: _textSecondary,
+                                  )
+                                : CachedNetworkImage(
+                                    imageUrl: avatar,
+                                    fit: BoxFit.cover,
+                                    errorWidget: (context, _, __) => const Icon(
+                                      Icons.storefront_outlined,
+                                      size: 20,
+                                      color: _textSecondary,
+                                    ),
+                                  ),
+                          ),
                         ),
-                      ),
-                  ],
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                        if (isOnline)
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: _successGreen,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(
-                              shopName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: _textPrimary,
-                                fontSize: 14,
-                                height: 20 / 14,
-                                fontWeight: FontWeight.w700,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  shopName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: _textPrimary,
+                                    fontSize: 14,
+                                    height: 20 / 14,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          GestureDetector(
+                            onTap: _showShopDeliverTips,
+                            behavior: HitTestBehavior.opaque,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD8E2FF),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                _shopDeliverLabel(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFF004395),
+                                  fontSize: 9,
+                                  height: 13.5 / 9,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      GestureDetector(
-                        onTap: _showShopDeliverTips,
-                        behavior: HitTestBehavior.opaque,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFD8E2FF),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            _shopDeliverLabel(),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xFF004395),
-                              fontSize: 9,
-                              height: 13.5 / 9,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: canOpenStore ? _openSellerStore : null,
-              borderRadius: BorderRadius.circular(8),
-              child: Ink(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 17,
-                  vertical: 9,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFC4C5D5)),
-                ),
-                child: Text(
-                  _viewStoreLabel,
-                  style: TextStyle(
-                    color: canOpenStore ? _textPrimary : _textSecondary,
-                    fontSize: 12,
-                    height: 16 / 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            ),
+              const SizedBox(width: 8),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: _buildShopInlineMetrics(shopInfo),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 22,
+                color: canOpenStore
+                    ? _textSecondary
+                    : _textSecondary.withValues(alpha: 0.45),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
