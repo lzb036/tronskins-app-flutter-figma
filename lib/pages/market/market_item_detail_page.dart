@@ -743,9 +743,11 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
 
   String get _floatValueLabel => _isEnglishLocale ? 'Wear' : '磨损值';
 
-  String get _weaponTypeLabel => _isEnglishLocale ? 'Weapon Type' : '武器类型';
+  String get _rarityLabel => _isEnglishLocale ? 'Rarity' : '稀有度';
 
-  String get _categoryLabel => _isEnglishLocale ? 'Category' : '类别';
+  String get _typeLabel => _isEnglishLocale ? 'Type' : '类型';
+
+  String get _exteriorLabel => _isEnglishLocale ? 'Exterior' : '外观';
 
   String get _qualityLabel => _isEnglishLocale ? 'Quality' : '品质';
 
@@ -755,13 +757,13 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
 
   String get _buyNowLabel => _isEnglishLocale ? 'Buy Now' : '立即购买';
 
-  String get _overviewPatternLabel => _isEnglishLocale ? 'Pattern' : '编号';
-
-  String get _overviewTypeLabel => _isEnglishLocale ? 'Type' : '类型';
-
-  String get _overviewCollectionLabel => _isEnglishLocale ? 'Collection' : '系列';
-
   String get _viewStoreLabel => _isEnglishLocale ? 'View Store' : '查看店铺';
+
+  String get _patternTemplateLabel =>
+      _isEnglishLocale ? 'Pattern Template(paint seed)' : '图案模板(paint seed)';
+
+  String get _skinNumberLabel =>
+      _isEnglishLocale ? 'Skin Number(paint index)' : '皮肤编号(paint index)';
 
   String _shopDeliverLabel() {
     return 'app.user.shop.deliver'.tr;
@@ -1235,86 +1237,344 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     return text;
   }
 
+  String? _cleanFieldValue(String? value) {
+    if (value == null) {
+      return null;
+    }
+    final normalized = value.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (normalized.isEmpty || normalized == 'null') {
+      return null;
+    }
+    return normalized;
+  }
+
+  void _addInfoField(
+    List<MapEntry<String, String>> fields,
+    Set<String> seenLabels, {
+    required String label,
+    required String? value,
+    String? identity,
+  }) {
+    final displayLabel = _cleanFieldValue(label);
+    final displayValue = _cleanFieldValue(value);
+    if (displayLabel == null || displayValue == null) {
+      return;
+    }
+    final key = (identity ?? displayLabel).toLowerCase();
+    if (seenLabels.contains(key)) {
+      return;
+    }
+    seenLabels.add(key);
+    fields.add(MapEntry(displayLabel, displayValue));
+  }
+
+  List<MapEntry<String, String>> _buildNameSummaryFields({
+    required String? paintSeedValue,
+    required String? paintIndexValue,
+  }) {
+    final fields = <MapEntry<String, String>>[];
+    final seen = <String>{};
+    _addInfoField(
+      fields,
+      seen,
+      label: _patternTemplateLabel,
+      value: paintSeedValue,
+      identity: 'paint_seed',
+    );
+    _addInfoField(
+      fields,
+      seen,
+      label: _skinNumberLabel,
+      value: paintIndexValue,
+      identity: 'paint_index',
+    );
+    return fields;
+  }
+
+  List<MapEntry<String, String>> _buildAttributeDescriptionFields({
+    required Map<String, dynamic>? asset,
+    required int appId,
+    required String? typeValue,
+    required String? rarityValue,
+    required String? qualityValue,
+    required String? exteriorValue,
+    required String? collectionValue,
+    required String? heroValue,
+    required String? slotValue,
+  }) {
+    final fields = <MapEntry<String, String>>[];
+    final seen = <String>{};
+    _addInfoField(
+      fields,
+      seen,
+      label: _typeLabel,
+      value: typeValue,
+      identity: 'type',
+    );
+    _addInfoField(
+      fields,
+      seen,
+      label: _rarityLabel,
+      value: rarityValue,
+      identity: 'rarity',
+    );
+    _addInfoField(
+      fields,
+      seen,
+      label: _qualityLabel,
+      value: qualityValue,
+      identity: 'quality',
+    );
+    _addInfoField(
+      fields,
+      seen,
+      label: _exteriorLabel,
+      value: exteriorValue,
+      identity: 'exterior',
+    );
+    if (appId == 570) {
+      _addInfoField(
+        fields,
+        seen,
+        label: _isEnglishLocale ? 'Hero' : '英雄',
+        value: heroValue,
+        identity: 'hero',
+      );
+      _addInfoField(
+        fields,
+        seen,
+        label: _isEnglishLocale ? 'Slot' : '槽位',
+        value: slotValue,
+        identity: 'slot',
+      );
+    }
+    _addDescListAttributeFields(fields, seen, asset);
+    _addInfoField(
+      fields,
+      seen,
+      label: _collectionLabel,
+      value: collectionValue,
+      identity: 'itemset_name',
+    );
+    return fields;
+  }
+
+  void _addDescListAttributeFields(
+    List<MapEntry<String, String>> fields,
+    Set<String> seen,
+    Map<String, dynamic>? asset,
+  ) {
+    for (final source in <dynamic>[_item.raw, asset, _schema?.raw]) {
+      if (source is! Map) {
+        continue;
+      }
+      for (final key in const <String>[
+        'descList',
+        'desc_list',
+        'descriptionList',
+        'description_list',
+      ]) {
+        final value = source[key];
+        if (value is! Iterable) {
+          continue;
+        }
+        for (final entry in value) {
+          if (entry is! Map) {
+            continue;
+          }
+          final parsed = _parseDescListAttributeField(entry);
+          if (parsed == null) {
+            continue;
+          }
+          final descName = entry['name']?.toString().trim();
+          final normalizedDescName = descName?.toLowerCase();
+          _addInfoField(
+            fields,
+            seen,
+            label: parsed.key,
+            value: parsed.value,
+            identity: normalizedDescName == 'exterior_wear'
+                ? 'exterior'
+                : (descName != null && descName.isNotEmpty
+                      ? descName
+                      : parsed.key),
+          );
+        }
+      }
+    }
+  }
+
+  MapEntry<String, String>? _parseDescListAttributeField(Map entry) {
+    final name = entry['name']?.toString().trim() ?? '';
+    final normalizedName = name.toLowerCase();
+    if (normalizedName.isEmpty ||
+        normalizedName == 'blank' ||
+        normalizedName == 'description' ||
+        normalizedName == 'desc' ||
+        normalizedName == 'sticker_info') {
+      return null;
+    }
+    final rawText =
+        entry['value']?.toString() ??
+        entry['text']?.toString() ??
+        entry['label']?.toString();
+    final cleaned = _cleanDescriptionText(rawText);
+    if (cleaned == null || cleaned.contains('\n')) {
+      return null;
+    }
+    final text = _cleanFieldValue(_normalizeDescriptionText(cleaned));
+    if (text == null || text.length > 80) {
+      return null;
+    }
+    if (normalizedName == 'itemset_name') {
+      return MapEntry(_collectionLabel, text);
+    }
+    if (normalizedName == 'exterior_wear') {
+      final split = _splitDescListLabelValue(text);
+      return MapEntry(_exteriorLabel, split?.value ?? text);
+    }
+    final split = _splitDescListLabelValue(text);
+    if (split != null) {
+      return MapEntry(_normalizeDescListLabel(split.key), split.value);
+    }
+    final label = _labelForDescListName(name);
+    if (label == null) {
+      return null;
+    }
+    return MapEntry(label, text);
+  }
+
+  MapEntry<String, String>? _splitDescListLabelValue(String text) {
+    final separatorIndex = text.indexOf(':');
+    if (separatorIndex <= 0 || separatorIndex >= text.length - 1) {
+      return null;
+    }
+    final label = text.substring(0, separatorIndex).trim();
+    final value = text.substring(separatorIndex + 1).trim();
+    if (label.isEmpty || value.isEmpty || label.length > 30) {
+      return null;
+    }
+    return MapEntry(label, value);
+  }
+
+  String _normalizeDescListLabel(String label) {
+    final lower = label.toLowerCase();
+    if (lower == 'exterior') {
+      return _exteriorLabel;
+    }
+    if (lower == 'quality') {
+      return _qualityLabel;
+    }
+    if (lower == 'rarity') {
+      return _rarityLabel;
+    }
+    if (lower == 'type') {
+      return _typeLabel;
+    }
+    return label;
+  }
+
+  String? _labelForDescListName(String name) {
+    final normalized = name.trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+    final lower = normalized.toLowerCase();
+    if (lower == 'itemset_name') {
+      return _collectionLabel;
+    }
+    if (lower == 'exterior_wear') {
+      return _exteriorLabel;
+    }
+    return normalized
+        .split(RegExp(r'[_\s-]+'))
+        .where((part) => part.isNotEmpty)
+        .map((part) => part[0].toUpperCase() + part.substring(1))
+        .join(' ');
+  }
+
   Widget _buildOverviewStatTile({
     required String label,
     required String value,
     bool showDivider = false,
+    bool showTopDivider = false,
     bool allowValueWrap = false,
   }) {
-    return Expanded(
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 94),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
-        decoration: BoxDecoration(
-          border: showDivider
-              ? const Border(
-                  right: BorderSide(color: Color(0xFFE3E7EE), width: 1),
-                )
-              : null,
+    return Container(
+      constraints: const BoxConstraints(minHeight: 94),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
+      decoration: BoxDecoration(
+        border: Border(
+          right: showDivider
+              ? const BorderSide(color: Color(0xFFE3E7EE), width: 1)
+              : BorderSide.none,
+          top: showTopDivider
+              ? const BorderSide(color: Color(0xFFE3E7EE), width: 1)
+              : BorderSide.none,
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: 16,
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  softWrap: false,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: _textSecondary,
+                    fontSize: 10,
+                    height: 15 / 10,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (allowValueWrap)
+            Center(
+              child: Text(
+                value,
+                textAlign: TextAlign.center,
+                softWrap: true,
+                style: const TextStyle(
+                  color: _textPrimary,
+                  fontSize: 11,
+                  height: 15 / 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            )
+          else
             SizedBox(
-              height: 16,
+              height: 22,
               child: Center(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
-                    label,
+                    value,
                     maxLines: 1,
                     softWrap: false,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      color: _textSecondary,
-                      fontSize: 10,
-                      height: 15 / 10,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 1.0,
+                      color: _textPrimary,
+                      fontSize: 14,
+                      height: 18 / 14,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            if (allowValueWrap)
-              Center(
-                child: Text(
-                  value,
-                  textAlign: TextAlign.center,
-                  softWrap: true,
-                  style: const TextStyle(
-                    color: _textPrimary,
-                    fontSize: 11,
-                    height: 15 / 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              )
-            else
-              SizedBox(
-                height: 22,
-                child: Center(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      value,
-                      maxLines: 1,
-                      softWrap: false,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: _textPrimary,
-                        fontSize: 14,
-                        height: 18 / 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -1603,7 +1863,12 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     final slot = TagInfo.fromMarketTag(tags?.slot);
     final itemSet = TagInfo.fromMarketTag(tags?.itemSet);
 
-    final paintIndex = _extractText(asset, ['paint_index', 'paintIndex']);
+    final paintSeed =
+        _extractText(asset, ['paint_seed', 'paintSeed']) ??
+        _extractText(_item.raw, ['paint_seed', 'paintSeed']);
+    final paintIndex =
+        _extractText(asset, ['paint_index', 'paintIndex']) ??
+        _extractText(_item.raw, ['paint_index', 'paintIndex']);
     final paintWearValue = _extractDouble(asset, ['paint_wear', 'paintWear']);
     final paintWearText =
         _extractText(asset, ['paint_wear', 'paintWear']) ??
@@ -1647,13 +1912,13 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
         ]) ??
         _extractDouble(_item.raw, const ['market_price']);
     final rarityLabel = rarity?.label?.trim();
-    final weaponTypeValue =
-        tags?.weapon?.localizedName?.trim() ??
-        type?.label?.trim() ??
-        _item.typeName?.trim();
-    final categoryValue = rarityLabel ?? quality?.label?.trim();
+    final typeValue = type?.label?.trim() ?? _item.typeName?.trim();
+    final weaponTypeValue = tags?.weapon?.localizedName?.trim() ?? typeValue;
     final qualityValue = quality?.label?.trim();
+    final exteriorValue = exterior?.label?.trim();
     final collectionValue = itemSet?.label?.trim();
+    final heroValue = hero?.label?.trim();
+    final slotValue = slot?.label?.trim();
     final description =
         _resolveDescription(asset) ??
         _buildLegacyDescriptionFallback(
@@ -1664,40 +1929,22 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
           itemSet: itemSet,
         );
 
-    final overviewStats = <MapEntry<String, String>>[
-      if (paintIndex != null && paintIndex.trim().isNotEmpty)
-        MapEntry(_overviewPatternLabel, '#${paintIndex.trim()}'),
-      if (weaponTypeValue != null && weaponTypeValue.isNotEmpty)
-        MapEntry(_overviewTypeLabel, weaponTypeValue),
-      if (collectionValue != null && collectionValue.isNotEmpty)
-        MapEntry(_overviewCollectionLabel, collectionValue),
-    ];
-    if (overviewStats.length < 3 &&
-        exterior?.label?.trim().isNotEmpty == true) {
-      overviewStats.add(
-        MapEntry(_isEnglishLocale ? 'Exterior' : '外观', exterior!.label!.trim()),
-      );
-    }
-    if (overviewStats.length < 3 &&
-        qualityValue != null &&
-        qualityValue.isNotEmpty) {
-      overviewStats.add(MapEntry(_qualityLabel, qualityValue));
-    }
+    final overviewStats = _buildNameSummaryFields(
+      paintSeedValue: paintSeed,
+      paintIndexValue: paintIndex,
+    );
 
-    final attributeFields = <MapEntry<String, String>>[
-      if (weaponTypeValue != null && weaponTypeValue.isNotEmpty)
-        MapEntry(_weaponTypeLabel, weaponTypeValue),
-      if (categoryValue != null && categoryValue.isNotEmpty)
-        MapEntry(_categoryLabel, categoryValue),
-      if (qualityValue != null && qualityValue.isNotEmpty)
-        MapEntry(_qualityLabel, qualityValue),
-      if (collectionValue != null && collectionValue.isNotEmpty)
-        MapEntry(_collectionLabel, collectionValue),
-      if (appId == 570 && hero?.label?.trim().isNotEmpty == true)
-        MapEntry(_isEnglishLocale ? 'Hero' : '英雄', hero!.label!.trim()),
-      if (appId == 570 && slot?.label?.trim().isNotEmpty == true)
-        MapEntry(_isEnglishLocale ? 'Slot' : '槽位', slot!.label!.trim()),
-    ];
+    final attributeFields = _buildAttributeDescriptionFields(
+      asset: asset,
+      appId: appId,
+      typeValue: typeValue ?? weaponTypeValue,
+      rarityValue: rarityLabel,
+      qualityValue: qualityValue,
+      exteriorValue: exteriorValue,
+      collectionValue: collectionValue,
+      heroValue: heroValue,
+      slotValue: slotValue,
+    );
     final hasSellerSection =
         _loadingShopInfo ||
         (_shopInfo?.isNotEmpty ?? false) ||
@@ -1857,22 +2104,42 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
                             ),
                           ],
                         ),
-                        child: IntrinsicHeight(
-                          child: Row(
-                            children: List.generate(
-                              overviewStats.length.clamp(0, 3),
-                              (index) {
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            const maxColumns = 3;
+                            final columns = overviewStats.length < maxColumns
+                                ? overviewStats.length
+                                : maxColumns;
+                            const gap = 0.0;
+                            final itemWidth =
+                                (constraints.maxWidth - gap * (columns - 1)) /
+                                columns;
+                            return Wrap(
+                              spacing: gap,
+                              runSpacing: gap,
+                              children: List.generate(overviewStats.length, (
+                                index,
+                              ) {
                                 final stat = overviewStats[index];
-                                return _buildOverviewStatTile(
-                                  label: stat.key,
-                                  value: stat.value,
-                                  showDivider: index < overviewStats.length - 1,
-                                  allowValueWrap:
-                                      stat.key == _overviewCollectionLabel,
+                                final rowIndex = index ~/ columns;
+                                final columnIndex = index % columns;
+                                return SizedBox(
+                                  width: itemWidth,
+                                  child: _buildOverviewStatTile(
+                                    label: stat.key,
+                                    value: stat.value,
+                                    showDivider:
+                                        columnIndex < columns - 1 &&
+                                        index < overviewStats.length - 1,
+                                    showTopDivider: rowIndex > 0,
+                                    allowValueWrap:
+                                        stat.value.length > 12 ||
+                                        stat.key == _collectionLabel,
+                                  ),
                                 );
-                              },
-                            ),
-                          ),
+                              }),
+                            );
+                          },
                         ),
                       ),
                     ),
