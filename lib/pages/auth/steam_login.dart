@@ -6,6 +6,7 @@ import 'package:tronskins_app/common/device/device_id_helper.dart';
 import 'package:tronskins_app/common/http/http_helper.dart';
 import 'package:tronskins_app/common/http/interceptors/auth_interceptor.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/utils/login_success_sync.dart';
 import 'package:tronskins_app/common/utils/steam_webview_english.dart';
 import 'package:tronskins_app/common/widgets/app_request_loading_overlay.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
@@ -174,6 +175,7 @@ class _SteamLoginPageState extends State<SteamLoginPage> {
             _toInt(payload['refreshExpireTime']),
         header: payload['header']?.toString(),
       );
+      await syncLoginSuccessState();
       if (!mounted) {
         return;
       }

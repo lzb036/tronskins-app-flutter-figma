@@ -170,6 +170,15 @@ class UserController extends GetxController {
     await fetchUserData(showLoading: false);
   }
 
+  Future<void> handleLoginSuccess() async {
+    if (!AuthInterceptor.hasToken) {
+      clearSession();
+      return;
+    }
+    isLoggedIn.value = true;
+    await fetchUserData(showLoading: false);
+  }
+
   // ==================== 閫€鍑虹櫥褰?====================
   Future<void> logout(BuildContext context) async {
     final confirm = await showFigmaModal<bool>(

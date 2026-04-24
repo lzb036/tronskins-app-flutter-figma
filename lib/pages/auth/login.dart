@@ -13,6 +13,7 @@ import 'package:tronskins_app/common/security/sm2_helper.dart';
 import 'package:tronskins_app/common/storage/server_storage.dart';
 import 'package:tronskins_app/common/storage/twofa_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/utils/login_success_sync.dart';
 import 'package:tronskins_app/common/widgets/auth_floating_input_field.dart';
 import 'package:tronskins_app/controllers/auth/login_controller.dart';
 import 'package:tronskins_app/pages/auth/auth_visual_style.dart';
@@ -643,6 +644,7 @@ class _LoginScreenState extends State<LoginScreen>
             showEmail: data.userName ?? username,
           );
         }
+        await syncLoginSuccessState();
         Get.offAllNamed(Routers.HOME);
         _showSuccess('app.user.login.message.success'.tr);
         return;

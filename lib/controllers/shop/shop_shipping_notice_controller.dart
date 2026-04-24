@@ -54,14 +54,29 @@ class ShopShippingNoticeController extends GetxController {
         _seedZeroTotals();
         return;
       }
-      refreshPendingTotals();
-      _startPolling();
+      ensurePollingForCurrentLogin();
     });
 
     if (userController.isLoggedIn.value) {
-      refreshPendingTotals();
-      _startPolling();
+      ensurePollingForCurrentLogin();
     }
+  }
+
+  void ensurePollingForCurrentLogin() {
+    if (!Get.isRegistered<UserController>()) {
+      _stopPolling();
+      _seedZeroTotals();
+      return;
+    }
+    final userController = Get.find<UserController>();
+    if (!userController.isLoggedIn.value) {
+      _requestToken += 1;
+      _stopPolling();
+      _seedZeroTotals();
+      return;
+    }
+    unawaited(refreshPendingTotals());
+    _startPolling();
   }
 
   Future<void> refreshPendingTotals() async {
