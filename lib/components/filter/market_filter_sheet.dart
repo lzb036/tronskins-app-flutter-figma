@@ -3923,7 +3923,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
     if (widget.appId != 730) {
       return group.label.tr;
     }
-    return Get.locale?.languageCode == 'en' ? 'Weapon Type' : '武器类型';
+    return 'Type';
   }
 
   Widget _buildMarketGroupSection(_AttributeGroup group) {
