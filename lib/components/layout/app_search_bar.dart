@@ -13,11 +13,13 @@ class AppSearchTriggerBar extends StatelessWidget {
     required this.hintText,
     required this.onTap,
     this.text,
+    this.onClearTap,
   });
 
   final String hintText;
   final VoidCallback onTap;
   final String? text;
+  final VoidCallback? onClearTap;
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +58,14 @@ class AppSearchTriggerBar extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (hasText && onClearTap != null) ...[
+                  const SizedBox(width: 6),
+                  _SearchBarIconButton(
+                    icon: Icons.close_rounded,
+                    color: _kSearchBarHintColor,
+                    onTap: onClearTap!,
+                  ),
+                ],
               ],
             ),
           ),

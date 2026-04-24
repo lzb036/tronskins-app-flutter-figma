@@ -6,10 +6,12 @@ class MarketSearchPage extends StatelessWidget {
     super.key,
     required this.appId,
     this.initialKeyword = '',
+    this.submitEmptyOnCancel = false,
   });
 
   final int appId;
   final String initialKeyword;
+  final bool submitEmptyOnCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +23,7 @@ class MarketSearchPage extends StatelessWidget {
           appId: appId,
           initialKeyword: initialKeyword,
           mode: MarketSearchViewMode.page,
+          submitEmptyOnCancel: submitEmptyOnCancel,
           onCancel: () => Navigator.of(context).maybePop(),
           onSubmit: (keyword) => Navigator.of(context).pop(keyword),
         ),

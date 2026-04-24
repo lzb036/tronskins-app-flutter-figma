@@ -139,18 +139,26 @@ class _MarketPageState extends State<MarketPage> {
       () => MarketSearchPage(
         appId: controller.appId.value,
         initialKeyword: controller.keywords.value,
+        submitEmptyOnCancel: true,
       ),
       transition: Transition.rightToLeft,
       duration: const Duration(milliseconds: 220),
     );
     if (result != null) {
-      _searchController.text = result;
-      await controller.search(result);
-      if (mounted) {
-        setState(() {});
-      }
+      await _applySearchKeyword(result);
     }
   }
+
+  Future<void> _applySearchKeyword(String keyword) async {
+    final nextKeyword = keyword.trim();
+    _searchController.text = nextKeyword;
+    await controller.search(nextKeyword);
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _clearSearchAndReload() => _applySearchKeyword('');
 
   @override
   Widget build(BuildContext context) {
@@ -284,6 +292,7 @@ class _MarketPageState extends State<MarketPage> {
       hintText: 'app.market.filter.search'.tr,
       text: hasKeyword ? keyword : null,
       onTap: _openSearchPage,
+      onClearTap: _clearSearchAndReload,
     );
   }
 

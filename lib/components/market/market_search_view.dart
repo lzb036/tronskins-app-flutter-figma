@@ -16,6 +16,7 @@ class MarketSearchView extends StatefulWidget {
     required this.onSubmit,
     this.initialKeyword = '',
     this.mode = MarketSearchViewMode.sheet,
+    this.submitEmptyOnCancel = false,
   });
 
   final int appId;
@@ -23,6 +24,7 @@ class MarketSearchView extends StatefulWidget {
   final VoidCallback onCancel;
   final ValueChanged<String> onSubmit;
   final MarketSearchViewMode mode;
+  final bool submitEmptyOnCancel;
 
   @override
   State<MarketSearchView> createState() => _MarketSearchViewState();
@@ -147,6 +149,14 @@ class _MarketSearchViewState extends State<MarketSearchView> {
     widget.onSubmit(trimmed);
   }
 
+  void _cancel() {
+    if (widget.submitEmptyOnCancel && _controller.text.trim().isEmpty) {
+      widget.onSubmit('');
+      return;
+    }
+    widget.onCancel();
+  }
+
   Future<void> _clearHistory() async {
     await MarketSearchHistoryStorage.clearHistory();
     if (mounted) {
@@ -187,41 +197,51 @@ class _MarketSearchViewState extends State<MarketSearchView> {
   }
 
   Widget _buildPage(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: ColoredBox(
-        color: const Color(0xFFF7F9FB),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Row(
-                children: [
-                  _buildPageIconButton(
-                    icon: Icons.arrow_back_rounded,
-                    onTap: widget.onCancel,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildPageSearchField()),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 180),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                child: KeyedSubtree(
-                  key: ValueKey<bool>(_showHistory),
-                  child: _showHistory
-                      ? _buildPageHistorySection()
-                      : _buildPageSuggestionSection(),
+    final shouldSubmitEmptyOnPop =
+        widget.submitEmptyOnCancel && _controller.text.trim().isEmpty;
+    return PopScope(
+      canPop: !shouldSubmitEmptyOnPop,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          _cancel();
+        }
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: ColoredBox(
+          color: const Color(0xFFF7F9FB),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Row(
+                  children: [
+                    _buildPageIconButton(
+                      icon: Icons.arrow_back_rounded,
+                      onTap: _cancel,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildPageSearchField()),
+                  ],
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 18),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 180),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  child: KeyedSubtree(
+                    key: ValueKey<bool>(_showHistory),
+                    child: _showHistory
+                        ? _buildPageHistorySection()
+                        : _buildPageSuggestionSection(),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
