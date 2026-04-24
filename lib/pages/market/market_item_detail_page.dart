@@ -760,10 +760,9 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
   String get _viewStoreLabel => _isEnglishLocale ? 'View Store' : '查看店铺';
 
   String get _patternTemplateLabel =>
-      _isEnglishLocale ? 'Pattern Template(paint seed)' : '图案模板(paint seed)';
+      _isEnglishLocale ? 'Pattern Template' : '图案模板';
 
-  String get _skinNumberLabel =>
-      _isEnglishLocale ? 'Skin Number(paint index)' : '皮肤编号(paint index)';
+  String get _skinNumberLabel => _isEnglishLocale ? 'Skin Number' : '皮肤编号';
 
   String _shopDeliverLabel() {
     return 'app.user.shop.deliver'.tr;
