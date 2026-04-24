@@ -752,30 +752,14 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _orderIdLabel(order.id),
-                  style: const TextStyle(
-                    color: Color(0xFF94A3B8),
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    height: 12 / 9,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                _formatTime(order.createTime),
-                style: const TextStyle(
-                  color: Color(0xFF94A3B8),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  height: 14 / 10,
-                ),
-              ),
-            ],
+          Text(
+            _orderIdLabel(order.id),
+            style: const TextStyle(
+              color: Color(0xFF94A3B8),
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              height: 12 / 9,
+            ),
           ),
           const SizedBox(height: 12),
           if (displayDetails.isEmpty)
@@ -911,7 +895,9 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
                 exterior: exterior,
                 phase: phase,
                 percentage: percentage,
-                showTopBadges: false,
+                compactTopLeftBadges: true,
+                squareTopBadges: true,
+                topBadgeScale: 0.72,
               ),
             ),
           ),
@@ -986,6 +972,12 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _buildSteamConfirmButton(
+                      label: status == 2
+                          ? 'app.market.product.deliver'.tr
+                          : 'app.trade.deliver.message.go_steam'.tr,
+                      icon: status == 2
+                          ? Icons.local_shipping_outlined
+                          : Icons.bolt_rounded,
                       onTap: status == 2 && !_submitting ? _submit : null,
                     ),
                     const SizedBox(height: 8),
@@ -1012,9 +1004,14 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     );
   }
 
-  Widget _buildSteamConfirmButton({required VoidCallback? onTap}) {
+  Widget _buildSteamConfirmButton({
+    required String label,
+    required IconData icon,
+    required VoidCallback? onTap,
+  }) {
+    final enabled = onTap != null;
     return Opacity(
-      opacity: onTap == null ? 0.6 : 1,
+      opacity: enabled ? 1 : 0.56,
       child: InkWell(
         borderRadius: BorderRadius.circular(6),
         onTap: onTap,
@@ -1022,15 +1019,17 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
           height: 48,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: const Color(0xFF111827),
+            color: enabled ? const Color(0xFF111827) : const Color(0xFFE2E8F0),
             borderRadius: BorderRadius.circular(6),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x26000000),
-                blurRadius: 12,
-                offset: Offset(0, 6),
-              ),
-            ],
+            boxShadow: enabled
+                ? const [
+                    BoxShadow(
+                      color: Color(0x26000000),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                    ),
+                  ]
+                : null,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -1044,18 +1043,16 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
                         color: Colors.white,
                       ),
                     )
-                  : const Icon(
-                      Icons.bolt_rounded,
+                  : Icon(
+                      icon,
                       size: 16,
-                      color: Colors.white,
+                      color: enabled ? Colors.white : const Color(0xFF64748B),
                     ),
               const SizedBox(width: 8),
               Text(
-                _isEnglishLocale
-                    ? 'Go to Steam APP to confirm'
-                    : '前往 Steam APP 确认',
-                style: const TextStyle(
-                  color: Colors.white,
+                label,
+                style: TextStyle(
+                  color: enabled ? Colors.white : const Color(0xFF64748B),
                   fontSize: 13,
                   fontWeight: FontWeight.w900,
                   height: 18 / 13,
@@ -1346,14 +1343,6 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
       return currency.format(value);
     }
     return NumberFormat.currency(symbol: '\$').format(value);
-  }
-
-  String _formatTime(int? timestamp) {
-    if (timestamp == null) {
-      return '--';
-    }
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
-    return DateFormat('MM-dd HH:mm').format(date);
   }
 
   int _totalItems() {

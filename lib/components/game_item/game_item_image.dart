@@ -36,6 +36,7 @@ class GameItemImage extends StatelessWidget {
     this.compactTopLeftBadges = false,
     this.showTopBadges = true,
     this.squareTopBadges = false,
+    this.topBadgeScale = 1.0,
   });
 
   final String? imageUrl;
@@ -62,6 +63,7 @@ class GameItemImage extends StatelessWidget {
   final bool compactTopLeftBadges;
   final bool showTopBadges;
   final bool squareTopBadges;
+  final double topBadgeScale;
 
   bool get _isDota => appId == 570;
 
@@ -69,12 +71,14 @@ class GameItemImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final qualityBorder = qualityBorderColor(quality?.color);
     final exteriorColor = parseHexColor(exterior?.color) ?? Colors.black54;
+    final effectiveTopBadgeScale = topBadgeScale.clamp(0.6, 1.0).toDouble();
     final badges = showTopBadges
         ? _buildBadges(
             context,
             exteriorColor,
             compact: compactTopLeftBadges,
             square: squareTopBadges,
+            scale: effectiveTopBadgeScale,
           )
         : const <Widget>[];
     final hasCountBadge =
@@ -160,8 +164,8 @@ class GameItemImage extends StatelessWidget {
               child: Wrap(
                 alignment: WrapAlignment.start,
                 runAlignment: WrapAlignment.start,
-                spacing: 3,
-                runSpacing: 3,
+                spacing: 3 * effectiveTopBadgeScale,
+                runSpacing: 3 * effectiveTopBadgeScale,
                 children: badges,
               ),
             ),
@@ -234,6 +238,7 @@ class GameItemImage extends StatelessWidget {
     Color exteriorColor, {
     bool compact = false,
     bool square = false,
+    double scale = 1.0,
   }) {
     final badges = <Widget>[];
     if (disabledLabel != null && disabledLabel!.isNotEmpty) {
@@ -243,6 +248,7 @@ class GameItemImage extends StatelessWidget {
           background: Theme.of(context).colorScheme.error,
           compact: compact,
           square: square,
+          scale: scale,
         ),
       );
     }
@@ -253,6 +259,7 @@ class GameItemImage extends StatelessWidget {
           background: parseHexColor(rarity!.color) ?? Colors.black54,
           compact: compact,
           square: square,
+          scale: scale,
         ),
       );
     }
@@ -263,6 +270,7 @@ class GameItemImage extends StatelessWidget {
           background: exteriorColor,
           compact: compact,
           square: square,
+          scale: scale,
         ),
       );
     }
@@ -273,6 +281,7 @@ class GameItemImage extends StatelessWidget {
           background: _chipColor(context),
           compact: compact,
           square: square,
+          scale: scale,
         ),
       );
     }
@@ -283,6 +292,7 @@ class GameItemImage extends StatelessWidget {
           background: _chipColor(context),
           compact: compact,
           square: square,
+          scale: scale,
         ),
       );
     }
@@ -293,6 +303,7 @@ class GameItemImage extends StatelessWidget {
           background: _phaseColor(context),
           compact: compact,
           square: square,
+          scale: scale,
         ),
       );
     }
@@ -304,6 +315,7 @@ class GameItemImage extends StatelessWidget {
           background: _chipColor(context),
           compact: compact,
           square: square,
+          scale: scale,
         ),
       );
     }
@@ -428,12 +440,14 @@ class _TagChip extends StatelessWidget {
     required this.background,
     this.compact = false,
     this.square = false,
+    this.scale = 1.0,
   });
 
   final String text;
   final Color background;
   final bool compact;
   final bool square;
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
@@ -441,10 +455,17 @@ class _TagChip extends StatelessWidget {
         ? background.withValues(alpha: 0.84)
         : background;
     final foreground = compact ? const Color(0xFFD6E38B) : Colors.white;
+    final effectiveScale = scale.clamp(0.6, 1.0).toDouble();
     return Container(
       padding: compact
-          ? const EdgeInsets.symmetric(horizontal: 5, vertical: 2)
-          : const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+          ? EdgeInsets.symmetric(
+              horizontal: 5 * effectiveScale,
+              vertical: 2 * effectiveScale,
+            )
+          : EdgeInsets.symmetric(
+              horizontal: 5 * effectiveScale,
+              vertical: 1.5 * effectiveScale,
+            ),
       decoration: BoxDecoration(
         color: effectiveBackground,
         borderRadius: square
@@ -457,7 +478,7 @@ class _TagChip extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: foreground,
-          fontSize: compact ? 8.2 : 9.5,
+          fontSize: (compact ? 8.2 : 9.5) * effectiveScale,
           fontWeight: compact ? FontWeight.w500 : FontWeight.w400,
           height: 1,
         ),
