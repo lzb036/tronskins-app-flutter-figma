@@ -17,6 +17,7 @@ import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
+import 'package:tronskins_app/components/game_item/sticker_row.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 import 'package:tronskins_app/controllers/shop/shop_order_controller.dart';
 import 'package:tronskins_app/controllers/shop/shop_shipping_notice_controller.dart';
@@ -926,6 +927,15 @@ class ShopOrderDetailPage extends StatelessWidget {
       appId: appId,
       stickerMap: stickers,
     );
+    final stickerIcons = stickerDetails.isNotEmpty
+        ? stickerDetails
+              .map((sticker) => GameItemSticker(sticker.imageUrl))
+              .toList(growable: false)
+        : _resolveDetailStickerIcons(
+            detail: detail,
+            appId: appId,
+            stickerMap: stickers,
+          );
     final exterior = _schemaTag(schema, 'exterior');
     final rarity = _schemaTag(schema, 'rarity');
     final quality = _schemaTag(schema, 'quality');
@@ -1001,6 +1011,10 @@ class ShopOrderDetailPage extends StatelessWidget {
                           ),
                       ],
                     ),
+                    if (stickerIcons.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      StickerRow(stickers: stickerIcons, size: 24),
+                    ],
                   ],
                 ),
               ),
@@ -2356,6 +2370,28 @@ class ShopOrderDetailPage extends StatelessWidget {
           .toList(growable: false);
       if (details.isNotEmpty) {
         return details;
+      }
+    }
+    return const [];
+  }
+
+  List<GameItemSticker> _resolveDetailStickerIcons({
+    required ShopOrderDetail detail,
+    required int appId,
+    required Map<String, dynamic> stickerMap,
+  }) {
+    for (final candidate in _detailStickerCandidates(detail, appId)) {
+      final entries = _normalizeStickerEntries(candidate);
+      if (entries.isEmpty) {
+        continue;
+      }
+      final stickers = parseStickerList(
+        entries,
+        stickerMap: stickerMap,
+        schemaMap: stickerMap,
+      );
+      if (stickers.isNotEmpty) {
+        return stickers;
       }
     }
     return const [];
