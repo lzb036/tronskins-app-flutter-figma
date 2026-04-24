@@ -1457,23 +1457,34 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
     required List<_AttributeOption> options,
     required _AttributeOption? active,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Stack(
+      alignment: Alignment.bottomLeft,
       children: [
-        Wrap(
-          spacing: 18,
-          runSpacing: 10,
-          children: [
-            for (final option in options)
-              _buildWeaponTypeTab(
-                label: option.label.tr,
-                selected: active?.name == option.name,
-                onTap: () => _selectOption(group.key, option),
-              ),
-          ],
+        const Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: ColoredBox(
+            color: FilterSheetStyle.divider,
+            child: SizedBox(height: 1),
+          ),
         ),
-        const SizedBox(height: 10),
-        const Divider(height: 1, thickness: 1, color: FilterSheetStyle.divider),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            children: [
+              for (final option in options) ...[
+                _buildWeaponTypeTab(
+                  label: option.label.tr,
+                  selected: active?.name == option.name,
+                  onTap: () => _selectOption(group.key, option),
+                ),
+                const SizedBox(width: 22),
+              ],
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -1486,41 +1497,38 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
     return InkWell(
       borderRadius: BorderRadius.circular(8),
       onTap: onTap,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 72, maxWidth: 124),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                label,
-                softWrap: true,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: selected
-                      ? FilterSheetStyle.primary
-                      : const Color(0xFF6B7280),
-                  fontSize: 14,
-                  height: 21 / 14,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              maxLines: 1,
+              softWrap: false,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: selected
+                    ? FilterSheetStyle.primary
+                    : const Color(0xFF6B7280),
+                fontSize: 14,
+                height: 21 / 14,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
               ),
-              const SizedBox(height: 8),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                height: 3,
-                margin: const EdgeInsets.symmetric(horizontal: 6),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? FilterSheetStyle.primaryBright
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(999),
-                ),
+            ),
+            const SizedBox(height: 8),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              width: 52,
+              height: 3,
+              decoration: BoxDecoration(
+                color: selected
+                    ? FilterSheetStyle.primaryBright
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(999),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
