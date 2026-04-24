@@ -8,6 +8,7 @@ import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/components/game_item/gem_row.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/game_item/game_item_utils.dart';
+import 'package:tronskins_app/components/game_item/game_item_wear_overlay.dart';
 import 'package:tronskins_app/components/game_item/sticker_row.dart';
 
 const Color _inventoryShowcaseTextPrimary = Color(0xFF191C1E);
@@ -68,8 +69,8 @@ class InventoryShowcaseCard extends StatelessWidget {
     final rawWearValue =
         item.paintWear ??
         _extractDouble(asset, const ['paint_wear', 'paintWear']);
-    final wearValue = _normalizeWearValue(rawWearValue);
-    final wearDisplay = _formatWearText(rawWearText, wearValue);
+    final wearValue = normalizeGameItemWearValue(rawWearValue);
+    final wearDisplay = formatGameItemWearText(rawWearText, wearValue);
     final patternLabel = _normalizePatternLabel(
       item.paintSeed ?? _extractText(asset, const ['paint_seed', 'paintSeed']),
     );
@@ -104,7 +105,7 @@ class InventoryShowcaseCard extends StatelessWidget {
     final exteriorAccentColor =
         parseHexColor(exterior?.color) ??
         (conditionLabel != null && conditionLabel.isNotEmpty
-            ? _conditionColor(conditionLabel)
+            ? gameItemConditionColor(conditionLabel)
             : null);
     final rarityLabel = rarity?.label?.trim();
     final statusLabel = disabledLabel?.trim();
@@ -240,7 +241,9 @@ class InventoryShowcaseCard extends StatelessWidget {
                                       label: conditionLabel.toUpperCase(),
                                       backgroundColor:
                                           exteriorAccentColor ??
-                                          _conditionColor(conditionLabel),
+                                          gameItemConditionColor(
+                                            conditionLabel,
+                                          ),
                                       textColor: Colors.white,
                                     ),
                                   if (patternLabel != null &&
@@ -321,34 +324,14 @@ class InventoryShowcaseCard extends StatelessWidget {
                                         ),
                                       ),
                                     if (wearDisplay != null)
-                                      _buildAccessoryOverlay(
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              '${_isEnglishLocale ? 'Wear' : '磨损度'}: $wearDisplay',
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                color: Color(0xE6FFFFFF),
-                                                fontSize: 7,
-                                                height: 10 / 7,
-                                                fontWeight: FontWeight.w400,
-                                              ),
-                                            ),
-                                            if (wearValue != null) ...[
-                                              const SizedBox(height: 3),
-                                              _buildWearTrack(
-                                                wearValue: wearValue,
-                                                accentColor:
-                                                    exteriorAccentColor,
-                                                conditionLabel: conditionLabel,
-                                              ),
-                                            ],
-                                          ],
-                                        ),
+                                      GameItemWearOverlay(
+                                        label: _isEnglishLocale
+                                            ? 'Wear'
+                                            : '磨损度',
+                                        text: wearDisplay,
+                                        value: wearValue,
+                                        accentColor: exteriorAccentColor,
+                                        conditionLabel: conditionLabel,
                                       ),
                                   ],
                                 ),
@@ -505,67 +488,6 @@ class InventoryShowcaseCard extends StatelessWidget {
     );
   }
 
-  Widget _buildAccessoryOverlay({required Widget child}) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-        child: Container(
-          width: double.infinity,
-          constraints: const BoxConstraints(minHeight: 24),
-          alignment: Alignment.bottomLeft,
-          padding: const EdgeInsets.fromLTRB(10, 4, 10, 4),
-          decoration: BoxDecoration(color: const Color(0x990F172A)),
-          child: child,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWearTrack({
-    required double wearValue,
-    Color? accentColor,
-    String? conditionLabel,
-  }) {
-    final normalizedWear = wearValue.clamp(0.0, 1.0).toDouble();
-    final fillFactor = normalizedWear <= 0
-        ? 0
-        : normalizedWear.clamp(0.06, 1.0);
-    final fillColor =
-        accentColor ??
-        (conditionLabel?.trim().isNotEmpty == true
-            ? _conditionColor(conditionLabel!)
-            : _conditionColor(_conditionLabelForWear(normalizedWear)));
-
-    return SizedBox(
-      height: 3,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: const Color(0x80334155),
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
-          ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FractionallySizedBox(
-              widthFactor: fillFactor.toDouble(),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: fillColor,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: const SizedBox(height: 3),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildQualityRibbon(TagInfo quality) {
     final label = quality.label?.trim();
     if (label == null || label.isEmpty) {
@@ -625,45 +547,6 @@ class InventoryShowcaseCard extends StatelessWidget {
     }
     return const Color(0xFFD62D20);
   }
-
-  String _conditionLabelForWear(double wearValue) {
-    if (wearValue < 0.07) {
-      return 'Factory New';
-    }
-    if (wearValue < 0.15) {
-      return 'Minimal Wear';
-    }
-    if (wearValue < 0.38) {
-      return 'Field-Tested';
-    }
-    if (wearValue < 0.45) {
-      return 'Well-Worn';
-    }
-    return 'Battle-Scarred';
-  }
-
-  Color _conditionColor(String label) {
-    final normalized = label.toLowerCase();
-    if (normalized.contains('factory new')) {
-      return const Color(0xFF17A673);
-    }
-    if (normalized.contains('minimal wear')) {
-      return const Color(0xFF8B5CF6);
-    }
-    if (normalized.contains('field-tested')) {
-      return const Color(0xFF8BC34A);
-    }
-    if (normalized.contains('well-worn')) {
-      return const Color(0xFFF59E0B);
-    }
-    if (normalized.contains('battle-scarred')) {
-      return const Color(0xFFE11D48);
-    }
-    if (normalized.contains('not painted')) {
-      return const Color(0xFF64748B);
-    }
-    return const Color(0xFF00288E);
-  }
 }
 
 bool _shouldShowQualityRibbon(
@@ -686,24 +569,6 @@ bool _shouldShowQualityRibbon(
     return false;
   }
   return quality.hasLabel;
-}
-
-String? _formatWearText(String? rawText, double? rawValue) {
-  final text = rawText?.trim();
-  if (text != null && text.isNotEmpty && !_isZeroLikeText(text)) {
-    return text;
-  }
-  if (rawValue == null) {
-    return null;
-  }
-  return rawValue.toStringAsFixed(8);
-}
-
-double? _normalizeWearValue(double? rawValue) {
-  if (rawValue == null || !rawValue.isFinite || rawValue <= 0) {
-    return null;
-  }
-  return rawValue;
 }
 
 String? _normalizePatternLabel(String? rawText) {

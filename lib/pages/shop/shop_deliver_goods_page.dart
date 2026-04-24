@@ -14,7 +14,8 @@ import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
-import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
+import 'package:tronskins_app/components/game_item/game_item_utils.dart';
+import 'package:tronskins_app/components/game_item/game_item_wear_overlay.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
@@ -890,51 +891,13 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
   }
 
   Widget _buildDetailImageWearOverlay(_DetailWearInfo wearInfo) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(5, 4, 5, 3),
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0x00140C09), Color(0x6B111827), Color(0xE6111827)],
-              stops: [0, 0.42, 1],
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${_isEnglishLocale ? 'Wear' : '磨损度'}: ${wearInfo.text}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFFE5E7EB),
-                  fontSize: 6.5,
-                  fontWeight: FontWeight.w700,
-                  height: 8 / 6.5,
-                  shadows: [
-                    Shadow(
-                      color: Color(0xB3000000),
-                      blurRadius: 3,
-                      offset: Offset(0, 1),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 2),
-              WearProgressBar(
-                paintWear: wearInfo.value,
-                height: 7,
-                style: WearProgressBarStyle.figmaCompact,
-              ),
-            ],
-          ),
-        ),
-      ),
+    return GameItemWearOverlay(
+      label: _isEnglishLocale ? 'Wear' : '磨损度',
+      text: wearInfo.text,
+      value: wearInfo.value,
+      accentColor: wearInfo.accentColor,
+      conditionLabel: wearInfo.conditionLabel,
+      showLabel: false,
     );
   }
 
@@ -1311,13 +1274,17 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     if (_resolveDetailAppId(detail, schema) != 730) {
       return null;
     }
-    final value = _paintWearValue(detail);
-    if (value == null) {
+    final value = normalizeGameItemWearValue(_paintWearValue(detail));
+    final text = formatGameItemWearText(_paintWearText(detail), value);
+    if (value == null || text == null) {
       return null;
     }
+    final exterior = _schemaTag(schema, 'exterior');
     return _DetailWearInfo(
       value: value,
-      text: _paintWearText(detail) ?? value.toString(),
+      text: text,
+      accentColor: parseHexColor(exterior?.color),
+      conditionLabel: exterior?.label?.trim(),
     );
   }
 
@@ -1362,10 +1329,17 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
 }
 
 class _DetailWearInfo {
-  const _DetailWearInfo({required this.value, required this.text});
+  const _DetailWearInfo({
+    required this.value,
+    required this.text,
+    this.accentColor,
+    this.conditionLabel,
+  });
 
   final double value;
   final String text;
+  final Color? accentColor;
+  final String? conditionLabel;
 }
 
 class _ShopDeliverGoodsArgs {
