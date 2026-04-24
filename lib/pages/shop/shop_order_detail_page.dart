@@ -157,7 +157,12 @@ class ShopOrderDetailPage extends StatelessWidget {
               ),
             ),
             _buildTopNavigation(context),
-            _buildBottomActionBar(context, bottomInset, order),
+            _buildBottomActionBar(
+              context,
+              bottomInset,
+              order,
+              disableOrderActions: args.disableOrderActions,
+            ),
           ],
         ),
       ),
@@ -791,20 +796,23 @@ class ShopOrderDetailPage extends StatelessWidget {
 
   Widget _buildTopNavigation(BuildContext context) {
     return SettingsStyleTopNavigation(
-      title: isPendingFlow
-          ? _text(zh: '发货详情', en: 'Delivery Goods')
-          : _text(zh: '订单详情', en: 'Order Details'),
+      title: _text(zh: '订单详情', en: 'Order Details'),
     );
   }
 
   Widget _buildBottomActionBar(
     BuildContext context,
     double bottomInset,
-    ShopOrderItem order,
-  ) {
-    final canReceiveOrder = !isPendingFlow && _canReceiveOrder(order);
+    ShopOrderItem order, {
+    bool disableOrderActions = false,
+  }) {
+    final canReceiveOrder =
+        !disableOrderActions && !isPendingFlow && _canReceiveOrder(order);
     final canCancelOrder =
-        !isPendingFlow && !canReceiveOrder && _canCancelOrder(order);
+        !disableOrderActions &&
+        !isPendingFlow &&
+        !canReceiveOrder &&
+        _canCancelOrder(order);
     return Positioned(
       left: 0,
       right: 0,
@@ -2888,6 +2896,7 @@ class _ShopOrderDetailArgs {
     this.schemas = const {},
     this.users = const {},
     this.stickers = const {},
+    this.disableOrderActions = false,
   });
 
   final ShopOrderItem? order;
@@ -2895,6 +2904,7 @@ class _ShopOrderDetailArgs {
   final Map<String, ShopSchemaInfo> schemas;
   final Map<String, ShopUserInfo> users;
   final Map<String, dynamic> stickers;
+  final bool disableOrderActions;
 
   factory _ShopOrderDetailArgs.fromDynamic(dynamic raw) {
     if (raw is! Map) {
@@ -2907,7 +2917,19 @@ class _ShopOrderDetailArgs {
       schemas: _parseSchemas(raw['schemas']),
       users: _parseUsers(raw['users']),
       stickers: _parseStickers(raw['stickers']),
+      disableOrderActions: _parseBool(raw['disableOrderActions']),
     );
+  }
+
+  static bool _parseBool(dynamic value) {
+    if (value is bool) {
+      return value;
+    }
+    if (value is num) {
+      return value != 0;
+    }
+    final text = value?.toString().trim().toLowerCase();
+    return text == 'true' || text == '1';
   }
 
   static ShopOrderItem? _parseOrder(dynamic value) {

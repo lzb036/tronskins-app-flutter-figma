@@ -2219,7 +2219,7 @@ class _ShopPageState extends State<ShopPage>
     final deadlineMs = _pendingDeadlineMs(order);
 
     return _buildPendingCardShell(
-      onTap: () => _openPendingShipmentDetail(order),
+      onTap: () => _openPendingOrderDetail(order),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3296,46 +3296,21 @@ class _ShopPageState extends State<ShopPage>
     }
   }
 
-  Future<void> _openPendingShipmentDetail(ShopOrderItem order) async {
-    final delivered = await Get.toNamed(
-      Routers.SHOP_PENDING_ORDER_DETAIL,
+  Future<void> _openPendingOrderDetail(ShopOrderItem order) async {
+    final changed = await Get.toNamed(
+      Routers.SHOP_ORDER_DETAIL,
       arguments: {
         'order': order,
-        'orders': _pendingOrdersForBuyer(order),
         'schemas': Map<String, ShopSchemaInfo>.from(orderController.schemas),
         'users': Map<String, ShopUserInfo>.from(orderController.users),
         'stickers': Map<String, dynamic>.from(salesController.stickers),
+        'disableOrderActions': true,
       },
     );
-    if (delivered == true) {
+    if (changed == true) {
       orderController.refreshPending();
       shippingNoticeController.refreshPendingTotals();
     }
-  }
-
-  List<ShopOrderItem> _pendingOrdersForBuyer(ShopOrderItem order) {
-    final buyerId = (order.buyerId ?? order.user?.id ?? '').trim();
-    if (buyerId.isEmpty) {
-      return <ShopOrderItem>[order];
-    }
-
-    final related = orderController.pendingShipments
-        .where(
-          (item) => (item.buyerId ?? item.user?.id ?? '').trim() == buyerId,
-        )
-        .toList(growable: false);
-    if (related.isEmpty) {
-      return <ShopOrderItem>[order];
-    }
-
-    final ordered = <ShopOrderItem>[order];
-    for (final item in related) {
-      final sameOrder = order.id != null && item.id == order.id;
-      if (!sameOrder) {
-        ordered.add(item);
-      }
-    }
-    return ordered;
   }
 
   Future<void> _openSellRecordDetail(ShopOrderItem record) async {

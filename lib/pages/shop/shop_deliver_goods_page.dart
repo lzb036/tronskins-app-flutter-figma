@@ -697,7 +697,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
             children: [
               Text(
                 title,
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: _titleColor,
@@ -752,7 +752,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
             children: [
               Text(
                 title,
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: _titleColor,
