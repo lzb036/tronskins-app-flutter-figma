@@ -354,6 +354,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
         'users': Map<String, ShopUserInfo>.from(_users),
         'stickers': Map<String, dynamic>.from(_stickers),
         'disableOrderActions': true,
+        'fromDeliveryGoodsDrawer': true,
       },
     );
     if (changed == true && mounted) {

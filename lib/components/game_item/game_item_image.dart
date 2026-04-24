@@ -35,6 +35,7 @@ class GameItemImage extends StatelessWidget {
     this.avoidTopLeftBadgeOverlap = false,
     this.compactTopLeftBadges = false,
     this.showTopBadges = true,
+    this.squareTopBadges = false,
   });
 
   final String? imageUrl;
@@ -60,6 +61,7 @@ class GameItemImage extends StatelessWidget {
   final bool avoidTopLeftBadgeOverlap;
   final bool compactTopLeftBadges;
   final bool showTopBadges;
+  final bool squareTopBadges;
 
   bool get _isDota => appId == 570;
 
@@ -68,7 +70,12 @@ class GameItemImage extends StatelessWidget {
     final qualityBorder = qualityBorderColor(quality?.color);
     final exteriorColor = parseHexColor(exterior?.color) ?? Colors.black54;
     final badges = showTopBadges
-        ? _buildBadges(context, exteriorColor, compact: compactTopLeftBadges)
+        ? _buildBadges(
+            context,
+            exteriorColor,
+            compact: compactTopLeftBadges,
+            square: squareTopBadges,
+          )
         : const <Widget>[];
     final hasCountBadge =
         count != null && count! > 0 && (count! > 1 || alwaysShowCount);
@@ -226,6 +233,7 @@ class GameItemImage extends StatelessWidget {
     BuildContext context,
     Color exteriorColor, {
     bool compact = false,
+    bool square = false,
   }) {
     final badges = <Widget>[];
     if (disabledLabel != null && disabledLabel!.isNotEmpty) {
@@ -234,6 +242,7 @@ class GameItemImage extends StatelessWidget {
           text: disabledLabel!,
           background: Theme.of(context).colorScheme.error,
           compact: compact,
+          square: square,
         ),
       );
     }
@@ -243,6 +252,7 @@ class GameItemImage extends StatelessWidget {
           text: rarity!.label!,
           background: parseHexColor(rarity!.color) ?? Colors.black54,
           compact: compact,
+          square: square,
         ),
       );
     }
@@ -252,6 +262,7 @@ class GameItemImage extends StatelessWidget {
           text: exterior!.label!,
           background: exteriorColor,
           compact: compact,
+          square: square,
         ),
       );
     }
@@ -261,6 +272,7 @@ class GameItemImage extends StatelessWidget {
           text: cooldown!,
           background: _chipColor(context),
           compact: compact,
+          square: square,
         ),
       );
     }
@@ -270,6 +282,7 @@ class GameItemImage extends StatelessWidget {
           text: paintSeed!,
           background: _chipColor(context),
           compact: compact,
+          square: square,
         ),
       );
     }
@@ -279,13 +292,19 @@ class GameItemImage extends StatelessWidget {
           text: phase!,
           background: _phaseColor(context),
           compact: compact,
+          square: square,
         ),
       );
     }
     if (percentage != null && percentage!.isNotEmpty) {
       final text = percentage!.contains('%') ? percentage! : '$percentage%';
       badges.add(
-        _TagChip(text: text, background: _chipColor(context), compact: compact),
+        _TagChip(
+          text: text,
+          background: _chipColor(context),
+          compact: compact,
+          square: square,
+        ),
       );
     }
     return badges;
@@ -408,11 +427,13 @@ class _TagChip extends StatelessWidget {
     required this.text,
     required this.background,
     this.compact = false,
+    this.square = false,
   });
 
   final String text;
   final Color background;
   final bool compact;
+  final bool square;
 
   @override
   Widget build(BuildContext context) {
@@ -426,7 +447,9 @@ class _TagChip extends StatelessWidget {
           : const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
       decoration: BoxDecoration(
         color: effectiveBackground,
-        borderRadius: BorderRadius.circular(compact ? 2 : 4),
+        borderRadius: square
+            ? BorderRadius.zero
+            : BorderRadius.circular(compact ? 2 : 4),
       ),
       child: Text(
         text,

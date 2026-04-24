@@ -17,7 +17,8 @@ import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
-import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
+import 'package:tronskins_app/components/game_item/game_item_utils.dart';
+import 'package:tronskins_app/components/game_item/game_item_wear_overlay.dart';
 import 'package:tronskins_app/controllers/shop/shop_order_controller.dart';
 import 'package:tronskins_app/controllers/shop/shop_shipping_notice_controller.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
@@ -33,6 +34,35 @@ class ShopOrderDetailPage extends StatelessWidget {
   static const _bodyColor = Color(0xFF444653);
   static const _lineColor = Color(0xFFECEEF0);
   static const _brandColor = Color(0xFF00288E);
+  static const _deliveryGoodsStatusGradient = [
+    Color(0xFF1E40AF),
+    Color(0xFF1D4ED8),
+  ];
+  static const _deliveryGoodsGlassColor = Color(0x33FFFFFF);
+  static const _statusCardShadow = [
+    BoxShadow(
+      color: Color.fromRGBO(0, 0, 0, 0.10),
+      blurRadius: 15,
+      offset: Offset(0, 10),
+    ),
+    BoxShadow(
+      color: Color.fromRGBO(0, 0, 0, 0.10),
+      blurRadius: 6,
+      offset: Offset(0, 4),
+    ),
+  ];
+  static const _deliveryGoodsStatusShadow = [
+    BoxShadow(
+      color: Color.fromRGBO(6, 78, 59, 0.10),
+      blurRadius: 15,
+      offset: Offset(0, 10),
+    ),
+    BoxShadow(
+      color: Color.fromRGBO(6, 78, 59, 0.10),
+      blurRadius: 6,
+      offset: Offset(0, 4),
+    ),
+  ];
 
   final bool isPendingFlow;
 
@@ -109,6 +139,7 @@ class ShopOrderDetailPage extends StatelessWidget {
                               ? null
                               : () =>
                                     _copyOrderId(context, order.id!.toString()),
+                          useDeliveryGoodsPalette: args.fromDeliveryGoodsDrawer,
                         ),
                         if (pendingBuyer != null) ...[
                           const SizedBox(height: 16),
@@ -203,6 +234,7 @@ class ShopOrderDetailPage extends StatelessWidget {
     required double totalPrice,
     required int totalItemCount,
     required VoidCallback? onCopy,
+    required bool useDeliveryGoodsPalette,
   }) {
     final headline = _statusHeadline(order);
     final statusRows = _buildStatusRows(order);
@@ -213,21 +245,14 @@ class ShopOrderDetailPage extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: _statusGradient(order.status),
+          colors: useDeliveryGoodsPalette
+              ? _deliveryGoodsStatusGradient
+              : _statusGradient(order.status),
         ),
         borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.10),
-            blurRadius: 15,
-            offset: Offset(0, 10),
-          ),
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.10),
-            blurRadius: 6,
-            offset: Offset(0, 4),
-          ),
-        ],
+        boxShadow: useDeliveryGoodsPalette
+            ? _deliveryGoodsStatusShadow
+            : _statusCardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,7 +263,9 @@ class ShopOrderDetailPage extends StatelessWidget {
                 width: 41,
                 height: 41,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
+                  color: useDeliveryGoodsPalette
+                      ? _deliveryGoodsGlassColor
+                      : Colors.white.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(20.5),
                 ),
                 child: Icon(
@@ -323,6 +350,9 @@ class ShopOrderDetailPage extends StatelessWidget {
             _buildGlassButton(
               label: _text(zh: '联系客服', en: 'Contact Customer Service'),
               onTap: () => Get.toNamed(Routers.FEEDBACK_LIST),
+              backgroundColor: useDeliveryGoodsPalette
+                  ? _deliveryGoodsGlassColor
+                  : null,
             ),
           ],
         ],
@@ -916,11 +946,14 @@ class ShopOrderDetailPage extends StatelessWidget {
         schema?.marketName ??
         schema?.marketHashName ??
         '-';
-    final subtitle = _buildDetailSubtitle(detail, schema);
     final count = detail.count ?? 1;
-    final paintWear =
-        detail.paintWear ?? _detailDouble(detail, const ['paint_wear']);
-    final wearText = _buildWearText(detail, paintWear);
+    final paintWear = normalizeGameItemWearValue(
+      detail.paintWear ?? _detailDouble(detail, const ['paint_wear']),
+    );
+    final wearText = formatGameItemWearText(
+      _buildWearText(detail, null),
+      paintWear,
+    );
     final stickerDetails = _resolveDetailStickerDetails(
       detail: detail,
       schema: schema,
@@ -930,6 +963,16 @@ class ShopOrderDetailPage extends StatelessWidget {
     final exterior = _schemaTag(schema, 'exterior');
     final rarity = _schemaTag(schema, 'rarity');
     final quality = _schemaTag(schema, 'quality');
+    final price = _detailDisplayPrice(detail);
+    final priceText = price == null
+        ? null
+        : _formatPrice(
+            Get.isRegistered<CurrencyController>()
+                ? Get.find<CurrencyController>()
+                : null,
+            price,
+          );
+    final exteriorAccentColor = parseHexColor(exterior?.color);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -948,6 +991,10 @@ class ShopOrderDetailPage extends StatelessWidget {
                 phase: detail.raw['phase']?.toString(),
                 percentage: detail.raw['percentage']?.toString(),
                 count: count > 1 ? count : null,
+                wearText: wearText,
+                paintWear: paintWear,
+                wearAccentColor: exteriorAccentColor,
+                wearConditionLabel: exterior?.label?.trim(),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -956,6 +1003,8 @@ class ShopOrderDetailPage extends StatelessWidget {
                   children: [
                     Text(
                       title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: _titleColor,
                         fontSize: 18,
@@ -963,65 +1012,38 @@ class ShopOrderDetailPage extends StatelessWidget {
                         height: 1.25,
                       ),
                     ),
-                    if (subtitle != null && subtitle.isNotEmpty) ...[
-                      const SizedBox(height: 4),
+                    if (priceText != null) ...[
+                      const SizedBox(height: 6),
                       Text(
-                        subtitle,
+                        priceText,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: _mutedColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
-                          height: 16 / 12,
+                          color: Color(0xFFBA1A1A),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          height: 20 / 16,
                         ),
                       ),
                     ],
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _buildInfoChip(
-                          label: _gameName(appId),
-                          background: const Color(0xFFF1F5F9),
-                          foreground: const Color(0xFF475569),
-                        ),
-                        if ((quality?.label ?? rarity?.label)?.isNotEmpty ==
-                            true)
-                          _buildInfoChip(
-                            label: (quality?.label ?? rarity!.label)!,
-                            background: const Color(0xFFFEF2F2),
-                            foreground: const Color(0xFFDC2626),
-                          ),
-                        if (count > 1)
-                          _buildInfoChip(
-                            label: '${_text(zh: '数量', en: 'Qty')}: $count',
-                            background: const Color(0xFFEEF6FF),
-                            foreground: const Color(0xFF2563EB),
-                          ),
-                      ],
-                    ),
+                    if (stickerDetails.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _buildStickerIconRow(stickers: stickerDetails),
+                    ],
+                    if (count > 1) ...[
+                      const SizedBox(height: 10),
+                      _buildInfoChip(
+                        label: '${_text(zh: '数量', en: 'Qty')}: $count',
+                        background: const Color(0xFFEEF6FF),
+                        foreground: const Color(0xFF2563EB),
+                      ),
+                    ],
                   ],
                 ),
               ),
             ],
           ),
         ),
-        if (paintWear != null && paintWear > 0 && wearText != null) ...[
-          const SizedBox(height: 12),
-          _buildWearSection(wearText: wearText, paintWear: paintWear),
-        ] else if (paintWear != null && paintWear > 0) ...[
-          const SizedBox(height: 12),
-          _buildWearSection(
-            wearText: paintWear.toString(),
-            paintWear: paintWear,
-          ),
-        ],
-        if (stickerDetails.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          _buildStickerInfoList(stickers: stickerDetails),
-        ],
       ],
     );
   }
@@ -1035,199 +1057,92 @@ class ShopOrderDetailPage extends StatelessWidget {
     required String? phase,
     required String? percentage,
     required int? count,
+    required String? wearText,
+    required double? paintWear,
+    required Color? wearAccentColor,
+    required String? wearConditionLabel,
   }) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: SizedBox(
         width: 96,
         height: 96,
-        child: GameItemImage(
-          imageUrl: imageUrl,
-          appId: appId,
-          rarity: rarity,
-          quality: quality,
-          exterior: exterior,
-          phase: phase,
-          percentage: percentage,
-          count: count,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            GameItemImage(
+              imageUrl: imageUrl,
+              appId: appId,
+              rarity: rarity,
+              quality: quality,
+              exterior: exterior,
+              phase: phase,
+              percentage: percentage,
+              count: count,
+              squareTopBadges: true,
+            ),
+            if (paintWear != null && wearText != null)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: GameItemWearOverlay(
+                  label: _text(zh: '磨损度', en: 'Wear'),
+                  text: wearText,
+                  value: paintWear,
+                  accentColor: wearAccentColor,
+                  conditionLabel: wearConditionLabel,
+                  showLabel: false,
+                ),
+              ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildWearSection({
-    required String wearText,
-    required double paintWear,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _text(zh: '磨损度', en: 'Wear'),
-              style: const TextStyle(
-                color: _mutedColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                height: 18 / 12,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                wearText,
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                  color: _bodyColor,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  height: 18 / 12,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: WearProgressBar(
-            paintWear: paintWear,
-            height: 18,
-            style: WearProgressBarStyle.figmaCompact,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStickerInfoList({
+  Widget _buildStickerIconRow({
     required List<_OrderStickerDetailData> stickers,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
       children: [
-        Text(
-          _text(zh: '印花信息', en: 'Sticker Info'),
-          style: const TextStyle(
-            color: _mutedColor,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            height: 18 / 12,
-            letterSpacing: 0.3,
-          ),
-        ),
-        const SizedBox(height: 10),
-        ...List.generate(stickers.length, (index) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: index == stickers.length - 1 ? 0 : 10,
-            ),
-            child: _buildStickerInfoCard(
-              sticker: stickers[index],
-              index: index,
-            ),
-          );
-        }),
+        for (var index = 0; index < stickers.length; index++)
+          _buildStickerIcon(sticker: stickers[index], index: index),
       ],
     );
   }
 
-  Widget _buildStickerInfoCard({
+  Widget _buildStickerIcon({
     required _OrderStickerDetailData sticker,
     required int index,
   }) {
-    final metaLabels = <String>[
-      if ((sticker.slotLabel ?? '').isNotEmpty)
-        '${_text(zh: '位置', en: 'Slot')}: ${sticker.slotLabel}',
-      if ((sticker.wearText ?? '').isNotEmpty)
-        '${_text(zh: '磨损', en: 'Wear')}: ${sticker.wearText}',
-    ];
+    final name = sticker.name?.trim().isNotEmpty == true
+        ? sticker.name!
+        : _stickerFallbackName(index);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Image.network(
-              sticker.imageUrl,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return const Icon(
-                  Icons.image_not_supported_outlined,
-                  size: 20,
-                  color: _mutedColor,
-                );
-              },
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  sticker.name?.trim().isNotEmpty == true
-                      ? sticker.name!
-                      : _stickerFallbackName(index),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _titleColor,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    height: 18 / 13,
-                  ),
-                ),
-                if (sticker.price != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    _formatStickerPrice(sticker.price!),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFFBA1A1A),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      height: 16 / 12,
-                    ),
-                  ),
-                ],
-                if (metaLabels.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: metaLabels
-                        .map(
-                          (label) => _buildInfoChip(
-                            label: label,
-                            background: Colors.white,
-                            foreground: const Color(0xFF475569),
-                          ),
-                        )
-                        .toList(growable: false),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
+    return Tooltip(
+      message: name,
+      child: Container(
+        width: 32,
+        height: 32,
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Image.network(
+          sticker.imageUrl,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            return const Icon(
+              Icons.image_not_supported_outlined,
+              size: 18,
+              color: _mutedColor,
+            );
+          },
+        ),
       ),
     );
   }
@@ -1398,6 +1313,7 @@ class ShopOrderDetailPage extends StatelessWidget {
   Widget _buildGlassButton({
     required String label,
     required VoidCallback onTap,
+    Color? backgroundColor,
   }) {
     return InkWell(
       borderRadius: BorderRadius.circular(8),
@@ -1406,7 +1322,7 @@ class ShopOrderDetailPage extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.10),
+          color: backgroundColor ?? Colors.white.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(8),
         ),
         alignment: Alignment.center,
@@ -2709,13 +2625,6 @@ class ShopOrderDetailPage extends StatelessWidget {
     return wear.toString();
   }
 
-  String _formatStickerPrice(double price) {
-    final currency = Get.isRegistered<CurrencyController>()
-        ? Get.find<CurrencyController>()
-        : null;
-    return _formatPrice(currency, price);
-  }
-
   String _stickerFallbackName(int index) =>
       _text(zh: '印花 ${index + 1}', en: 'Sticker ${index + 1}');
 
@@ -2727,22 +2636,6 @@ class ShopOrderDetailPage extends StatelessWidget {
       return avatar;
     }
     return 'https://www.tronskins.com/fms/image$avatar';
-  }
-
-  String? _buildDetailSubtitle(ShopOrderDetail detail, ShopSchemaInfo? schema) {
-    final parts = <String>[];
-    final phase =
-        detail.raw['phase']?.toString().trim() ??
-        schema?.raw['phase']?.toString().trim();
-    if (phase != null && phase.isNotEmpty) {
-      parts.add(phase);
-    }
-    final hashName = detail.marketHashName ?? schema?.marketHashName;
-    final marketName = detail.marketName ?? schema?.marketName;
-    if ((hashName ?? '').isNotEmpty && hashName != marketName) {
-      parts.add(hashName!);
-    }
-    return parts.isEmpty ? null : parts.join(' · ');
   }
 
   String? _buildWearText(ShopOrderDetail detail, double? paintWear) {
@@ -2761,6 +2654,27 @@ class ShopOrderDetailPage extends StatelessWidget {
     return null;
   }
 
+  double? _detailDisplayPrice(ShopOrderDetail detail) {
+    return detail.price ??
+        _detailDouble(detail, const [
+          'price',
+          'market_price',
+          'marketPrice',
+          'sale_price',
+          'salePrice',
+          'deal_price',
+          'dealPrice',
+        ]) ??
+        detail.totalPrice ??
+        _detailDouble(detail, const [
+          'total_price',
+          'totalPrice',
+          'amount',
+          'pay_price',
+          'payPrice',
+        ]);
+  }
+
   double? _detailDouble(ShopOrderDetail detail, List<String> keys) {
     for (final key in keys) {
       final value = detail.raw[key];
@@ -2770,19 +2684,6 @@ class ShopOrderDetailPage extends StatelessWidget {
       }
     }
     return null;
-  }
-
-  String _gameName(int appId) {
-    switch (appId) {
-      case 730:
-        return 'CS2';
-      case 570:
-        return 'Dota 2';
-      case 440:
-        return 'TF2';
-      default:
-        return 'Steam';
-    }
   }
 
   String _partyMetaText(_PartyInfo party) {
@@ -2975,6 +2876,7 @@ class _ShopOrderDetailArgs {
     this.users = const {},
     this.stickers = const {},
     this.disableOrderActions = false,
+    this.fromDeliveryGoodsDrawer = false,
   });
 
   final ShopOrderItem? order;
@@ -2983,6 +2885,7 @@ class _ShopOrderDetailArgs {
   final Map<String, ShopUserInfo> users;
   final Map<String, dynamic> stickers;
   final bool disableOrderActions;
+  final bool fromDeliveryGoodsDrawer;
 
   factory _ShopOrderDetailArgs.fromDynamic(dynamic raw) {
     if (raw is! Map) {
@@ -2996,6 +2899,7 @@ class _ShopOrderDetailArgs {
       users: _parseUsers(raw['users']),
       stickers: _parseStickers(raw['stickers']),
       disableOrderActions: _parseBool(raw['disableOrderActions']),
+      fromDeliveryGoodsDrawer: _parseBool(raw['fromDeliveryGoodsDrawer']),
     );
   }
 
