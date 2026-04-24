@@ -29,6 +29,7 @@ import 'package:tronskins_app/controllers/shop/shop_order_controller.dart';
 import 'package:tronskins_app/controllers/shop/shop_sales_controller.dart';
 import 'package:tronskins_app/controllers/shop/shop_shipping_notice_controller.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
+import 'package:tronskins_app/pages/shop/shop_deliver_goods_page.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
 enum _ShopTabFilter { onSale, pending, saleRecord }
@@ -2361,8 +2362,8 @@ class _ShopPageState extends State<ShopPage>
       );
     }
     const tileSize = 80.0;
-    const horizontalPeek = 8.0;
-    const verticalPeek = 4.0;
+    const horizontalPeek = 14.0;
+    const verticalPeek = 8.0;
     const badgeSize = 24.0;
     const badgeOverlap = 8.0;
     final stackCount = previewDetails.length > 3 ? 3 : previewDetails.length;
@@ -2381,7 +2382,7 @@ class _ShopPageState extends State<ShopPage>
               child: _buildPendingBatchPreviewTile(
                 previewDetails[layer],
                 isFront: layer == 0,
-                opacity: layer == 0 ? 1 : (layer == 1 ? 0.74 : 0.52),
+                visualDepth: layer,
               ),
             ),
           Positioned(
@@ -2424,7 +2425,7 @@ class _ShopPageState extends State<ShopPage>
   Widget _buildPendingBatchPreviewTile(
     ShopOrderDetail detail, {
     required bool isFront,
-    required double opacity,
+    required int visualDepth,
   }) {
     final schema = _lookupSchema(
       orderController.schemas,
@@ -2436,11 +2437,13 @@ class _ShopPageState extends State<ShopPage>
     final rarity = _schemaTag(schema, 'rarity');
     final quality = _schemaTag(schema, 'quality');
 
+    final imageOpacity = isFront ? 1.0 : (visualDepth == 1 ? 0.9 : 0.78);
+
     return Container(
       width: 80,
       height: 80,
       decoration: BoxDecoration(
-        color: isFront ? const Color(0xFFECEEF0) : const Color(0xFFE6E8EA),
+        color: const Color(0xFFECEEF0),
         borderRadius: BorderRadius.circular(8),
         boxShadow: isFront
             ? const [
@@ -2466,7 +2469,7 @@ class _ShopPageState extends State<ShopPage>
       ),
       clipBehavior: Clip.antiAlias,
       child: Opacity(
-        opacity: opacity,
+        opacity: imageOpacity,
         child: GameItemImage(
           imageUrl: imageUrl,
           appId: appId,
@@ -3225,11 +3228,11 @@ class _ShopPageState extends State<ShopPage>
 
   Future<void> _openDeliverGoodsPage(ShopOrderItem order) async {
     final buyerId = (order.buyerId ?? order.user?.id ?? '').trim();
-    final delivered = await Get.toNamed(
-      Routers.SHOP_DELIVER_GOODS,
+    final delivered = await ShopDeliverGoodsPage.showDrawer<bool>(
+      context,
       arguments: {'buyerId': buyerId, 'status': order.status},
     );
-    if (delivered == true) {
+    if (delivered == true && mounted) {
       orderController.refreshPending();
       shippingNoticeController.refreshPendingTotals();
     }

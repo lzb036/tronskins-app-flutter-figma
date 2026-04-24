@@ -19,7 +19,60 @@ import 'package:tronskins_app/controllers/user/user_controller.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
 class ShopDeliverGoodsPage extends StatefulWidget {
-  const ShopDeliverGoodsPage({super.key});
+  const ShopDeliverGoodsPage({super.key, this.arguments});
+
+  final Object? arguments;
+
+  static Future<T?> showDrawer<T>(
+    BuildContext context, {
+    required Object arguments,
+  }) {
+    final barrierLabel = MaterialLocalizations.of(
+      context,
+    ).modalBarrierDismissLabel;
+    return showGeneralDialog<T>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: barrierLabel,
+      barrierColor: const Color.fromRGBO(15, 23, 42, 0.36),
+      transitionDuration: const Duration(milliseconds: 280),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        final size = MediaQuery.of(dialogContext).size;
+        return Align(
+          alignment: Alignment.centerRight,
+          child: SizedBox(
+            width: _drawerWidth(size.width),
+            height: size.height,
+            child: Material(
+              color: const Color(0xFFF7F9FB),
+              elevation: 20,
+              shadowColor: const Color.fromRGBO(15, 23, 42, 0.22),
+              clipBehavior: Clip.antiAlias,
+              child: ShopDeliverGoodsPage(arguments: arguments),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(1, 0),
+            end: Offset.zero,
+          ).animate(curved),
+          child: child,
+        );
+      },
+    );
+  }
+
+  static double _drawerWidth(double screenWidth) {
+    return screenWidth * 0.75;
+  }
 
   @override
   State<ShopDeliverGoodsPage> createState() => _ShopDeliverGoodsPageState();
@@ -33,7 +86,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
   static const _lineColor = Color(0xFFECEEF0);
   static const _brandColor = Color(0xFF00288E);
 
-  final _args = _ShopDeliverGoodsArgs.fromDynamic(Get.arguments);
+  late final _ShopDeliverGoodsArgs _args;
   final ApiShopProductServer _api = ApiShopProductServer();
   final ApiSteamServer _steamApi = ApiSteamServer();
   final ApiTradeOfferServer _tradeApi = ApiTradeOfferServer();
@@ -50,6 +103,9 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
   @override
   void initState() {
     super.initState();
+    _args = _ShopDeliverGoodsArgs.fromDynamic(
+      widget.arguments ?? Get.arguments,
+    );
     _loadOrders();
   }
 
