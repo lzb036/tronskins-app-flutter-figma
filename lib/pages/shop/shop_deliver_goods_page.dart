@@ -40,6 +40,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
 
   final Map<String, ShopSchemaInfo> _schemas = <String, ShopSchemaInfo>{};
   final Map<String, ShopUserInfo> _users = <String, ShopUserInfo>{};
+  final Map<String, dynamic> _stickers = <String, dynamic>{};
   List<ShopOrderItem> _orders = <ShopOrderItem>[];
 
   bool _loading = true;
@@ -153,6 +154,9 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
         _users
           ..clear()
           ..addAll(data.users);
+        _stickers
+          ..clear()
+          ..addAll(data.stickers);
       }
     } finally {
       if (mounted) {
@@ -685,11 +689,16 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     final wearInfo = _wearInfo(primary);
     final stickers = _detailStickers(primary);
     final price = _orderTotalPrice(order);
+    final previewWidth = _orderBatchPreviewWidth(order);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildOrderBatchPreview(order),
+        _buildPreviewColumn(
+          preview: _buildOrderBatchPreview(order),
+          width: previewWidth,
+          wearInfo: wearInfo,
+        ),
         const SizedBox(width: 14),
         Expanded(
           child: Column(
@@ -719,10 +728,6 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
               if (stickers.isNotEmpty) ...[
                 const SizedBox(height: 7),
                 _buildStickerPreview(stickers),
-              ],
-              if (wearInfo != null) ...[
-                const SizedBox(height: 7),
-                _buildWearInfo(wearInfo),
               ],
             ],
           ),
@@ -740,11 +745,16 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     final price =
         detail.totalPrice ?? ((detail.price ?? 0) * (detail.count ?? 1));
     final stickers = _detailStickers(detail);
+    final previewWidth = _detailPreviewWidth(detail);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildDetailPreview(detail),
+        _buildPreviewColumn(
+          preview: _buildDetailPreview(detail),
+          width: previewWidth,
+          wearInfo: wearInfo,
+        ),
         const SizedBox(width: 14),
         Expanded(
           child: Column(
@@ -775,10 +785,6 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
                 const SizedBox(height: 7),
                 _buildStickerPreview(stickers),
               ],
-              if (wearInfo != null) ...[
-                const SizedBox(height: 7),
-                _buildWearInfo(wearInfo),
-              ],
             ],
           ),
         ),
@@ -786,7 +792,27 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     );
   }
 
-  Widget _buildWearInfo(_DetailWearInfo wearInfo) {
+  Widget _buildPreviewColumn({
+    required Widget preview,
+    required double width,
+    required _DetailWearInfo? wearInfo,
+  }) {
+    return SizedBox(
+      width: width,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          preview,
+          if (wearInfo != null) ...[
+            const SizedBox(height: 6),
+            _buildCompactWearInfo(wearInfo),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactWearInfo(_DetailWearInfo wearInfo) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -796,12 +822,12 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
               _isEnglishLocale ? 'Wear' : '磨损度',
               style: const TextStyle(
                 color: Color(0xFF64748B),
-                fontSize: 10,
+                fontSize: 8,
                 fontWeight: FontWeight.w700,
-                height: 12 / 10,
+                height: 10 / 8,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 4),
             Expanded(
               child: Text(
                 wearInfo.text,
@@ -810,18 +836,18 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
                 textAlign: TextAlign.right,
                 style: const TextStyle(
                   color: _titleColor,
-                  fontSize: 10,
+                  fontSize: 8,
                   fontWeight: FontWeight.w800,
-                  height: 12 / 10,
+                  height: 10 / 8,
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 3),
         WearProgressBar(
           paintWear: wearInfo.value,
-          height: 14,
+          height: 10,
           style: WearProgressBarStyle.figmaCompact,
         ),
       ],
@@ -878,12 +904,34 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     );
   }
 
+  double _orderBatchPreviewWidth(ShopOrderItem order) {
+    final previewDetails = _orderPreviewDetails(order);
+    if (previewDetails.isEmpty) {
+      return 64;
+    }
+    const tileSize = 64.0;
+    const horizontalPeek = 7.0;
+    final stackCount = previewDetails.length > 3 ? 3 : previewDetails.length;
+    return tileSize + ((stackCount - 1) * horizontalPeek);
+  }
+
   Widget _buildDetailPreview(ShopOrderDetail detail) {
     final count = detail.count ?? 1;
     if (count > 1) {
       return _buildStackedDetailPreview(detail, count);
     }
     return _buildDetailImageTile(detail, isFront: true, opacity: 1);
+  }
+
+  double _detailPreviewWidth(ShopOrderDetail detail) {
+    final count = detail.count ?? 1;
+    if (count <= 1) {
+      return 64;
+    }
+    const tileSize = 64.0;
+    const horizontalPeek = 7.0;
+    final stackCount = count > 3 ? 3 : count;
+    return tileSize + ((stackCount - 1) * horizontalPeek);
   }
 
   Widget _buildStackedDetailPreview(ShopOrderDetail detail, int count) {
@@ -997,15 +1045,15 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
   }
 
   Widget _buildStickerPreview(List<GameItemSticker> stickers) {
-    final visible = stickers.length > 3 ? stickers.take(3) : stickers;
+    final visible = stickers.length > 4 ? stickers.take(4) : stickers;
     return Wrap(
-      spacing: 4,
+      spacing: 5,
       runSpacing: 4,
       children: [
         for (final sticker in visible)
           Container(
-            width: 16,
-            height: 16,
+            width: 18,
+            height: 18,
             color: const Color(0xFFF1F5F9),
             child: Image.network(
               sticker.imageUrl,
@@ -1271,13 +1319,115 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
   }
 
   List<GameItemSticker> _detailStickers(ShopOrderDetail detail) {
-    final rawAsset = detail.raw['asset'];
-    final rawCsgoAsset = detail.raw['csgoAsset'];
-    return parseStickerList(
-      detail.raw['stickers'] ??
-          (rawAsset is Map ? rawAsset['stickers'] : null) ??
-          (rawCsgoAsset is Map ? rawCsgoAsset['stickers'] : null),
-    );
+    for (final candidate in _detailStickerCandidates(detail)) {
+      final stickers = parseStickerList(
+        _normalizeStickerEntries(candidate),
+        schemaMap: _schemas,
+        stickerMap: _stickers,
+      );
+      if (stickers.isNotEmpty) {
+        return stickers;
+      }
+    }
+    return const [];
+  }
+
+  List<dynamic> _detailStickerCandidates(ShopOrderDetail detail) {
+    final schema = _lookupSchema(detail);
+    final appId = _resolveDetailAppId(detail, schema);
+    final raw = detail.raw;
+    final schemaRaw = schema?.raw;
+    final rawAsset = _pickAssetRaw(raw, appId);
+    final rawCsgoAsset = _asMap(raw['csgoAsset']);
+    final schemaAsset = schemaRaw == null
+        ? null
+        : _pickAssetRaw(schemaRaw, appId);
+    final schemaCsgoAsset = _asMap(schemaRaw?['csgoAsset']);
+
+    return [
+      raw['stickers'],
+      raw['stickerList'],
+      raw['sticker_list'],
+      raw['sticker'],
+      rawAsset?['stickers'],
+      rawAsset?['stickerList'],
+      rawAsset?['sticker_list'],
+      rawAsset?['sticker'],
+      rawCsgoAsset?['stickers'],
+      rawCsgoAsset?['stickerList'],
+      rawCsgoAsset?['sticker_list'],
+      rawCsgoAsset?['sticker'],
+      schemaRaw?['stickers'],
+      schemaRaw?['stickerList'],
+      schemaRaw?['sticker_list'],
+      schemaRaw?['sticker'],
+      schemaAsset?['stickers'],
+      schemaAsset?['stickerList'],
+      schemaAsset?['sticker_list'],
+      schemaAsset?['sticker'],
+      schemaCsgoAsset?['stickers'],
+      schemaCsgoAsset?['stickerList'],
+      schemaCsgoAsset?['sticker_list'],
+      schemaCsgoAsset?['sticker'],
+    ];
+  }
+
+  List<dynamic> _normalizeStickerEntries(dynamic raw) {
+    if (raw is List) {
+      return raw;
+    }
+    if (raw is Iterable) {
+      return raw.toList(growable: false);
+    }
+    if (raw is Map) {
+      if (raw.containsKey('image_url') ||
+          raw.containsKey('imageUrl') ||
+          raw.containsKey('image') ||
+          raw.containsKey('id') ||
+          raw.containsKey('sticker_id') ||
+          raw.containsKey('schema_id')) {
+        return <dynamic>[raw];
+      }
+      return raw.values.toList(growable: false);
+    }
+    if (raw is String) {
+      final value = raw.trim();
+      if (value.isEmpty || value == 'null') {
+        return const [];
+      }
+      if (value.contains(',')) {
+        return value
+            .split(',')
+            .map((item) => item.trim())
+            .where((item) => item.isNotEmpty)
+            .toList(growable: false);
+      }
+      return <dynamic>[value];
+    }
+    return const [];
+  }
+
+  Map<String, dynamic>? _pickAssetRaw(Map<String, dynamic> raw, int? appId) {
+    if (appId == 730 && raw['csgoAsset'] is Map) {
+      return _asMap(raw['csgoAsset']);
+    }
+    if (appId == 440 && raw['tf2Asset'] is Map) {
+      return _asMap(raw['tf2Asset']);
+    }
+    if (appId == 570 && raw['dota2Asset'] is Map) {
+      return _asMap(raw['dota2Asset']);
+    }
+    return _asMap(raw['asset']);
+  }
+
+  Map<String, dynamic>? _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
+    return null;
   }
 
   _DetailWearInfo? _wearInfo(ShopOrderDetail detail) {

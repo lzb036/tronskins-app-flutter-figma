@@ -265,13 +265,6 @@ class InventoryShowcaseCard extends StatelessWidget {
                                       backgroundColor: const Color(0xFFF59E0B),
                                       textColor: Colors.white,
                                     ),
-                                  if (cooldownLabel != null &&
-                                      cooldownLabel.isNotEmpty)
-                                    _buildBadge(
-                                      label: cooldownLabel,
-                                      backgroundColor: const Color(0xFF2563EB),
-                                      textColor: Colors.white,
-                                    ),
                                 ],
                               ),
                             ),
@@ -395,18 +388,43 @@ class InventoryShowcaseCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Obx(
-                            () => Text(
-                              CurrencyController.to.format(price),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: _inventoryShowcaseBrandBlue,
-                                fontSize: 14,
-                                height: 18 / 14,
-                                fontWeight: FontWeight.w800,
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                child: Obx(
+                                  () => Text(
+                                    CurrencyController.to.format(price),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: _inventoryShowcaseBrandBlue,
+                                      fontSize: 14,
+                                      height: 18 / 14,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
+                              if (cooldownLabel != null &&
+                                  cooldownLabel.isNotEmpty) ...[
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    cooldownLabel,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.right,
+                                    style: const TextStyle(
+                                      color: Color(0xFF2563EB),
+                                      fontSize: 9,
+                                      height: 12 / 9,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ],
                       ),
