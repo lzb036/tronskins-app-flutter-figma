@@ -407,6 +407,9 @@ class MarketFilterSheet extends StatefulWidget {
 }
 
 class _MarketFilterSheetState extends State<MarketFilterSheet> {
+  static const String _weaponTypeDefaultName = 'unlimited';
+  static const String _weaponTypeDefaultLabel = 'Default';
+
   late String _sortField;
   late bool _sortAsc;
   late final TextEditingController _minController;
@@ -439,6 +442,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
   int _weaponTypePageIndex = 0;
   bool _isWeaponTypePageAnimating = false;
   bool _isWeaponTypePageDragging = false;
+  bool _hasSeededWeaponTypePageIndex = false;
 
   bool get _isDota => widget.appId == 570;
   bool get _isLegacyTfPriceOnly =>
@@ -1418,10 +1422,11 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
   }
 
   Widget _buildWeaponTypeSectionContent(_AttributeGroup group) {
-    final options = _visibleOptions(group);
-    if (options.isEmpty) {
+    final visibleOptions = _visibleOptions(group);
+    if (visibleOptions.isEmpty) {
       return const SizedBox.shrink();
     }
+    final options = _weaponTypeOptionsWithDefault(visibleOptions);
     final activeIndex = _activeWeaponTypeIndex(options);
     _syncWeaponTypePage(activeIndex);
     return Column(
@@ -1438,7 +1443,33 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
     );
   }
 
+  List<_AttributeOption> _weaponTypeOptionsWithDefault(
+    List<_AttributeOption> options,
+  ) {
+    const defaultOption = _AttributeOption(
+      name: _weaponTypeDefaultName,
+      label: _weaponTypeDefaultLabel,
+      isUnlimited: true,
+      subOptions: [
+        _AttributeOption(
+          name: _weaponTypeDefaultName,
+          label: _weaponTypeDefaultLabel,
+          isUnlimited: true,
+        ),
+      ],
+    );
+    return [defaultOption, ...options.where((option) => !option.isUnlimited)];
+  }
+
   int _activeWeaponTypeIndex(List<_AttributeOption> options) {
+    if (!_hasSeededWeaponTypePageIndex) {
+      _weaponTypePageIndex = _selectedWeaponTypeIndex(options);
+      _hasSeededWeaponTypePageIndex = true;
+    }
+    return _weaponTypePageIndex.clamp(0, options.length - 1).toInt();
+  }
+
+  int _selectedWeaponTypeIndex(List<_AttributeOption> options) {
     final selectedType = (_selectedTags['type'] ?? '').trim();
     if (selectedType.isNotEmpty) {
       for (var i = 0; i < options.length; i += 1) {
@@ -1461,7 +1492,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
       }
     }
 
-    return _weaponTypePageIndex.clamp(0, options.length - 1);
+    return options.length > 1 ? 1 : 0;
   }
 
   void _syncWeaponTypePage(int activeIndex) {
@@ -1510,6 +1541,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
               trackVisibility: false,
               thickness: 3,
               radius: const Radius.circular(999),
+              scrollbarOrientation: ScrollbarOrientation.top,
               notificationPredicate: (notification) =>
                   notification.metrics.axis == Axis.horizontal,
               child: SingleChildScrollView(
@@ -1517,7 +1549,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                 controller: _weaponTypeTabScrollController,
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(top: 8, bottom: 8),
                 child: Row(
                   children: [
                     for (var index = 0; index < options.length; index += 1) ...[
@@ -1528,6 +1560,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                         ),
                         child: _buildWeaponTypeTab(
                           label: options[index].label.tr,
+                          showBadge: _isWeaponTypeTabBadged(options[index]),
                           selectedProgress: (1 - (page - index).abs()).clamp(
                             0.0,
                             1.0,
@@ -1677,21 +1710,11 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         _weaponTypePageController.page ?? _weaponTypePageIndex.toDouble();
     final index = page.round().clamp(0, options.length - 1).toInt();
     final option = options[index];
-    final currentType = (_selectedTags[group.key] ?? '').trim();
-    if (currentType == option.name) {
-      if (_weaponTypePageIndex != index) {
-        setState(() {
-          _weaponTypePageIndex = index;
-        });
-      }
-      _scrollWeaponTypeTabIntoView(option.name);
-      return;
+    if (_weaponTypePageIndex != index) {
+      setState(() {
+        _weaponTypePageIndex = index;
+      });
     }
-    setState(() {
-      _weaponTypePageIndex = index;
-      _selectedItemName = null;
-      _selectedTags[group.key] = option.name;
-    });
     _scrollWeaponTypeTabIntoView(option.name);
   }
 
@@ -1706,8 +1729,6 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
     final option = options[index];
     setState(() {
       _weaponTypePageIndex = index;
-      _selectedItemName = null;
-      _selectedTags[group.key] = option.name;
     });
     _scrollWeaponTypeTabIntoView(option.name);
     if (!_weaponTypePageController.hasClients) {
@@ -1760,6 +1781,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
 
   Widget _buildWeaponTypeTab({
     required String label,
+    required bool showBadge,
     required double selectedProgress,
     required VoidCallback onTap,
   }) {
@@ -1772,21 +1794,49 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              label,
-              maxLines: 1,
-              softWrap: false,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color.lerp(
-                  const Color(0xFF6B7280),
-                  FilterSheetStyle.primary,
-                  progress,
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  softWrap: false,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color.lerp(
+                      const Color(0xFF6B7280),
+                      FilterSheetStyle.primary,
+                      progress,
+                    ),
+                    fontSize: 14,
+                    height: 21 / 14,
+                    fontWeight: progress > 0.5
+                        ? FontWeight.w700
+                        : FontWeight.w600,
+                  ),
                 ),
-                fontSize: 14,
-                height: 21 / 14,
-                fontWeight: progress > 0.5 ? FontWeight.w700 : FontWeight.w600,
-              ),
+                if (showBadge)
+                  Positioned(
+                    right: -9,
+                    top: -3,
+                    child: Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: FilterSheetStyle.primaryBright,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: FilterSheetStyle.primaryBright.withValues(
+                              alpha: 0.28,
+                            ),
+                            blurRadius: 5,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 8),
             AnimatedContainer(
@@ -1811,7 +1861,6 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
     required List<_AttributeOption> options,
   }) {
     final sectionKey = 'group:${group.key}';
-    final selected = (_selectedItemName ?? '').trim();
     return LayoutBuilder(
       builder: (context, constraints) {
         const spacing = 10.0;
@@ -1834,7 +1883,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                   key: _selectionAnchorKey(sectionKey, option.name),
                   child: FilterSheetOptionChip(
                     label: option.label.tr,
-                    selected: selected == option.name,
+                    selected: _isWeaponSubtypeSelected(option),
                     fullWidth: true,
                     selectedStyle: FilterChipSelectedStyle.soft,
                     selectedColor: Colors.white,
@@ -1863,6 +1912,31 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         );
       },
     );
+  }
+
+  bool _isWeaponTypeDefaultSelected() {
+    final selectedType = (_selectedTags['type'] ?? '').trim();
+    final selectedItemName = (_selectedItemName ?? '').trim();
+    return selectedType.isEmpty && selectedItemName.isEmpty;
+  }
+
+  bool _isWeaponSubtypeSelected(_AttributeOption option) {
+    if (option.isUnlimited) {
+      return _isWeaponTypeDefaultSelected();
+    }
+    return (_selectedItemName ?? '').trim() == option.name;
+  }
+
+  bool _isWeaponTypeTabBadged(_AttributeOption option) {
+    final selectedType = (_selectedTags['type'] ?? '').trim();
+    final selectedItemName = (_selectedItemName ?? '').trim();
+    if (option.isUnlimited) {
+      return selectedType.isEmpty && selectedItemName.isEmpty;
+    }
+    if (selectedType == option.name) {
+      return true;
+    }
+    return option.subOptions.any((sub) => sub.name == selectedItemName);
   }
 
   String _formatDotaSectionTitle(String key, String title) {
