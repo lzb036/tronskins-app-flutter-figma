@@ -288,6 +288,22 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     }
   }
 
+  Future<void> _openOrderDetail(ShopOrderItem order) async {
+    final changed = await Get.toNamed(
+      Routers.SHOP_ORDER_DETAIL,
+      arguments: {
+        'order': order,
+        'schemas': Map<String, ShopSchemaInfo>.from(_schemas),
+        'users': Map<String, ShopUserInfo>.from(_users),
+        'stickers': Map<String, dynamic>.from(_stickers),
+        'disableOrderActions': true,
+      },
+    );
+    if (changed == true && mounted) {
+      await _loadOrders();
+    }
+  }
+
   Widget _buildLoadingSkeleton() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -624,7 +640,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
   }
 
   Widget _buildOrderBlock(ShopOrderItem order, CurrencyController? currency) {
-    final useBatchPreview = _shouldUseOrderBatchPreview(order);
+    final displayDetails = _expandedOrderDetails(order);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -668,78 +684,35 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
             ],
           ),
           const SizedBox(height: 12),
-          if (useBatchPreview)
-            _buildOrderBatchItem(order, currency)
+          if (displayDetails.isEmpty)
+            Text(
+              'app.common.no_data'.tr,
+              style: const TextStyle(
+                color: _mutedColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                height: 18 / 12,
+              ),
+            )
           else
-            for (var index = 0; index < order.details.length; index++) ...[
+            for (var index = 0; index < displayDetails.length; index++) ...[
               if (index > 0) const Divider(height: 18, color: _lineColor),
-              _buildDetailItem(order.details[index], currency),
+              _buildDetailItem(
+                displayDetails[index],
+                currency,
+                onTap: () => _openOrderDetail(order),
+              ),
             ],
         ],
       ),
     );
   }
 
-  Widget _buildOrderBatchItem(
-    ShopOrderItem order,
-    CurrencyController? currency,
-  ) {
-    final primary = order.details.first;
-    final title = _detailTitle(primary);
-    final wearInfo = _wearInfo(primary);
-    final stickers = _detailStickers(primary);
-    final price = _orderTotalPrice(order);
-    final previewWidth = _orderBatchPreviewWidth(order);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildPreviewColumn(
-          preview: _buildOrderBatchPreview(order),
-          width: previewWidth,
-          wearInfo: wearInfo,
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: _titleColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  height: 20 / 14,
-                ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                _formatCurrency(price, currency),
-                style: const TextStyle(
-                  color: Color(0xFFE31B2F),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  height: 18 / 13,
-                ),
-              ),
-              if (stickers.isNotEmpty) ...[
-                const SizedBox(height: 7),
-                _buildStickerPreview(stickers),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildDetailItem(
     ShopOrderDetail detail,
-    CurrencyController? currency,
-  ) {
+    CurrencyController? currency, {
+    VoidCallback? onTap,
+  }) {
     final title = _detailTitle(detail);
     final wearInfo = _wearInfo(detail);
     final price =
@@ -747,48 +720,52 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     final stickers = _detailStickers(detail);
     final previewWidth = _detailPreviewWidth(detail);
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildPreviewColumn(
-          preview: _buildDetailPreview(detail),
-          width: previewWidth,
-          wearInfo: wearInfo,
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: _titleColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  height: 20 / 14,
-                ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                _formatCurrency(price, currency),
-                style: const TextStyle(
-                  color: Color(0xFFE31B2F),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  height: 18 / 13,
-                ),
-              ),
-              if (stickers.isNotEmpty) ...[
-                const SizedBox(height: 7),
-                _buildStickerPreview(stickers),
-              ],
-            ],
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildPreviewColumn(
+            preview: _buildDetailPreview(detail),
+            width: previewWidth,
+            wearInfo: wearInfo,
           ),
-        ),
-      ],
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _titleColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    height: 20 / 14,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  _formatCurrency(price, currency),
+                  style: const TextStyle(
+                    color: Color(0xFFE31B2F),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    height: 18 / 13,
+                  ),
+                ),
+                if (stickers.isNotEmpty) ...[
+                  const SizedBox(height: 7),
+                  _buildStickerPreview(stickers),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -854,147 +831,12 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     );
   }
 
-  Widget _buildOrderBatchPreview(ShopOrderItem order) {
-    final previewDetails = _orderPreviewDetails(order);
-    final count = _orderItemQuantity(order);
-    if (previewDetails.isEmpty) {
-      return const SizedBox(
-        width: 64,
-        height: 64,
-        child: DecoratedBox(
-          decoration: BoxDecoration(color: Color(0xFFECEEF0)),
-          child: Icon(
-            Icons.image_not_supported_outlined,
-            size: 22,
-            color: _mutedColor,
-          ),
-        ),
-      );
-    }
-
-    const tileSize = 64.0;
-    const horizontalPeek = 7.0;
-    const verticalPeek = 4.0;
-    const badgeSize = 22.0;
-    const badgeOverlap = 6.0;
-    final stackCount = previewDetails.length > 3 ? 3 : previewDetails.length;
-    return SizedBox(
-      width: tileSize + ((stackCount - 1) * horizontalPeek),
-      height: tileSize + ((stackCount - 1) * verticalPeek),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          for (var layer = stackCount - 1; layer >= 0; layer--)
-            Positioned(
-              left: layer * horizontalPeek,
-              top: layer * verticalPeek,
-              child: _buildDetailImageTile(
-                previewDetails[layer],
-                isFront: layer == 0,
-                opacity: layer == 0 ? 1 : (layer == 1 ? 0.74 : 0.52),
-              ),
-            ),
-          Positioned(
-            left: tileSize - badgeSize + badgeOverlap,
-            top: -badgeOverlap,
-            child: _buildCountBadge(count),
-          ),
-        ],
-      ),
-    );
-  }
-
-  double _orderBatchPreviewWidth(ShopOrderItem order) {
-    final previewDetails = _orderPreviewDetails(order);
-    if (previewDetails.isEmpty) {
-      return 64;
-    }
-    const tileSize = 64.0;
-    const horizontalPeek = 7.0;
-    final stackCount = previewDetails.length > 3 ? 3 : previewDetails.length;
-    return tileSize + ((stackCount - 1) * horizontalPeek);
-  }
-
   Widget _buildDetailPreview(ShopOrderDetail detail) {
-    final count = detail.count ?? 1;
-    if (count > 1) {
-      return _buildStackedDetailPreview(detail, count);
-    }
     return _buildDetailImageTile(detail, isFront: true, opacity: 1);
   }
 
   double _detailPreviewWidth(ShopOrderDetail detail) {
-    final count = detail.count ?? 1;
-    if (count <= 1) {
-      return 64;
-    }
-    const tileSize = 64.0;
-    const horizontalPeek = 7.0;
-    final stackCount = count > 3 ? 3 : count;
-    return tileSize + ((stackCount - 1) * horizontalPeek);
-  }
-
-  Widget _buildStackedDetailPreview(ShopOrderDetail detail, int count) {
-    const tileSize = 64.0;
-    const horizontalPeek = 7.0;
-    const verticalPeek = 4.0;
-    const badgeSize = 22.0;
-    const badgeOverlap = 6.0;
-    final stackCount = count > 3 ? 3 : count;
-    return SizedBox(
-      width: tileSize + ((stackCount - 1) * horizontalPeek),
-      height: tileSize + ((stackCount - 1) * verticalPeek),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          for (var layer = stackCount - 1; layer >= 0; layer--)
-            Positioned(
-              left: layer * horizontalPeek,
-              top: layer * verticalPeek,
-              child: _buildDetailImageTile(
-                detail,
-                isFront: layer == 0,
-                opacity: layer == 0 ? 1 : (layer == 1 ? 0.74 : 0.52),
-              ),
-            ),
-          Positioned(
-            left: tileSize - badgeSize + badgeOverlap,
-            top: -badgeOverlap,
-            child: _buildCountBadge(count),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCountBadge(int count) {
-    return Container(
-      constraints: const BoxConstraints(minWidth: 22),
-      height: 22,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      decoration: BoxDecoration(
-        color: _brandColor,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white, width: 1.2),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x1A0F172A),
-            blurRadius: 10,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        _countLabel(count),
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
-          height: 1,
-        ),
-      ),
-    );
+    return 64;
   }
 
   Widget _buildDetailImageTile(
@@ -1206,44 +1048,6 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     return _isEnglishLocale ? 'ORDER ID: $id' : '订单 ID: $id';
   }
 
-  String _countLabel(int count) {
-    if (count > 99) {
-      return '99+';
-    }
-    return '$count';
-  }
-
-  bool _shouldUseOrderBatchPreview(ShopOrderItem order) {
-    final quantity = _orderItemQuantity(order);
-    if (quantity <= 1 || order.details.isEmpty) {
-      return false;
-    }
-    if (order.details.length == 1) {
-      return true;
-    }
-    final firstIdentity = _detailIdentity(order.details.first);
-    return order.details.skip(1).every((detail) {
-      return _detailIdentity(detail) == firstIdentity;
-    });
-  }
-
-  String _detailIdentity(ShopOrderDetail detail) {
-    final schemaId = detail.schemaId;
-    if (schemaId != null && schemaId > 0) {
-      return 'schema:$schemaId';
-    }
-    final hashName = (detail.marketHashName ?? '').trim();
-    if (hashName.isNotEmpty) {
-      return 'hash:$hashName';
-    }
-    final marketName = (detail.marketName ?? '').trim();
-    if (marketName.isNotEmpty) {
-      return 'name:$marketName';
-    }
-    final imageUrl = (detail.imageUrl ?? '').trim();
-    return 'image:$imageUrl';
-  }
-
   int _orderItemQuantity(ShopOrderItem order) {
     if (order.nums != null && order.nums! > 0) {
       return order.nums!;
@@ -1255,31 +1059,51 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     return total > 0 ? total : 1;
   }
 
-  List<ShopOrderDetail> _orderPreviewDetails(ShopOrderItem order) {
-    final previews = <ShopOrderDetail>[];
+  List<ShopOrderDetail> _expandedOrderDetails(ShopOrderItem order) {
+    final expanded = <ShopOrderDetail>[];
     for (final detail in order.details) {
-      final detailCount = detail.count ?? 1;
-      final repeat = detailCount > 0 ? detailCount : 1;
+      final count = detail.count ?? 1;
+      final repeat = count > 0 ? count : 1;
+      final displayDetail = repeat > 1
+          ? _singleUnitDetail(detail, repeat)
+          : detail;
       for (var index = 0; index < repeat; index++) {
-        previews.add(detail);
-        if (previews.length >= 3) {
-          return previews;
-        }
+        expanded.add(displayDetail);
       }
     }
-    return previews;
+    return expanded;
   }
 
-  double _orderTotalPrice(ShopOrderItem order) {
-    final orderTotal = order.totalPrice ?? order.price;
-    if (orderTotal != null) {
-      return orderTotal;
+  ShopOrderDetail _singleUnitDetail(ShopOrderDetail detail, int count) {
+    final unitPrice = _unitDetailPrice(detail, count);
+    final raw = Map<String, dynamic>.from(detail.raw)
+      ..['count'] = 1
+      ..['total_price'] = unitPrice;
+    if (unitPrice != null) {
+      raw['price'] = detail.price ?? unitPrice;
     }
-    var total = 0.0;
-    for (final detail in order.details) {
-      total += detail.totalPrice ?? ((detail.price ?? 0) * (detail.count ?? 1));
+    return ShopOrderDetail(
+      raw: raw,
+      schemaId: detail.schemaId,
+      marketName: detail.marketName,
+      marketHashName: detail.marketHashName,
+      imageUrl: detail.imageUrl,
+      price: detail.price ?? unitPrice,
+      totalPrice: unitPrice,
+      count: 1,
+      paintWear: detail.paintWear,
+      type: detail.type,
+    );
+  }
+
+  double? _unitDetailPrice(ShopOrderDetail detail, int count) {
+    if (detail.price != null) {
+      return detail.price;
     }
-    return total;
+    if (detail.totalPrice != null && count > 0) {
+      return detail.totalPrice! / count;
+    }
+    return null;
   }
 
   String _detailTitle(ShopOrderDetail detail) {
@@ -1477,9 +1301,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
   int _totalItems() {
     var total = 0;
     for (final order in _orders) {
-      total += order.details.fold<int>(0, (sum, detail) {
-        return sum + (detail.count ?? 1);
-      });
+      total += _orderItemQuantity(order);
     }
     return total;
   }

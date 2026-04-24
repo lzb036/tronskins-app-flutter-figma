@@ -912,72 +912,6 @@ class _ShopPageState extends State<ShopPage>
     );
   }
 
-  Widget _buildPendingActionButton({
-    required String label,
-    required bool primary,
-    VoidCallback? onTap,
-    Color? foregroundColor,
-    Color? backgroundColor,
-  }) {
-    final resolvedForeground =
-        foregroundColor ?? (primary ? Colors.white : const Color(0xFF444653));
-
-    return Material(
-      color: Colors.transparent,
-      child: Ink(
-        height: 40,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color: primary ? null : backgroundColor ?? const Color(0xFFE6E8EA),
-          gradient: primary
-              ? const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF00288E), Color(0xFF0058BE)],
-                )
-              : null,
-          boxShadow: primary
-              ? const [
-                  BoxShadow(
-                    color: Color(0x1A00288E),
-                    offset: Offset(0, 10),
-                    blurRadius: 15,
-                    spreadRadius: -3,
-                  ),
-                  BoxShadow(
-                    color: Color(0x1A00288E),
-                    offset: Offset(0, 4),
-                    blurRadius: 6,
-                    spreadRadius: -4,
-                  ),
-                ]
-              : null,
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: onTap,
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: resolvedForeground,
-                  fontSize: 14,
-                  height: 20 / 14,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildPendingStatusText({
     required String label,
     required Color color,
@@ -1001,24 +935,18 @@ class _ShopPageState extends State<ShopPage>
 
   Widget _buildPendingStatusAction(ShopOrderItem order) {
     final status = order.status;
-    if (status == 2) {
-      return _buildPendingActionButton(
-        label: _isEnglishLocale ? 'Delivery' : '发货',
-        primary: true,
-        onTap: () => _openDeliverGoodsPage(order),
-      );
-    }
-
     final statusText = status == 3
         ? 'app.steam.message.confirm_quote'.tr
         : (order.statusName ?? '').trim().isEmpty
-        ? '-'
+        ? (status == 2 ? (_isEnglishLocale ? 'Awaiting Delivery' : '待发货') : '-')
         : (order.statusName ?? '').trim();
     final statusColor = status == 3
         ? Theme.of(context).colorScheme.tertiary
-        : (status == -1
-              ? Theme.of(context).colorScheme.onSurfaceVariant
-              : Theme.of(context).colorScheme.error);
+        : (status == 2
+              ? const Color(0xFF00288E)
+              : (status == -1
+                    ? Theme.of(context).colorScheme.onSurfaceVariant
+                    : Theme.of(context).colorScheme.error));
 
     return _buildPendingStatusText(label: statusText, color: statusColor);
   }
@@ -2235,7 +2163,7 @@ class _ShopPageState extends State<ShopPage>
     final deadlineMs = _pendingDeadlineMs(order);
 
     return _buildPendingCardShell(
-      onTap: () => _openPendingOrderDetail(order),
+      onTap: () => _openDeliverGoodsPage(order),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3302,23 +3230,6 @@ class _ShopPageState extends State<ShopPage>
       arguments: {'buyerId': buyerId, 'status': order.status},
     );
     if (delivered == true) {
-      orderController.refreshPending();
-      shippingNoticeController.refreshPendingTotals();
-    }
-  }
-
-  Future<void> _openPendingOrderDetail(ShopOrderItem order) async {
-    final changed = await Get.toNamed(
-      Routers.SHOP_ORDER_DETAIL,
-      arguments: {
-        'order': order,
-        'schemas': Map<String, ShopSchemaInfo>.from(orderController.schemas),
-        'users': Map<String, ShopUserInfo>.from(orderController.users),
-        'stickers': Map<String, dynamic>.from(orderController.stickers),
-        'disableOrderActions': true,
-      },
-    );
-    if (changed == true) {
       orderController.refreshPending();
       shippingNoticeController.refreshPendingTotals();
     }
