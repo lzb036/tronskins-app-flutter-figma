@@ -277,6 +277,8 @@ class BuyRequestItem {
   final double? paintWearMin;
   final double? paintWearMax;
   final String? phase;
+  final double? percentageMin;
+  final double? percentageMax;
   final int? count;
 
   const BuyRequestItem({
@@ -297,6 +299,8 @@ class BuyRequestItem {
     this.paintWearMin,
     this.paintWearMax,
     this.phase,
+    this.percentageMin,
+    this.percentageMax,
     this.count,
   });
 
@@ -320,6 +324,16 @@ class BuyRequestItem {
       paintWearMin: _asDouble(json['paint_wear_min'] ?? json['paintWearMin']),
       paintWearMax: _asDouble(json['paint_wear_max'] ?? json['paintWearMax']),
       phase: json['phase']?.toString(),
+      percentageMin: _asDouble(
+        json['percentage_min'] ??
+            json['percentageMin'] ??
+            json['paintGradientMin'],
+      ),
+      percentageMax: _asDouble(
+        json['percentage_max'] ??
+            json['percentageMax'] ??
+            json['paintGradientMax'],
+      ),
       count: _asInt(json['count']),
     );
   }

@@ -524,6 +524,140 @@ class _BuyingPageState extends State<BuyingPage>
     return double.tryParse(text);
   }
 
+  double? _buyRequestDouble(BuyRequestItem item, List<String> keys) {
+    return _rawDouble(item.raw, keys);
+  }
+
+  String _formatSpecNumber(double value, {int precision = 2}) {
+    final fixed = value.toStringAsFixed(precision);
+    return fixed
+        .replaceFirst(RegExp(r'0+$'), '')
+        .replaceFirst(RegExp(r'\.$'), '');
+  }
+
+  String? _formatWearSpec(BuyRequestItem item) {
+    final min =
+        item.paintWearMin ??
+        _buyRequestDouble(item, const ['paint_wear_min', 'paintWearMin']);
+    final max =
+        item.paintWearMax ??
+        _buyRequestDouble(item, const ['paint_wear_max', 'paintWearMax']);
+    if (min == null || max == null) {
+      return null;
+    }
+    return '${_formatSpecNumber(min)}-${_formatSpecNumber(max)}';
+  }
+
+  String? _formatPhaseSpec(BuyRequestItem item) {
+    final phase = item.phase?.trim() ?? _rawText(item.raw, const ['phase']);
+    if (phase == null || phase.isEmpty) {
+      return null;
+    }
+    return phase;
+  }
+
+  String? _formatGradientSpec(BuyRequestItem item) {
+    final min =
+        item.percentageMin ??
+        _buyRequestDouble(item, const [
+          'percentage_min',
+          'percentageMin',
+          'paintGradientMin',
+        ]);
+    final max =
+        item.percentageMax ??
+        _buyRequestDouble(item, const [
+          'percentage_max',
+          'percentageMax',
+          'paintGradientMax',
+        ]);
+    if (min == null || max == null || max < 0) {
+      return null;
+    }
+    final minText = _formatSpecNumber(min);
+    if ((max - 100).abs() < 0.000001) {
+      return '≥ $minText%';
+    }
+    return '$minText%-${_formatSpecNumber(max)}%';
+  }
+
+  List<_PurchaseInfoChipData> _buildPurchaseInfoChips(BuyRequestItem item) {
+    final chips = <_PurchaseInfoChipData>[];
+    final wear = _formatWearSpec(item);
+    if (wear != null) {
+      chips.add(
+        _PurchaseInfoChipData(label: 'app.market.csgo.wear'.tr, value: wear),
+      );
+    }
+    final phase = _formatPhaseSpec(item);
+    if (phase != null) {
+      chips.add(
+        _PurchaseInfoChipData(label: 'app.market.csgo.phase'.tr, value: phase),
+      );
+    }
+    final gradient = _formatGradientSpec(item);
+    if (gradient != null) {
+      chips.add(
+        _PurchaseInfoChipData(
+          label: 'app.market.csgo.gradient_range'.tr,
+          value: gradient,
+        ),
+      );
+    }
+    return chips;
+  }
+
+  Widget _buildPurchaseInfoChip(_PurchaseInfoChipData data) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 190),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: _buyRecordSoftSurfaceColor,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: '${data.label} ',
+                style: const TextStyle(
+                  color: _buyRecordBodyColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              TextSpan(
+                text: data.value,
+                style: const TextStyle(
+                  color: _buyRecordTitleColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 11, height: 15 / 11),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPurchaseInfoWrap(BuyRequestItem item) {
+    final chips = _buildPurchaseInfoChips(item);
+    if (chips.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: chips.map(_buildPurchaseInfoChip).toList(growable: false),
+      ),
+    );
+  }
+
   String _text({required String zh, required String en}) {
     return _isChineseLocale ? zh : en;
   }
@@ -1325,15 +1459,6 @@ class _BuyingPageState extends State<BuyingPage>
         schema?.marketHashName ??
         item.raw['market_name']?.toString() ??
         '-';
-    final wearMin =
-        _rawText(item.raw, const ['paint_wear_min', 'paintWearMin']) ??
-        item.paintWearMin?.toString();
-    final wearMax =
-        _rawText(item.raw, const ['paint_wear_max', 'paintWearMax']) ??
-        item.paintWearMax?.toString();
-    final titleSuffix = wearMin != null && wearMax != null
-        ? ' (${_text(zh: '$wearMin-$wearMax', en: '$wearMin-$wearMax')})'
-        : '';
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1351,7 +1476,7 @@ class _BuyingPageState extends State<BuyingPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '$title$titleSuffix',
+                    title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -1361,6 +1486,7 @@ class _BuyingPageState extends State<BuyingPage>
                       height: 22.5 / 15,
                     ),
                   ),
+                  _buildPurchaseInfoWrap(item),
                   const SizedBox(height: 10),
                   _buildMyBuyingPriceRow(
                     label: _text(zh: '单价', en: 'Unit Price'),
@@ -1676,7 +1802,7 @@ class _BuyingPageState extends State<BuyingPage>
             ),
             const SizedBox(height: 16),
             Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildRecordPreviewImage(item, schema),
                 const SizedBox(width: 16),
@@ -1695,6 +1821,7 @@ class _BuyingPageState extends State<BuyingPage>
                           height: 24 / 16,
                         ),
                       ),
+                      _buildPurchaseInfoWrap(item),
                     ],
                   ),
                 ),
@@ -2745,6 +2872,13 @@ double? _buyingParseDouble(dynamic value) {
     return value.toDouble();
   }
   return double.tryParse(value.toString());
+}
+
+class _PurchaseInfoChipData {
+  const _PurchaseInfoChipData({required this.label, required this.value});
+
+  final String label;
+  final String value;
 }
 
 class _BuyRecordStatusStyle {
