@@ -984,15 +984,11 @@ class ShopOrderDetailPage extends StatelessWidget {
     final exterior = _schemaTag(schema, 'exterior');
     final rarity = _schemaTag(schema, 'rarity');
     final quality = _schemaTag(schema, 'quality');
+    final currency = Get.isRegistered<CurrencyController>()
+        ? Get.find<CurrencyController>()
+        : null;
     final price = _detailDisplayPrice(detail);
-    final priceText = price == null
-        ? null
-        : _formatPrice(
-            Get.isRegistered<CurrencyController>()
-                ? Get.find<CurrencyController>()
-                : null,
-            price,
-          );
+    final priceText = price == null ? null : _formatPrice(currency, price);
     final exteriorAccentColor = parseHexColor(exterior?.color);
 
     return Column(
@@ -1065,6 +1061,13 @@ class ShopOrderDetailPage extends StatelessWidget {
             ],
           ),
         ),
+        if (stickerDetails.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _buildStickerDetailCards(
+            stickers: stickerDetails,
+            currency: currency,
+          ),
+        ],
       ],
     );
   }
@@ -1164,6 +1167,154 @@ class ShopOrderDetailPage extends StatelessWidget {
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildStickerDetailCards({
+    required List<_OrderStickerDetailData> stickers,
+    required CurrencyController? currency,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _text(zh: '印花', en: 'Stickers'),
+          style: const TextStyle(
+            color: _mutedColor,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            height: 16 / 12,
+          ),
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final useTwoColumns = constraints.maxWidth >= 520;
+            final spacing = useTwoColumns ? 8.0 : 0.0;
+            final cardWidth = useTwoColumns
+                ? (constraints.maxWidth - spacing) / 2
+                : constraints.maxWidth;
+            return Wrap(
+              spacing: spacing,
+              runSpacing: 8,
+              children: [
+                for (var index = 0; index < stickers.length; index++)
+                  SizedBox(
+                    width: cardWidth,
+                    child: _buildStickerDetailCard(
+                      sticker: stickers[index],
+                      index: index,
+                      currency: currency,
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStickerDetailCard({
+    required _OrderStickerDetailData sticker,
+    required int index,
+    required CurrencyController? currency,
+  }) {
+    final name = sticker.name?.trim().isNotEmpty == true
+        ? sticker.name!
+        : _stickerFallbackName(index);
+    final price = sticker.price;
+    final priceText = price == null ? '-' : _formatPrice(currency, price);
+    final metaItems = <String>[
+      if (sticker.slotLabel?.trim().isNotEmpty == true)
+        sticker.slotLabel!.trim(),
+      if (sticker.wearText?.trim().isNotEmpty == true)
+        '${_text(zh: '磨损', en: 'Wear')} ${sticker.wearText!.trim()}',
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Image.network(
+              sticker.imageUrl,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(
+                  Icons.image_not_supported_outlined,
+                  size: 20,
+                  color: _mutedColor,
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _titleColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    height: 16 / 12,
+                  ),
+                ),
+                if (metaItems.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    metaItems.join(' · '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _mutedColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      height: 14 / 10,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 92),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                priceText,
+                maxLines: 1,
+                style: TextStyle(
+                  color: price == null
+                      ? const Color(0xFF94A3B8)
+                      : const Color(0xFFBA1A1A),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  height: 16 / 12,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

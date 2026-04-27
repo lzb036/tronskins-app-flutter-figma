@@ -5345,10 +5345,10 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
     super.initState();
     _paintSeedController = TextEditingController(text: widget.initialPaintSeed);
     _wearMinController = TextEditingController(
-      text: widget.initialWearMin?.toString(),
+      text: _formatWearInput(widget.initialWearMin),
     );
     _wearMaxController = TextEditingController(
-      text: widget.initialWearMax?.toString(),
+      text: _formatWearInput(widget.initialWearMax),
     );
     _minPriceController = TextEditingController(
       text: widget.initialMinPrice?.toString(),
@@ -5385,7 +5385,19 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
   }
 
   double? _parseWearValue(String value) {
-    return _parseOptionalDouble(value)?.clamp(0.0, 0.8).toDouble();
+    final parsed = _parseOptionalDouble(value)?.clamp(0.0, 0.8).toDouble();
+    return parsed == null ? null : _roundWearValue(parsed);
+  }
+
+  double _roundWearValue(double value) {
+    return (value * 100).roundToDouble() / 100;
+  }
+
+  String _formatWearInput(double? value) {
+    if (value == null) {
+      return '';
+    }
+    return _roundWearValue(value.clamp(0.0, 0.8).toDouble()).toStringAsFixed(2);
   }
 
   int get _activeFilterCount {
@@ -5464,10 +5476,12 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
     required TextEditingController controller,
     required TextInputType keyboardType,
     required String hintText,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       decoration: FilterSheetStyle.inputDecoration(hintText: hintText),
     );
   }
@@ -5565,6 +5579,9 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
                                   ),
+                              inputFormatters: const [
+                                _DecimalTextInputFormatter(decimalDigits: 2),
+                              ],
                               hintText: '0.00',
                             ),
                           ),
@@ -5587,6 +5604,9 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
                                   ),
+                              inputFormatters: const [
+                                _DecimalTextInputFormatter(decimalDigits: 2),
+                              ],
                               hintText: '0.80',
                             ),
                           ),
@@ -5669,6 +5689,61 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
         ),
       ),
     );
+  }
+}
+
+class _DecimalTextInputFormatter extends TextInputFormatter {
+  const _DecimalTextInputFormatter({required this.decimalDigits});
+
+  final int decimalDigits;
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final sanitized = _sanitize(newValue.text);
+    final selectionEnd = newValue.selection.end;
+    final safeSelectionEnd = selectionEnd < 0
+        ? newValue.text.length
+        : selectionEnd.clamp(0, newValue.text.length).toInt();
+    final prefix = _sanitize(newValue.text.substring(0, safeSelectionEnd));
+    return TextEditingValue(
+      text: sanitized,
+      selection: TextSelection.collapsed(
+        offset: prefix.length.clamp(0, sanitized.length).toInt(),
+      ),
+    );
+  }
+
+  String _sanitize(String value) {
+    final buffer = StringBuffer();
+    var hasDecimalPoint = false;
+    var decimalCount = 0;
+
+    for (final codeUnit in value.codeUnits) {
+      final char = String.fromCharCode(codeUnit);
+      if (char == '.') {
+        if (hasDecimalPoint) {
+          continue;
+        }
+        hasDecimalPoint = true;
+        buffer.write(buffer.isEmpty ? '0.' : '.');
+        continue;
+      }
+      if (codeUnit < 48 || codeUnit > 57) {
+        continue;
+      }
+      if (hasDecimalPoint) {
+        if (decimalCount >= decimalDigits) {
+          continue;
+        }
+        decimalCount += 1;
+      }
+      buffer.write(char);
+    }
+
+    return buffer.toString();
   }
 }
 
