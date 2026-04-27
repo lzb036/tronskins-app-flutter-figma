@@ -183,25 +183,33 @@ class _TradeNoticeDetailPageState extends State<TradeNoticeDetailPage> {
       height: 20 / 14,
     );
 
-    return Semantics(
-      button: true,
-      enabled: false,
-      child: IgnorePointer(
-        child: SizedBox(
-          width: double.infinity,
-          height: 44,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E40AF),
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color.fromRGBO(0, 0, 0, 0.05),
-                  blurRadius: 2,
-                  offset: Offset(0, 1),
-                ),
-              ],
-            ),
+    return SizedBox(
+      width: double.infinity,
+      height: 44,
+      child: Material(
+        color: Colors.transparent,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E40AF),
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: const [
+              BoxShadow(
+                color: Color.fromRGBO(0, 0, 0, 0.05),
+                blurRadius: 2,
+                offset: Offset(0, 1),
+              ),
+            ],
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () {
+              // 跳转到出售页面的出售记录 tab
+              final navController = Get.isRegistered<NavController>()
+                  ? Get.find<NavController>()
+                  : Get.put(NavController(), permanent: true);
+              navController.switchToShopTab(NavController.shopTabSaleRecord);
+              Get.until((route) => route.isFirst);
+            },
             child: Center(child: Text(_viewOrderLabel(), style: textStyle)),
           ),
         ),

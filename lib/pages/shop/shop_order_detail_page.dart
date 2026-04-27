@@ -1809,7 +1809,7 @@ class ShopOrderDetailPage extends StatelessWidget {
     ];
     final completed = _formatTime(order.changeTime);
     final showCompletedTime =
-        completed != '-' && ![2, 3, 4].contains(order.status);
+        completed != '-' && !_isUnfinishedTradeStatus(order.status);
     if (showCompletedTime) {
       rows.add(
         _StatusRowData(
@@ -1840,15 +1840,15 @@ class ShopOrderDetailPage extends StatelessWidget {
     return order.id != null && _showWaitingCountdown(order);
   }
 
+  bool _isUnfinishedTradeStatus(int? status) {
+    return status == 2 || status == 3 || status == 4;
+  }
+
   bool _canReceiveOrder(ShopOrderItem order) {
-    if (order.id == null || !_showWaitingCountdown(order)) {
+    if (order.status != 4) {
       return false;
     }
-    final tradeOfferId = order.tradeOfferId?.trim();
-    if (tradeOfferId != null && tradeOfferId.isNotEmpty) {
-      return true;
-    }
-    return order.status == 3 || order.status == 4;
+    return order.id != null && _showWaitingCountdown(order);
   }
 
   double _waitingShippingHours(ShopOrderItem order) {
@@ -1879,7 +1879,7 @@ class ShopOrderDetailPage extends StatelessWidget {
   }
 
   bool _showWaitingCountdown(ShopOrderItem order) {
-    if (![2, 3, 4].contains(order.status)) {
+    if (!_isUnfinishedTradeStatus(order.status)) {
       return false;
     }
     final deadline = _waitingDeadlineMs(order);
@@ -1897,7 +1897,10 @@ class ShopOrderDetailPage extends StatelessWidget {
     if (status == 5) {
       return kOrderDetailStatusTextSettlement;
     }
-    if ([2, 3, 4].contains(status)) {
+    if (status == 4) {
+      return kOrderDetailStatusTextReady;
+    }
+    if (status == 2 || status == 3) {
       return kOrderDetailStatusTextProcessing;
     }
     if (status == -1 || status == -2) {
@@ -1913,7 +1916,13 @@ class ShopOrderDetailPage extends StatelessWidget {
     if (status == 5) {
       return Icons.account_balance_wallet_outlined;
     }
-    if ([2, 3, 4].contains(status)) {
+    if (status == 4) {
+      return Icons.move_to_inbox_rounded;
+    }
+    if (status == 3) {
+      return Icons.sync_rounded;
+    }
+    if (status == 2) {
       return Icons.schedule_rounded;
     }
     return Icons.info_outline_rounded;
@@ -2692,6 +2701,15 @@ class ShopOrderDetailPage extends StatelessWidget {
     }
     if (cancelDesc != null && cancelDesc.isNotEmpty) {
       return cancelDesc;
+    }
+    if (status == 2) {
+      return 'app.market.product.wait_for_sending'.tr;
+    }
+    if (status == 3) {
+      return 'app.trade.filter.in'.tr;
+    }
+    if (status == 4) {
+      return 'app.market.product.wait_for_receipt'.tr;
     }
     return _text(zh: '处理中', en: 'Processing');
   }

@@ -84,10 +84,9 @@ class _MyPurchasePageState extends State<MyPurchasePage>
 
   static const List<StatusOption> _statusOptions = [
     StatusOption(labelKey: 'app.market.filter.all', values: []),
-    StatusOption(
-      labelKey: 'app.market.product.wait_for_sending',
-      values: [2, 3],
-    ),
+    StatusOption(labelKey: 'app.market.product.wait_for_sending', values: [2]),
+    StatusOption(labelKey: 'app.trade.filter.in', values: [3]),
+    StatusOption(labelKey: 'app.market.product.wait_for_receipt', values: [4]),
     StatusOption(labelKey: 'app.trade.filter.failed', values: [-1]),
     StatusOption(labelKey: 'app.trade.filter.settling', values: [5]),
     StatusOption(labelKey: 'app.trade.filter.success', values: [6]),
@@ -473,7 +472,13 @@ class _MyPurchasePageState extends State<MyPurchasePage>
   }
 
   String _buildStatusText(ShopOrderItem order) {
-    if ([2, 3, 4].contains(order.status)) {
+    if (order.status == 3) {
+      return 'app.trade.filter.in'.tr;
+    }
+    if (order.status == 4) {
+      return 'app.market.product.wait_for_receipt'.tr;
+    }
+    if (order.status == 2) {
       return 'app.market.product.wait_for_sending'.tr;
     }
     if (order.status == 5) {
@@ -508,7 +513,25 @@ class _MyPurchasePageState extends State<MyPurchasePage>
       );
     }
 
-    if ([2, 3, 4].contains(status)) {
+    if (status == 3) {
+      return (
+        bg: const Color(0xFFEFF6FF),
+        fg: const Color(0xFF2563EB),
+        border: const Color(0xFFDBEAFE),
+        icon: Icons.sync_rounded,
+      );
+    }
+
+    if (status == 4) {
+      return (
+        bg: const Color(0xFFECFDF5),
+        fg: const Color(0xFF059669),
+        border: const Color(0xFFA7F3D0),
+        icon: Icons.move_to_inbox_rounded,
+      );
+    }
+
+    if (status == 2) {
       return (
         bg: const Color(0xFFFFF7ED),
         fg: const Color(0xFFEA580C),

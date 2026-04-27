@@ -85,12 +85,16 @@ class TradeNotifyItem {
 class NoticeMessageItem {
   final String? id;
   final String? title;
+  final String? content;
+  final String? createName;
   final int? createTime;
   bool isRead;
 
   NoticeMessageItem({
     this.id,
     this.title,
+    this.content,
+    this.createName,
     this.createTime,
     this.isRead = false,
   });
@@ -99,6 +103,9 @@ class NoticeMessageItem {
     return NoticeMessageItem(
       id: json['id']?.toString(),
       title: json['title']?.toString(),
+      content: json['content']?.toString(),
+      createName:
+          json['createName']?.toString() ?? json['create_name']?.toString(),
       createTime: _asInt(json['createTime'] ?? json['create_time']),
       isRead: _asBool(json['isRead'] ?? json['read'] ?? json['is_read']),
     );
