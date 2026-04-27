@@ -213,6 +213,7 @@ class _WalletLockedPageState extends State<WalletLockedPage> {
                                       'giftAmount': item.giftAmount,
                                       'lockTime': item.lockAmount,
                                       'typeName': item.typeName,
+                                      'statusText': item.statusName,
                                     },
                                   ),
                           ),

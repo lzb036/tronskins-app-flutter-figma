@@ -87,6 +87,7 @@ class WalletLockedItem {
   final double? giftAmount;
   final int? lockType;
   final String? typeName;
+  final String? statusName;
   final int? lockAmount;
   final int? createTime;
   final dynamic lockTimeRaw;
@@ -100,6 +101,7 @@ class WalletLockedItem {
     this.giftAmount,
     this.lockType,
     this.typeName,
+    this.statusName,
     this.lockAmount,
     this.createTime,
     this.lockTimeRaw,
@@ -129,6 +131,8 @@ class WalletLockedItem {
       giftAmount: _asDouble(json['gift_amount'] ?? json['giftAmount']),
       lockType: _asInt(json['lockType'] ?? json['lock_type']),
       typeName: json['typeName']?.toString() ?? json['type_name']?.toString(),
+      statusName:
+          json['statusName']?.toString() ?? json['status_name']?.toString(),
       lockAmount: _asTimestamp(lockTimeRaw),
       createTime: _asTimestamp(createTimeRaw),
       lockTimeRaw: lockTimeRaw,

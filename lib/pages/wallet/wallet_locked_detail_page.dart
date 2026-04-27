@@ -189,6 +189,10 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
 
   String _statusHeadline(WalletLockedOrder? order) {
     final status = _resolvedStatus(order);
+    final listStatusText = args['statusText']?.toString().trim();
+    if (listStatusText != null && listStatusText.isNotEmpty) {
+      return listStatusText;
+    }
     final cancelDesc =
         _pickRawText(order?.raw, const ['cancelDesc', 'cancel_desc']) ??
         _pickRawText(_detail?.raw, const ['cancelDesc', 'cancel_desc']);
@@ -204,6 +208,9 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
       }
       return _text(zh: '订单已关闭', en: 'Order Closed');
     }
+    if (statusName != null && statusName.isNotEmpty) {
+      return statusName;
+    }
     if (status == 6) {
       return _text(zh: '交易已完成', en: 'Transaction Completed');
     }
@@ -218,9 +225,6 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
     }
     if ([2, 3, 4].contains(status)) {
       return _text(zh: '订单处理中', en: 'Order In Progress');
-    }
-    if (statusName != null && statusName.isNotEmpty) {
-      return statusName;
     }
     final typeName = _resolvedTypeName(order);
     if (typeName.isNotEmpty && typeName != '-') {

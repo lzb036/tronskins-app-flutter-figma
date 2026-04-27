@@ -878,20 +878,7 @@ class WalletSettlementDetailPage extends StatelessWidget {
   }
 
   String _statusHeadline() {
-    final status = record.status;
-    final text = _statusText().trim();
-    if (status == 5 ||
-        text.toLowerCase().contains('settlement') ||
-        text.contains('待结算')) {
-      return _text(zh: '结算中', en: 'In settlement');
-    }
-    if (status == 4 || status == 6) {
-      return _text(zh: '已完成', en: 'Completed');
-    }
-    if (status == 2 || status == 3) {
-      return _text(zh: '已取消', en: 'Cancelled');
-    }
-    return _text(zh: '订单处理中', en: 'Processing');
+    return _statusText();
   }
 
   String _statusText() {
@@ -910,7 +897,7 @@ class WalletSettlementDetailPage extends StatelessWidget {
       case 6:
         return _text(zh: '已完成', en: 'Completed');
       case 5:
-        return _text(zh: '结算中', en: 'In settlement');
+        return _text(zh: '待结算', en: 'Pending Settlement');
       case 2:
       case 3:
         return _text(zh: '已取消', en: 'Cancelled');

@@ -350,6 +350,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
       Routers.SHOP_ORDER_DETAIL,
       arguments: {
         'order': order,
+        'statusText': _orderDetailStatusText(order),
         'schemas': Map<String, ShopSchemaInfo>.from(_schemas),
         'users': Map<String, ShopUserInfo>.from(_users),
         'stickers': Map<String, dynamic>.from(_stickers),
@@ -360,6 +361,16 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     if (changed == true && mounted) {
       await _loadOrders();
     }
+  }
+
+  String _orderDetailStatusText(ShopOrderItem order) {
+    final statusName = order.statusName?.trim();
+    if (statusName != null && statusName.isNotEmpty) {
+      return statusName;
+    }
+    return order.status == 3
+        ? 'app.trade.deliver.message.go_steam'.tr
+        : 'app.market.product.wait_for_sending'.tr;
   }
 
   Widget _buildLoadingSkeleton() {

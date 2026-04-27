@@ -3284,6 +3284,7 @@ class _ShopPageState extends State<ShopPage>
       Routers.SHOP_ORDER_DETAIL,
       arguments: {
         'order': record,
+        'statusText': _buildRecordStatusText(record),
         'schemas': Map<String, ShopSchemaInfo>.from(salesController.schemas),
         'users': Map<String, ShopUserInfo>.from(salesController.users),
         'stickers': Map<String, dynamic>.from(salesController.stickers),

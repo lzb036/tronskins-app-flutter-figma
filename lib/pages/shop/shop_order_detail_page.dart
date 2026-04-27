@@ -105,6 +105,7 @@ class ShopOrderDetailPage extends StatelessWidget {
                         _buildStatusCard(
                           context: context,
                           order: order,
+                          statusText: args.statusText,
                           currency: currency,
                           totalPrice: totalPrice,
                           totalItemCount: totalItemCount,
@@ -203,13 +204,14 @@ class ShopOrderDetailPage extends StatelessWidget {
   Widget _buildStatusCard({
     required BuildContext context,
     required ShopOrderItem order,
+    required String? statusText,
     required CurrencyController? currency,
     required double totalPrice,
     required int totalItemCount,
     required VoidCallback? onCopy,
     required bool useDeliveryGoodsPalette,
   }) {
-    final headline = _statusHeadline(order);
+    final headline = _statusHeadline(order, statusText: statusText);
     final statusRows = _buildStatusRows(order);
     final headlineColor = _statusHeadlineColor(order);
     return Container(
@@ -1826,22 +1828,10 @@ class ShopOrderDetailPage extends StatelessWidget {
     return rows;
   }
 
-  String _statusHeadline(ShopOrderItem order) {
-    if (isPendingFlow) {
-      return _text(zh: '准备发货', en: 'Ready to Deliver');
-    }
-    final status = order.status;
-    if (status == 6) {
-      return _text(zh: '交易已完成', en: 'Transaction Completed');
-    }
-    if (status == 5) {
-      return _text(zh: '正在结算中', en: 'Settlement In Progress');
-    }
-    if ([2, 3, 4].contains(status)) {
-      return _text(zh: '订单处理中', en: 'Order In Progress');
-    }
-    if (status == -1 || status == -2) {
-      return _buildStatusText(order);
+  String _statusHeadline(ShopOrderItem order, {String? statusText}) {
+    final listStatusText = statusText?.trim();
+    if (listStatusText != null && listStatusText.isNotEmpty) {
+      return listStatusText;
     }
     return _buildStatusText(order);
   }
@@ -2847,6 +2837,7 @@ class ShopOrderDetailPage extends StatelessWidget {
 class _ShopOrderDetailArgs {
   const _ShopOrderDetailArgs({
     this.order,
+    this.statusText,
     this.orders = const [],
     this.schemas = const {},
     this.users = const {},
@@ -2856,6 +2847,7 @@ class _ShopOrderDetailArgs {
   });
 
   final ShopOrderItem? order;
+  final String? statusText;
   final List<ShopOrderItem> orders;
   final Map<String, ShopSchemaInfo> schemas;
   final Map<String, ShopUserInfo> users;
@@ -2870,6 +2862,7 @@ class _ShopOrderDetailArgs {
     final order = _parseOrder(raw['order'] ?? raw['item']);
     return _ShopOrderDetailArgs(
       order: order,
+      statusText: _parseText(raw['statusText'] ?? raw['statusName']),
       orders: _parseOrders(raw['orders']),
       schemas: _parseSchemas(raw['schemas']),
       users: _parseUsers(raw['users']),
@@ -2877,6 +2870,11 @@ class _ShopOrderDetailArgs {
       disableOrderActions: _parseBool(raw['disableOrderActions']),
       fromDeliveryGoodsDrawer: _parseBool(raw['fromDeliveryGoodsDrawer']),
     );
+  }
+
+  static String? _parseText(dynamic value) {
+    final text = value?.toString().trim();
+    return text == null || text.isEmpty ? null : text;
   }
 
   static bool _parseBool(dynamic value) {
