@@ -546,7 +546,7 @@ final Map<String, String> zh_TW = {
   "app.trade.order.seller_tips_3": "在確認Steam代幣時，請仔細核實買家的Steam帳戶資訊。",
   "app.trade.order.message.confirm_cancel": "您確定要取消此訂單嗎？",
   "app.trade.order.message.cancel_time_less":
-      "如果您在下單後不到30分鐘內取消訂單，將扣除交易金額的2%（最高10美元）。 您確定要取消訂單嗎？",
+      "如果您在下單後不到30分鐘內取消訂單，將扣除交易金額的2%（最高\$10）。您確定要取消訂單嗎？",
   "app.steam.login.title": "Steam登入",
   "app.steam.account.management": "Steam帳戶管理",
   "app.steam.account.status_success": "帳戶可交易",

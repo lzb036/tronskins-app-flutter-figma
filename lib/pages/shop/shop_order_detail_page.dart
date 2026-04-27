@@ -1735,6 +1735,10 @@ class ShopOrderDetailPage extends StatelessWidget {
       return;
     }
 
+    final messageKey = _isCancelTimeLessThanThirtyMinutes(order)
+        ? 'app.trade.order.message.cancel_time_less'
+        : 'app.trade.order.message.confirm_cancel';
+
     await showFigmaModal<void>(
       context: context,
       barrierDismissible: false,
@@ -1744,7 +1748,7 @@ class ShopOrderDetailPage extends StatelessWidget {
         iconBackgroundColor: const Color.fromRGBO(225, 29, 72, 0.10),
         accentColor: const Color(0xFFE11D48),
         title: 'app.trade.order.cancel'.tr,
-        message: 'app.trade.order.message.confirm_cancel'.tr,
+        message: messageKey.tr,
         primaryLabel: _text(zh: '确认取消', en: 'Confirm Cancel'),
         secondaryLabel: 'app.common.cancel'.tr,
         onSecondary: () => popModalRoute(context),
@@ -1907,6 +1911,15 @@ class ShopOrderDetailPage extends StatelessWidget {
       return false;
     }
     return order.id != null && _showWaitingCountdown(order);
+  }
+
+  bool _isCancelTimeLessThanThirtyMinutes(ShopOrderItem order) {
+    final orderTime = order.changeTime ?? order.createTime ?? 0;
+    if (orderTime <= 0) {
+      return false;
+    }
+    final nowSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    return (nowSeconds - orderTime).abs() <= 1800;
   }
 
   bool _isUnfinishedTradeStatus(int? status) {

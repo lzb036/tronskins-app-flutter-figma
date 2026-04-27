@@ -673,7 +673,7 @@ final Map<String, String> en_US = {
   "app.trade.order.message.confirm_cancel":
       "Are you sure you want to cancel this order?",
   "app.trade.order.message.cancel_time_less":
-      "If you cancel the order within less than 30 minutes after placing it, 2% of your transaction amount (up to 10) will be deducted. Are you sure you want to cancel the order?",
+      "If you cancel the order within less than 30 minutes after placing it, 2% of your transaction amount (up to \$10) will be deducted. Are you sure you want to cancel the order?",
   "app.steam.login.title": "Steam Login",
   "app.steam.account.management": "Steam Management",
   "app.steam.account.status_success": "Account is tradable",

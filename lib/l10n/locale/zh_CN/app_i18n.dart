@@ -541,7 +541,7 @@ final Map<String, String> zh_CN = {
   "app.trade.order.seller_tips_3": "在Steam令牌确认时，请仔细核对买家的Steam账号信息。",
   "app.trade.order.message.confirm_cancel": "确认取消该订单吗？",
   "app.trade.order.message.cancel_time_less":
-      "在下单后未满30分钟取消订单将扣除你2%的交易金额(最高 10),确定要取消订单吗？",
+      "在下单后未满30分钟取消订单将扣除你2%的交易金额(最高\$10)，确定要取消订单吗？",
   "app.steam.login.title": "Steam登录",
   "app.steam.account.management": "Steam账号管理",
   "app.steam.account.status_success": "账号可交易",
