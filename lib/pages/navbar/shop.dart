@@ -1043,6 +1043,9 @@ class _ShopPageState extends State<ShopPage>
 
   String _buildRecordStatusText(ShopOrderItem record) {
     final status = record.status;
+    if (status == 3) {
+      return _isEnglishLocale ? 'Delivery pending confirmation' : '发货待确认';
+    }
     if (status == 6) {
       return 'Sold successfully';
     }
@@ -1052,9 +1055,35 @@ class _ShopPageState extends State<ShopPage>
     return 'Sale failed';
   }
 
-  bool _showRecordCountdown(ShopOrderItem record) {
+  Widget? _buildSellRecordStatusSecondary(ShopOrderItem record) {
+    if (record.status == 3) {
+      final deadlineMs = _pendingDeadlineMs(record);
+      if (deadlineMs <= DateTime.now().millisecondsSinceEpoch) {
+        return null;
+      }
+      return _PendingShipmentCountdown(
+        endTimeMs: deadlineMs,
+        style: const TextStyle(
+          color: Color(0xFF475569),
+          fontSize: 10,
+          height: 15 / 10,
+          fontWeight: FontWeight.w600,
+        ),
+      );
+    }
     final protectionTime = record.protectionTime;
-    return protectionTime != null && protectionTime > 0 && record.status == 5;
+    if (protectionTime == null || protectionTime <= 0 || record.status != 5) {
+      return null;
+    }
+    return _RecordProtectionCountdownText(
+      endTimeSeconds: protectionTime,
+      style: const TextStyle(
+        color: Color(0xFF777777),
+        fontSize: 10,
+        height: 15 / 10,
+        fontWeight: FontWeight.w500,
+      ),
+    );
   }
 
   Future<void> _openOnSaleFilterSheet() async {
@@ -2731,7 +2760,8 @@ class _ShopPageState extends State<ShopPage>
               wearValue?.toString();
     final totalItemCount = _sellRecordItemQuantity(record);
     final useStackPreview = totalItemCount > 1;
-    final showCountdown = _showRecordCountdown(record);
+    final statusSecondary = _buildSellRecordStatusSecondary(record);
+    final showCountdown = statusSecondary != null;
     final statusText = _buildRecordStatusText(record);
     final statusVisual = _buildSellRecordStatusVisual(record);
     final titleColor = statusVisual.muted
@@ -2824,20 +2854,7 @@ class _ShopPageState extends State<ShopPage>
                                       child: _buildSellRecordStatusChip(
                                         text: statusText,
                                         visual: statusVisual,
-                                        secondary:
-                                            showCountdown &&
-                                                record.protectionTime != null
-                                            ? _RecordProtectionCountdownText(
-                                                endTimeSeconds:
-                                                    record.protectionTime!,
-                                                style: const TextStyle(
-                                                  color: Color(0xFF777777),
-                                                  fontSize: 10,
-                                                  height: 15 / 10,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              )
-                                            : null,
+                                        secondary: statusSecondary,
                                       ),
                                     ),
                                   ),
@@ -3208,6 +3225,9 @@ class _ShopPageState extends State<ShopPage>
   }
 
   Color _sellRecordStatusColor(ShopOrderItem record) {
+    if (record.status == 3) {
+      return const Color(0xFF1E40AF);
+    }
     if (record.status == 6 || record.status == 5) {
       return const Color(0xFF67C23A);
     }
@@ -3218,6 +3238,9 @@ class _ShopPageState extends State<ShopPage>
     if (record.status == 6) {
       return Icons.check_circle_rounded;
     }
+    if (record.status == 3) {
+      return Icons.hourglass_top_rounded;
+    }
     if (record.status != 5) {
       return Icons.cancel_rounded;
     }
@@ -3225,7 +3248,7 @@ class _ShopPageState extends State<ShopPage>
   }
 
   bool _sellRecordStatusMuted(ShopOrderItem record) {
-    return record.status != 5 && record.status != 6;
+    return record.status != 3 && record.status != 5 && record.status != 6;
   }
 
   ({Color foreground, Color background, IconData icon, bool muted})
