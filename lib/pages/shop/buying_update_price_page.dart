@@ -1,12 +1,13 @@
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/api/model/shop/shop_models.dart';
 import 'package:tronskins_app/api/shop_product.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 
 class BuyingUpdatePricePage extends StatefulWidget {
@@ -27,6 +28,17 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
   bool _isSubmitting = false;
 
   static const double _minTradePrice = 0.02;
+  static const Color _pageBackground = Color(0xFFF7F9FB);
+  static const Color _cardSurface = Colors.white;
+  static const Color _softSurface = Color(0xFFF2F4F6);
+  static const Color _fieldSurface = Color(0xFFECEEF0);
+  static const Color _surfaceStroke = Color(0x0FC4C5D5);
+  static const Color _titleColor = Color(0xFF191C1E);
+  static const Color _bodyColor = Color(0xFF444653);
+  static const Color _brandBlue = Color(0xFF1E40AF);
+  static const Color _brandBlueEnd = Color(0xFF2170E4);
+  static const Color _dangerColor = Color(0xFFBA1A1A);
+  static const Color _itemPreviewSlate = Color(0xFF1E293B);
 
   @override
   void initState() {
@@ -50,14 +62,25 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
 
     _priceController.text = _normalizeDisplayPrice(_item.price ?? 0);
     _numController.text = (_item.nums ?? 0).toString();
+    _priceController.addListener(_onInputChanged);
+    _numController.addListener(_onInputChanged);
     _loadParams();
   }
 
   @override
   void dispose() {
+    _priceController.removeListener(_onInputChanged);
+    _numController.removeListener(_onInputChanged);
     _priceController.dispose();
     _numController.dispose();
     super.dispose();
+  }
+
+  void _onInputChanged() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
   }
 
   Future<void> _loadParams() async {
@@ -73,6 +96,9 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
           _minTradePrice,
         );
       }
+    }
+    if (mounted) {
+      setState(() {});
     }
   }
 
@@ -141,42 +167,45 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
     return price * num;
   }
 
+  bool _hasMoreThanTwoDecimals(String value) {
+    final dotIndex = value.indexOf('.');
+    if (dotIndex < 0) {
+      return false;
+    }
+    return value.length - dotIndex - 1 > 2;
+  }
+
+  void _setControllerText(TextEditingController controller, String text) {
+    controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.fromPosition(TextPosition(offset: text.length)),
+    );
+  }
+
   void _applyMaxPrice() {
     final value = _getPricingRules(_buyMax());
     if (value <= 0) {
       return;
     }
-    _priceController.text = value.toStringAsFixed(2);
-    _priceController.selection = TextSelection.fromPosition(
-      TextPosition(offset: _priceController.text.length),
-    );
+    _setControllerText(_priceController, value.toStringAsFixed(2));
   }
 
   void _sanitizePrice(String value) {
     if (value.isEmpty) {
+      setState(() {});
       return;
     }
     final parsed = double.tryParse(value);
     if (parsed == null) {
-      return;
-    }
-    var normalized = parsed;
-    if (normalized < _minTradePrice) {
-      normalized = _minTradePrice;
-      _priceController.text = normalized.toStringAsFixed(2);
-      _priceController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _priceController.text.length),
-      );
+      setState(() {});
       return;
     }
     final parts = value.split('.');
     if (parts.length == 2 && parts[1].length > 2) {
-      final truncated = _truncateTo2(normalized);
-      _priceController.text = truncated.toStringAsFixed(2);
-      _priceController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _priceController.text.length),
-      );
+      final truncated = _truncateTo2(parsed);
+      _setControllerText(_priceController, truncated.toStringAsFixed(2));
     }
+    setState(() {});
   }
 
   void _normalizePriceOnBlur() {
@@ -186,38 +215,28 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
     }
     if (text.endsWith('.')) {
       final normalizedText = text.substring(0, text.length - 1);
-      _priceController.text = normalizedText;
-      _priceController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _priceController.text.length),
-      );
+      _setControllerText(_priceController, normalizedText);
     }
     final price = double.tryParse(_priceController.text);
     if (price == null) {
       return;
     }
     if (price < _minTradePrice) {
-      _priceController.text = _minTradePrice.toStringAsFixed(2);
-      _priceController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _priceController.text.length),
-      );
+      _setControllerText(_priceController, _minTradePrice.toStringAsFixed(2));
     }
+    setState(() {});
   }
 
   void _sanitizeNum(String value) {
     if (value.contains('.')) {
       final integer = value.split('.').first;
-      _numController.text = integer;
-      _numController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _numController.text.length),
-      );
+      _setControllerText(_numController, integer);
     }
     final numValue = int.tryParse(_numController.text) ?? 0;
     if (numValue > 200) {
-      _numController.text = '200';
-      _numController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _numController.text.length),
-      );
+      _setControllerText(_numController, '200');
     }
+    setState(() {});
   }
 
   String? _rawText(List<String> keys) {
@@ -236,9 +255,18 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
     }
     var shouldClosePage = false;
     FocusManager.instance.primaryFocus?.unfocus();
-    final price = double.tryParse(_priceController.text) ?? 0;
-    final nums = int.tryParse(_numController.text) ?? 0;
-    if (price <= 0 || nums <= 0) {
+    final priceText = _priceController.text.trim();
+    final numText = _numController.text.trim();
+    final normalizedPriceText = priceText.endsWith('.') && priceText.length > 1
+        ? priceText.substring(0, priceText.length - 1)
+        : priceText;
+    if (normalizedPriceText.isEmpty || _hasMoreThanTwoDecimals(priceText)) {
+      AppSnackbar.error('app.market.filter.message.price_error'.tr);
+      return;
+    }
+    final price = double.tryParse(normalizedPriceText);
+    final nums = int.tryParse(numText);
+    if (price == null || price <= 0 || nums == null || nums <= 0) {
       AppSnackbar.error('app.market.filter.message.price_error'.tr);
       return;
     }
@@ -304,10 +332,502 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
     }
   }
 
+  String _displayAmount(CurrencyController currency, double amount) {
+    final formatted = currency.format(amount);
+    final prefix = '${currency.symbol} ';
+    if (formatted.startsWith(prefix)) {
+      return formatted.substring(prefix.length);
+    }
+    return formatted.replaceFirst(currency.symbol, '').trim();
+  }
+
+  String get _guidelineTitle {
+    final purchaseLabel = 'app.trade.purchase.text'.tr;
+    final tipsLabel = 'app.system.tips.title'.tr;
+    final languageCode = Get.locale?.languageCode.toLowerCase();
+    if (languageCode == 'zh') {
+      return '$purchaseLabel$tipsLabel';
+    }
+    return '$purchaseLabel $tipsLabel';
+  }
+
+  String get _totalAmountTitle {
+    final locale = Get.locale;
+    final languageCode = locale?.languageCode.toLowerCase();
+    final countryCode = locale?.countryCode?.toUpperCase();
+    if (languageCode == 'zh') {
+      return countryCode == 'TW' ? '訂單總額' : '订单总额';
+    }
+    return 'Total Amount';
+  }
+
+  Widget _buildSurfaceCard({
+    required Widget child,
+    EdgeInsetsGeometry padding = const EdgeInsets.all(16),
+    BorderRadiusGeometry borderRadius = const BorderRadius.all(
+      Radius.circular(8),
+    ),
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: _cardSurface,
+        borderRadius: borderRadius,
+        border: Border.all(color: _surfaceStroke),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x05000000),
+            blurRadius: 20,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildStatItem({required String label, required String value}) {
+    return RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: '$label ',
+            style: const TextStyle(
+              color: _bodyColor,
+              fontSize: 12,
+              height: 16 / 12,
+            ),
+          ),
+          TextSpan(
+            text: value,
+            style: const TextStyle(
+              color: _titleColor,
+              fontSize: 12,
+              height: 16 / 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemPreview({required String imageUrl, required int appId}) {
+    return Container(
+      width: 92,
+      height: 68,
+      decoration: BoxDecoration(
+        color: _itemPreviewSlate,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: GameItemImage(
+        imageUrl: imageUrl,
+        appId: appId,
+        count: _item.count,
+        alwaysShowCount: true,
+        showTopBadges: false,
+      ),
+    );
+  }
+
+  Widget _buildPriceCard({
+    required CurrencyController currency,
+    required String priceHint,
+  }) {
+    return _buildSurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'app.trade.purchase.price'.tr.toUpperCase(),
+            style: const TextStyle(
+              color: _bodyColor,
+              fontSize: 12,
+              height: 16 / 12,
+              letterSpacing: 0.6,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                currency.symbol,
+                style: const TextStyle(
+                  color: _brandBlue,
+                  fontSize: 20,
+                  height: 28 / 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _priceController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  style: const TextStyle(
+                    color: _titleColor,
+                    fontSize: 24,
+                    height: 32 / 24,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  cursorColor: _brandBlue,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    hintText: priceHint,
+                    hintStyle: TextStyle(
+                      color: _titleColor.withValues(alpha: 0.35),
+                      fontSize: 24,
+                      height: 32 / 24,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  onChanged: _sanitizePrice,
+                  onEditingComplete: _normalizePriceOnBlur,
+                  onSubmitted: (_) => _normalizePriceOnBlur(),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuantityCard() {
+    return _buildSurfaceCard(
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'app.trade.purchase.num'.tr.toUpperCase(),
+                  style: const TextStyle(
+                    color: _bodyColor,
+                    fontSize: 12,
+                    height: 16 / 12,
+                    letterSpacing: 0.6,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'app.trade.purchase.placeholder_num'.tr,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _bodyColor,
+                    fontSize: 10,
+                    height: 15 / 10,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            width: 112,
+            height: 44,
+            decoration: BoxDecoration(
+              color: _fieldSurface,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            alignment: Alignment.center,
+            child: TextField(
+              controller: _numController,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: _titleColor,
+                fontSize: 16,
+                height: 24 / 16,
+                fontWeight: FontWeight.w700,
+              ),
+              cursorColor: _brandBlue,
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: '0',
+                hintStyle: TextStyle(
+                  color: _titleColor.withValues(alpha: 0.35),
+                  fontSize: 16,
+                  height: 24 / 16,
+                  fontWeight: FontWeight.w700,
+                ),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+              ),
+              onChanged: _sanitizeNum,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuidelineItem({required Widget icon, required Widget content}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(padding: const EdgeInsets.only(top: 1), child: icon),
+        const SizedBox(width: 12),
+        Expanded(child: content),
+      ],
+    );
+  }
+
+  Widget _buildGuidelineCard(String noticeSpacing) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _softSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _surfaceStroke),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.shield_outlined, size: 18, color: _bodyColor),
+              const SizedBox(width: 8),
+              Text(
+                _guidelineTitle,
+                style: const TextStyle(
+                  color: _bodyColor,
+                  fontSize: 12,
+                  height: 16 / 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildGuidelineItem(
+            icon: const Icon(
+              Icons.warning_amber_rounded,
+              size: 18,
+              color: _dangerColor,
+            ),
+            content: RichText(
+              text: TextSpan(
+                style: const TextStyle(
+                  color: _bodyColor,
+                  fontSize: 12,
+                  height: 19.5 / 12,
+                ),
+                children: [
+                  TextSpan(
+                    text: '${'app.trade.purchase.buyer_notice_1'.tr} ',
+                    style: const TextStyle(
+                      color: _titleColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  TextSpan(
+                    text:
+                        '$noticeSpacing'
+                        '${'app.trade.purchase.buyer_notice_2'.tr}'
+                        '$noticeSpacing',
+                    style: const TextStyle(
+                      color: _dangerColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  TextSpan(text: 'app.trade.purchase.buyer_notice_3'.tr),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildGuidelineItem(
+            icon: const Icon(
+              Icons.info_outline_rounded,
+              size: 18,
+              color: _brandBlue,
+            ),
+            content: Text(
+              'app.trade.purchase.buyer_notice_4'.tr,
+              style: const TextStyle(
+                color: _bodyColor,
+                fontSize: 12,
+                height: 19.5 / 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTotalAmountCard({
+    required CurrencyController currency,
+    required String totalDisplay,
+  }) {
+    return _buildSurfaceCard(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      borderRadius: const BorderRadius.all(Radius.circular(16)),
+      child: Column(
+        children: [
+          Text(
+            _totalAmountTitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: _bodyColor,
+              fontSize: 14,
+              height: 20 / 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: currency.symbol,
+                  style: const TextStyle(
+                    color: _brandBlue,
+                    fontSize: 22,
+                    height: 32 / 22,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.44,
+                  ),
+                ),
+                TextSpan(
+                  text: totalDisplay,
+                  style: const TextStyle(
+                    color: _brandBlue,
+                    fontSize: 34,
+                    height: 40 / 34,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.85,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomBar() {
+    return SafeArea(
+      top: false,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.78),
+              border: const Border(top: BorderSide(color: Color(0x12C4C5D5))),
+            ),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                gradient: _isSubmitting
+                    ? const LinearGradient(
+                        colors: [Color(0xFF94A3B8), Color(0xFFCBD5E1)],
+                      )
+                    : const LinearGradient(colors: [_brandBlue, _brandBlueEnd]),
+                boxShadow: _isSubmitting
+                    ? null
+                    : const [
+                        BoxShadow(
+                          color: Color(0x331E40AF),
+                          blurRadius: 15,
+                          offset: Offset(0, 10),
+                          spreadRadius: -4,
+                        ),
+                      ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: _isSubmitting ? null : _submit,
+                  child: SizedBox(
+                    height: 48,
+                    child: Center(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 180),
+                        switchInCurve: Curves.easeOut,
+                        switchOutCurve: Curves.easeIn,
+                        child: _isSubmitting
+                            ? Row(
+                                key: const ValueKey(
+                                  'buying-update-price-loading',
+                                ),
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    'app.system.tips.please_wait'.tr,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                      height: 22 / 15,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Row(
+                                key: const ValueKey('buying-update-price-idle'),
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'app.common.confirm'.tr,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      height: 24 / 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(
+                                    Icons.north_east_rounded,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
     final currency = Get.find<CurrencyController>();
     final imageUrl = _schemaRaw['image_url']?.toString() ?? '';
     final title =
@@ -328,12 +848,12 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
     final wearMax =
         _rawText(const ['paint_wear_max', 'paintWearMax']) ??
         _item.paintWearMax?.toString();
-    final primaryActionColor = theme.colorScheme.primary;
-    final actionLabelStyle = theme.textTheme.labelLarge?.copyWith(
-      fontWeight: FontWeight.w700,
-      color: primaryActionColor,
-    );
+    final priceHint = _minPrice > 0
+        ? _displayAmount(currency, _minPrice)
+        : '0.00';
+    final totalDisplay = _displayAmount(currency, _totalAmount());
     return Scaffold(
+      backgroundColor: _pageBackground,
       appBar: SettingsStyleAppBar(
         title: Text(
           'app.trade.purchase.price_change'.tr,
@@ -346,230 +866,95 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
             child: TextButton(
               onPressed: _applyMaxPrice,
               style: TextButton.styleFrom(
-                foregroundColor: primaryActionColor,
+                foregroundColor: _brandBlue,
                 minimumSize: Size.zero,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 visualDensity: VisualDensity.compact,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: Text('app.inventory.pricing'.tr, style: actionLabelStyle),
+              child: Text(
+                'app.inventory.pricing'.tr,
+                style: const TextStyle(
+                  color: _brandBlue,
+                  fontSize: 14,
+                  height: 20 / 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 112,
-                    height: 68,
-                    child: GameItemImage(
-                      imageUrl: imageUrl,
-                      appId: appId,
-                      count: _item.count,
-                      alwaysShowCount: true,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (wearMin != null && wearMax != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              '${'app.market.filter.csgo.wear_interval'.tr}: '
-                              '$wearMin - $wearMax',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Obx(
-                          () => Text(
-                            currency.format(_sellMin()),
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: colors.primary,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'app.market.detail.sale_lowest'.tr,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colors.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Obx(
-                          () => Text(
-                            currency.format(_buyMax()),
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: colors.tertiary,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'app.market.detail.purchase_highest'.tr,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colors.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _priceController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: 'app.trade.purchase.price'.tr,
-              hintText: 'app.trade.purchase.placeholder_price'.tr,
-            ),
-            onChanged: _sanitizePrice,
-            onEditingComplete: _normalizePriceOnBlur,
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _numController,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: 'app.trade.purchase.num'.tr,
-              hintText: 'app.trade.purchase.placeholder_num'.tr,
-            ),
-            onChanged: _sanitizeNum,
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: colors.surfaceContainerHighest.withValues(alpha: 0.22),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          _buildSurfaceCard(
+            padding: const EdgeInsets.all(20),
+            child: Row(
               children: [
-                RichText(
-                  text: TextSpan(
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
+                _buildItemPreview(imageUrl: imageUrl, appId: appId),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      TextSpan(
-                        text: '1.${'app.trade.purchase.buyer_notice_1'.tr}',
-                      ),
-                      TextSpan(
-                        text:
-                            '$noticeSpacing'
-                            '${'app.trade.purchase.buyer_notice_2'.tr}'
-                            '$noticeSpacing',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colors.error,
-                          fontWeight: FontWeight.w600,
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _titleColor,
+                          fontSize: 18,
+                          height: 28 / 18,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                      TextSpan(text: 'app.trade.purchase.buyer_notice_3'.tr),
+                      if (wearMin != null && wearMax != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          '${'app.market.filter.csgo.wear_interval'.tr}: '
+                          '$wearMin - $wearMax',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _bodyColor,
+                            fontSize: 12,
+                            height: 16 / 12,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 8,
+                        children: [
+                          _buildStatItem(
+                            label: 'app.market.detail.sale_lowest'.tr,
+                            value: currency.format(_sellMin()),
+                          ),
+                          _buildStatItem(
+                            label: 'app.market.detail.purchase_highest'.tr,
+                            value: currency.format(_buyMax()),
+                          ),
+                        ],
+                      ),
                     ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '2.${'app.trade.purchase.buyer_notice_4'.tr}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 80),
+          const SizedBox(height: 20),
+          _buildPriceCard(currency: currency, priceHint: priceHint),
+          const SizedBox(height: 16),
+          _buildQuantityCard(),
+          const SizedBox(height: 16),
+          _buildGuidelineCard(noticeSpacing),
+          const SizedBox(height: 12),
+          _buildTotalAmountCard(currency: currency, totalDisplay: totalDisplay),
         ],
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Obx(
-                () => RichText(
-                  text: TextSpan(
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: colors.onSurface,
-                    ),
-                    children: [
-                      TextSpan(text: '${'app.trade.purchase.payable'.tr}: '),
-                      TextSpan(
-                        text: currency.format(_totalAmount()),
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: colors.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            FilledButton(
-              onPressed: _isSubmitting ? null : _submit,
-              child: _isSubmitting
-                  ? const SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text('app.common.confirm'.tr),
-            ),
-          ],
-        ),
-      ),
+      bottomNavigationBar: _buildBottomBar(),
     );
   }
 }
