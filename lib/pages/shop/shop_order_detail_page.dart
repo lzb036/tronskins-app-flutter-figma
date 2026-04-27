@@ -158,8 +158,10 @@ class ShopOrderDetailPage extends StatelessWidget {
                         ],
                         const SizedBox(height: 16),
                         _buildTipsCard(context),
-                        const SizedBox(height: 16),
-                        _buildSupportSection(context),
+                        if (isPendingFlow) ...[
+                          const SizedBox(height: 16),
+                          _buildPendingHelpSection(context),
+                        ],
                       ],
                     ),
                   ),
@@ -809,7 +811,7 @@ class ShopOrderDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildSupportSection(BuildContext context) {
+  Widget _buildPendingHelpSection(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       child: Column(
@@ -827,12 +829,6 @@ class ShopOrderDetailPage extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildSupportAction(
-                icon: Icons.support_agent_rounded,
-                label: _text(zh: '在线客服', en: 'Online Support'),
-                onTap: () => Get.toNamed(Routers.FEEDBACK_LIST),
-              ),
-              const SizedBox(width: 32),
               _buildSupportAction(
                 icon: Icons.help_outline_rounded,
                 label: _text(zh: '帮助中心', en: 'Help Center'),
