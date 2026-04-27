@@ -3684,16 +3684,10 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   }
 
   String _formatBuyRequestQuantity(BuyRequestItem item) {
-    final total = item.nums ?? item.need ?? item.count;
-    final received = item.received;
-
-    if (total != null && total > 0) {
-      if (received != null && received >= 0) {
-        return '$received/$total';
-      }
-      return total.toString();
+    final need = item.need;
+    if (need != null && need > 0) {
+      return need.toString();
     }
-
     return _figmaNoRequirementTitle;
   }
 
@@ -3950,7 +3944,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
                           blurRadius: 5,
                           offset: Offset(0, 2),
                         ),
-                        label: 'app.common.delete'.tr,
+                        label: 'app.inventory.delist'.tr,
                       ),
                     ),
                   ],
@@ -3979,27 +3973,48 @@ class _MarketDetailPageState extends State<MarketDetailPage>
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          CircleAvatar(
-                            radius: 12,
-                            backgroundImage: avatar.isNotEmpty
-                                ? CachedNetworkImageProvider(avatar)
+                          GestureDetector(
+                            onTap: (user?.uuid?.isNotEmpty ?? false)
+                                ? () => Get.toNamed(
+                                    Routers.MARKET_SELLER_SHOP,
+                                    arguments: {
+                                      'uuid': user!.uuid,
+                                      'appId': controller.appId,
+                                      'shopInfo': {
+                                        'uuid': user.uuid,
+                                        if (user.nickname?.isNotEmpty ?? false)
+                                          'name': user.nickname,
+                                        if (user.avatar?.isNotEmpty ?? false)
+                                          'avatar': user.avatar,
+                                      },
+                                    },
+                                  )
                                 : null,
-                            child: avatar.isEmpty
-                                ? const Icon(Icons.person, size: 12)
-                                : null,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              buyerName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: _figmaSlate900,
-                                fontSize: 11.5,
-                                height: 13 / 11.5,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircleAvatar(
+                                  radius: 12,
+                                  backgroundImage: avatar.isNotEmpty
+                                      ? CachedNetworkImageProvider(avatar)
+                                      : null,
+                                  child: avatar.isEmpty
+                                      ? const Icon(Icons.person, size: 12)
+                                      : null,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  buyerName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: _figmaSlate900,
+                                    fontSize: 11.5,
+                                    height: 13 / 11.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(width: 8),

@@ -15,7 +15,6 @@ import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/common/widgets/steam_style_confirm_dialog.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
-import 'package:tronskins_app/components/game_item/gem_row.dart';
 import 'package:tronskins_app/components/game_item/sticker_row.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
@@ -1852,6 +1851,7 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
   }
 
   Widget _buildStickerInfoCard({required List<_StickerDetailData> stickers}) {
+    final currency = Get.find<CurrencyController>();
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
       decoration: BoxDecoration(
@@ -1873,17 +1873,20 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
             ),
           ),
           const SizedBox(height: 14),
-          SizedBox(
-            height: 72,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: stickers.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 6),
-              itemBuilder: (context, index) => _buildStickerDetailRow(
-                sticker: stickers[index],
-                index: index,
-              ),
-            ),
+          Column(
+            children: List.generate(stickers.length, (index) {
+              return Column(
+                children: [
+                  if (index > 0)
+                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                  _buildStickerDetailRow(
+                    sticker: stickers[index],
+                    index: index,
+                    currency: currency,
+                  ),
+                ],
+              );
+            }),
           ),
         ],
       ),
@@ -1893,23 +1896,24 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
   Widget _buildStickerDetailRow({
     required _StickerDetailData sticker,
     required int index,
+    required CurrencyController currency,
   }) {
     final title = sticker.name?.trim();
+    final hasPrice = sticker.price != null && sticker.price! > 0;
 
-    return Container(
-      width: 58,
-      padding: const EdgeInsets.all(5),
-      decoration: BoxDecoration(
-        color: _pageBackground,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0x0DC4C5D5)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
         children: [
-          SizedBox(
-            width: 32,
-            height: 32,
+          Container(
+            width: 48,
+            height: 48,
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: _pageBackground,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0x0DC4C5D5)),
+            ),
             child: CachedNetworkImage(
               imageUrl: sticker.imageUrl,
               fit: BoxFit.contain,
@@ -1922,19 +1926,37 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
               ),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            (title != null && title.isNotEmpty)
-                ? title
-                : _stickerFallbackName(index),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _textPrimary,
-              fontSize: 8,
-              height: 10 / 8,
-              fontWeight: FontWeight.w600,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  (title != null && title.isNotEmpty)
+                      ? title
+                      : _stickerFallbackName(index),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _textPrimary,
+                    fontSize: 13,
+                    height: 18 / 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (hasPrice) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    currency.format(sticker.price!),
+                    style: const TextStyle(
+                      color: _priceOrange,
+                      fontSize: 12,
+                      height: 17 / 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
@@ -2452,7 +2474,80 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
                                   ),
                                 ),
                                 const SizedBox(height: 10),
-                                GemRow(gems: gems, size: 24),
+                                Column(
+                                  children: List.generate(gems.length, (index) {
+                                    final gem = gems[index];
+                                    return Column(
+                                      children: [
+                                        if (index > 0)
+                                          const Divider(
+                                            height: 1,
+                                            color: Color(0xFFF1F5F9),
+                                          ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 10,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 48,
+                                                height: 48,
+                                                padding: const EdgeInsets.all(4),
+                                                decoration: BoxDecoration(
+                                                  color: _pageBackground,
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  border: gem.borderColor != null
+                                                      ? Border.all(
+                                                          color: gem.borderColor!,
+                                                          width: 1.4,
+                                                        )
+                                                      : Border.all(
+                                                          color: const Color(
+                                                            0x0DC4C5D5,
+                                                          ),
+                                                        ),
+                                                ),
+                                                child: CachedNetworkImage(
+                                                  imageUrl: gem.imageUrl,
+                                                  fit: BoxFit.contain,
+                                                  fadeInDuration: const Duration(
+                                                    milliseconds: 120,
+                                                  ),
+                                                  placeholder: (context, _) =>
+                                                      const SizedBox.expand(),
+                                                  errorWidget:
+                                                      (context, _, __) =>
+                                                          const Icon(
+                                                            Icons
+                                                                .image_not_supported_outlined,
+                                                            size: 18,
+                                                            color: _textSecondary,
+                                                          ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Text(
+                                                  _isEnglishLocale
+                                                      ? 'Gem ${index + 1}'
+                                                      : '宝石 ${index + 1}',
+                                                  style: const TextStyle(
+                                                    color: _textPrimary,
+                                                    fontSize: 13,
+                                                    height: 18 / 13,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }),
+                                ),
                               ],
                             ),
                           ),

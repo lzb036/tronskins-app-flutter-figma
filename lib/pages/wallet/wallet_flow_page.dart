@@ -269,14 +269,30 @@ class _WalletFlowPageState extends State<WalletFlowPage> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Account Detail',
-                              style: TextStyle(
-                                color: _detailTitle,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                height: 24 / 18,
-                              ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const Expanded(
+                                  child: Text(
+                                    'Account Detail',
+                                    style: TextStyle(
+                                      color: _detailTitle,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      height: 24 / 18,
+                                    ),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () =>
+                                      Navigator.of(dialogContext).maybePop(),
+                                  child: const Icon(
+                                    Icons.close,
+                                    color: _detailLabel,
+                                    size: 20,
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 20),
                             _FlowDetailCopyBlock(
@@ -384,13 +400,6 @@ class _WalletFlowPageState extends State<WalletFlowPage> {
                                   : () {
                                       _copyText(serialLabel);
                                     },
-                            ),
-                            const SizedBox(height: 12),
-                            _FlowDetailActionButton(
-                              label: 'app.common.cancel'.tr,
-                              outlined: true,
-                              onPressed: () =>
-                                  Navigator.of(dialogContext).maybePop(),
                             ),
                           ],
                         ),

@@ -1836,7 +1836,9 @@ class ShopOrderDetailPage extends StatelessWidget {
       ),
     ];
     final completed = _formatTime(order.changeTime);
-    if (completed != '-') {
+    final showCompletedTime =
+        completed != '-' && ![2, 3, 4].contains(order.status);
+    if (showCompletedTime) {
       rows.add(
         _StatusRowData(
           label: '${_text(zh: '完成时间', en: 'Completed')}:',

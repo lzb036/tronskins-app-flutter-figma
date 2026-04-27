@@ -84,7 +84,10 @@ class _MyPurchasePageState extends State<MyPurchasePage>
 
   static const List<StatusOption> _statusOptions = [
     StatusOption(labelKey: 'app.market.filter.all', values: []),
-    StatusOption(labelKey: 'app.trade.filter.in', values: [2, 3]),
+    StatusOption(
+      labelKey: 'app.market.product.wait_for_sending',
+      values: [2, 3],
+    ),
     StatusOption(labelKey: 'app.trade.filter.failed', values: [-1]),
     StatusOption(labelKey: 'app.trade.filter.settling', values: [5]),
     StatusOption(labelKey: 'app.trade.filter.success', values: [6]),
@@ -470,7 +473,7 @@ class _MyPurchasePageState extends State<MyPurchasePage>
 
   String _buildStatusText(ShopOrderItem order) {
     if ([2, 3, 4].contains(order.status)) {
-      return 'app.trade.filter.in'.tr;
+      return 'app.market.product.wait_for_sending'.tr;
     }
     if (order.status == 5) {
       return 'app.trade.filter.settling'.tr;
