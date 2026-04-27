@@ -609,6 +609,7 @@ final Map<String, String> tu_TR = {
   "app.trade.type": "İşlem Türü",
   "app.trade.recent": "Son İşlemler",
   "app.trade.filter.in": "İşlemde",
+  "app.trade.filter.delivery_pending_confirmation": "Teslimat onayı bekleniyor",
   "app.trade.filter.revoked": "İptal edildi",
   "app.trade.filter.settling": "Yerleşme",
   "app.trade.filter.success": "Başarılı",

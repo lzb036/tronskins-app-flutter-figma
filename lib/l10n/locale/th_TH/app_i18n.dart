@@ -595,6 +595,7 @@ final Map<String, String> th_TH = {
   "app.trade.type": "ประเภทธุรกรรม",
   "app.trade.recent": "ธุรกรรมล่าสุด",
   "app.trade.filter.in": "ในธุรกรรม",
+  "app.trade.filter.delivery_pending_confirmation": "รอการยืนยันการจัดส่ง",
   "app.trade.filter.revoked": "ยกเลิก",
   "app.trade.filter.settling": "การตั้งตั้ง",
   "app.trade.filter.success": "ประสบความสำเร็จ",

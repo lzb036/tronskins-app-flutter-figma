@@ -507,6 +507,7 @@ final Map<String, String> zh_CN = {
   "app.trade.type": "交易类型",
   "app.trade.recent": "最近成交",
   "app.trade.filter.in": "交易中",
+  "app.trade.filter.delivery_pending_confirmation": "发货待确认",
   "app.trade.filter.revoked": "已撤销",
   "app.trade.filter.settling": "结算中",
   "app.trade.filter.success": "交易成功",

@@ -627,6 +627,8 @@ final Map<String, String> it_IT = {
   "app.trade.type": "Tipo di transazione",
   "app.trade.recent": "Transazioni recenti",
   "app.trade.filter.in": "In transazione",
+  "app.trade.filter.delivery_pending_confirmation":
+      "Consegna in attesa di conferma",
   "app.trade.filter.revoked": "Revocata",
   "app.trade.filter.settling": "Stabilizzazione",
   "app.trade.filter.success": "Successo",

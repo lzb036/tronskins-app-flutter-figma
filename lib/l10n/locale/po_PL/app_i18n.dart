@@ -616,6 +616,8 @@ final Map<String, String> po_PL = {
   "app.trade.type": "Rodzaj transakcji",
   "app.trade.recent": "Ostatnie transakcje",
   "app.trade.filter.in": "W transakcji",
+  "app.trade.filter.delivery_pending_confirmation":
+      "Dostawa oczekuje na potwierdzenie",
   "app.trade.filter.revoked": "cofnięte",
   "app.trade.filter.settling": "Ustawienie",
   "app.trade.filter.success": "Udany",

@@ -532,6 +532,7 @@ final Map<String, String> ja_JP = {
   "app.trade.type": "取引のタイプ",
   "app.trade.recent": "最近の取引",
   "app.trade.filter.in": "取引中",
+  "app.trade.filter.delivery_pending_confirmation": "発送確認待ち",
   "app.trade.filter.revoked": "取り消された",
   "app.trade.filter.settling": "セットアップ",
   "app.trade.filter.success": "成功した",

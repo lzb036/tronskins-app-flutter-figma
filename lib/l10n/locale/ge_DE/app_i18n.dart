@@ -634,6 +634,8 @@ final Map<String, String> ge_DE = {
   "app.trade.type": "Transaktionstyp",
   "app.trade.recent": "Letzte Transaktionen",
   "app.trade.filter.in": "In Transaktion",
+  "app.trade.filter.delivery_pending_confirmation":
+      "Lieferung wartet auf Bestätigung",
   "app.trade.filter.revoked": "Widerruf",
   "app.trade.filter.settling": "Einrichten",
   "app.trade.filter.success": "Erfolgreich",

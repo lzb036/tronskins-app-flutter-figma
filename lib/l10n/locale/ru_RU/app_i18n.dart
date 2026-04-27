@@ -627,6 +627,8 @@ final Map<String, String> ru_RU = {
   "app.trade.type": "Тип транзакции",
   "app.trade.recent": "Последние сделки",
   "app.trade.filter.in": "В транзакции",
+  "app.trade.filter.delivery_pending_confirmation":
+      "Ожидается подтверждение отправки",
   "app.trade.filter.revoked": "Отменяется",
   "app.trade.filter.settling": "Установление",
   "app.trade.filter.success": "Успешный",

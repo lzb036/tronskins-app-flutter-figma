@@ -545,6 +545,7 @@ final Map<String, String> ko_KR = {
   "app.trade.type": "거래 유형",
   "app.trade.recent": "최근 거래",
   "app.trade.filter.in": "거래 중",
+  "app.trade.filter.delivery_pending_confirmation": "배송 확인 대기",
   "app.trade.filter.revoked": "취소",
   "app.trade.filter.settling": "정착",
   "app.trade.filter.success": "성공",

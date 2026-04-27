@@ -607,6 +607,8 @@ final Map<String, String> vi_VN = {
   "app.trade.type": "Loại giao dịch",
   "app.trade.recent": "Giao dịch gần đây",
   "app.trade.filter.in": "Trong giao dịch",
+  "app.trade.filter.delivery_pending_confirmation":
+      "Đang chờ xác nhận giao hàng",
   "app.trade.filter.revoked": "Hủy bỏ",
   "app.trade.filter.settling": "Đổi định",
   "app.trade.filter.success": "Thành công",

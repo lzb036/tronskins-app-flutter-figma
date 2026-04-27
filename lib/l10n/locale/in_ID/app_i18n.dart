@@ -620,6 +620,8 @@ final Map<String, String> in_ID = {
   "app.trade.type": "Jenis Transaksi",
   "app.trade.recent": "Transaksi Terbaru",
   "app.trade.filter.in": "Dalam Transaksi",
+  "app.trade.filter.delivery_pending_confirmation":
+      "Pengiriman menunggu konfirmasi",
   "app.trade.filter.revoked": "Dibatalkan",
   "app.trade.filter.settling": "Menyelesaikan",
   "app.trade.filter.success": "Sukses",

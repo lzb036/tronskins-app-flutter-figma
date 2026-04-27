@@ -641,6 +641,8 @@ final Map<String, String> la_LAT = {
   "app.trade.type": "Tipo de transacción",
   "app.trade.recent": "Transacciones recientes",
   "app.trade.filter.in": "En Transacción",
+  "app.trade.filter.delivery_pending_confirmation":
+      "Entrega pendiente de confirmación",
   "app.trade.filter.revoked": "Revocado",
   "app.trade.filter.settling": "Establecimiento",
   "app.trade.filter.success": "Éxitoso",

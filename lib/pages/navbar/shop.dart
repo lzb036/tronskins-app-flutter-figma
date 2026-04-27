@@ -1044,15 +1044,15 @@ class _ShopPageState extends State<ShopPage>
   String _buildRecordStatusText(ShopOrderItem record) {
     final status = record.status;
     if (status == 3) {
-      return _isEnglishLocale ? 'Delivery pending confirmation' : '发货待确认';
+      return 'app.trade.filter.delivery_pending_confirmation'.tr;
     }
     if (status == 6) {
-      return 'Sold successfully';
+      return 'app.trade.filter.success'.tr;
     }
     if (status == 5) {
-      return 'In settlement';
+      return 'app.trade.filter.settling'.tr;
     }
-    return 'Sale failed';
+    return 'app.trade.filter.failed'.tr;
   }
 
   Widget? _buildSellRecordStatusSecondary(ShopOrderItem record) {
