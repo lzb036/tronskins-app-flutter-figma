@@ -22,7 +22,7 @@ class _InventoryMergeGroup {
   final List<InventoryItem> items;
 }
 
-enum _PricingPreset { min, average, max }
+enum _PricingPreset { min, pricing, max }
 
 class InventoryUpShopPage extends StatefulWidget {
   const InventoryUpShopPage({super.key});
@@ -406,30 +406,29 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
     });
   }
 
-  double _extractReference(InventoryItem item, ShopSchemaInfo? schema) {
-    // Keep up-shop appraisal pricing aligned with tronskins-app getReferencePrice:
-    // 1) sell_min > 0: use min(buff_min_price, sell_min), and enforce >= 0.02
-    // 2) no sell_min: use buff_min_price directly
-    // 3) fallback to 0
+  double _pricingReferencePrice(ShopSchemaInfo? schema) {
     if (schema == null) {
       return 0;
     }
     final raw = schema.raw;
-    final sellMinPrice = _parsePriceValue(raw['sell_min'] ?? raw['sellMin']);
-    final buffMinPrice = _parsePriceValue(
-      raw['buff_min_price'] ?? raw['buffMinPrice'],
-    );
-    if (sellMinPrice > 0) {
-      if (buffMinPrice > 0) {
-        final price = buffMinPrice < sellMinPrice ? buffMinPrice : sellMinPrice;
-        return price > _minSellPrice ? price : _minSellPrice;
-      }
-      return sellMinPrice > _minSellPrice ? sellMinPrice : _minSellPrice;
+    return _parsePriceValue(raw['reference_price'] ?? raw['referencePrice']);
+  }
+
+  double _suggestedPricingPrice(ShopSchemaInfo? schema) {
+    var referencePrice = _pricingReferencePrice(schema);
+    if (referencePrice <= 0) {
+      return 0;
     }
-    if (buffMinPrice > 0) {
-      return buffMinPrice;
+    if (referencePrice > 1000) {
+      referencePrice -= 0.5;
+    } else if (referencePrice > 100) {
+      referencePrice -= 0.1;
+    } else if (referencePrice > _minSellPrice) {
+      referencePrice -= 0.01;
+    } else {
+      referencePrice = _minSellPrice;
     }
-    return 0;
+    return _normalizePrice(referencePrice);
   }
 
   Future<void> _loadParams() async {
@@ -499,23 +498,7 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
   void _applyReferencePrice() {
     for (final item in _items) {
       final id = item.id!;
-      final referencePrice = _extractReference(item, _lookupSchema(item));
-      if (referencePrice <= 0) {
-        continue;
-      }
-
-      double nextPrice = referencePrice;
-      if (nextPrice > 1000) {
-        nextPrice -= 0.5;
-      } else if (nextPrice > 100) {
-        nextPrice -= 0.1;
-      } else if (nextPrice > _minSellPrice) {
-        nextPrice -= 0.01;
-      } else {
-        nextPrice = _minSellPrice;
-      }
-
-      final normalizedPrice = _normalizePrice(nextPrice);
+      final normalizedPrice = _suggestedPricingPrice(_lookupSchema(item));
       if (normalizedPrice <= 0) {
         continue;
       }
@@ -740,37 +723,6 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
     return candidates.isEmpty ? 0 : candidates.first;
   }
 
-  double _suggestedAveragePrice(ShopSchemaInfo? schema) {
-    if (schema == null) {
-      return 0;
-    }
-
-    final raw = schema.raw;
-    final referencePrice = _normalizePrice(
-      _parsePriceValue(raw['reference_price'] ?? raw['referencePrice']),
-    );
-    if (referencePrice > 0) {
-      return referencePrice;
-    }
-
-    final marketPrice = _normalizePrice(
-      _parsePriceValue(raw['market_price'] ?? raw['marketPrice']),
-    );
-    if (marketPrice > 0) {
-      return marketPrice;
-    }
-
-    final candidates = _schemaPriceCandidates(schema);
-    if (candidates.isEmpty) {
-      return 0;
-    }
-    if (candidates.length == 1) {
-      return candidates.first;
-    }
-
-    return _normalizePrice((candidates.first + candidates.last) / 2);
-  }
-
   double _suggestedMaxPrice(ShopSchemaInfo? schema) {
     final candidates = _schemaPriceCandidates(schema);
     return candidates.isEmpty ? 0 : candidates.last;
@@ -871,17 +823,17 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
           return '최저';
         }
         return 'Min';
-      case _PricingPreset.average:
+      case _PricingPreset.pricing:
         if (language == 'zh' || language == 'ja') {
-          return '参考';
+          return '定价';
         }
         if (language == 'ko') {
-          return '참고';
+          return '가격';
         }
         if (language == 'fr') {
-          return 'Moy';
+          return 'Prix';
         }
-        return 'Avg';
+        return 'Price';
       case _PricingPreset.max:
         if (language == 'zh' || language == 'ja') {
           return '最高';
@@ -1194,7 +1146,7 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
     final showWarning = _groupHasWarning(group);
     final warningPrice = _groupWarningPrice(group);
     final minPrice = _suggestedMinPrice(schema);
-    final averagePrice = _suggestedAveragePrice(schema);
+    final pricingPrice = _suggestedPricingPrice(schema);
     final maxPrice = _suggestedMaxPrice(schema);
     final suggestionText = minPrice > 0 && maxPrice > 0
         ? minPrice == maxPrice
@@ -1467,11 +1419,11 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
                     ),
                     const SizedBox(width: 4),
                     _buildPresetChip(
-                      label: _pricingPresetLabel(_PricingPreset.average),
-                      value: averagePrice,
-                      onTap: averagePrice > 0
+                      label: _pricingPresetLabel(_PricingPreset.pricing),
+                      value: pricingPrice,
+                      onTap: pricingPrice > 0
                           ? () =>
-                                _applySuggestedPrice(ids, leadId, averagePrice)
+                                _applySuggestedPrice(ids, leadId, pricingPrice)
                           : null,
                     ),
                     const SizedBox(width: 4),

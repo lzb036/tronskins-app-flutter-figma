@@ -624,10 +624,10 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
       case 'WearCategory4':
         return const <_BulkWearQuickOption>[
           _BulkWearQuickOption(0.45, 0.50),
-          _BulkWearQuickOption(0.50, 0.63),
-          _BulkWearQuickOption(0.63, 0.76),
-          _BulkWearQuickOption(0.76, 0.90),
-          _BulkWearQuickOption(0.90, 1.00),
+          _BulkWearQuickOption(0.50, 0.60),
+          _BulkWearQuickOption(0.60, 0.70),
+          _BulkWearQuickOption(0.70, 0.75),
+          _BulkWearQuickOption(0.75, 0.80),
         ];
       default:
         return const <_BulkWearQuickOption>[

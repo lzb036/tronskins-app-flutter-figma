@@ -487,11 +487,13 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
         mergedAttributeTags[entry.key] = List<String>.from(entry.value);
       }
     }
-    if (!widget.attributeUseFlatSections && _attributeWearMin != null) {
-      mergedAttributeTags['paintWearMin'] = _attributeWearMin;
+    final attributeWearMin = _clampAttributeWearValue(_attributeWearMin);
+    final attributeWearMax = _clampAttributeWearValue(_attributeWearMax);
+    if (!widget.attributeUseFlatSections && attributeWearMin != null) {
+      mergedAttributeTags['paintWearMin'] = attributeWearMin;
     }
-    if (!widget.attributeUseFlatSections && _attributeWearMax != null) {
-      mergedAttributeTags['paintWearMax'] = _attributeWearMax;
+    if (!widget.attributeUseFlatSections && attributeWearMax != null) {
+      mergedAttributeTags['paintWearMax'] = attributeWearMax;
     }
     Navigator.of(context).pop(
       OrderFilterResult(
@@ -1078,15 +1080,15 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
       case 'WearCategory3':
         return const RangeValues(0.38, 0.45);
       case 'WearCategory4':
-        return const RangeValues(0.45, 1.00);
+        return const RangeValues(0.45, 0.80);
       default:
         return null;
     }
   }
 
   RangeValues _currentAttributeWearRange() {
-    final start = (_attributeWearMin ?? 0).clamp(0.0, 1.0);
-    final end = (_attributeWearMax ?? 1).clamp(0.0, 1.0);
+    final start = (_attributeWearMin ?? 0).clamp(0.0, 0.8);
+    final end = (_attributeWearMax ?? 0.8).clamp(0.0, 0.8);
     return RangeValues(start < end ? start : end, end > start ? end : start);
   }
 
@@ -1128,8 +1130,8 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
     RangeValues values,
   ) {
     final normalized = RangeValues(
-      _roundOrderWear(values.start.clamp(0.0, 1.0)),
-      _roundOrderWear(values.end.clamp(0.0, 1.0)),
+      _roundOrderWear(values.start.clamp(0.0, 0.8)),
+      _roundOrderWear(values.end.clamp(0.0, 0.8)),
     );
     String? matchedKey;
     for (final option in _buildOrderWearOptions(group)) {
@@ -1141,7 +1143,7 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
     }
     setState(() {
       _attributeWearMin = normalized.start <= 0.001 ? null : normalized.start;
-      _attributeWearMax = normalized.end >= 0.999 ? null : normalized.end;
+      _attributeWearMax = normalized.end >= 0.799 ? null : normalized.end;
       if (matchedKey == null) {
         _attributeTags.remove(group.key);
       } else {
@@ -1154,6 +1156,10 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
     return (value * 100).roundToDouble() / 100;
   }
 
+  double? _clampAttributeWearValue(double? value) {
+    return value?.clamp(0.0, 0.8).toDouble();
+  }
+
   String _formatOrderWearValue(double value) {
     return value.toStringAsFixed(2);
   }
@@ -1162,7 +1168,7 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
     RangeValues range,
     MarketFilterGroupMeta group,
   ) {
-    const markers = <double>[0.00, 0.07, 0.15, 0.38, 0.45, 1.00];
+    const markers = <double>[0.00, 0.07, 0.15, 0.38, 0.45, 0.80];
     const segmentColors = <Color>[
       Color(0xFFDBEAFE),
       Color(0xFF93C5FD),
@@ -1230,8 +1236,8 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
               child: RangeSlider(
                 values: range,
                 min: 0,
-                max: 1,
-                divisions: 100,
+                max: 0.8,
+                divisions: 80,
                 onChanged: (values) => _updateAttributeWearRange(group, values),
               ),
             ),

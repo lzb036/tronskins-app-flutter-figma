@@ -493,10 +493,10 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
       case 'WearCategory4':
         return const <_ProductWearQuickOption>[
           _ProductWearQuickOption(0.45, 0.50),
-          _ProductWearQuickOption(0.50, 0.63),
-          _ProductWearQuickOption(0.63, 0.76),
-          _ProductWearQuickOption(0.76, 0.90),
-          _ProductWearQuickOption(0.90, 1.00),
+          _ProductWearQuickOption(0.50, 0.60),
+          _ProductWearQuickOption(0.60, 0.70),
+          _ProductWearQuickOption(0.70, 0.75),
+          _ProductWearQuickOption(0.75, 0.80),
         ];
       default:
         return const <_ProductWearQuickOption>[

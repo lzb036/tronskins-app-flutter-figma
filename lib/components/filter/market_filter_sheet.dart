@@ -810,11 +810,13 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         tags[entry.key] = values;
       }
     }
-    if (_wearMin != null) {
-      tags['paintWearMin'] = _wearMin;
+    final wearMin = _clampWearValue(_wearMin);
+    final wearMax = _clampWearValue(_wearMax);
+    if (wearMin != null) {
+      tags['paintWearMin'] = wearMin;
     }
-    if (_wearMax != null) {
-      tags['paintWearMax'] = _wearMax;
+    if (wearMax != null) {
+      tags['paintWearMax'] = wearMax;
     }
     final effectiveSortField = widget.showSort
         ? _sortField
@@ -4130,15 +4132,15 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
       case 'WearCategory3':
         return const RangeValues(0.38, 0.45);
       case 'WearCategory4':
-        return const RangeValues(0.45, 1.00);
+        return const RangeValues(0.45, 0.80);
       default:
         return null;
     }
   }
 
   RangeValues _currentWearRange() {
-    final start = (_wearMin ?? 0).clamp(0.0, 1.0);
-    final end = (_wearMax ?? 1).clamp(0.0, 1.0);
+    final start = (_wearMin ?? 0).clamp(0.0, 0.8);
+    final end = (_wearMax ?? 0.8).clamp(0.0, 0.8);
     return RangeValues(math.min(start, end), math.max(start, end));
   }
 
@@ -4175,11 +4177,11 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
 
   void _updateWearRange(_AttributeGroup group, RangeValues values) {
     final normalized = RangeValues(
-      _roundWear(values.start.clamp(0.0, 1.0)),
-      _roundWear(values.end.clamp(0.0, 1.0)),
+      _roundWear(values.start.clamp(0.0, 0.8)),
+      _roundWear(values.end.clamp(0.0, 0.8)),
     );
     final isFullRange =
-        normalized.start <= 0.0 + 0.001 && normalized.end >= 1.0 - 0.001;
+        normalized.start <= 0.0 + 0.001 && normalized.end >= 0.8 - 0.001;
     String? exactMatch;
     for (final preset in _buildWearPresets(group)) {
       if ((preset.min - normalized.start).abs() < 0.001 &&
@@ -4203,12 +4205,16 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
     return (value * 100).roundToDouble() / 100;
   }
 
+  double? _clampWearValue(double? value) {
+    return value?.clamp(0.0, 0.8).toDouble();
+  }
+
   String _formatWearValue(double value) {
     return value.toStringAsFixed(2);
   }
 
   Widget _buildWearScale(RangeValues range, _AttributeGroup group) {
-    const markers = <double>[0.00, 0.07, 0.15, 0.38, 0.45, 1.00];
+    const markers = <double>[0.00, 0.07, 0.15, 0.38, 0.45, 0.80];
     const segmentColors = <Color>[
       Color(0xFFDBEAFE),
       Color(0xFF93C5FD),
@@ -4279,8 +4285,8 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
               child: RangeSlider(
                 values: range,
                 min: 0,
-                max: 1,
-                divisions: 100,
+                max: 0.8,
+                divisions: 80,
                 onChanged: (values) => _updateWearRange(group, values),
               ),
             ),

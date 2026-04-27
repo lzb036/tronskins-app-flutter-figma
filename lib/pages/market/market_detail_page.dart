@@ -2841,10 +2841,10 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       case 'WearCategory4':
         return const <_WearQuickOption>[
           _WearQuickOption('0.45-0.50', '0.45', '0.50'),
-          _WearQuickOption('0.50-0.63', '0.50', '0.63'),
-          _WearQuickOption('0.63-0.76', '0.63', '0.76'),
-          _WearQuickOption('0.76-0.90', '0.76', '0.90'),
-          _WearQuickOption('0.90-1.00', '0.90', '1.00'),
+          _WearQuickOption('0.50-0.60', '0.50', '0.60'),
+          _WearQuickOption('0.60-0.70', '0.60', '0.70'),
+          _WearQuickOption('0.70-0.75', '0.70', '0.75'),
+          _WearQuickOption('0.75-0.80', '0.75', '0.80'),
         ];
       default:
         return const <_WearQuickOption>[];
@@ -5369,6 +5369,10 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
     return double.tryParse(normalized);
   }
 
+  double? _parseWearValue(String value) {
+    return _parseOptionalDouble(value)?.clamp(0.0, 0.8).toDouble();
+  }
+
   int get _activeFilterCount {
     var count = 0;
     if (_selectedSortField != null && _selectedSortField!.isNotEmpty) {
@@ -5415,8 +5419,8 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
         maxPrice: _parseOptionalDouble(_maxPriceController.text),
         paintSeed: _trimToNull(_paintSeedController.text),
         paintIndex: _selectedPaintIndex,
-        paintWearMin: _parseOptionalDouble(_wearMinController.text),
-        paintWearMax: _parseOptionalDouble(_wearMaxController.text),
+        paintWearMin: _parseWearValue(_wearMinController.text),
+        paintWearMax: _parseWearValue(_wearMaxController.text),
       ),
     );
   }
@@ -5568,7 +5572,7 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
                                   ),
-                              hintText: '1.00',
+                              hintText: '0.80',
                             ),
                           ),
                         ],

@@ -716,6 +716,56 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     );
   }
 
+  MarketItemEntity _buildMarketDetailItem() {
+    final schemaId =
+        _schema?.schemaId ??
+        _item.schemaId ??
+        _asInt(_item.raw['schema_id'] ?? _item.raw['schemaId']);
+    final marketHashName =
+        _schema?.marketHashName ??
+        _item.marketHashName ??
+        _extractText(_item.raw, const ['market_hash_name', 'marketHashName']);
+    final imageUrl =
+        _schema?.imageUrl ??
+        _extractText(_item.raw, const ['image_url', 'imageUrl', 'image']);
+    final marketPrice =
+        _extractDouble(_schema?.raw, const [
+          'reference_price',
+          'referencePrice',
+          'market_price',
+          'marketPrice',
+          'price',
+        ]) ??
+        _item.price;
+
+    return MarketItemEntity(
+      id: schemaId,
+      schemaId: schemaId,
+      appId: _item.appId ?? _schema?.appId ?? 730,
+      marketName:
+          _schema?.marketName ??
+          _extractText(_item.raw, const [
+            'market_name',
+            'marketName',
+            'name',
+          ]) ??
+          marketHashName,
+      marketHashName: marketHashName,
+      imageUrl: imageUrl,
+      marketPrice: marketPrice,
+      tags: _schema?.tags,
+    );
+  }
+
+  void _openMarketDetail() {
+    final detailItem = _buildMarketDetailItem();
+    if (detailItem.schemaId == null && detailItem.id == null) {
+      AppSnackbar.error('app.trade.filter.failed'.tr);
+      return;
+    }
+    Get.toNamed(Routers.MARKET_DETAIL, arguments: detailItem);
+  }
+
   bool get _isEnglishLocale =>
       (Get.locale?.languageCode ?? '').toLowerCase().startsWith('en');
 
@@ -2044,7 +2094,16 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
       enabled: false,
       child: Scaffold(
         backgroundColor: _pageBackground,
-        appBar: SettingsStyleAppBar(title: Text(_pageTitle)),
+        appBar: SettingsStyleAppBar(
+          title: Text(_pageTitle),
+          actions: [
+            IconButton(
+              tooltip: 'app.market.product.title'.tr,
+              onPressed: _openMarketDetail,
+              icon: const Icon(Icons.storefront_rounded),
+            ),
+          ],
+        ),
         body: ListView(
           padding: EdgeInsets.only(bottom: isOwnOnSale ? 24 : 20),
           children: [
