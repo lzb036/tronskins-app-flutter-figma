@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:tronskins_app/api/model/market/market_models.dart';
 import 'package:tronskins_app/api/model/shop/shop_models.dart';
 import 'package:tronskins_app/api/steam.dart';
 import 'package:tronskins_app/api/tradeoffer.dart';
@@ -987,84 +988,185 @@ class ShopOrderDetailPage extends StatelessWidget {
     final priceText = price == null ? null : _formatPrice(currency, price);
     final exteriorAccentColor = parseHexColor(exterior?.color);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildItemImage(
-                imageUrl: detail.imageUrl ?? schema?.imageUrl,
-                appId: appId,
-                rarity: rarity,
-                quality: quality,
-                exterior: exterior,
-                phase: detail.raw['phase']?.toString(),
-                percentage: detail.raw['percentage']?.toString(),
-                count: count > 1 ? count : null,
-                wearText: wearText,
-                paintWear: paintWear,
-                wearAccentColor: exteriorAccentColor,
-                wearConditionLabel: exterior?.label?.trim(),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => _openMarketDetail(detail, schema),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildItemImage(
+                    imageUrl: detail.imageUrl ?? schema?.imageUrl,
+                    appId: appId,
+                    rarity: rarity,
+                    quality: quality,
+                    exterior: exterior,
+                    phase: detail.raw['phase']?.toString(),
+                    percentage: detail.raw['percentage']?.toString(),
+                    count: count > 1 ? count : null,
+                    wearText: wearText,
+                    paintWear: paintWear,
+                    wearAccentColor: exteriorAccentColor,
+                    wearConditionLabel: exterior?.label?.trim(),
+                  ),
+                  const SizedBox(width: 16),
+                  _buildItemInfoContent(
+                    title: title,
+                    priceText: priceText,
+                    count: count,
+                    stickerDetails: stickerDetails,
+                  ),
+                ],
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _titleColor,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        height: 1.25,
-                      ),
-                    ),
-                    if (priceText != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        priceText,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFFBA1A1A),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          height: 20 / 16,
-                        ),
-                      ),
-                    ],
-                    if (stickerDetails.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      _buildStickerIconRow(stickers: stickerDetails),
-                    ],
-                    if (count > 1) ...[
-                      const SizedBox(height: 10),
-                      _buildInfoChip(
-                        label: '${_text(zh: '数量', en: 'Qty')}: $count',
-                        background: const Color(0xFFEEF6FF),
-                        foreground: const Color(0xFF2563EB),
-                      ),
-                    ],
-                  ],
-                ),
+            ),
+            if (stickerDetails.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _buildStickerDetailCards(
+                stickers: stickerDetails,
+                currency: currency,
               ),
             ],
-          ),
+          ],
         ),
-        if (stickerDetails.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          _buildStickerDetailCards(
-            stickers: stickerDetails,
-            currency: currency,
+      ),
+    );
+  }
+
+  void _openMarketDetail(ShopOrderDetail detail, ShopSchemaInfo? schema) {
+    final item = _buildMarketDetailItem(detail, schema);
+    if (item.schemaId == null && item.id == null) {
+      AppSnackbar.error('app.trade.filter.failed'.tr);
+      return;
+    }
+    Get.toNamed(Routers.MARKET_DETAIL, arguments: item);
+  }
+
+  MarketItemEntity _buildMarketDetailItem(
+    ShopOrderDetail detail,
+    ShopSchemaInfo? schema,
+  ) {
+    final schemaId =
+        detail.schemaId ??
+        _asInt(
+          detail.raw['schema_id'] ??
+              detail.raw['schemaId'] ??
+              schema?.raw['schema_id'] ??
+              schema?.raw['schemaId'] ??
+              schema?.raw['id'],
+        );
+    final marketHashName =
+        detail.marketHashName ??
+        schema?.marketHashName ??
+        _findTextValue(detail.raw, const [
+          'market_hash_name',
+          'marketHashName',
+        ]);
+    final marketName =
+        detail.marketName ??
+        schema?.marketName ??
+        _findTextValue(detail.raw, const ['market_name', 'marketName', 'name']);
+    final imageUrl =
+        detail.imageUrl ??
+        schema?.imageUrl ??
+        _findTextValue(detail.raw, const ['image_url', 'imageUrl', 'image']);
+    return MarketItemEntity(
+      id: schemaId,
+      schemaId: schemaId,
+      appId: _resolveDetailAppId(detail, schema),
+      marketName: marketName ?? marketHashName,
+      marketHashName: marketHashName,
+      imageUrl: imageUrl,
+      marketPrice:
+          _detailDisplayPrice(detail) ??
+          _findNumericValue(schema?.raw, const [
+            'reference_price',
+            'referencePrice',
+            'market_price',
+            'marketPrice',
+            'price',
+          ]),
+      paintSeed: _findTextValue(detail.raw, const ['paint_seed', 'paintSeed']),
+      paintIndex: _findTextValue(detail.raw, const [
+        'paint_index',
+        'paintIndex',
+      ]),
+      paintWear:
+          detail.paintWear?.toString() ??
+          _findTextValue(detail.raw, const ['paint_wear', 'paintWear']),
+      percentage: _findTextValue(detail.raw, const ['percentage']),
+      phase: _findTextValue(detail.raw, const ['phase']),
+      tags: _marketTagsFromSchema(schema),
+    );
+  }
+
+  MarketItemTags? _marketTagsFromSchema(ShopSchemaInfo? schema) {
+    final tags = schema?.raw['tags'];
+    if (tags is Map<String, dynamic>) {
+      return MarketItemTags.fromJson(tags);
+    }
+    if (tags is Map) {
+      return MarketItemTags.fromJson(
+        tags.map((key, value) => MapEntry(key.toString(), value)),
+      );
+    }
+    return null;
+  }
+
+  Widget _buildItemInfoContent({
+    required String title,
+    required String? priceText,
+    required int count,
+    required List<_OrderStickerDetailData> stickerDetails,
+  }) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: _titleColor,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              height: 1.25,
+            ),
           ),
+          if (priceText != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              priceText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFFBA1A1A),
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                height: 20 / 16,
+              ),
+            ),
+          ],
+          if (stickerDetails.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _buildStickerIconRow(stickers: stickerDetails),
+          ],
+          if (count > 1) ...[
+            const SizedBox(height: 10),
+            _buildInfoChip(
+              label: '${_text(zh: '数量', en: 'Qty')}: $count',
+              background: const Color(0xFFEEF6FF),
+              foreground: const Color(0xFF2563EB),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 
