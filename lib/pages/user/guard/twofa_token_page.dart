@@ -395,6 +395,8 @@ class _TwoFaTokenPageState extends State<TwoFaTokenPage> {
                                       progress: progress,
                                       remaining: remaining,
                                       onCopy: _copyCode,
+                                      onDelete: () =>
+                                          _confirmDelete(primaryToken),
                                     ),
                                   if (hasPrimaryToken &&
                                       visibleTokenList.isNotEmpty)
@@ -1151,6 +1153,7 @@ class _VaultPrimaryTokenCard extends StatelessWidget {
     required this.progress,
     required this.remaining,
     required this.onCopy,
+    required this.onDelete,
   });
 
   final TwoFactorToken token;
@@ -1158,6 +1161,7 @@ class _VaultPrimaryTokenCard extends StatelessWidget {
   final double progress;
   final int remaining;
   final ValueChanged<String> onCopy;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -1181,6 +1185,22 @@ class _VaultPrimaryTokenCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
       child: Column(
         children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              tooltip: 'app.common.delete'.tr,
+              onPressed: onDelete,
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+              padding: EdgeInsets.zero,
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                size: 20,
+                color: Color(0xFFDC2626),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
           Text(
             _tokenDisplayEmail(token),
             textAlign: TextAlign.center,

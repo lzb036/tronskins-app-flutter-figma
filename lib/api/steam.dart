@@ -90,6 +90,14 @@ class ApiSteamServer {
     );
   }
 
+  Future<BaseHttpResponse<dynamic>> setSteamPrivacy() async {
+    final response = await http.get('api/app/steam/set_privacy');
+    return BaseHttpResponse.fromJson(
+      response.data as Map<String, dynamic>,
+      (json) => json,
+    );
+  }
+
   Future<BaseHttpResponse<dynamic>> steamTokenFresh({
     required String steamId,
     required String freshToken,

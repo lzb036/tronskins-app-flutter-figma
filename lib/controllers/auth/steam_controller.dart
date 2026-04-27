@@ -16,7 +16,9 @@ class SteamController extends GetxController {
   final RxnBool tradeStatus = RxnBool();
   final RxBool isLoading = false.obs;
   final RxBool isSaving = false.obs;
+  final RxBool isPrivacySaving = false.obs;
   final RxBool sessionValid = true.obs;
+  final RxnBool inventoryPublic = RxnBool();
 
   String _initialTradeUrl = '';
   String _initialApiKey = '';
@@ -61,8 +63,10 @@ class SteamController extends GetxController {
         tradeUrl.value = _initialTradeUrl;
         apiKey.value = _initialApiKey;
         config.value = nextConfig;
+        inventoryPublic.value = nextConfig?.privacy;
       } else {
         config.value = null;
+        inventoryPublic.value = null;
         userNickname.value = '';
         _initialTradeUrl = '';
         _initialApiKey = '';
@@ -114,6 +118,37 @@ class SteamController extends GetxController {
       }
     } finally {
       isSaving.value = false;
+    }
+  }
+
+  Future<bool> setInventoryPrivacy(bool isPublic) async {
+    if (inventoryPublic.value == isPublic) {
+      return true;
+    }
+    if (isPrivacySaving.value) {
+      return false;
+    }
+
+    isPrivacySaving.value = true;
+    final previousValue = inventoryPublic.value;
+    final previousConfig = config.value;
+    try {
+      final res = await _steamApi.setSteamPrivacy();
+      if (!res.success) {
+        return false;
+      }
+
+      inventoryPublic.value = isPublic;
+      if (previousConfig != null) {
+        config.value = previousConfig.copyWith(privacy: isPublic);
+      }
+      return true;
+    } catch (_) {
+      inventoryPublic.value = previousValue;
+      config.value = previousConfig;
+      return false;
+    } finally {
+      isPrivacySaving.value = false;
     }
   }
 

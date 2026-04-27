@@ -353,6 +353,102 @@ class _SteamSettingPageState extends State<SteamSettingPage> {
     return isTradable ? 'Ready' : 'Issue';
   }
 
+  String _sessionExpiredStatusTitle() {
+    final language = (Get.locale?.languageCode ?? '').toLowerCase();
+    if (language == 'zh') {
+      return 'Steam 认证过期';
+    }
+    return 'Steam verification expired';
+  }
+
+  String _sessionExpiredChipLabel() {
+    final language = (Get.locale?.languageCode ?? '').toLowerCase();
+    if (language == 'zh') {
+      return '待验证';
+    }
+    return 'Verify';
+  }
+
+  String _inventoryPrivacyTitle() {
+    final language = (Get.locale?.languageCode ?? '').toLowerCase();
+    final country = (Get.locale?.countryCode ?? '').toUpperCase();
+    if (language == 'zh' && country == 'TW') {
+      return '隱私設定';
+    }
+    if (language == 'zh') {
+      return '隐私设置';
+    }
+    return 'Privacy Settings';
+  }
+
+  String _inventoryPrivacyDescription() {
+    final language = (Get.locale?.languageCode ?? '').toLowerCase();
+    final country = (Get.locale?.countryCode ?? '').toUpperCase();
+    if (language == 'zh' && country == 'TW') {
+      return '展示或隱藏您遊戲庫存中的物品';
+    }
+    if (language == 'zh') {
+      return '展示或隐藏您游戏库存中的物品';
+    }
+    return 'Show or hide items in your game inventory';
+  }
+
+  String _inventoryPrivacyOptionLabel(bool isPublic) {
+    final language = (Get.locale?.languageCode ?? '').toLowerCase();
+    final country = (Get.locale?.countryCode ?? '').toUpperCase();
+    if (language == 'zh' && country == 'TW') {
+      return isPublic ? '公開' : '私密';
+    }
+    if (language == 'zh') {
+      return isPublic ? '公开' : '私密';
+    }
+    return isPublic ? 'public' : 'private';
+  }
+
+  String _inventoryPrivacySuccessMessage(bool isPublic) {
+    final language = (Get.locale?.languageCode ?? '').toLowerCase();
+    final country = (Get.locale?.countryCode ?? '').toUpperCase();
+    if (language == 'zh' && country == 'TW') {
+      return '庫存已設為${_inventoryPrivacyOptionLabel(isPublic)}';
+    }
+    if (language == 'zh') {
+      return '库存已设为${_inventoryPrivacyOptionLabel(isPublic)}';
+    }
+    return 'Inventory is now ${_inventoryPrivacyOptionLabel(isPublic)}';
+  }
+
+  String _inventoryPrivacyFailedMessage() {
+    final language = (Get.locale?.languageCode ?? '').toLowerCase();
+    final country = (Get.locale?.countryCode ?? '').toUpperCase();
+    if (language == 'zh' && country == 'TW') {
+      return '庫存隱私設定失敗';
+    }
+    if (language == 'zh') {
+      return '库存隐私设置失败';
+    }
+    return 'Failed to update inventory privacy';
+  }
+
+  Future<void> _handleInventoryPrivacySelected(
+    bool nextValue,
+    bool? currentValue,
+  ) async {
+    if (nextValue == currentValue) {
+      return;
+    }
+
+    final success = await controller.setInventoryPrivacy(nextValue);
+    if (!mounted) {
+      return;
+    }
+
+    if (success) {
+      AppSnackbar.success(_inventoryPrivacySuccessMessage(nextValue));
+    } else {
+      AppSnackbar.error(_inventoryPrivacyFailedMessage());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Obx(() {
@@ -401,6 +497,7 @@ class _SteamSettingPageState extends State<SteamSettingPage> {
           : fallbackNickname;
       final hasNickname = nickname.isNotEmpty && nickname != '-';
       final tradeStatus = controller.tradeStatus.value;
+      final inventoryPublic = controller.inventoryPublic.value;
       if (tradeStatus != null) {
         _lastVisibleTradeStatus = tradeStatus;
       }
@@ -442,6 +539,13 @@ class _SteamSettingPageState extends State<SteamSettingPage> {
               ),
               const SizedBox(height: 24),
               _buildApiKeyCard(
+                isBound: isBound,
+                isLoading: isInitialSteamLoading,
+              ),
+              const SizedBox(height: 24),
+              _buildInventoryPrivacyCard(
+                isPublic: inventoryPublic,
+                isSaving: controller.isPrivacySaving.value,
                 isBound: isBound,
                 isLoading: isInitialSteamLoading,
               ),
@@ -569,14 +673,21 @@ class _SteamSettingPageState extends State<SteamSettingPage> {
     required bool isLoading,
   }) {
     final sessionExpired = !controller.sessionValid.value && isBound;
-    final chipBackground = tradeStatus == true
+    final statusSuccess = !sessionExpired && tradeStatus == true;
+    final chipBackground = statusSuccess
         ? const Color(0xFFECFDF5)
+        : sessionExpired
+        ? const Color(0xFFFFF7ED)
         : const Color(0xFFFEF2F2);
-    final chipDotColor = tradeStatus == true
+    final chipDotColor = statusSuccess
         ? const Color(0xFF10B981)
+        : sessionExpired
+        ? const Color(0xFFF59E0B)
         : const Color(0xFFEF4444);
-    final chipTextColor = tradeStatus == true
+    final chipTextColor = statusSuccess
         ? const Color(0xFF047857)
+        : sessionExpired
+        ? const Color(0xFFB45309)
         : const Color(0xFFB91C1C);
 
     return _SteamSectionCard(
@@ -611,9 +722,9 @@ class _SteamSettingPageState extends State<SteamSettingPage> {
                           _SteamSkeletonBox(width: 76, height: 24, radius: 12),
                         ],
                       )
-                    else if (isTradeStatusLoading)
+                    else if (isTradeStatusLoading && !sessionExpired)
                       const _SteamSkeletonBox(width: 120, height: 24, radius: 4)
-                    else if (tradeStatus == null)
+                    else if (tradeStatus == null && !sessionExpired)
                       const Text(
                         '--',
                         style: TextStyle(
@@ -630,7 +741,9 @@ class _SteamSettingPageState extends State<SteamSettingPage> {
                         runSpacing: 8,
                         children: [
                           Text(
-                            tradeStatus == true
+                            sessionExpired
+                                ? _sessionExpiredStatusTitle()
+                                : tradeStatus == true
                                 ? 'app.steam.account.status_success'.tr
                                 : 'app.steam.account.status_error'.tr,
                             style: const TextStyle(
@@ -662,7 +775,11 @@ class _SteamSettingPageState extends State<SteamSettingPage> {
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  _tradeStatusChipLabel(tradeStatus == true),
+                                  sessionExpired
+                                      ? _sessionExpiredChipLabel()
+                                      : _tradeStatusChipLabel(
+                                          tradeStatus == true,
+                                        ),
                                   style: TextStyle(
                                     color: chipTextColor,
                                     fontSize: 12,
@@ -705,7 +822,7 @@ class _SteamSettingPageState extends State<SteamSettingPage> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFEF2F2),
+                color: const Color(0xFFFFF7ED),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -713,14 +830,14 @@ class _SteamSettingPageState extends State<SteamSettingPage> {
                   const Icon(
                     Icons.warning_amber_rounded,
                     size: 18,
-                    color: Color(0xFFB91C1C),
+                    color: Color(0xFFB45309),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'app.steam.session.expired'.tr,
                       style: const TextStyle(
-                        color: Color(0xFFB91C1C),
+                        color: Color(0xFFB45309),
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                         height: 18 / 13,
@@ -889,6 +1006,70 @@ class _SteamSettingPageState extends State<SteamSettingPage> {
               backgroundColor: const Color(0xFFE6E8EA),
               foregroundColor: _titleColor,
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInventoryPrivacyCard({
+    required bool? isPublic,
+    required bool isSaving,
+    required bool isBound,
+    required bool isLoading,
+  }) {
+    final value = isPublic ?? false;
+    final canEdit = isBound && !isSaving;
+
+    return _SteamSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _inventoryPrivacyTitle().toUpperCase(),
+            style: const TextStyle(
+              color: _mutedColor,
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              height: 16 / 12,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (isLoading)
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SteamSkeletonBox(height: 18, radius: 4),
+                SizedBox(height: 14),
+                _SteamSkeletonBox(height: 44, radius: 4),
+              ],
+            )
+          else ...[
+            Text(
+              isBound
+                  ? _inventoryPrivacyDescription()
+                  : 'app.steam.message.unbind'.tr,
+              style: const TextStyle(
+                color: Color(0xFF444653),
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                height: 20 / 14,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _SteamPrivacySelector(
+              label: isPublic == null
+                  ? '--'
+                  : _inventoryPrivacyOptionLabel(value),
+              isPublic: value,
+              enabled: canEdit,
+              isSaving: isSaving,
+              publicLabel: _inventoryPrivacyOptionLabel(true),
+              privateLabel: _inventoryPrivacyOptionLabel(false),
+              onSelected: (nextValue) =>
+                  _handleInventoryPrivacySelected(nextValue, isPublic),
+            ),
+          ],
         ],
       ),
     );
@@ -1131,6 +1312,165 @@ class _WideActionButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SteamPrivacySelector extends StatelessWidget {
+  const _SteamPrivacySelector({
+    required this.label,
+    required this.isPublic,
+    required this.enabled,
+    required this.isSaving,
+    required this.publicLabel,
+    required this.privateLabel,
+    required this.onSelected,
+  });
+
+  final String label;
+  final bool isPublic;
+  final bool enabled;
+  final bool isSaving;
+  final String publicLabel;
+  final String privateLabel;
+  final ValueChanged<bool> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = isPublic
+        ? const Color(0xFF047857)
+        : const Color(0xFFB45309);
+    final dotColor = isPublic
+        ? const Color(0xFF10B981)
+        : const Color(0xFFF59E0B);
+    final chipBackground = isPublic
+        ? const Color(0xFFECFDF5)
+        : const Color(0xFFFFF7ED);
+
+    return PopupMenuButton<bool>(
+      enabled: enabled,
+      initialValue: isPublic,
+      onSelected: onSelected,
+      color: Colors.white,
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      itemBuilder: (context) => [
+        PopupMenuItem<bool>(
+          value: true,
+          child: _SteamPrivacyMenuItem(label: publicLabel, selected: isPublic),
+        ),
+        PopupMenuItem<bool>(
+          value: false,
+          child: _SteamPrivacyMenuItem(
+            label: privateLabel,
+            selected: !isPublic,
+          ),
+        ),
+      ],
+      child: Opacity(
+        opacity: enabled ? 1 : 0.55,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 3,
+                ),
+                decoration: BoxDecoration(
+                  color: chipBackground,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: dotColor,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        height: 18 / 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              if (isSaving)
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      _SteamSettingPageState._linkColor,
+                    ),
+                  ),
+                )
+              else
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 20,
+                  color: _SteamSettingPageState._mutedColor,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SteamPrivacyMenuItem extends StatelessWidget {
+  const _SteamPrivacyMenuItem({required this.label, required this.selected});
+
+  final String label;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(
+          selected ? Icons.check_circle_rounded : Icons.circle_outlined,
+          size: 18,
+          color: selected
+              ? _SteamSettingPageState._linkColor
+              : _SteamSettingPageState._mutedColor,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: selected
+                  ? _SteamSettingPageState._titleColor
+                  : _SteamSettingPageState._mutedColor,
+              fontSize: 14,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              height: 20 / 14,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
