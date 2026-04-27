@@ -1043,20 +1043,33 @@ class _ShopPageState extends State<ShopPage>
 
   String _buildRecordStatusText(ShopOrderItem record) {
     final status = record.status;
+    if (status == 2) {
+      return 'app.market.product.wait_for_sending'.tr;
+    }
     if (status == 3) {
       return 'app.trade.filter.delivery_pending_confirmation'.tr;
+    }
+    if (status == 4) {
+      return 'app.market.product.wait_for_receipt'.tr;
+    }
+    if (status == 5) {
+      return 'app.trade.filter.settling'.tr;
     }
     if (status == 6) {
       return 'app.trade.filter.success'.tr;
     }
-    if (status == 5) {
-      return 'app.trade.filter.settling'.tr;
+    if (status == -2) {
+      return 'app.trade.filter.revoked'.tr;
+    }
+    final statusName = record.statusName?.trim();
+    if (statusName != null && statusName.isNotEmpty) {
+      return statusName;
     }
     return 'app.trade.filter.failed'.tr;
   }
 
   Widget? _buildSellRecordStatusSecondary(ShopOrderItem record) {
-    if (record.status == 3) {
+    if (record.status == 2 || record.status == 3 || record.status == 4) {
       final deadlineMs = _pendingDeadlineMs(record);
       if (deadlineMs <= DateTime.now().millisecondsSinceEpoch) {
         return null;
@@ -3225,10 +3238,13 @@ class _ShopPageState extends State<ShopPage>
   }
 
   Color _sellRecordStatusColor(ShopOrderItem record) {
+    if (record.status == 2) {
+      return const Color(0xFFEA580C);
+    }
     if (record.status == 3) {
       return const Color(0xFF1E40AF);
     }
-    if (record.status == 6 || record.status == 5) {
+    if (record.status == 4 || record.status == 5 || record.status == 6) {
       return const Color(0xFF67C23A);
     }
     return const Color(0xFFF56C6C);
@@ -3237,6 +3253,12 @@ class _ShopPageState extends State<ShopPage>
   IconData _sellRecordStatusIcon(ShopOrderItem record) {
     if (record.status == 6) {
       return Icons.check_circle_rounded;
+    }
+    if (record.status == 4) {
+      return Icons.move_to_inbox_rounded;
+    }
+    if (record.status == 2) {
+      return Icons.local_shipping_rounded;
     }
     if (record.status == 3) {
       return Icons.hourglass_top_rounded;
@@ -3248,7 +3270,11 @@ class _ShopPageState extends State<ShopPage>
   }
 
   bool _sellRecordStatusMuted(ShopOrderItem record) {
-    return record.status != 3 && record.status != 5 && record.status != 6;
+    return record.status != 2 &&
+        record.status != 3 &&
+        record.status != 4 &&
+        record.status != 5 &&
+        record.status != 6;
   }
 
   ({Color foreground, Color background, IconData icon, bool muted})
@@ -3460,6 +3486,7 @@ class _ShopPageState extends State<ShopPage>
         'schemas': Map<String, ShopSchemaInfo>.from(salesController.schemas),
         'users': Map<String, ShopUserInfo>.from(salesController.users),
         'stickers': Map<String, dynamic>.from(salesController.stickers),
+        'disableOrderActions': true,
       },
     );
   }
