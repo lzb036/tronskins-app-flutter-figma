@@ -1892,19 +1892,22 @@ class ShopOrderDetailPage extends StatelessWidget {
   Color _statusHeadlineColor(ShopOrderItem order) {
     final status = order.status;
     if (status == 6) {
-      return kOrderDetailStatusTextSuccess;
+      return const Color(0xFF16A34A);
     }
     if (status == 5) {
-      return kOrderDetailStatusTextSettlement;
+      return const Color(0xFF2563EB);
     }
     if (status == 4) {
-      return kOrderDetailStatusTextReady;
+      return const Color(0xFF059669);
     }
-    if (status == 2 || status == 3) {
-      return kOrderDetailStatusTextProcessing;
+    if (status == 3) {
+      return const Color(0xFF2563EB);
+    }
+    if (status == 2) {
+      return const Color(0xFFEA580C);
     }
     if (status == -1 || status == -2) {
-      return kOrderDetailStatusTextDanger;
+      return const Color(0xFFDC2626);
     }
     return kOrderDetailStatusTextNeutral;
   }
