@@ -181,9 +181,10 @@ class UserController extends GetxController {
 
   // ==================== 閫€鍑虹櫥褰?====================
   Future<void> logout(BuildContext context) async {
-    final confirm = await showFigmaModal<bool>(
+    await showFigmaModal<void>(
       context: context,
-      child: FigmaConfirmationDialog(
+      barrierDismissible: false,
+      child: FigmaAsyncConfirmationDialog(
         icon: Icons.logout_rounded,
         iconColor: const Color(0xFFE11D48),
         iconBackgroundColor: const Color.fromRGBO(225, 29, 72, 0.10),
@@ -192,13 +193,10 @@ class UserController extends GetxController {
         message: 'app.user.login.logout_confirm'.tr,
         primaryLabel: 'app.user.login.logout'.tr,
         secondaryLabel: 'app.common.cancel'.tr,
-        onPrimary: () => popModalRoute(context, true),
-        onSecondary: () => popModalRoute(context, false),
+        onSecondary: () => popModalRoute(context),
+        onConfirm: (_) => _doLogout(),
       ),
     );
-    if (confirm == true) {
-      await _doLogout();
-    }
   }
 
   /// 瀹為檯鎵ц閫€鍑虹櫥褰曠殑鏂规硶

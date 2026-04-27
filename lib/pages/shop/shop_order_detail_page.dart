@@ -344,42 +344,37 @@ class ShopOrderDetailPage extends StatelessWidget {
     final statusLabel = _statusHeadline(order, statusText: statusText);
     final statusColor = _statusHeadlineColor(order);
     return _buildCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          _buildSectionTitle(_text(zh: '订单状态', en: 'Order Status')),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: _statusBadgeBackground(order.status),
-                  borderRadius: BorderRadius.circular(21),
-                ),
-                alignment: Alignment.center,
-                child: Icon(
-                  _statusIcon(order.status),
-                  color: statusColor,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  statusLabel,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    height: 26 / 20,
+          Expanded(
+            child: _buildSectionTitle(_text(zh: '订单状态', en: 'Order Status')),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(_statusIcon(order.status), color: statusColor, size: 16),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      statusLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        height: 20 / 14,
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -1740,9 +1735,10 @@ class ShopOrderDetailPage extends StatelessWidget {
       return;
     }
 
-    final confirmResult = await showFigmaModal<bool>(
+    await showFigmaModal<void>(
       context: context,
-      child: FigmaConfirmationDialog(
+      barrierDismissible: false,
+      child: FigmaAsyncConfirmationDialog(
         icon: Icons.cancel_outlined,
         iconColor: const Color(0xFFE11D48),
         iconBackgroundColor: const Color.fromRGBO(225, 29, 72, 0.10),
@@ -1751,32 +1747,32 @@ class ShopOrderDetailPage extends StatelessWidget {
         message: 'app.trade.order.message.confirm_cancel'.tr,
         primaryLabel: _text(zh: '确认取消', en: 'Confirm Cancel'),
         secondaryLabel: 'app.common.cancel'.tr,
-        onPrimary: () => popModalRoute(context, true),
-        onSecondary: () => popModalRoute(context, false),
+        onSecondary: () => popModalRoute(context),
+        onConfirm: (dialogContext) async {
+          try {
+            final controller = Get.isRegistered<ShopOrderController>()
+                ? Get.find<ShopOrderController>()
+                : Get.put(ShopOrderController());
+            final message = await controller.cancelBuyOrder(orderId);
+            final successMessage = message.trim().isNotEmpty
+                ? message.trim()
+                : 'app.system.message.success'.tr;
+            if (dialogContext.mounted) {
+              popModalRoute(dialogContext);
+            }
+            if (!context.mounted) {
+              return;
+            }
+            Navigator.of(context).pop(true);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              AppSnackbar.success(successMessage);
+            });
+          } catch (error) {
+            AppSnackbar.error(_resolveActionErrorMessage(error));
+          }
+        },
       ),
     );
-    if (confirmResult != true) {
-      return;
-    }
-
-    try {
-      final controller = Get.isRegistered<ShopOrderController>()
-          ? Get.find<ShopOrderController>()
-          : Get.put(ShopOrderController());
-      final message = await controller.cancelBuyOrder(orderId);
-      final successMessage = message.trim().isNotEmpty
-          ? message.trim()
-          : 'app.system.message.success'.tr;
-      if (!context.mounted) {
-        return;
-      }
-      Navigator.of(context).pop(true);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        AppSnackbar.success(successMessage);
-      });
-    } catch (error) {
-      AppSnackbar.error(_resolveActionErrorMessage(error));
-    }
   }
 
   Future<void> _handleReceiveOrder(
@@ -1789,9 +1785,10 @@ class ShopOrderDetailPage extends StatelessWidget {
       return;
     }
 
-    final confirmResult = await showFigmaModal<bool>(
+    await showFigmaModal<void>(
       context: context,
-      child: FigmaConfirmationDialog(
+      barrierDismissible: false,
+      child: FigmaAsyncConfirmationDialog(
         icon: Icons.inventory_2_outlined,
         iconColor: const Color(0xFF0F766E),
         iconBackgroundColor: const Color.fromRGBO(15, 118, 110, 0.10),
@@ -1800,44 +1797,47 @@ class ShopOrderDetailPage extends StatelessWidget {
         message: 'app.trade.receipt.message.confirm_auto'.tr,
         primaryLabel: 'app.market.product.receive'.tr,
         secondaryLabel: 'app.common.cancel'.tr,
-        onPrimary: () => popModalRoute(context, true),
-        onSecondary: () => popModalRoute(context, false),
+        onSecondary: () => popModalRoute(context),
+        onConfirm: (dialogContext) async {
+          try {
+            final steamStatus = await ApiSteamServer().steamOnlineState();
+            if (steamStatus.datas != true) {
+              final tradeOfferId = order.tradeOfferId?.trim() ?? '';
+              if (tradeOfferId.isNotEmpty) {
+                if (dialogContext.mounted) {
+                  popModalRoute(dialogContext);
+                }
+                Get.toNamed(
+                  Routers.RECEIVE_GOODS,
+                  arguments: {'tradeOfferId': tradeOfferId},
+                );
+              } else {
+                AppSnackbar.error('app.trade.filter.failed'.tr);
+              }
+              return;
+            }
+
+            final controller = Get.isRegistered<ShopOrderController>()
+                ? Get.find<ShopOrderController>()
+                : Get.put(ShopOrderController());
+            await controller.acceptTradeOffer(orderId);
+            await controller.refreshBuyRecords();
+            if (dialogContext.mounted) {
+              popModalRoute(dialogContext);
+            }
+            if (!context.mounted) {
+              return;
+            }
+            Navigator.of(context).pop(true);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              AppSnackbar.success('app.system.message.success'.tr);
+            });
+          } catch (error) {
+            AppSnackbar.error(_resolveActionErrorMessage(error));
+          }
+        },
       ),
     );
-    if (confirmResult != true) {
-      return;
-    }
-
-    final steamStatus = await ApiSteamServer().steamOnlineState();
-    if (steamStatus.datas != true) {
-      final tradeOfferId = order.tradeOfferId?.trim() ?? '';
-      if (tradeOfferId.isNotEmpty) {
-        Get.toNamed(
-          Routers.RECEIVE_GOODS,
-          arguments: {'tradeOfferId': tradeOfferId},
-        );
-      } else {
-        AppSnackbar.error('app.trade.filter.failed'.tr);
-      }
-      return;
-    }
-
-    try {
-      final controller = Get.isRegistered<ShopOrderController>()
-          ? Get.find<ShopOrderController>()
-          : Get.put(ShopOrderController());
-      await controller.acceptTradeOffer(orderId);
-      await controller.refreshBuyRecords();
-      if (!context.mounted) {
-        return;
-      }
-      Navigator.of(context).pop(true);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        AppSnackbar.success('app.system.message.success'.tr);
-      });
-    } catch (error) {
-      AppSnackbar.error(_resolveActionErrorMessage(error));
-    }
   }
 
   String _resolveActionErrorMessage(Object error) {
@@ -1863,7 +1863,7 @@ class ShopOrderDetailPage extends StatelessWidget {
     ];
     final completed = _formatTime(order.changeTime);
     final showCompletedTime =
-        completed != '-' && !_isUnfinishedTradeStatus(order.status);
+        completed != '-' && !_shouldHideCompletedTime(order.status);
     if (showCompletedTime) {
       rows.add(
         _StatusRowData(
@@ -1903,11 +1903,18 @@ class ShopOrderDetailPage extends StatelessWidget {
   }
 
   bool _canCancelOrder(ShopOrderItem order) {
+    if (order.status != 2) {
+      return false;
+    }
     return order.id != null && _showWaitingCountdown(order);
   }
 
   bool _isUnfinishedTradeStatus(int? status) {
     return status == 2 || status == 3 || status == 4;
+  }
+
+  bool _shouldHideCompletedTime(int? status) {
+    return _isUnfinishedTradeStatus(status) || status == -1 || status == -2;
   }
 
   bool _canReceiveOrder(ShopOrderItem order) {
@@ -1976,25 +1983,6 @@ class ShopOrderDetailPage extends StatelessWidget {
       return const Color(0xFFDC2626);
     }
     return kOrderDetailStatusTextNeutral;
-  }
-
-  Color _statusBadgeBackground(int? status) {
-    if (status == 6) {
-      return const Color(0xFFF0FDF4);
-    }
-    if (status == 5 || status == 3) {
-      return const Color(0xFFEFF6FF);
-    }
-    if (status == 4) {
-      return const Color(0xFFECFDF5);
-    }
-    if (status == 2) {
-      return const Color(0xFFFFF7ED);
-    }
-    if (status == -1 || status == -2) {
-      return const Color(0xFFFEF2F2);
-    }
-    return const Color(0xFFF1F5F9);
   }
 
   IconData _statusIcon(int? status) {

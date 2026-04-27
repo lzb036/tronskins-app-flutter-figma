@@ -2216,54 +2216,71 @@ class _PurchasePriceChangeDialogState
       AppSnackbar.error('app.trade.purchase.message.min_price_error'.tr);
       return;
     }
+    Future<void> submitPriceChange({BuildContext? dialogContext}) async {
+      final activeDialogContext = dialogContext;
+      final useDialogLoading = activeDialogContext != null;
+      if (!useDialogLoading) {
+        setState(() => _isSubmitting = true);
+      }
+      var shouldClose = false;
+      try {
+        final res = await _api.myBuyUpdatePrice(
+          items: [
+            {'id': widget.item.id, 'price': price, 'nums': nums},
+          ],
+        );
+        if (!res.success) {
+          final dataText = res.datas?.toString().trim();
+          final errorText = (dataText?.isNotEmpty ?? false)
+              ? dataText!
+              : (res.message.trim().isNotEmpty
+                    ? res.message
+                    : 'app.trade.filter.failed'.tr);
+          AppSnackbar.error(errorText);
+          return;
+        }
+        shouldClose = true;
+        if (activeDialogContext != null) {
+          if (activeDialogContext.mounted) {
+            popModalRoute(activeDialogContext, true);
+          }
+        } else if (mounted) {
+          Navigator.of(context).pop(true);
+        }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          AppSnackbar.success('app.inventory.message.price_change_success'.tr);
+        });
+      } finally {
+        if (!useDialogLoading && mounted && !shouldClose) {
+          setState(() => _isSubmitting = false);
+        }
+      }
+    }
+
     final sellMin = _sellMin();
     final shouldConfirm = price >= 10 && sellMin > 0 && price > sellMin;
     if (shouldConfirm) {
-      final confirm = await showFigmaModal<bool>(
+      final submitted = await showFigmaModal<bool>(
         context: context,
-        child: FigmaConfirmationDialog(
+        barrierDismissible: false,
+        child: FigmaAsyncConfirmationDialog(
           title: 'app.system.tips.title'.tr,
           message: 'app.trade.purchase.message.confirm_to_buy'.tr,
           primaryLabel: 'app.common.confirm'.tr,
           secondaryLabel: 'app.common.cancel'.tr,
-          onPrimary: () => Navigator.of(context).pop(true),
-          onSecondary: () => Navigator.of(context).pop(false),
+          onSecondary: () => popModalRoute(context, false),
+          onConfirm: (dialogContext) async {
+            await submitPriceChange(dialogContext: dialogContext);
+          },
         ),
       );
-      if (confirm != true) {
-        return;
-      }
-    }
-    setState(() => _isSubmitting = true);
-    var shouldClose = false;
-    try {
-      final res = await _api.myBuyUpdatePrice(
-        items: [
-          {'id': widget.item.id, 'price': price, 'nums': nums},
-        ],
-      );
-      if (!res.success) {
-        final dataText = res.datas?.toString().trim();
-        final errorText = (dataText?.isNotEmpty ?? false)
-            ? dataText!
-            : (res.message.trim().isNotEmpty
-                  ? res.message
-                  : 'app.trade.filter.failed'.tr);
-        AppSnackbar.error(errorText);
-        return;
-      }
-      shouldClose = true;
-      if (mounted) {
+      if (submitted == true && mounted) {
         Navigator.of(context).pop(true);
       }
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        AppSnackbar.success('app.inventory.message.price_change_success'.tr);
-      });
-    } finally {
-      if (mounted && !shouldClose) {
-        setState(() => _isSubmitting = false);
-      }
+      return;
     }
+
+    await submitPriceChange();
   }
 
   Widget _buildPreviewCard() {

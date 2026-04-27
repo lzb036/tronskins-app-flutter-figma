@@ -268,9 +268,10 @@ class _TwoFaTokenPageState extends State<TwoFaTokenPage> {
     final serverLabel = token.server.trim().isEmpty
         ? '--'
         : _tokenServerLabel(token.server);
-    final confirm = await showFigmaModal<bool>(
+    await showFigmaModal<void>(
       context: context,
-      child: FigmaConfirmationDialog(
+      barrierDismissible: false,
+      child: FigmaAsyncConfirmationDialog(
         icon: Icons.delete_outline_rounded,
         iconColor: const Color(0xFFE11D48),
         iconBackgroundColor: const Color.fromRGBO(225, 29, 72, 0.10),
@@ -283,17 +284,19 @@ class _TwoFaTokenPageState extends State<TwoFaTokenPage> {
             '${_tokenDisplayEmail(token)}\n($appLabel) · $serverLabel',
         primaryLabel: 'app.common.delete'.tr,
         secondaryLabel: 'app.common.cancel'.tr,
-        onPrimary: () => Navigator.of(context).pop(true),
-        onSecondary: () => Navigator.of(context).pop(false),
+        onSecondary: () => popModalRoute(context),
+        onConfirm: (dialogContext) async {
+          if (_selectedToken != null &&
+              _sameTokenIdentity(_selectedToken!, token)) {
+            setState(() => _selectedToken = null);
+          }
+          await controller.deleteToken(token);
+          if (dialogContext.mounted) {
+            popModalRoute(dialogContext);
+          }
+        },
       ),
     );
-    if (confirm == true) {
-      if (_selectedToken != null &&
-          _sameTokenIdentity(_selectedToken!, token)) {
-        setState(() => _selectedToken = null);
-      }
-      await controller.deleteToken(token);
-    }
   }
 
   Future<void> _openBindDialog() async {

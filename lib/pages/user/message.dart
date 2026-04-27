@@ -54,45 +54,47 @@ class _UserMessageState extends State<UserMessage>
     setState(() => _selectedTab = nextIndex);
   }
 
-  Future<bool> _showActionConfirm({
+  Future<void> _showActionConfirm({
     required String message,
     required IconData icon,
     required Color accentColor,
+    required Future<void> Function(BuildContext dialogContext) onConfirm,
   }) async {
-    final confirmed = await showFigmaModal<bool>(
+    await showFigmaModal<void>(
       context: context,
-      child: FigmaConfirmationDialog(
+      barrierDismissible: false,
+      child: FigmaAsyncConfirmationDialog(
         title: 'app.system.tips.title'.tr,
         message: message,
         primaryLabel: 'app.common.confirm'.tr,
-        onPrimary: () => Navigator.of(context).pop(true),
         secondaryLabel: 'app.common.cancel'.tr,
-        onSecondary: () => Navigator.of(context).pop(false),
+        onSecondary: () => popModalRoute(context),
+        onConfirm: onConfirm,
         icon: icon,
         accentColor: accentColor,
         iconColor: accentColor,
         iconBackgroundColor: accentColor.withValues(alpha: 0.10),
       ),
     );
-    return confirmed == true;
   }
 
   Future<void> _readAll() async {
-    final confirm = await _showActionConfirm(
+    await _showActionConfirm(
       message: '${'app.system.notice.readall'.tr}?',
       icon: Icons.mark_email_read_rounded,
       accentColor: _brandColor,
+      onConfirm: (dialogContext) async {
+        final ok = _selectedTab == 0
+            ? await _controller.readAllTrade()
+            : await _controller.readAllNotice();
+        if (ok) {
+          AppSnackbar.success('app.system.notice.readall'.tr);
+        }
+        if (dialogContext.mounted) {
+          popModalRoute(dialogContext);
+        }
+      },
     );
-    if (!confirm) {
-      return;
-    }
-
-    final ok = _selectedTab == 0
-        ? await _controller.readAllTrade()
-        : await _controller.readAllNotice();
-    if (ok) {
-      AppSnackbar.success('app.system.notice.readall'.tr);
-    }
   }
 
   Future<void> _clearTrade() async {
@@ -100,21 +102,22 @@ class _UserMessageState extends State<UserMessage>
       return;
     }
 
-    final confirm = await _showActionConfirm(
+    await _showActionConfirm(
       message: 'app.system.notice.clear_tips'.tr,
       icon: Icons.delete_outline_rounded,
       accentColor: const Color(0xFFDC2626),
+      onConfirm: (dialogContext) async {
+        final message = await _controller.clearTrade();
+        if (message != null) {
+          AppSnackbar.success(
+            message.isNotEmpty ? message : 'app.system.message.success'.tr,
+          );
+        }
+        if (dialogContext.mounted) {
+          popModalRoute(dialogContext);
+        }
+      },
     );
-    if (!confirm) {
-      return;
-    }
-
-    final message = await _controller.clearTrade();
-    if (message != null) {
-      AppSnackbar.success(
-        message.isNotEmpty ? message : 'app.system.message.success'.tr,
-      );
-    }
   }
 
   Widget _buildTopNavigation() {

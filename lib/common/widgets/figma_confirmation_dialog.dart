@@ -246,6 +246,80 @@ class FigmaConfirmationDialog extends StatelessWidget {
   }
 }
 
+class FigmaAsyncConfirmationDialog extends StatefulWidget {
+  const FigmaAsyncConfirmationDialog({
+    super.key,
+    required this.title,
+    this.message = '',
+    required this.primaryLabel,
+    required this.onConfirm,
+    this.secondaryLabel,
+    this.onSecondary,
+    this.highlightText,
+    this.content,
+    this.icon = Icons.warning_amber_rounded,
+    this.accentColor = const Color(0xFF1E40AF),
+    this.iconColor = const Color(0xFFBA1A1A),
+    this.iconBackgroundColor = const Color.fromRGBO(186, 26, 26, 0.10),
+  });
+
+  final String title;
+  final String message;
+  final String primaryLabel;
+  final Future<void> Function(BuildContext dialogContext) onConfirm;
+  final String? secondaryLabel;
+  final VoidCallback? onSecondary;
+  final String? highlightText;
+  final Widget? content;
+  final IconData icon;
+  final Color accentColor;
+  final Color iconColor;
+  final Color iconBackgroundColor;
+
+  @override
+  State<FigmaAsyncConfirmationDialog> createState() =>
+      _FigmaAsyncConfirmationDialogState();
+}
+
+class _FigmaAsyncConfirmationDialogState
+    extends State<FigmaAsyncConfirmationDialog> {
+  bool _submitting = false;
+
+  Future<void> _handleConfirm() async {
+    if (_submitting) {
+      return;
+    }
+    setState(() => _submitting = true);
+    try {
+      await widget.onConfirm(context);
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FigmaConfirmationDialog(
+      title: widget.title,
+      message: widget.message,
+      primaryLabel: widget.primaryLabel,
+      primaryLoading: _submitting,
+      secondaryLabel: widget.secondaryLabel,
+      secondaryLoading: false,
+      onPrimary: _submitting ? null : _handleConfirm,
+      onSecondary: _submitting ? null : widget.onSecondary,
+      highlightText: widget.highlightText,
+      content: widget.content,
+      icon: widget.icon,
+      accentColor: widget.accentColor,
+      iconColor: widget.iconColor,
+      iconBackgroundColor: widget.iconBackgroundColor,
+    );
+  }
+}
+
 class _FigmaDialogActionButton extends StatelessWidget {
   const _FigmaDialogActionButton({
     required this.label,

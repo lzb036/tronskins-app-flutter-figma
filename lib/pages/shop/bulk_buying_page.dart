@@ -289,9 +289,10 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
     final estimatedTotal = _matchedItems.isNotEmpty
         ? _totalAmount()
         : price * num;
-    final confirmed = await showFigmaModal<bool>(
+    final submitted = await showFigmaModal<bool>(
       context: context,
-      child: FigmaConfirmationDialog(
+      barrierDismissible: false,
+      child: FigmaAsyncConfirmationDialog(
         icon: Icons.inventory_2_rounded,
         iconColor: _brandBlue,
         iconBackgroundColor: const Color.fromRGBO(30, 64, 175, 0.10),
@@ -334,17 +335,12 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
             : '预计总额 ${currency.format(estimatedTotal)}',
         primaryLabel: _isEnglishLocale ? 'Confirm Submission' : '确认提交',
         secondaryLabel: 'app.common.cancel'.tr,
-        onPrimary: () {
-          if (mounted && !_isSubmitting) {
-            setState(() => _isSubmitting = true);
-          }
-          Navigator.of(context).pop(true);
-        },
-        onSecondary: () => Navigator.of(context).pop(false),
+        onSecondary: () => popModalRoute(context, false),
+        onConfirm: (_) => _submit(alreadySubmitting: true),
       ),
     );
-    if (confirmed == true) {
-      await _submit(alreadySubmitting: true);
+    if (submitted == true && mounted) {
+      Navigator.of(context).pop(true);
     }
   }
 

@@ -598,9 +598,10 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
     final itemTitle = _schema?.marketName ?? _schema?.marketHashName ?? '-';
     final sellMin = _schema?.sellMin ?? _minPrice;
     final showPriceNotice = price >= 10 && sellMin > 0 && price > sellMin;
-    final confirmed = await showFigmaModal<bool>(
+    final submitted = await showFigmaModal<bool>(
       context: context,
-      child: FigmaConfirmationDialog(
+      barrierDismissible: false,
+      child: FigmaAsyncConfirmationDialog(
         icon: Icons.shopping_bag_rounded,
         iconColor: _brandBlue,
         iconBackgroundColor: const Color.fromRGBO(30, 64, 175, 0.10),
@@ -657,17 +658,12 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
             '${'app.trade.purchase.estimated_amount'.tr} ${currency.format(price * nums)}',
         primaryLabel: _isEnglishLocale ? 'Confirm Submission' : '确认提交',
         secondaryLabel: 'app.common.cancel'.tr,
-        onPrimary: () {
-          if (mounted && !_isSubmitting) {
-            setState(() => _isSubmitting = true);
-          }
-          Navigator.of(context).pop(true);
-        },
-        onSecondary: () => Navigator.of(context).pop(false),
+        onSecondary: () => popModalRoute(context, false),
+        onConfirm: (_) => _submit(alreadySubmitting: true),
       ),
     );
-    if (confirmed == true) {
-      await _submit(alreadySubmitting: true);
+    if (submitted == true && mounted) {
+      Navigator.of(context).pop(true);
     }
   }
 

@@ -214,23 +214,26 @@ Widget _buildCollectionRefreshIndicator({
   );
 }
 
-Future<bool> _showCollectionUncollectConfirmDialog(BuildContext context) async {
-  final confirmed = await showFigmaModal<bool>(
+Future<void> _showCollectionUncollectConfirmDialog(
+  BuildContext context, {
+  required Future<void> Function(BuildContext dialogContext) onConfirm,
+}) async {
+  await showFigmaModal<void>(
     context: context,
-    child: FigmaConfirmationDialog(
+    barrierDismissible: false,
+    child: FigmaAsyncConfirmationDialog(
       title: 'app.system.tips.title'.tr,
       message: 'app.user.collection.uncollect_tips'.tr,
       primaryLabel: 'app.common.confirm'.tr,
-      onPrimary: () => Navigator.of(context).pop(true),
       secondaryLabel: 'app.common.cancel'.tr,
-      onSecondary: () => Navigator.of(context).pop(false),
+      onSecondary: () => popModalRoute(context),
+      onConfirm: onConfirm,
       icon: Icons.bookmark_remove_rounded,
       accentColor: const Color(0xFFDC2626),
       iconColor: const Color(0xFFDC2626),
       iconBackgroundColor: const Color(0x1ADC2626),
     ),
   );
-  return confirmed == true;
 }
 
 class _CollectionSwipeAction extends StatelessWidget {
@@ -912,23 +915,29 @@ class _CollectionCategoryTabState
       AppSnackbar.error('app.trade.filter.failed'.tr);
       return;
     }
-    final confirmed = await _showCollectionUncollectConfirmDialog(context);
-    if (!confirmed) {
-      return;
-    }
-    try {
-      final res = await _marketApi.removeCollection(schemaId: schemaId);
-      if (!res.success) {
-        AppSnackbar.error(
-          res.message.isNotEmpty ? res.message : 'app.trade.filter.failed'.tr,
-        );
-        return;
-      }
-      AppSnackbar.success('app.user.collection.uncollect_success'.tr);
-      await loadData(refresh: true);
-    } catch (_) {
-      AppSnackbar.error('app.trade.filter.failed'.tr);
-    }
+    await _showCollectionUncollectConfirmDialog(
+      context,
+      onConfirm: (dialogContext) async {
+        try {
+          final res = await _marketApi.removeCollection(schemaId: schemaId);
+          if (!res.success) {
+            AppSnackbar.error(
+              res.message.isNotEmpty
+                  ? res.message
+                  : 'app.trade.filter.failed'.tr,
+            );
+            return;
+          }
+          AppSnackbar.success('app.user.collection.uncollect_success'.tr);
+          await loadData(refresh: true);
+          if (dialogContext.mounted) {
+            popModalRoute(dialogContext);
+          }
+        } catch (_) {
+          AppSnackbar.error('app.trade.filter.failed'.tr);
+        }
+      },
+    );
   }
 
   @override
@@ -1110,23 +1119,29 @@ class _CollectionFavoriteTabState
       AppSnackbar.error('app.trade.filter.failed'.tr);
       return;
     }
-    final confirmed = await _showCollectionUncollectConfirmDialog(context);
-    if (!confirmed) {
-      return;
-    }
-    try {
-      final res = await _marketApi.removeFavorite(itemId: itemId);
-      if (!res.success) {
-        AppSnackbar.error(
-          res.message.isNotEmpty ? res.message : 'app.trade.filter.failed'.tr,
-        );
-        return;
-      }
-      AppSnackbar.success('app.user.collection.uncollect_success'.tr);
-      await loadData(refresh: true);
-    } catch (_) {
-      AppSnackbar.error('app.trade.filter.failed'.tr);
-    }
+    await _showCollectionUncollectConfirmDialog(
+      context,
+      onConfirm: (dialogContext) async {
+        try {
+          final res = await _marketApi.removeFavorite(itemId: itemId);
+          if (!res.success) {
+            AppSnackbar.error(
+              res.message.isNotEmpty
+                  ? res.message
+                  : 'app.trade.filter.failed'.tr,
+            );
+            return;
+          }
+          AppSnackbar.success('app.user.collection.uncollect_success'.tr);
+          await loadData(refresh: true);
+          if (dialogContext.mounted) {
+            popModalRoute(dialogContext);
+          }
+        } catch (_) {
+          AppSnackbar.error('app.trade.filter.failed'.tr);
+        }
+      },
+    );
   }
 
   @override

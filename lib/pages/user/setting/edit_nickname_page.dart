@@ -66,17 +66,22 @@ class _EditNicknamePageState extends State<EditNicknamePage> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  Future<bool> _submit({
+    bool closePageOnSuccess = true,
+    bool showButtonLoading = true,
+  }) async {
     final navigator = Navigator.of(context);
     final nickname = _controller.text.trim();
     if (nickname.isEmpty) {
       _showErrorSnack('app.user.setting.nickname_placeholder'.tr);
-      return;
+      return false;
     }
     if (_saving) {
-      return;
+      return false;
     }
-    setState(() => _saving = true);
+    if (showButtonLoading) {
+      setState(() => _saving = true);
+    }
     try {
       final res = await _api.editNickname(nickname: nickname);
       final message = res.datas?.toString().isNotEmpty == true
@@ -89,19 +94,21 @@ class _EditNicknamePageState extends State<EditNicknamePage> {
         if (Get.isRegistered<UserController>()) {
           await Get.find<UserController>().fetchUserData(showLoading: false);
         }
-        if (mounted) {
+        if (mounted && closePageOnSuccess) {
           navigator.pop();
         }
+        return true;
       } else {
         _showErrorSnack(
           message.isNotEmpty ? message : 'app.system.message.not_open'.tr,
         );
       }
     } finally {
-      if (mounted) {
+      if (mounted && showButtonLoading) {
         setState(() => _saving = false);
       }
     }
+    return false;
   }
 
   Future<void> _requestSubmit() async {
@@ -114,9 +121,10 @@ class _EditNicknamePageState extends State<EditNicknamePage> {
       return;
     }
     FocusScope.of(context).unfocus();
-    final confirmed = await showFigmaModal<bool>(
+    await showFigmaModal<void>(
       context: context,
-      child: FigmaConfirmationDialog(
+      barrierDismissible: false,
+      child: FigmaAsyncConfirmationDialog(
         icon: Icons.drive_file_rename_outline_rounded,
         iconColor: _buttonStart,
         iconBackgroundColor: const Color.fromRGBO(30, 64, 175, 0.10),
@@ -129,13 +137,24 @@ class _EditNicknamePageState extends State<EditNicknamePage> {
         highlightText: _previewNickname,
         primaryLabel: _localizedText(zh: '确认保存', en: 'Save Changes'),
         secondaryLabel: 'app.common.cancel'.tr,
-        onPrimary: () => popModalRoute(context, true),
-        onSecondary: () => popModalRoute(context, false),
+        onSecondary: () => popModalRoute(context),
+        onConfirm: (dialogContext) async {
+          final saved = await _submit(
+            closePageOnSuccess: false,
+            showButtonLoading: false,
+          );
+          if (!saved) {
+            return;
+          }
+          if (dialogContext.mounted) {
+            popModalRoute(dialogContext);
+          }
+          if (mounted) {
+            Navigator.of(context).pop();
+          }
+        },
       ),
     );
-    if (confirmed == true && mounted) {
-      await _submit();
-    }
   }
 
   String get _previewNickname {

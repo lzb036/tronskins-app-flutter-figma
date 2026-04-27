@@ -86,14 +86,13 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
     return _FeedbackDetailStyle.statusLabel(detail.status ?? _status ?? -1);
   }
 
-  Future<void> _solveTicket() async {
+  Future<bool> _solveTicket() async {
     try {
       final res = await controller.solveFeedback(_ticketId);
       if (res.success) {
         AppSnackbar.success('app.user.feedback.message.solve_success'.tr);
         controller.loadTickets(refresh: true);
-        _backToList();
-        return;
+        return true;
       }
       final message = res.message.isNotEmpty
           ? res.message
@@ -102,6 +101,7 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
     } catch (_) {
       AppSnackbar.error('app.user.login.message.error'.tr);
     }
+    return false;
   }
 
   Future<void> _refreshDetail() async {
@@ -134,9 +134,10 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
   }
 
   Future<void> _confirmSolveTicket() async {
-    final confirmed = await showFigmaModal<bool>(
+    await showFigmaModal<void>(
       context: context,
-      child: FigmaConfirmationDialog(
+      barrierDismissible: false,
+      child: FigmaAsyncConfirmationDialog(
         title: 'app.system.tips.title'.tr,
         message: 'app.user.feedback.message.solve_confirm'.tr,
         primaryLabel: 'app.common.confirm'.tr,
@@ -144,13 +145,21 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
         icon: Icons.check_circle_outline_rounded,
         iconColor: _FeedbackDetailStyle.brandBlue,
         iconBackgroundColor: _FeedbackDetailStyle.softBlue,
-        onPrimary: () => Navigator.of(context).pop(true),
-        onSecondary: () => Navigator.of(context).pop(false),
+        onSecondary: () => popModalRoute(context),
+        onConfirm: (dialogContext) async {
+          final solved = await _solveTicket();
+          if (!solved) {
+            return;
+          }
+          if (dialogContext.mounted) {
+            popModalRoute(dialogContext);
+          }
+          if (mounted) {
+            _backToList();
+          }
+        },
       ),
     );
-    if (confirmed == true && mounted) {
-      await _solveTicket();
-    }
   }
 
   void _addReply() {
