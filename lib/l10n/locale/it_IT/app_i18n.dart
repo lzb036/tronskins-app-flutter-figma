@@ -411,7 +411,7 @@ final Map<String, String> it_IT = {
   "app.user.setting.password_inconsistent_error":
       "La password inserita due volte non è coerente, per favore inserisci di nuovo!",
   "app.user.setting.password_format_tip":
-      "Suggerimento: il formato della password è 8-20 Inglese + combinazione numerica",
+      "Suggerimento: il formato della password è 6-20 Inglese + combinazione numerica",
   "app.user.server.title": "Il mio servizio",
   "app.user.server.help": "Centro di assistenza",
   "app.user.server.coupon": "Coupon",

@@ -421,7 +421,7 @@ final Map<String, String> la_LAT = {
   "app.user.setting.password_inconsistent_error":
       "La contraseña introducida dos veces es inconsistente, ¡por favor vuelva a introducirla!",
   "app.user.setting.password_format_tip":
-      "Consejo: El formato de contraseña es 8-20 Inglés + combinación de números",
+      "Consejo: El formato de contraseña es 6-20 Inglés + combinación de números",
   "app.user.server.title": "Mi servicio",
   "app.user.server.help": "Centro de ayuda",
   "app.user.server.coupon": "Cupón",

@@ -387,7 +387,7 @@ final Map<String, String> th_TH = {
   "app.user.setting.password_inconsistent_error":
       "รหัสผ่านที่ใส่สองครั้งไม่สอดคล้อง โปรดใส่อีกครั้ง!",
   "app.user.setting.password_format_tip":
-      "เคล็ดลับ: รูปแบบรหัสผ่านคือ 8-20 ภาษาอังกฤษ + การรวมตัวเลข",
+      "เคล็ดลับ: รูปแบบรหัสผ่านคือ 6-20 ภาษาอังกฤษ + การรวมตัวเลข",
   "app.user.server.title": "บริการของฉัน",
   "app.user.server.help": "ศูนย์ช่วยเหลือ",
   "app.user.server.coupon": "คูปอง",

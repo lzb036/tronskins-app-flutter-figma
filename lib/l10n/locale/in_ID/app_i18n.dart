@@ -407,7 +407,7 @@ final Map<String, String> in_ID = {
   "app.user.setting.password_inconsistent_error":
       "Kata sandi yang dimasukkan dua kali tidak konsisten, silakan masukkan kembali!",
   "app.user.setting.password_format_tip":
-      "Tip: Format kata sandi adalah 8-20 bahasa Inggris + kombinasi angka",
+      "Tip: Format kata sandi adalah 6-20 bahasa Inggris + kombinasi angka",
   "app.user.server.title": "Layanan Saya",
   "app.user.server.help": "Pusat Bantuan",
   "app.user.server.coupon": "Kupon",

@@ -416,7 +416,7 @@ final Map<String, String> ge_DE = {
   "app.user.setting.password_inconsistent_error":
       "Das zweimal eingegebene Passwort ist inkonsistent, bitte geben Sie es erneut ein!",
   "app.user.setting.password_format_tip":
-      "Tipp: Das Passwortformat ist 8-20 Englisch + Zahlenkombination",
+      "Tipp: Das Passwortformat ist 6-20 Englisch + Zahlenkombination",
   "app.user.server.title": "Mein Service",
   "app.user.server.help": "Hilfezentrum",
   "app.user.server.coupon": "Gutschein",

@@ -413,7 +413,7 @@ final Map<String, String> po_PT = {
   "app.user.setting.password_inconsistent_error":
       "A senha digitada duas vezes é inconsistente, por favor, insira novamente!",
   "app.user.setting.password_format_tip":
-      "Dica: O formato da senha é 8-20 Inglês + combinação de números",
+      "Dica: O formato da senha é 6-20 Inglês + combinação de números",
   "app.user.server.title": "Meu Serviço",
   "app.user.server.help": "Centro de Ajuda",
   "app.user.server.coupon": "Cupom",

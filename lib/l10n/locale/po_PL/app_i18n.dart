@@ -405,7 +405,7 @@ final Map<String, String> po_PL = {
   "app.user.setting.password_inconsistent_error":
       "Hasło wpisane dwa razy nie jest spójne, proszę ponownie wpisać!",
   "app.user.setting.password_format_tip":
-      "Porada: Format hasła to 8-20 angielski + kombinacja liczb",
+      "Porada: Format hasła to 6-20 angielski + kombinacja liczb",
   "app.user.server.title": "Moja usługa",
   "app.user.server.help": "Centrum Pomocy",
   "app.user.server.coupon": "Kupon",

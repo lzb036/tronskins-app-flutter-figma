@@ -395,7 +395,7 @@ final Map<String, String> tu_TR = {
   "app.user.setting.password_inconsistent_error":
       "İki kez girilen şifre tutarsız, lütfen tekrar girin!",
   "app.user.setting.password_format_tip":
-      "İpucu: Şifre formatı 8-20 İngilizce + sayı kombinasyonudur",
+      "İpucu: Şifre formatı 6-20 İngilizce + sayı kombinasyonudur",
   "app.user.server.title": "Hizmetim",
   "app.user.server.help": "Yardım Merkezi",
   "app.user.server.coupon": "Kupon",

@@ -324,7 +324,7 @@ final Map<String, String> zh_TW = {
   "app.user.setting.password_enter_new_word": "請輸入新密碼",
   "app.user.setting.password_enter_confirm_word": "請再次輸入新密碼",
   "app.user.setting.password_inconsistent_error": "兩次輸入的密碼不一致，請重新輸入！",
-  "app.user.setting.password_format_tip": "提示：密碼格式為8-20英文+數位組合",
+  "app.user.setting.password_format_tip": "提示：密碼格式為6-20英文+數位組合",
   "app.user.server.title": "我的服務",
   "app.user.server.help": "幫助中心",
   "app.user.server.coupon": "優惠券",

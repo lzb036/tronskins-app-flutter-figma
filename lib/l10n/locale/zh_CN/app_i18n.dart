@@ -324,7 +324,7 @@ final Map<String, String> zh_CN = {
   "app.user.setting.password_enter_new_word": "请输入新密码",
   "app.user.setting.password_enter_confirm_word": "请再次输入新密码",
   "app.user.setting.password_inconsistent_error": "两次输入的密码不一致，请重新输入！",
-  "app.user.setting.password_format_tip": "提示:密码格式为8-20位英文+数字组合",
+  "app.user.setting.password_format_tip": "提示:密码格式为6-20位英文+数字组合",
   "app.user.server.title": "我的服务",
   "app.user.server.help": "帮助中心",
   "app.user.server.coupon": "权益卡券",

@@ -347,7 +347,7 @@ final Map<String, String> ja_JP = {
   "app.user.setting.password_enter_confirm_word": "新しいパスワードを再入力",
   "app.user.setting.password_inconsistent_error":
       "2回入力したパスワードが一致していないので、再入力してください！",
-  "app.user.setting.password_format_tip": "ヒント：パスワードフォーマットは8-20英語+数字組み合わせです",
+  "app.user.setting.password_format_tip": "ヒント：パスワードフォーマットは6-20英語+数字組み合わせです",
   "app.user.server.title": "私のサービス",
   "app.user.server.help": "ヘルプセンター",
   "app.user.server.coupon": "クーポン",

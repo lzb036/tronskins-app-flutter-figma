@@ -305,14 +305,13 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
           children: [
             Text(
               itemTitle,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+              softWrap: true,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Color(0xFF0F172A),
-                fontSize: 15,
+                fontSize: 14,
                 fontWeight: FontWeight.w700,
-                height: 22 / 15,
+                height: 20 / 14,
               ),
             ),
             const SizedBox(height: 4),
@@ -890,6 +889,19 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
     );
   }
 
+  Widget _buildItemTitle(String title) {
+    return Text(
+      title,
+      softWrap: true,
+      style: const TextStyle(
+        color: _titleColor,
+        fontSize: 16,
+        height: 22 / 16,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+
   Widget _buildStatItem({required String label, required String value}) {
     return RichText(
       text: TextSpan(
@@ -1322,6 +1334,7 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
           _buildSurfaceCard(
             padding: const EdgeInsets.all(20),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildItemPreview(imageUrl: imageUrl),
                 const SizedBox(width: 20),
@@ -1329,17 +1342,7 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _titleColor,
-                          fontSize: 18,
-                          height: 28 / 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      _buildItemTitle(title),
                       const SizedBox(height: 10),
                       Wrap(
                         spacing: 16,

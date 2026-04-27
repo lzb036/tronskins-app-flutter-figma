@@ -424,7 +424,7 @@ final Map<String, String> fr_FR = {
   "app.user.setting.password_inconsistent_error":
       "Le mot de passe saisi deux fois n'est pas cohérent, veuillez le saisir à nouveau!",
   "app.user.setting.password_format_tip":
-      "Astuce: Le format du mot de passe est 8-20 anglais + combinaison de chiffres",
+      "Astuce: Le format du mot de passe est 6-20 anglais + combinaison de chiffres",
   "app.user.server.title": "Mon service",
   "app.user.server.help": "Centre d'aide",
   "app.user.server.coupon": "Coupon",

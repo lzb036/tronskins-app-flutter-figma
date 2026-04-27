@@ -413,7 +413,7 @@ final Map<String, String> ru_RU = {
   "app.user.setting.password_inconsistent_error":
       "Пароль, введенный дважды, несоответствует, пожалуйста, вновь введите!",
   "app.user.setting.password_format_tip":
-      "Совет: Формат пароля 8-20 английский + комбинация цифр",
+      "Совет: Формат пароля 6-20 английский + комбинация цифр",
   "app.user.server.title": "Моя служба",
   "app.user.server.help": "Центр помощи",
   "app.user.server.coupon": "Купон",

@@ -354,7 +354,7 @@ final Map<String, String> ko_KR = {
   "app.user.setting.password_enter_confirm_word": "새 비밀번호 확인",
   "app.user.setting.password_inconsistent_error":
       "두 번 입력한 암호는 일치하지 않습니다, 다시 입력하십시오!",
-  "app.user.setting.password_format_tip": "팁: 암호 형식은 8-20 영어 + 숫자 조합입니다.",
+  "app.user.setting.password_format_tip": "팁: 암호 형식은 6-20 영어 + 숫자 조합입니다.",
   "app.user.server.title": "내 서비스",
   "app.user.server.help": "도움말 센터",
   "app.user.server.coupon": "쿠폰",

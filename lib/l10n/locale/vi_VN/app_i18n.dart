@@ -397,7 +397,7 @@ final Map<String, String> vi_VN = {
   "app.user.setting.password_inconsistent_error":
       "Mật khẩu được nhập hai lần không nhất quán, vui lòng nhập lại!",
   "app.user.setting.password_format_tip":
-      "Mẹo: Định dạng mật khẩu là 8-20 tiếng Anh + kết hợp số",
+      "Mẹo: Định dạng mật khẩu là 6-20 tiếng Anh + kết hợp số",
   "app.user.server.title": "Dịch vụ của tôi",
   "app.user.server.help": "Trung tâm trợ giúp",
   "app.user.server.coupon": "Phiếu giảm giá",

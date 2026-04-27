@@ -403,7 +403,7 @@ final Map<String, String> en_US = {
   "app.user.setting.password_inconsistent_error":
       "The password entered twice is inconsistent, please re-enter!",
   "app.user.setting.password_format_tip":
-      "Tip: The password format is 8-20 English + number combination",
+      "Tip: The password format is 6-20 English + number combination",
   "app.user.server.title": "My Service",
   "app.user.server.help": "Help Center",
   "app.user.server.coupon": "Coupon",
