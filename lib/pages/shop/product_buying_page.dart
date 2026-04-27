@@ -176,6 +176,18 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
     return price * nums;
   }
 
+  int get _maxPublishQuantity => _remainNum > 0 ? _remainNum : 0;
+
+  String get _quantityLimitTips {
+    if (_purchaseNum >= 0 && _remainNum >= 0) {
+      return formatWithParams('app.trade.purchase.message.remaining_tips'.tr, [
+        _purchaseNum,
+        _remainNum,
+      ]);
+    }
+    return 'app.trade.purchase.num_placeholder'.tr;
+  }
+
   Future<bool> _checkPurchaseOnline() async {
     final user = UserStorage.getUserInfo();
     final uuid = user?.uuid ?? user?.shop?.uuid;
@@ -206,20 +218,27 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
   }
 
   void _sanitizeNum(String value) {
+    var text = value;
     if (value.contains('.')) {
-      _numController.text = value.split('.').first;
-      _numController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _numController.text.length),
-      );
+      text = value.split('.').first;
+      _setNumText(text);
       AppSnackbar.error('app.market.detail.message.num_error'.tr);
     }
-    final numValue = int.tryParse(_numController.text) ?? 0;
-    if (numValue > 1000) {
-      _numController.text = '1000';
-      _numController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _numController.text.length),
-      );
+    final numValue = int.tryParse(text) ?? 0;
+    final maxQuantity = _maxPublishQuantity;
+    if (text.isNotEmpty && numValue > maxQuantity) {
+      _setNumText(maxQuantity.toString());
     }
+  }
+
+  void _setNumText(String text) {
+    if (_numController.text == text) {
+      return;
+    }
+    _numController.text = text;
+    _numController.selection = TextSelection.fromPosition(
+      TextPosition(offset: _numController.text.length),
+    );
   }
 
   void _calibratePrice() {
@@ -618,7 +637,12 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
     final user = UserStorage.getUserInfo();
     final price = double.tryParse(_priceController.text) ?? 0;
     final nums = int.tryParse(_numController.text) ?? 0;
-    if (user == null || price <= 0 || nums <= 0) {
+    final maxQuantity = _maxPublishQuantity;
+    if (user == null ||
+        price <= 0 ||
+        nums <= 0 ||
+        maxQuantity <= 0 ||
+        nums > maxQuantity) {
       await _submit();
       return;
     }
@@ -722,9 +746,10 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
 
     final price = double.tryParse(_priceController.text) ?? 0;
     final nums = int.tryParse(_numController.text) ?? 0;
-    if (_remainNum == 0) {
+    final maxQuantity = _maxPublishQuantity;
+    if (maxQuantity <= 0) {
       resetSubmittingState();
-      AppSnackbar.error('app.trade.purchase.message.num_error'.tr);
+      AppSnackbar.error(_quantityLimitTips);
       return;
     }
     if (price <= 0) {
@@ -735,6 +760,12 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
     if (nums <= 0) {
       resetSubmittingState();
       AppSnackbar.error('app.market.detail.message.num_error'.tr);
+      return;
+    }
+    if (nums > maxQuantity) {
+      _setNumText(maxQuantity.toString());
+      resetSubmittingState();
+      AppSnackbar.error(_quantityLimitTips);
       return;
     }
     if (price < _purMinPrice) {
@@ -843,11 +874,8 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
 
   void _changeQuantity(int delta) {
     final current = int.tryParse(_numController.text.trim()) ?? 0;
-    final next = (current + delta).clamp(0, 1000);
-    _numController.text = next.toString();
-    _numController.selection = TextSelection.fromPosition(
-      TextPosition(offset: _numController.text.length),
-    );
+    final next = (current + delta).clamp(0, _maxPublishQuantity).toInt();
+    _setNumText(next.toString());
   }
 
   String _displayAmount(CurrencyController currency, double amount) {
@@ -1522,12 +1550,7 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
     final wearQuickOptions = _showFilter
         ? _buildWearQuickOptions(schema?.tags?.exterior?.key)
         : const <_ProductWearQuickOption>[];
-    final quantityTips = _purchaseNum >= 0 && _remainNum >= 0
-        ? formatWithParams('app.trade.purchase.message.remaining_tips'.tr, [
-            _purchaseNum,
-            _remainNum,
-          ])
-        : 'app.trade.purchase.num_placeholder'.tr;
+    final quantityTips = _quantityLimitTips;
     final priceHint = _purMinPrice > 0
         ? _displayAmount(currency, _purMinPrice)
         : '0.00';
