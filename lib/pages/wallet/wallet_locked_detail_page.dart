@@ -8,6 +8,7 @@ import 'package:tronskins_app/api/shop_product.dart';
 import 'package:tronskins_app/api/steam.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/game_storage.dart';
+import 'package:tronskins_app/common/theme/order_detail_status_style.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
@@ -295,38 +296,38 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
         );
   }
 
-  List<Color> _statusGradient(WalletLockedOrder? order) {
+  Color _statusHeadlineColor(WalletLockedOrder? order) {
     final status = _resolvedStatus(order);
     if (status == -1 || status == -2) {
-      return const [Color(0xFFEF4444), Color(0xFFDC2626)];
+      return kOrderDetailStatusTextDanger;
     }
     if (status == 6) {
-      return const [Color(0xFF10B981), Color(0xFF059669)];
+      return kOrderDetailStatusTextSuccess;
     }
     if (status == 5) {
-      return const [Color(0xFF0EA5E9), Color(0xFF2563EB)];
+      return kOrderDetailStatusTextSettlement;
     }
     if (status == 4 && _isBuyer(order)) {
-      return const [Color(0xFF0F766E), Color(0xFF14B8A6)];
+      return kOrderDetailStatusTextReady;
     }
     if (status == 2 && _isSeller(order)) {
-      return const [Color(0xFFF59E0B), Color(0xFFD97706)];
+      return kOrderDetailStatusTextReady;
     }
     if ([2, 3, 4].contains(status)) {
-      return const [Color(0xFF1D4ED8), Color(0xFF3B82F6)];
+      return kOrderDetailStatusTextProcessing;
     }
     final lockType = _resolvedLockType(order);
     final typeName = _resolvedTypeName(order).toLowerCase();
     if (lockType == 3 || typeName.contains('withdraw') || typeName == '提现') {
-      return const [Color(0xFFF59E0B), Color(0xFFEA580C)];
+      return kOrderDetailStatusTextProcessing;
     }
     if (lockType == 1 ||
         typeName.contains('buy') ||
         typeName.contains('purchase') ||
         typeName == '购买') {
-      return const [Color(0xFF2563EB), Color(0xFF1D4ED8)];
+      return kOrderDetailStatusTextSettlement;
     }
-    return const [Color(0xFF475569), Color(0xFF334155)];
+    return kOrderDetailStatusTextNeutral;
   }
 
   IconData _statusIcon(WalletLockedOrder? order) {
@@ -848,29 +849,19 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
     final lockedAmount = _formatAmount(currency, _resolvedLockedAmountValue());
     final lockedGift = _formatAmount(currency, _resolvedGiftAmountValue());
     final headline = _statusHeadline(order);
+    final headlineColor = _statusHeadlineColor(order);
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: _statusGradient(order),
+          colors: kOrderDetailStatusCardGradientColors,
         ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.10),
-            blurRadius: 15,
-            offset: Offset(0, 10),
-          ),
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.10),
-            blurRadius: 6,
-            offset: Offset(0, 4),
-          ),
-        ],
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+        boxShadow: kOrderDetailStatusCardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -898,8 +889,8 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
                       child: Text(
                         headline,
                         softWrap: false,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: headlineColor,
                           fontSize: 24,
                           fontWeight: FontWeight.w800,
                           height: 32 / 24,

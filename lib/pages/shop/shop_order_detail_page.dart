@@ -10,6 +10,7 @@ import 'package:tronskins_app/api/steam.dart';
 import 'package:tronskins_app/api/tradeoffer.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/game_storage.dart';
+import 'package:tronskins_app/common/theme/order_detail_status_style.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
@@ -34,35 +35,7 @@ class ShopOrderDetailPage extends StatelessWidget {
   static const _bodyColor = Color(0xFF444653);
   static const _lineColor = Color(0xFFECEEF0);
   static const _brandColor = Color(0xFF00288E);
-  static const _deliveryGoodsStatusGradient = [
-    Color(0xFF1E40AF),
-    Color(0xFF1D4ED8),
-  ];
   static const _deliveryGoodsGlassColor = Color(0x33FFFFFF);
-  static const _statusCardShadow = [
-    BoxShadow(
-      color: Color.fromRGBO(0, 0, 0, 0.10),
-      blurRadius: 15,
-      offset: Offset(0, 10),
-    ),
-    BoxShadow(
-      color: Color.fromRGBO(0, 0, 0, 0.10),
-      blurRadius: 6,
-      offset: Offset(0, 4),
-    ),
-  ];
-  static const _deliveryGoodsStatusShadow = [
-    BoxShadow(
-      color: Color.fromRGBO(6, 78, 59, 0.10),
-      blurRadius: 15,
-      offset: Offset(0, 10),
-    ),
-    BoxShadow(
-      color: Color.fromRGBO(6, 78, 59, 0.10),
-      blurRadius: 6,
-      offset: Offset(0, 4),
-    ),
-  ];
 
   final bool isPendingFlow;
 
@@ -238,21 +211,18 @@ class ShopOrderDetailPage extends StatelessWidget {
   }) {
     final headline = _statusHeadline(order);
     final statusRows = _buildStatusRows(order);
+    final headlineColor = _statusHeadlineColor(order);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: useDeliveryGoodsPalette
-              ? _deliveryGoodsStatusGradient
-              : _statusGradient(order.status),
+          colors: kOrderDetailStatusCardGradientColors,
         ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: useDeliveryGoodsPalette
-            ? _deliveryGoodsStatusShadow
-            : _statusCardShadow,
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+        boxShadow: kOrderDetailStatusCardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,8 +256,8 @@ class ShopOrderDetailPage extends StatelessWidget {
                       child: Text(
                         headline,
                         softWrap: false,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: headlineColor,
                           fontSize: 24,
                           fontWeight: FontWeight.w800,
                           height: 32 / 24,
@@ -1929,17 +1899,21 @@ class ShopOrderDetailPage extends StatelessWidget {
     return deadline > DateTime.now().millisecondsSinceEpoch;
   }
 
-  List<Color> _statusGradient(int? status) {
+  Color _statusHeadlineColor(ShopOrderItem order) {
+    final status = order.status;
     if (status == 6) {
-      return const [Color(0xFF10B981), Color(0xFF059669)];
+      return kOrderDetailStatusTextSuccess;
     }
     if (status == 5) {
-      return const [Color(0xFF0EA5E9), Color(0xFF2563EB)];
+      return kOrderDetailStatusTextSettlement;
     }
     if ([2, 3, 4].contains(status)) {
-      return const [Color(0xFFF59E0B), Color(0xFFD97706)];
+      return kOrderDetailStatusTextProcessing;
     }
-    return const [Color(0xFFEF4444), Color(0xFFDC2626)];
+    if (status == -1 || status == -2) {
+      return kOrderDetailStatusTextDanger;
+    }
+    return kOrderDetailStatusTextNeutral;
   }
 
   IconData _statusIcon(int? status) {

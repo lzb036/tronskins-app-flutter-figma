@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:tronskins_app/api/model/wallet/wallet_models.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/game_storage.dart';
+import 'package:tronskins_app/common/theme/order_detail_status_style.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
@@ -125,24 +126,13 @@ class WalletSettlementDetailPage extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: statusStyle.gradientColors,
+          colors: kOrderDetailStatusCardGradientColors,
         ),
         borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.10),
-            blurRadius: 15,
-            offset: Offset(0, 10),
-          ),
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.10),
-            blurRadius: 6,
-            offset: Offset(0, 4),
-          ),
-        ],
+        boxShadow: kOrderDetailStatusCardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,8 +152,8 @@ class WalletSettlementDetailPage extends StatelessWidget {
               Expanded(
                 child: Text(
                   _statusHeadline(),
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: statusStyle.headlineColor,
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
                     height: 32 / 24,
@@ -842,7 +832,7 @@ class WalletSettlementDetailPage extends StatelessWidget {
         text.contains('结算');
     if (isPending) {
       return const _SettlementDetailStatusStyle(
-        gradientColors: [Color(0xFF0EA5E9), Color(0xFF2563EB)],
+        headlineColor: kOrderDetailStatusTextSettlement,
         badgeBackground: Color(0xFFEFF6FF),
         badgeForeground: Color(0xFF2563EB),
         icon: Icons.schedule_rounded,
@@ -857,7 +847,7 @@ class WalletSettlementDetailPage extends StatelessWidget {
         text.contains('完成');
     if (isCompleted) {
       return const _SettlementDetailStatusStyle(
-        gradientColors: [Color(0xFF10B981), Color(0xFF059669)],
+        headlineColor: kOrderDetailStatusTextSuccess,
         badgeBackground: Color(0xFFF0FDF4),
         badgeForeground: Color(0xFF16A34A),
         icon: Icons.check_circle_outline_rounded,
@@ -872,7 +862,7 @@ class WalletSettlementDetailPage extends StatelessWidget {
         text.contains('取消');
     if (isCancelled) {
       return const _SettlementDetailStatusStyle(
-        gradientColors: [Color(0xFF64748B), Color(0xFF475569)],
+        headlineColor: kOrderDetailStatusTextDanger,
         badgeBackground: Color(0xFFF1F5F9),
         badgeForeground: Color(0xFF64748B),
         icon: Icons.cancel_outlined,
@@ -880,7 +870,7 @@ class WalletSettlementDetailPage extends StatelessWidget {
     }
 
     return const _SettlementDetailStatusStyle(
-      gradientColors: [Color(0xFF475569), Color(0xFF334155)],
+      headlineColor: kOrderDetailStatusTextProcessing,
       badgeBackground: Color(0xFFF1F5F9),
       badgeForeground: Color(0xFF64748B),
       icon: Icons.info_outline_rounded,
@@ -1257,13 +1247,13 @@ class WalletSettlementDetailPage extends StatelessWidget {
 
 class _SettlementDetailStatusStyle {
   const _SettlementDetailStatusStyle({
-    required this.gradientColors,
+    required this.headlineColor,
     required this.badgeBackground,
     required this.badgeForeground,
     required this.icon,
   });
 
-  final List<Color> gradientColors;
+  final Color headlineColor;
   final Color badgeBackground;
   final Color badgeForeground;
   final IconData icon;
