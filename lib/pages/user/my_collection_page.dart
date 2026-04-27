@@ -37,12 +37,6 @@ String _collectionTitle(String? marketHashName, String? marketName) {
   return fallback.isNotEmpty ? fallback : '--';
 }
 
-Color _collectionExteriorAccentColor(MarketItemTags? tags) {
-  return parseHexColor(tags?.exterior?.color) ??
-      parseHexColor(tags?.rarity?.color) ??
-      const Color(0xFF3B82F6);
-}
-
 String _formatCollectionPrice(double? price) {
   if (price == null) {
     return '--';
@@ -1458,7 +1452,7 @@ class _CollectionCategoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final title = _collectionTitle(item.marketHashName, item.marketName);
     final tags = item.tags;
-    final accentColor = _collectionExteriorAccentColor(tags);
+    final exterior = TagInfo.fromMarketTag(tags?.exterior);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1482,16 +1476,22 @@ class _CollectionCategoryCard extends StatelessWidget {
                         appId: item.appId,
                         quality: TagInfo.fromMarketTag(tags?.quality),
                         rarity: TagInfo.fromMarketTag(tags?.rarity),
-                        exterior: TagInfo.fromMarketTag(tags?.exterior),
+                        exterior: exterior,
                         showTopBadges: false,
                       ),
                     ),
                   ),
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: _CollectionRarityDot(color: accentColor),
-                  ),
+                  if (exterior?.hasLabel == true)
+                    Positioned(
+                      top: 4,
+                      left: 4,
+                      child: _CollectionCompactExteriorBadge(
+                        label: exterior!.label!,
+                        color:
+                            parseHexColor(exterior.color) ??
+                            const Color(0xFF397439),
+                      ),
+                    ),
                 ],
               ),
               const SizedBox(width: 24),
@@ -1567,108 +1567,112 @@ class _CollectionFavoriteCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: _collectionFavoriteCardDecoration(),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Stack(
+        child: Stack(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: _collectionFavoriteCardDecoration(),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: SizedBox(
-                      width: 80,
-                      height: 80,
-                      child: GameItemImage(
-                        imageUrl: item.imageUrl,
-                        appId: item.appId,
-                        quality: quality,
-                        rarity: rarity,
-                        exterior: exterior,
-                        showTopBadges: false,
-                      ),
-                    ),
-                  ),
-                  if (exterior?.hasLabel == true)
-                    Positioned(
-                      top: 4,
-                      left: 4,
-                      child: _CollectionCompactExteriorBadge(
-                        label: exterior!.label!,
-                        color:
-                            parseHexColor(exterior.color) ??
-                            const Color(0xFF397439),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 1),
-                            child: Text(
-                              title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Color(0xFF191C1E),
-                                fontSize: 15,
-                                height: 18.75 / 15,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: -0.3,
-                              ),
-                            ),
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: SizedBox(
+                          width: 80,
+                          height: 80,
+                          child: GameItemImage(
+                            imageUrl: item.imageUrl,
+                            appId: item.appId,
+                            quality: quality,
+                            rarity: rarity,
+                            exterior: exterior,
+                            showTopBadges: false,
                           ),
                         ),
+                      ),
+                      if (exterior?.hasLabel == true)
+                        Positioned(
+                          top: 4,
+                          left: 4,
+                          child: _CollectionCompactExteriorBadge(
+                            label: exterior!.label!,
+                            color:
+                                parseHexColor(exterior.color) ??
+                                const Color(0xFF397439),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF191C1E),
+                            fontSize: 15,
+                            height: 18.75 / 15,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        if (wear != null) ...[
+                          const SizedBox(height: 12),
+                          _CollectionFavoriteWearMetric(wear: wear),
+                        ],
+                        if (accessories.isNotEmpty || compactPrice != null) ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              if (accessories.isNotEmpty)
+                                Expanded(
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: _CollectionAccessoryPreviewRow(
+                                      items: accessories,
+                                    ),
+                                  ),
+                                )
+                              else
+                                const Spacer(),
+                              if (compactPrice != null)
+                                Text(
+                                  compactPrice,
+                                  style: const TextStyle(
+                                    color: Color(0x99444653),
+                                    fontFamily: 'Space Grotesk',
+                                    fontSize: 10,
+                                    height: 15 / 10,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
-                    if (wear != null) ...[
-                      const SizedBox(height: 12),
-                      _CollectionFavoriteWearMetric(wear: wear),
-                    ],
-                    if (accessories.isNotEmpty || compactPrice != null) ...[
-                      const SizedBox(height: 12),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          if (accessories.isNotEmpty)
-                            Expanded(
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: _CollectionAccessoryPreviewRow(
-                                  items: accessories,
-                                ),
-                              ),
-                            )
-                          else
-                            const Spacer(),
-                          if (compactPrice != null)
-                            Text(
-                              compactPrice,
-                              style: const TextStyle(
-                                color: Color(0x99444653),
-                                fontFamily: 'Space Grotesk',
-                                fontSize: 10,
-                                height: 15 / 10,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ],
+                  ),
+                ],
+              ),
+            ),
+            // 已失效角落丝带
+            if (item.hasStatusTag && item.statusName != null)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: _CollectionCornerRibbon(
+                  label: item.statusName!,
+                  radius: 12,
                 ),
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -1726,32 +1730,106 @@ class _CollectionFavoriteWearMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          width: 48,
-          child: Text(
-            wear.toStringAsFixed(4),
-            style: const TextStyle(
-              color: Color(0xFF191C1E),
-              fontFamily: 'Space Grotesk',
-              fontSize: 12,
-              height: 18 / 12,
-              fontWeight: FontWeight.w700,
-            ),
+        Text(
+          wear.toStringAsFixed(7),
+          style: const TextStyle(
+            color: Color(0xFF191C1E),
+            fontFamily: 'Space Grotesk',
+            fontSize: 12,
+            height: 18 / 12,
+            fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: WearProgressBar(
-            paintWear: wear,
-            height: 12,
-            style: WearProgressBarStyle.figmaCompact,
-          ),
+        const SizedBox(height: 6),
+        WearProgressBar(
+          paintWear: wear,
+          height: 12,
+          style: WearProgressBarStyle.figmaCompact,
         ),
       ],
     );
   }
+}
+
+class _CollectionCornerRibbon extends StatelessWidget {
+  const _CollectionCornerRibbon({required this.label, this.radius = 0});
+
+  final String label;
+  /// 卡片圆角半径，用于裁剪丝带
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.only(topRight: Radius.circular(radius)),
+      child: CustomPaint(
+        size: const Size(72, 72),
+        painter: _CornerRibbonPainter(label: label),
+      ),
+    );
+  }
+}
+
+class _CornerRibbonPainter extends CustomPainter {
+  const _CornerRibbonPainter({required this.label});
+
+  final String label;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const ribbonColor = Color(0xFFDC2626);
+    const bandHalf = 24.0; // 增大丝带宽度
+
+    final paint = Paint()
+      ..color = ribbonColor
+      ..style = PaintingStyle.fill;
+
+    // 斜向色带路径（右上角 45° 斜切）
+    final path = Path()
+      ..moveTo(size.width - bandHalf * 2, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width, bandHalf * 2)
+      ..close();
+    canvas.drawPath(path, paint);
+
+    // 旋转画布绘制文字
+    canvas.save();
+    canvas.translate(size.width - bandHalf, bandHalf);
+    canvas.rotate(0.785398); // 45°
+
+    final tp = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w800,
+          height: 1,
+          letterSpacing: 0.2,
+          shadows: [
+            Shadow(
+              color: Color(0x40000000),
+              offset: Offset(0, 1),
+              blurRadius: 2,
+            ),
+          ],
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.center,
+    )..layout();
+
+    tp.paint(canvas, Offset(-tp.width / 2, -tp.height / 2));
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_CornerRibbonPainter oldDelegate) =>
+      oldDelegate.label != label;
 }
 
 class _CollectionCompactExteriorBadge extends StatelessWidget {
@@ -1878,31 +1956,6 @@ class _CollectionAccessoryOverflowTile extends StatelessWidget {
   }
 }
 
-class _CollectionRarityDot extends StatelessWidget {
-  const _CollectionRarityDot({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 12,
-      height: 12,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.35),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _CollectionEmptyState extends StatelessWidget {
   const _CollectionEmptyState();
