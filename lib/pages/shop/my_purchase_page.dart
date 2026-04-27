@@ -250,6 +250,9 @@ class _MyPurchasePageState extends State<MyPurchasePage>
   }
 
   double _sumOrderPrice(ShopOrderItem order) {
+    if (order.totalPrice != null) {
+      return order.totalPrice!;
+    }
     if (order.price != null) {
       return order.price!;
     }
@@ -262,28 +265,59 @@ class _MyPurchasePageState extends State<MyPurchasePage>
     return total;
   }
 
-  double _buyRecordUnitPrice(ShopOrderItem order) {
-    final detail = _primaryRecordDetail(order);
-    final detailPrice = detail?.price;
-    if (detailPrice != null && detailPrice > 0) {
-      return detailPrice;
-    }
-    final quantity = _buyRecordQuantity(order);
-    if (quantity <= 0) {
-      return _sumOrderPrice(order);
-    }
-    return _sumOrderPrice(order) / quantity;
-  }
-
-  String _buyRecordUnitPriceFormula(
+  String _buyRecordActualIncomeText(
     ShopOrderItem order,
     CurrencyController currency,
   ) {
-    final quantity = _buyRecordQuantity(order);
-    final unitPrice = _buyRecordUnitPrice(order);
     final totalPrice = _sumOrderPrice(order);
-    return '${currency.format(unitPrice)} x $quantity = '
-        '${currency.format(totalPrice)}';
+    final incomeAmount = _extractIncomeAmount(
+      order: order,
+      totalPrice: totalPrice,
+      feeAmount: _extractFeeAmount(order),
+    );
+    return currency.format(incomeAmount ?? totalPrice);
+  }
+
+  double? _extractFeeAmount(ShopOrderItem order) {
+    return _findNumericValue(order.raw, const [
+      'service_fee',
+      'serviceFee',
+      'fee',
+      'commission',
+      'commission_fee',
+      'commissionFee',
+      'charge_fee',
+      'chargeFee',
+      'tax',
+    ]);
+  }
+
+  double? _extractIncomeAmount({
+    required ShopOrderItem order,
+    required double totalPrice,
+    required double? feeAmount,
+  }) {
+    final direct = _findNumericValue(order.raw, const [
+      'actual_income',
+      'actualIncome',
+      'income',
+      'seller_income',
+      'sellerIncome',
+      'real_income',
+      'realIncome',
+      'final_income',
+      'finalIncome',
+      'receivable',
+      'receivable_amount',
+      'receivableAmount',
+    ]);
+    if (direct != null) {
+      return direct;
+    }
+    if (feeAmount != null) {
+      return totalPrice - feeAmount;
+    }
+    return null;
   }
 
   Future<void> _openReceiptFilterSheet() async {
@@ -440,6 +474,57 @@ class _MyPurchasePageState extends State<MyPurchasePage>
       return value.toInt();
     }
     return int.tryParse(value.toString());
+  }
+
+  double? _asDouble(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is num) {
+      return value.toDouble();
+    }
+    return double.tryParse(value.toString());
+  }
+
+  double? _findNumericValue(dynamic data, List<String> keys) {
+    final value = _findValue(
+      data,
+      keys.map((item) => item.toLowerCase()).toSet(),
+    );
+    return _asDouble(value);
+  }
+
+  dynamic _findValue(
+    dynamic data,
+    Set<String> normalizedKeys, [
+    int depth = 0,
+  ]) {
+    if (depth > 3 || data == null) {
+      return null;
+    }
+    if (data is Map) {
+      for (final entry in data.entries) {
+        final key = entry.key.toString().toLowerCase();
+        if (normalizedKeys.contains(key) && entry.value != null) {
+          return entry.value;
+        }
+      }
+      for (final entry in data.entries) {
+        final result = _findValue(entry.value, normalizedKeys, depth + 1);
+        if (result != null) {
+          return result;
+        }
+      }
+    }
+    if (data is List) {
+      for (final item in data) {
+        final result = _findValue(item, normalizedKeys, depth + 1);
+        if (result != null) {
+          return result;
+        }
+      }
+    }
+    return null;
   }
 
   TagInfo? _schemaTag(ShopSchemaInfo? schema, String key) {
@@ -816,9 +901,9 @@ class _MyPurchasePageState extends State<MyPurchasePage>
       ),
       child: Obx(
         () => _buildBuyRecordSummaryRow(
-          label: _text(zh: '单价', en: 'Unit Price'),
+          label: _text(zh: '到账金额', en: 'Actual Income'),
           value: Text(
-            _buyRecordUnitPriceFormula(order, currency),
+            _buyRecordActualIncomeText(order, currency),
             textAlign: TextAlign.right,
             style: const TextStyle(
               color: _buyRecordBodyColor,
