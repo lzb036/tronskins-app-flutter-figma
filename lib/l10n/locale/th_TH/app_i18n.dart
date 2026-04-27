@@ -548,6 +548,7 @@ final Map<String, String> th_TH = {
   "app.trade.purchase.placeholder_num": "กรุณากรอกจำนวนซื้อ",
   "app.trade.purchase.num": "จำนวนซื้อ",
   "app.trade.purchase.payable": "จำนวนเงินที่ต้องชำระ",
+  "app.trade.purchase.estimated_amount": "ยอดเงินโดยประมาณ",
   "app.trade.purchase.num_placeholder": "กรุณาใส่ปริมาณที่ต้องการ",
   "app.trade.purchase.buyer_notice_1":
       "คุณต้องยอมรับข้อเสนอภายใน 18 ชั่วโมงหลังจากข้อเสนอของผู้ขาย หรือไม่",
@@ -736,9 +737,9 @@ final Map<String, String> th_TH = {
   "app.steam.message.loading_steam_id": "กําลังโหลด Steam ID...",
   "app.steam.message.loading_account_status": "กําลังโหลดสถานะบัญชี...",
   "app.steam.message.verify_success": "การยืนยันสําเร็จ!",
-    "app.system.snackbar.success_title": "สำเร็จ",
-    "app.system.snackbar.failed_title": "ล้มเหลว",
-    "app.system.message.success": "การดำเนินงานประสบความสำเร็จ!",
+  "app.system.snackbar.success_title": "สำเร็จ",
+  "app.system.snackbar.failed_title": "ล้มเหลว",
+  "app.system.message.success": "การดำเนินงานประสบความสำเร็จ!",
   "app.system.version.latest_discover": "ค้นพบรุ่นล่าสุด",
   "app.system.version.download_failed":
       "ล้มเหลวในการดาวน์โหลดแพคเกจการปรับปรุง",

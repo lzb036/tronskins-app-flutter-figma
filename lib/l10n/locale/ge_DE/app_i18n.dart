@@ -582,6 +582,7 @@ final Map<String, String> ge_DE = {
   "app.trade.purchase.placeholder_num": "Bitte geben Sie die Kaufmenge ein",
   "app.trade.purchase.num": "Kaufmenge",
   "app.trade.purchase.payable": "Zahlungsbetrag",
+  "app.trade.purchase.estimated_amount": "Geschätzter Betrag",
   "app.trade.purchase.num_placeholder":
       "Bitte geben Sie die erforderliche Menge ein",
   "app.trade.purchase.buyer_notice_1":
@@ -778,9 +779,9 @@ final Map<String, String> ge_DE = {
   "app.steam.message.loading_steam_id": "Steam-ID wird geladen...",
   "app.steam.message.loading_account_status": "Kontostatus wird geladen...",
   "app.steam.message.verify_success": "Verifizierung erfolgreich!",
-    "app.system.snackbar.success_title": "Erfolg",
-    "app.system.snackbar.failed_title": "Fehlgeschlagen",
-    "app.system.message.success": "Operation erfolgreich!",
+  "app.system.snackbar.success_title": "Erfolg",
+  "app.system.snackbar.failed_title": "Fehlgeschlagen",
+  "app.system.message.success": "Operation erfolgreich!",
   "app.system.version.latest_discover": "Entdecken Sie die neueste Version",
   "app.system.version.download_failed":
       "Das Updatepaket wurde nicht heruntergeladen",

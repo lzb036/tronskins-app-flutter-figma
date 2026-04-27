@@ -571,6 +571,7 @@ final Map<String, String> in_ID = {
   "app.trade.purchase.placeholder_num": "Silakan masukkan jumlah beli",
   "app.trade.purchase.num": "Kuantitas Pembelian",
   "app.trade.purchase.payable": "Jumlah yang wajib",
+  "app.trade.purchase.estimated_amount": "Perkiraan jumlah",
   "app.trade.purchase.num_placeholder":
       "Silakan masukkan jumlah yang dibutuhkan",
   "app.trade.purchase.buyer_notice_1":
@@ -761,9 +762,9 @@ final Map<String, String> in_ID = {
   "app.steam.message.loading_steam_id": "Memuat ID Steam...",
   "app.steam.message.loading_account_status": "Memuat status akun...",
   "app.steam.message.verify_success": "Verifikasi berhasil!",
-    "app.system.snackbar.success_title": "Sukses",
-    "app.system.snackbar.failed_title": "Gagal",
-    "app.system.message.success": "Operasi berhasil!",
+  "app.system.snackbar.success_title": "Sukses",
+  "app.system.snackbar.failed_title": "Gagal",
+  "app.system.message.success": "Operasi berhasil!",
   "app.system.version.latest_discover": "Temukan versi terbaru",
   "app.system.version.download_failed": "Gagal mengunduh paket pembaruan",
 };

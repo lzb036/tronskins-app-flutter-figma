@@ -653,9 +653,8 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
             ],
           ],
         ),
-        highlightText: _isEnglishLocale
-            ? 'Estimated lock: ${currency.format(price * nums)}'
-            : '预计冻结金额 ${currency.format(price * nums)}',
+        highlightText:
+            '${'app.trade.purchase.estimated_amount'.tr} ${currency.format(price * nums)}',
         primaryLabel: _isEnglishLocale ? 'Confirm Submission' : '确认提交',
         secondaryLabel: 'app.common.cancel'.tr,
         onPrimary: () {

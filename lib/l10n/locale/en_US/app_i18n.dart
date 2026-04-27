@@ -579,6 +579,7 @@ final Map<String, String> en_US = {
   "app.trade.purchase.placeholder_num": "Please enter the purchase quantity",
   "app.trade.purchase.num": "Purchase Quantity",
   "app.trade.purchase.payable": "Amount Due",
+  "app.trade.purchase.estimated_amount": "Estimated amount",
   "app.trade.purchase.num_placeholder": "Please enter the quantity required",
   "app.trade.purchase.buyer_notice_1":
       "You must accept the offer within 18 hours of the seller's offer, or else",
@@ -771,9 +772,9 @@ final Map<String, String> en_US = {
   "app.steam.message.loading_steam_id": "Loading Steam ID...",
   "app.steam.message.loading_account_status": "Loading account status...",
   "app.steam.message.verify_success": "Verification successful!",
-    "app.system.snackbar.success_title": "Success",
-    "app.system.snackbar.failed_title": "Failed",
-    "app.system.message.success": "Operation successful!",
+  "app.system.snackbar.success_title": "Success",
+  "app.system.snackbar.failed_title": "Failed",
+  "app.system.message.success": "Operation successful!",
   "app.system.version.latest_discover": "Discover the latest version",
   "app.system.version.download_failed": "Failed to download the update package",
 };

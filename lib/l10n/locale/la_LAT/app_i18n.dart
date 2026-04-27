@@ -592,6 +592,7 @@ final Map<String, String> la_LAT = {
       "Por favor ingresa la cantidad de compra",
   "app.trade.purchase.num": "Cantidad de compra",
   "app.trade.purchase.payable": "Cantidad adeudada",
+  "app.trade.purchase.estimated_amount": "Monto estimado",
   "app.trade.purchase.num_placeholder":
       "Por favor introduzca la cantidad requerida",
   "app.trade.purchase.buyer_notice_1":
@@ -785,9 +786,9 @@ final Map<String, String> la_LAT = {
   "app.steam.message.loading_steam_id": "Cargando ID de Steam...",
   "app.steam.message.loading_account_status": "Cargando estado de la cuenta...",
   "app.steam.message.verify_success": "¡Verificacion exitosa!",
-    "app.system.snackbar.success_title": "Éxito",
-    "app.system.snackbar.failed_title": "Fallo",
-    "app.system.message.success": " ¡Operación exitosa!",
+  "app.system.snackbar.success_title": "Éxito",
+  "app.system.snackbar.failed_title": "Fallo",
+  "app.system.message.success": " ¡Operación exitosa!",
   "app.system.version.latest_discover": "Descubre la última versión",
   "app.system.version.download_failed":
       "No se pudo descargar el paquete de actualización",

@@ -566,6 +566,7 @@ final Map<String, String> po_PL = {
   "app.trade.purchase.placeholder_num": "Wprowadź ilość zakupu",
   "app.trade.purchase.num": "Ilość zakupu",
   "app.trade.purchase.payable": "Kwota należna",
+  "app.trade.purchase.estimated_amount": "Szacowana kwota",
   "app.trade.purchase.num_placeholder": "Proszę wpisać wymaganą ilość",
   "app.trade.purchase.buyer_notice_1":
       "Musisz zaakceptować ofertę w ciągu 18 godzin od oferty sprzedawcy, w przeciwnym razie",
@@ -758,9 +759,9 @@ final Map<String, String> po_PL = {
   "app.steam.message.loading_steam_id": "Ladowanie Steam ID...",
   "app.steam.message.loading_account_status": "Ladowanie statusu konta...",
   "app.steam.message.verify_success": "Weryfikacja zakonczona pomyslnie!",
-    "app.system.snackbar.success_title": "Sukces",
-    "app.system.snackbar.failed_title": "Niepowodzenie",
-    "app.system.message.success": "Operacja udana!",
+  "app.system.snackbar.success_title": "Sukces",
+  "app.system.snackbar.failed_title": "Niepowodzenie",
+  "app.system.message.success": "Operacja udana!",
   "app.system.version.latest_discover": "Odkryj najnowszą wersję",
   "app.system.version.download_failed": "Nie można pobrać pakietu aktualizacji",
 };

@@ -558,6 +558,7 @@ final Map<String, String> vi_VN = {
   "app.trade.purchase.placeholder_num": "Vui lòng nhập số lượng mua",
   "app.trade.purchase.num": "Số lượng mua",
   "app.trade.purchase.payable": "Số tiền phải trả",
+  "app.trade.purchase.estimated_amount": "Số tiền ước tính",
   "app.trade.purchase.num_placeholder": "Vui lòng nhập số lượng cần thiết",
   "app.trade.purchase.buyer_notice_1":
       "Bạn phải chấp nhận đề nghị trong vòng 18 giờ kể từ đề nghị của người bán, hoặc",
@@ -751,9 +752,9 @@ final Map<String, String> vi_VN = {
   "app.steam.message.loading_account_status":
       "Dang tai trang thai tai khoan...",
   "app.steam.message.verify_success": "Xac minh thanh cong!",
-    "app.system.snackbar.success_title": "Thành công",
-    "app.system.snackbar.failed_title": "Thất bại",
-    "app.system.message.success": "Hoạt động thành công!",
+  "app.system.snackbar.success_title": "Thành công",
+  "app.system.snackbar.failed_title": "Thất bại",
+  "app.system.message.success": "Hoạt động thành công!",
   "app.system.version.latest_discover": "Khám phá phiên bản mới nhất",
   "app.system.version.download_failed": "Không thể tải xuống gói cập nhật",
 };

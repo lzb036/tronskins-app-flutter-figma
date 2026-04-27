@@ -561,6 +561,7 @@ final Map<String, String> tu_TR = {
   "app.trade.purchase.placeholder_num": "Satın alma miktarını girin",
   "app.trade.purchase.num": "Satın Alma Miktarı",
   "app.trade.purchase.payable": "Ödemeli miktar",
+  "app.trade.purchase.estimated_amount": "Tahmini tutar",
   "app.trade.purchase.num_placeholder": "Lütfen gereken miktarı girin",
   "app.trade.purchase.buyer_notice_1":
       "Satıcının teklifinden 18 saat içinde teklifi kabul etmelisiniz, yoksa",
@@ -752,9 +753,9 @@ final Map<String, String> tu_TR = {
   "app.steam.message.loading_steam_id": "Steam kimligi yukleniyor...",
   "app.steam.message.loading_account_status": "Hesap durumu yukleniyor...",
   "app.steam.message.verify_success": "Dogrulama basarili!",
-    "app.system.snackbar.success_title": "Başarılı",
-    "app.system.snackbar.failed_title": "Başarısız",
-    "app.system.message.success": "Operasyon başarılı!",
+  "app.system.snackbar.success_title": "Başarılı",
+  "app.system.snackbar.failed_title": "Başarısız",
+  "app.system.message.success": "Operasyon başarılı!",
   "app.system.version.latest_discover": "En son sürümünü keşfedin",
   "app.system.version.download_failed": "Güncelleme paketini indiremedi",
 };
