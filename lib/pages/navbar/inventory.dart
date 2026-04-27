@@ -730,7 +730,10 @@ class _InventoryPageState extends State<InventoryPage>
         return _buildLoadingGrid('$storageKey-loading');
       }
       if (visibleItems.isEmpty) {
-        return _buildInventoryEmptyState();
+        return _buildInventoryEmptyState(
+          storageKey: storageKey,
+          scrollController: scrollController,
+        );
       }
       return _buildRefreshScrollView(
         storageKey: storageKey,
@@ -822,17 +825,27 @@ class _InventoryPageState extends State<InventoryPage>
     });
   }
 
-  Widget _buildInventoryEmptyState() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 32),
-      child: SizedBox.expand(
-        child: MarketEmptyState(
-          icon: Icons.inventory_2_outlined,
-          title: _emptyTitle,
-          subtitle: _emptySubtitle,
-          blendWithBackground: true,
+  Widget _buildInventoryEmptyState({
+    required String storageKey,
+    required ScrollController scrollController,
+  }) {
+    return _buildRefreshScrollView(
+      storageKey: '$storageKey-empty',
+      scrollController: scrollController,
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 32),
+          sliver: SliverFillRemaining(
+            hasScrollBody: false,
+            child: MarketEmptyState(
+              icon: Icons.inventory_2_outlined,
+              title: _emptyTitle,
+              subtitle: _emptySubtitle,
+              blendWithBackground: true,
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 

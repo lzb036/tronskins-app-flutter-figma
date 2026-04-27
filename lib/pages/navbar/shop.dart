@@ -837,6 +837,46 @@ class _ShopPageState extends State<ShopPage>
     return '$quantity';
   }
 
+  int _sellRecordItemQuantity(ShopOrderItem record) {
+    if (record.nums != null && record.nums! > 0) {
+      return record.nums!;
+    }
+    var total = 0;
+    for (final detail in record.details) {
+      total += detail.count ?? 1;
+    }
+    return total > 0 ? total : 1;
+  }
+
+  List<ShopOrderDetail> _sellRecordPreviewDetails(ShopOrderItem record) {
+    if (record.details.isEmpty) {
+      return const <ShopOrderDetail>[];
+    }
+    final previews = <ShopOrderDetail>[];
+    final quantity = _sellRecordItemQuantity(record);
+    for (final detail in record.details) {
+      final repeat = (detail.count ?? 1) > 0 ? (detail.count ?? 1) : 1;
+      for (var index = 0; index < repeat; index++) {
+        previews.add(detail);
+        if (previews.length >= 3) {
+          return previews;
+        }
+      }
+    }
+    while (previews.length < 3 && previews.length < quantity) {
+      previews.add(record.details.first);
+    }
+    return previews;
+  }
+
+  String _sellRecordStackCountLabel(ShopOrderItem record) {
+    final quantity = _sellRecordItemQuantity(record);
+    if (quantity > 99) {
+      return '99+';
+    }
+    return '$quantity';
+  }
+
   int _pendingShippingType(ShopOrderItem order) {
     for (final detail in order.details) {
       if (detail.type == 2) {
@@ -2689,13 +2729,8 @@ class _ShopPageState extends State<ShopPage>
         ? null
         : _detailText(primary, const ['paint_wear', 'paintWear']) ??
               wearValue?.toString();
-    final totalItemCount = record.details.fold<int>(
-      0,
-      (sum, detail) => sum + (detail.count ?? 1),
-    );
-    final hiddenDetailCount = record.details.length > 1
-        ? record.details.length - 1
-        : 0;
+    final totalItemCount = _sellRecordItemQuantity(record);
+    final useStackPreview = totalItemCount > 1;
     final showCountdown = _showRecordCountdown(record);
     final statusText = _buildRecordStatusText(record);
     final statusVisual = _buildSellRecordStatusVisual(record);
@@ -2745,8 +2780,9 @@ class _ShopPageState extends State<ShopPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildSellRecordPreviewBox(
+                    record: record,
                     primary: primary,
-                    hiddenDetailCount: hiddenDetailCount,
+                    useStackPreview: useStackPreview,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -2923,9 +2959,14 @@ class _ShopPageState extends State<ShopPage>
   }
 
   Widget _buildSellRecordPreviewBox({
+    required ShopOrderItem record,
     required ShopOrderDetail? primary,
-    required int hiddenDetailCount,
+    required bool useStackPreview,
   }) {
+    if (useStackPreview) {
+      return _buildSellRecordStackPreview(record);
+    }
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -2961,28 +3002,135 @@ class _ShopPageState extends State<ShopPage>
                   ),
                 ),
         ),
-        if (hiddenDetailCount > 0)
-          Positioned(
-            right: 6,
-            bottom: 6,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.58),
-                borderRadius: BorderRadius.circular(999),
+      ],
+    );
+  }
+
+  Widget _buildSellRecordStackPreview(ShopOrderItem record) {
+    final previewDetails = _sellRecordPreviewDetails(record);
+    if (previewDetails.isEmpty) {
+      return _buildSellRecordPreviewBox(
+        record: record,
+        primary: null,
+        useStackPreview: false,
+      );
+    }
+    const tileSize = 80.0;
+    const horizontalPeek = 12.0;
+    const verticalPeek = 7.0;
+    const badgeSize = 24.0;
+    const badgeOverlap = 8.0;
+    final stackCount = previewDetails.length > 3 ? 3 : previewDetails.length;
+    final width = tileSize + ((stackCount - 1) * horizontalPeek);
+    final height = tileSize + ((stackCount - 1) * verticalPeek);
+
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          for (var layer = stackCount - 1; layer >= 0; layer--)
+            Positioned(
+              left: layer * horizontalPeek,
+              top: layer * verticalPeek,
+              child: _buildSellRecordStackPreviewTile(
+                previewDetails[layer],
+                isFront: layer == 0,
+                visualDepth: layer,
               ),
+            ),
+          Positioned(
+            left: tileSize - badgeSize + badgeOverlap,
+            top: -badgeOverlap,
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 24),
+              height: 24,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.white, width: 1.5),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x1A0F172A),
+                    blurRadius: 15,
+                    offset: Offset(0, 4),
+                    spreadRadius: -2,
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
               child: Text(
-                '+$hiddenDetailCount',
+                _sellRecordStackCountLabel(record),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 10,
-                  height: 12 / 10,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
+                  height: 1,
                 ),
               ),
             ),
           ),
-      ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSellRecordStackPreviewTile(
+    ShopOrderDetail detail, {
+    required bool isFront,
+    required int visualDepth,
+  }) {
+    final imageOpacity = isFront ? 1.0 : (visualDepth == 1 ? 0.9 : 0.78);
+
+    return Container(
+      width: 80,
+      height: 80,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0x1AC4C5D5)),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+        ),
+        boxShadow: isFront
+            ? const [
+                BoxShadow(
+                  color: Color(0x1A000000),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+                BoxShadow(
+                  color: Color(0x1A000000),
+                  blurRadius: 4,
+                  offset: Offset(0, 1),
+                  spreadRadius: -2,
+                ),
+              ]
+            : const [
+                BoxShadow(
+                  color: Color(0x0D000000),
+                  blurRadius: 2,
+                  offset: Offset(0, 1),
+                ),
+              ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Center(
+        child: Opacity(
+          opacity: imageOpacity,
+          child: _buildSellRecordDetailImage(
+            detail: detail,
+            schemas: salesController.schemas,
+            width: 80,
+            height: 80,
+            showTopBadges: false,
+            showStickers: false,
+          ),
+        ),
+      ),
     );
   }
 
