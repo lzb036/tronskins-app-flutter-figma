@@ -2845,7 +2845,8 @@ class _ShopPageState extends State<ShopPage>
                               ],
                             ),
                             const SizedBox(height: 10),
-                            if (wearValue != null &&
+                            if (!useStackPreview &&
+                                wearValue != null &&
                                 wearValue > 0 &&
                                 wearText != null &&
                                 wearText.isNotEmpty)
@@ -2854,7 +2855,7 @@ class _ShopPageState extends State<ShopPage>
                                 wearText: wearText,
                                 textColor: secondaryColor,
                               )
-                            else if (totalItemCount > 1)
+                            else if (!useStackPreview && totalItemCount > 1)
                               Text(
                                 'x$totalItemCount',
                                 maxLines: 1,
