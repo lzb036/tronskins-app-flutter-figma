@@ -238,13 +238,11 @@ class _CollectionSwipeAction extends StatelessWidget {
     required this.child,
     required this.onPressed,
     required this.slidableKey,
-    this.radius = 0,
   });
 
   final Widget child;
   final VoidCallback onPressed;
   final Key slidableKey;
-  final double radius;
 
   @override
   Widget build(BuildContext context) {
@@ -259,7 +257,7 @@ class _CollectionSwipeAction extends StatelessWidget {
             backgroundColor: const Color(0xFFDC2626),
             foregroundColor: Colors.white,
             icon: Icons.bookmark_remove_rounded,
-            borderRadius: BorderRadius.circular(radius),
+            borderRadius: BorderRadius.zero,
           ),
         ],
       ),
@@ -904,15 +902,8 @@ class _CollectionCategoryTabState
     }
   }
 
-  Future<void> _openDetail(CollectionTemplateItem item) async {
-    await Get.toNamed(
-      Routers.MARKET_DETAIL,
-      arguments: item.toMarketItemEntity(),
-    );
-    if (!mounted) {
-      return;
-    }
-    await loadData(refresh: true);
+  void _openDetail(CollectionTemplateItem item) {
+    Get.toNamed(Routers.MARKET_DETAIL, arguments: item.toMarketItemEntity());
   }
 
   Future<void> _cancelCollection(CollectionTemplateItem item) async {
@@ -1109,15 +1100,8 @@ class _CollectionFavoriteTabState
     }
   }
 
-  Future<void> _openDetail(CollectionFavoriteItem item) async {
-    await Get.toNamed(
-      Routers.MARKET_DETAIL,
-      arguments: item.toMarketItemEntity(),
-    );
-    if (!mounted) {
-      return;
-    }
-    await loadData(refresh: true);
+  void _openDetail(CollectionFavoriteItem item) {
+    Get.toNamed(Routers.MARKET_DETAIL, arguments: item.toMarketItemEntity());
   }
 
   Future<void> _cancelFavorite(CollectionFavoriteItem item) async {
@@ -1169,7 +1153,6 @@ class _CollectionFavoriteTabState
                                 'collection-favorite-${_items[i].itemId ?? i}',
                               ),
                               onPressed: () => _cancelFavorite(_items[i]),
-                              radius: 12,
                               child: _CollectionFavoriteCard(
                                 item: _items[i],
                                 onTap: () => _openDetail(_items[i]),
@@ -1222,7 +1205,7 @@ BoxDecoration _collectionCardDecoration({Color color = Colors.white}) {
 BoxDecoration _collectionFavoriteCardDecoration({Color color = Colors.white}) {
   return BoxDecoration(
     color: color,
-    borderRadius: BorderRadius.circular(12),
+    borderRadius: BorderRadius.zero,
     boxShadow: const [
       BoxShadow(color: Color(0x0D0F172A), blurRadius: 2, offset: Offset(0, 1)),
     ],
@@ -1566,7 +1549,7 @@ class _CollectionFavoriteCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.zero,
         child: Stack(
           children: [
             Container(
@@ -1578,7 +1561,7 @@ class _CollectionFavoriteCard extends StatelessWidget {
                   Stack(
                     children: [
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.zero,
                         child: SizedBox(
                           width: 80,
                           height: 80,
@@ -1669,7 +1652,7 @@ class _CollectionFavoriteCard extends StatelessWidget {
                 right: 0,
                 child: _CollectionCornerRibbon(
                   label: item.statusName!,
-                  radius: 12,
+                  radius: 0,
                 ),
               ),
           ],
@@ -1759,6 +1742,7 @@ class _CollectionCornerRibbon extends StatelessWidget {
   const _CollectionCornerRibbon({required this.label, this.radius = 0});
 
   final String label;
+
   /// 卡片圆角半径，用于裁剪丝带
   final double radius;
 
@@ -1955,7 +1939,6 @@ class _CollectionAccessoryOverflowTile extends StatelessWidget {
     );
   }
 }
-
 
 class _CollectionEmptyState extends StatelessWidget {
   const _CollectionEmptyState();
