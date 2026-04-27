@@ -115,6 +115,11 @@ class ShopOrderDetailPage extends StatelessWidget {
                                     _copyOrderId(context, order.id!.toString()),
                           useDeliveryGoodsPalette: args.fromDeliveryGoodsDrawer,
                         ),
+                        const SizedBox(height: 16),
+                        _buildOrderStatusCard(
+                          order: order,
+                          statusText: args.statusText,
+                        ),
                         if (pendingBuyer != null) ...[
                           const SizedBox(height: 16),
                           _buildPendingBuyerCard(
@@ -211,9 +216,9 @@ class ShopOrderDetailPage extends StatelessWidget {
     required VoidCallback? onCopy,
     required bool useDeliveryGoodsPalette,
   }) {
-    final headline = _statusHeadline(order, statusText: statusText);
+    final statusLabel = _statusHeadline(order, statusText: statusText);
+    final headline = _statusDescription(order, fallback: statusLabel);
     final statusRows = _buildStatusRows(order);
-    final headlineColor = _statusHeadlineColor(order);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -259,7 +264,7 @@ class ShopOrderDetailPage extends StatelessWidget {
                         headline,
                         softWrap: false,
                         style: TextStyle(
-                          color: headlineColor,
+                          color: Colors.white,
                           fontSize: 24,
                           fontWeight: FontWeight.w800,
                           height: 32 / 24,
@@ -327,6 +332,55 @@ class ShopOrderDetailPage extends StatelessWidget {
                   : null,
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderStatusCard({
+    required ShopOrderItem order,
+    required String? statusText,
+  }) {
+    final statusLabel = _statusHeadline(order, statusText: statusText);
+    final statusColor = _statusHeadlineColor(order);
+    return _buildCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle(_text(zh: '订单状态', en: 'Order Status')),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: _statusBadgeBackground(order.status),
+                  borderRadius: BorderRadius.circular(21),
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  _statusIcon(order.status),
+                  color: statusColor,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  statusLabel,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    height: 26 / 20,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -1836,6 +1890,18 @@ class ShopOrderDetailPage extends StatelessWidget {
     return _buildStatusText(order);
   }
 
+  String _statusDescription(ShopOrderItem order, {required String fallback}) {
+    final cancelDesc = order.cancelDesc?.trim();
+    if (cancelDesc != null && cancelDesc.isNotEmpty) {
+      return cancelDesc;
+    }
+    final statusName = order.statusName?.trim();
+    if (statusName != null && statusName.isNotEmpty) {
+      return statusName;
+    }
+    return fallback;
+  }
+
   bool _canCancelOrder(ShopOrderItem order) {
     return order.id != null && _showWaitingCountdown(order);
   }
@@ -1910,6 +1976,25 @@ class ShopOrderDetailPage extends StatelessWidget {
       return const Color(0xFFDC2626);
     }
     return kOrderDetailStatusTextNeutral;
+  }
+
+  Color _statusBadgeBackground(int? status) {
+    if (status == 6) {
+      return const Color(0xFFF0FDF4);
+    }
+    if (status == 5 || status == 3) {
+      return const Color(0xFFEFF6FF);
+    }
+    if (status == 4) {
+      return const Color(0xFFECFDF5);
+    }
+    if (status == 2) {
+      return const Color(0xFFFFF7ED);
+    }
+    if (status == -1 || status == -2) {
+      return const Color(0xFFFEF2F2);
+    }
+    return const Color(0xFFF1F5F9);
   }
 
   IconData _statusIcon(int? status) {
