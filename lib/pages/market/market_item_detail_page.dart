@@ -1966,7 +1966,7 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
 
   Widget _buildTopHeroImage({
     required String imageUrl,
-    required TagInfo? rarity,
+    required VoidCallback onTap,
   }) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1975,34 +1975,78 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 20),
           alignment: Alignment.center,
-          child: Container(
-            width: imageSideLength,
-            height: imageSideLength,
+          child: Material(
             color: Colors.black,
-            alignment: Alignment.center,
-            child: imageUrl.isEmpty
-                ? const Icon(
-                    Icons.image_not_supported_outlined,
-                    size: 36,
-                    color: Colors.white54,
-                  )
-                : CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    fit: BoxFit.contain,
-                    placeholder: (context, _) => const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    errorWidget: (context, _, __) => const Icon(
-                      Icons.image_not_supported_outlined,
-                      size: 36,
-                      color: Colors.white54,
-                    ),
-                  ),
+            child: InkWell(
+              onTap: onTap,
+              splashColor: Colors.white.withValues(alpha: 0.08),
+              highlightColor: Colors.white.withValues(alpha: 0.04),
+              child: Container(
+                width: imageSideLength,
+                height: imageSideLength,
+                alignment: Alignment.center,
+                child: imageUrl.isEmpty
+                    ? const Icon(
+                        Icons.image_not_supported_outlined,
+                        size: 36,
+                        color: Colors.white54,
+                      )
+                    : CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.contain,
+                        placeholder: (context, _) => const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        errorWidget: (context, _, __) => const Icon(
+                          Icons.image_not_supported_outlined,
+                          size: 36,
+                          color: Colors.white54,
+                        ),
+                      ),
+              ),
+            ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildItemTitleRow({
+    required String displayName,
+    required String? rarityLabel,
+    required String? rarityColor,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: _openMarketDetail,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  displayName,
+                  style: const TextStyle(
+                    color: _textPrimary,
+                    fontSize: 24,
+                    height: 30 / 24,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              if (rarityLabel != null && rarityLabel.isNotEmpty) ...[
+                const SizedBox(width: 16),
+                _buildRarityBadge(rarityLabel, rarityColor),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -2129,7 +2173,7 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
         body: ListView(
           padding: EdgeInsets.only(bottom: isOwnOnSale ? 24 : 20),
           children: [
-            _buildTopHeroImage(imageUrl: imageUrl, rarity: rarity),
+            _buildTopHeroImage(imageUrl: imageUrl, onTap: _openMarketDetail),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Column(
@@ -2239,25 +2283,10 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          displayName,
-                          style: const TextStyle(
-                            color: _textPrimary,
-                            fontSize: 24,
-                            height: 30 / 24,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                      if (rarityLabel != null && rarityLabel.isNotEmpty) ...[
-                        const SizedBox(width: 16),
-                        _buildRarityBadge(rarityLabel, rarity?.color),
-                      ],
-                    ],
+                  _buildItemTitleRow(
+                    displayName: displayName,
+                    rarityLabel: rarityLabel,
+                    rarityColor: rarity?.color,
                   ),
                   if (overviewStats.isNotEmpty) ...[
                     const SizedBox(height: 16),
@@ -2493,14 +2522,18 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
                                               Container(
                                                 width: 48,
                                                 height: 48,
-                                                padding: const EdgeInsets.all(4),
+                                                padding: const EdgeInsets.all(
+                                                  4,
+                                                ),
                                                 decoration: BoxDecoration(
                                                   color: _pageBackground,
                                                   borderRadius:
                                                       BorderRadius.circular(8),
-                                                  border: gem.borderColor != null
+                                                  border:
+                                                      gem.borderColor != null
                                                       ? Border.all(
-                                                          color: gem.borderColor!,
+                                                          color:
+                                                              gem.borderColor!,
                                                           width: 1.4,
                                                         )
                                                       : Border.all(
@@ -2512,19 +2545,23 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
                                                 child: CachedNetworkImage(
                                                   imageUrl: gem.imageUrl,
                                                   fit: BoxFit.contain,
-                                                  fadeInDuration: const Duration(
-                                                    milliseconds: 120,
-                                                  ),
+                                                  fadeInDuration:
+                                                      const Duration(
+                                                        milliseconds: 120,
+                                                      ),
                                                   placeholder: (context, _) =>
                                                       const SizedBox.expand(),
                                                   errorWidget:
-                                                      (context, _, __) =>
-                                                          const Icon(
-                                                            Icons
-                                                                .image_not_supported_outlined,
-                                                            size: 18,
-                                                            color: _textSecondary,
-                                                          ),
+                                                      (
+                                                        context,
+                                                        _,
+                                                        __,
+                                                      ) => const Icon(
+                                                        Icons
+                                                            .image_not_supported_outlined,
+                                                        size: 18,
+                                                        color: _textSecondary,
+                                                      ),
                                                 ),
                                               ),
                                               const SizedBox(width: 12),
