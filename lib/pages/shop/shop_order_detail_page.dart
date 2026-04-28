@@ -106,7 +106,6 @@ class ShopOrderDetailPage extends StatelessWidget {
                         _buildStatusCard(
                           context: context,
                           order: order,
-                          statusText: args.statusText,
                           currency: currency,
                           totalPrice: totalPrice,
                           totalItemCount: totalItemCount,
@@ -117,10 +116,7 @@ class ShopOrderDetailPage extends StatelessWidget {
                           useDeliveryGoodsPalette: args.fromDeliveryGoodsDrawer,
                         ),
                         const SizedBox(height: 16),
-                        _buildOrderStatusCard(
-                          order: order,
-                          statusText: args.statusText,
-                        ),
+                        _buildOrderStatusCard(order: order),
                         if (pendingBuyer != null) ...[
                           const SizedBox(height: 16),
                           _buildPendingBuyerCard(
@@ -212,15 +208,13 @@ class ShopOrderDetailPage extends StatelessWidget {
   Widget _buildStatusCard({
     required BuildContext context,
     required ShopOrderItem order,
-    required String? statusText,
     required CurrencyController? currency,
     required double totalPrice,
     required int totalItemCount,
     required VoidCallback? onCopy,
     required bool useDeliveryGoodsPalette,
   }) {
-    final statusLabel = _statusHeadline(order, statusText: statusText);
-    final headline = _statusDescription(order, fallback: statusLabel);
+    final statusLabel = _statusHeadline(order);
     final statusRows = _buildStatusRows(order);
     return Container(
       width: double.infinity,
@@ -264,7 +258,7 @@ class ShopOrderDetailPage extends StatelessWidget {
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        headline,
+                        statusLabel,
                         softWrap: false,
                         style: TextStyle(
                           color: Colors.white,
@@ -340,11 +334,8 @@ class ShopOrderDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildOrderStatusCard({
-    required ShopOrderItem order,
-    required String? statusText,
-  }) {
-    final statusLabel = _statusHeadline(order, statusText: statusText);
+  Widget _buildOrderStatusCard({required ShopOrderItem order}) {
+    final statusLabel = _statusHeadline(order);
     final statusColor = _statusHeadlineColor(order);
     return _buildCard(
       child: Row(
@@ -2135,24 +2126,8 @@ class ShopOrderDetailPage extends StatelessWidget {
     return rows;
   }
 
-  String _statusHeadline(ShopOrderItem order, {String? statusText}) {
-    final listStatusText = statusText?.trim();
-    if (listStatusText != null && listStatusText.isNotEmpty) {
-      return listStatusText;
-    }
+  String _statusHeadline(ShopOrderItem order) {
     return _buildStatusText(order);
-  }
-
-  String _statusDescription(ShopOrderItem order, {required String fallback}) {
-    final cancelDesc = order.cancelDesc?.trim();
-    if (cancelDesc != null && cancelDesc.isNotEmpty) {
-      return cancelDesc;
-    }
-    final statusName = order.statusName?.trim();
-    if (statusName != null && statusName.isNotEmpty) {
-      return statusName;
-    }
-    return fallback;
   }
 
   bool _canCancelOrder(ShopOrderItem order) {
@@ -3016,40 +2991,8 @@ class ShopOrderDetailPage extends StatelessWidget {
   }
 
   String _buildStatusText(ShopOrderItem order) {
-    final status = order.status;
-    if (status == 6) {
-      return _text(zh: '交易成功', en: 'Completed');
-    }
-    if (status == 5) {
-      return _text(zh: '结算中', en: 'Settling');
-    }
-    final cancelDesc = order.cancelDesc?.trim();
     final statusName = order.statusName?.trim();
-    if (status == -1 || status == -2) {
-      if (cancelDesc != null && cancelDesc.isNotEmpty) {
-        return cancelDesc;
-      }
-      if (statusName != null && statusName.isNotEmpty) {
-        return statusName;
-      }
-      return _text(zh: '订单已关闭', en: 'Order Closed');
-    }
-    if (statusName != null && statusName.isNotEmpty) {
-      return statusName;
-    }
-    if (cancelDesc != null && cancelDesc.isNotEmpty) {
-      return cancelDesc;
-    }
-    if (status == 2) {
-      return 'app.market.product.wait_for_sending'.tr;
-    }
-    if (status == 3) {
-      return 'app.trade.filter.in'.tr;
-    }
-    if (status == 4) {
-      return 'app.market.product.wait_for_receipt'.tr;
-    }
-    return _text(zh: '处理中', en: 'Processing');
+    return statusName == null || statusName.isEmpty ? '-' : statusName;
   }
 
   String _resolveTypeName(ShopOrderItem order) {
@@ -3193,7 +3136,6 @@ class ShopOrderDetailPage extends StatelessWidget {
 class _ShopOrderDetailArgs {
   const _ShopOrderDetailArgs({
     this.order,
-    this.statusText,
     this.orders = const [],
     this.schemas = const {},
     this.users = const {},
@@ -3203,7 +3145,6 @@ class _ShopOrderDetailArgs {
   });
 
   final ShopOrderItem? order;
-  final String? statusText;
   final List<ShopOrderItem> orders;
   final Map<String, ShopSchemaInfo> schemas;
   final Map<String, ShopUserInfo> users;
@@ -3218,7 +3159,6 @@ class _ShopOrderDetailArgs {
     final order = _parseOrder(raw['order'] ?? raw['item']);
     return _ShopOrderDetailArgs(
       order: order,
-      statusText: _parseText(raw['statusText'] ?? raw['statusName']),
       orders: _parseOrders(raw['orders']),
       schemas: _parseSchemas(raw['schemas']),
       users: _parseUsers(raw['users']),
@@ -3226,11 +3166,6 @@ class _ShopOrderDetailArgs {
       disableOrderActions: _parseBool(raw['disableOrderActions']),
       fromDeliveryGoodsDrawer: _parseBool(raw['fromDeliveryGoodsDrawer']),
     );
-  }
-
-  static String? _parseText(dynamic value) {
-    final text = value?.toString().trim();
-    return text == null || text.isEmpty ? null : text;
   }
 
   static bool _parseBool(dynamic value) {
