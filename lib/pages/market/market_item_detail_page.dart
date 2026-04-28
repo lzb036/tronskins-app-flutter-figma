@@ -823,9 +823,9 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
 
   String get _skinNumberLabel => _isEnglishLocale ? 'Skin Number' : '皮肤编号';
 
-  String get _avgShipLabel => _isEnglishLocale ? 'AVG. SHIP' : '平均发货';
+  String get _avgShipLabel => _isEnglishLocale ? 'Avg. Delivery' : '平均发货';
 
-  String get _rateLabel => _isEnglishLocale ? 'RATE' : '发货率';
+  String get _rateLabel => _isEnglishLocale ? 'Fill Rate' : '发货率';
 
   String _shopDeliverLabel() {
     return 'app.user.shop.deliver'.tr;
@@ -901,15 +901,15 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
 
   Widget _buildShopInfoLoadingCard() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 14, 16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
       decoration: BoxDecoration(
         color: _surfaceCard,
         borderRadius: BorderRadius.circular(8),
         boxShadow: const [
           BoxShadow(
-            color: Color.fromRGBO(25, 28, 30, 0.06),
-            blurRadius: 28,
-            offset: Offset(0, 10),
+            color: Color.fromRGBO(15, 23, 42, 0.10),
+            blurRadius: 18,
+            offset: Offset(0, 6),
           ),
         ],
       ),
@@ -917,10 +917,10 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 58,
-            height: 58,
+            width: 64,
+            height: 64,
             decoration: const BoxDecoration(
-              color: Color(0xFFF1F5F9),
+              color: Color(0xFFF2F4F7),
               shape: BoxShape.circle,
             ),
           ),
@@ -937,7 +937,7 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
             ),
           ),
           const SizedBox(width: 12),
-          Container(width: 1, height: 60, color: const Color(0xFFE7ECF3)),
+          Container(width: 1, height: 62, color: const Color(0xFFE9EDF3)),
           const SizedBox(width: 12),
           SizedBox(
             width: 72,
@@ -1005,16 +1005,12 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     final avatar = _resolveAvatarUrl(
       _extractText(shopInfo, <String>['avatar']) ?? _user?.avatar,
     );
-    final isOnline =
-        shopInfo?['isOnline'] == true || shopInfo?['is_online'] == true;
     final canOpenStore = (_resolveSellerUuid()?.isNotEmpty ?? false);
 
     return ShopStoreInfoCard(
       title: shopName,
       avatarUrl: avatar,
-      showOnline: isOnline,
       onTap: canOpenStore ? _openSellerStore : null,
-      showChevron: canOpenStore,
       badges: [
         ShopStoreInfoBadge(
           label: _shopDeliverLabel(),

@@ -47,7 +47,10 @@ import 'package:tronskins_app/pages/help/feedback_create_page.dart';
 import 'package:tronskins_app/pages/system/server_list_page.dart';
 import 'package:tronskins_app/pages/system/auth_test_page.dart';
 import 'package:tronskins_app/pages/system/about_page.dart';
+import 'package:tronskins_app/pages/wallet/gift_card_create_page.dart';
+import 'package:tronskins_app/pages/wallet/gift_card_page.dart';
 import 'package:tronskins_app/pages/wallet/wallet_flow_page.dart';
+import 'package:tronskins_app/pages/wallet/wallet_flow_detail_page.dart';
 import 'package:tronskins_app/pages/wallet/wallet_locked_detail_page.dart';
 import 'package:tronskins_app/pages/wallet/wallet_locked_page.dart';
 import 'package:tronskins_app/pages/wallet/wallet_page.dart';
@@ -150,6 +153,15 @@ class RoutersConfig {
     GetPage(name: Routers.WALLET_RECHARGE, page: () => WalletRechargePage()),
     GetPage(name: Routers.WALLET_WITHDRAW, page: () => WalletWithdrawPage()),
     GetPage(name: Routers.WALLET_FLOW, page: () => WalletFlowPage()),
+    GetPage(
+      name: Routers.WALLET_FLOW_DETAIL,
+      page: () => const WalletFlowDetailPage(),
+    ),
+    GetPage(name: Routers.WALLET_GIFT_CARD, page: () => const GiftCardPage()),
+    GetPage(
+      name: Routers.WALLET_GIFT_CARD_CREATE,
+      page: () => const GiftCardCreatePage(),
+    ),
     GetPage(name: Routers.WALLET_LOCKED, page: () => WalletLockedPage()),
     GetPage(
       name: Routers.WALLET_LOCKED_DETAIL,

@@ -526,7 +526,7 @@ final Map<String, String> zh_CN = {
   "app.trade.notify_1": "你在售的物品 {0} 因{1}，订单已取消。系统将扣除2%的交易金额补偿卖家。",
   "app.trade.notify_2": "你在售的物品 {0} 因买家恶意修改报价，订单已取消。由于恶意修改报价，账户已经被封禁。",
   "app.trade.order.number": "订单编号",
-  "app.trade.order.details": "流水号",
+  "app.trade.order.details": "订单明细",
   "app.trade.order.time": "下单时间",
   "app.trade.order.status": "订单状态",
   "app.trade.order.date": "订单日期",

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
-import 'package:tronskins_app/common/utils/feature_gate_dialog.dart';
 import 'package:tronskins_app/common/widgets/login_required_prompt.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
@@ -323,7 +322,7 @@ class _WalletPageState extends State<WalletPage> {
                 height: 144,
                 label: 'app.user.wallet.gift'.tr,
                 value: _displayBalance(gift),
-                onTap: () => showFeatureNotOpenDialog(),
+                onTap: () => Get.toNamed(Routers.WALLET_GIFT_CARD),
                 topIcon: Icons.chevron_right_rounded,
                 bottomIcon: Icons.card_giftcard_rounded,
                 bottomIconBackground: const Color(0xFFFFF1F2),

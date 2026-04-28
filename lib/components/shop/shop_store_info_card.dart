@@ -16,10 +16,15 @@ class ShopStoreInfoBadge {
 }
 
 class ShopStoreInfoMetric {
-  const ShopStoreInfoMetric({required this.label, required this.value});
+  const ShopStoreInfoMetric({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
 
   final String label;
   final String value;
+  final Color? valueColor;
 }
 
 class ShopStoreInfoCard extends StatelessWidget {
@@ -49,23 +54,23 @@ class ShopStoreInfoCard extends StatelessWidget {
   static const Color _cardColor = Colors.white;
   static const Color _textPrimary = Color(0xFF191C1E);
   static const Color _textSecondary = Color(0xFF757684);
-  static const Color _brandBlue = Color(0xFF3B82F6);
-  static const Color _dividerColor = Color(0xFFE7ECF3);
-  static const Color _avatarSurface = Color(0xFFF1F5F9);
+  static const Color _metricBlue = Color(0xFF8DA8F8);
+  static const Color _dividerColor = Color(0xFFE9EDF3);
+  static const Color _avatarSurface = Color(0xFFF2F4F7);
   static const Color _successGreen = Color(0xFF22C55E);
 
   @override
   Widget build(BuildContext context) {
     final content = Ink(
-      padding: const EdgeInsets.fromLTRB(16, 16, 14, 16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(8),
         boxShadow: const [
           BoxShadow(
-            color: Color.fromRGBO(25, 28, 30, 0.06),
-            blurRadius: 28,
-            offset: Offset(0, 10),
+            color: Color.fromRGBO(15, 23, 42, 0.10),
+            blurRadius: 18,
+            offset: Offset(0, 6),
           ),
         ],
       ),
@@ -80,7 +85,7 @@ class ShopStoreInfoCard extends StatelessWidget {
           Expanded(child: _buildIdentity()),
           if (metrics.isNotEmpty) ...[
             const SizedBox(width: 12),
-            Container(width: 1, height: 60, color: _dividerColor),
+            Container(width: 1, height: 62, color: _dividerColor),
             const SizedBox(width: 12),
             _buildMetrics(),
           ],
@@ -119,7 +124,7 @@ class ShopStoreInfoCard extends StatelessWidget {
           style: const TextStyle(
             color: _textPrimary,
             fontSize: 16,
-            height: 22 / 16,
+            height: 20 / 16,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -137,7 +142,7 @@ class ShopStoreInfoCard extends StatelessWidget {
 
   Widget _buildBadge(ShopStoreInfoBadge badge) {
     final chip = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(
         color: badge.backgroundColor,
         borderRadius: BorderRadius.circular(999),
@@ -149,7 +154,7 @@ class ShopStoreInfoCard extends StatelessWidget {
         style: TextStyle(
           color: badge.foregroundColor,
           fontSize: 10,
-          height: 14 / 10,
+          height: 13 / 10,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -167,18 +172,24 @@ class ShopStoreInfoCard extends StatelessWidget {
 
   Widget _buildMetrics() {
     return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 70, maxWidth: 86),
+      constraints: const BoxConstraints(minWidth: 72, maxWidth: 88),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
-        children: metrics.take(2).map(_buildMetric).toList(growable: false),
+        children: metrics
+            .take(2)
+            .toList(growable: false)
+            .asMap()
+            .entries
+            .map((entry) => _buildMetric(entry.value, entry.key))
+            .toList(growable: false),
       ),
     );
   }
 
-  Widget _buildMetric(ShopStoreInfoMetric metric) {
+  Widget _buildMetric(ShopStoreInfoMetric metric, int index) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 7),
+      padding: EdgeInsets.only(bottom: index == 0 ? 8 : 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -190,7 +201,7 @@ class ShopStoreInfoCard extends StatelessWidget {
             style: const TextStyle(
               color: _textSecondary,
               fontSize: 10,
-              height: 12 / 10,
+              height: 11 / 10,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -204,8 +215,10 @@ class ShopStoreInfoCard extends StatelessWidget {
                 metric.value,
                 maxLines: 1,
                 softWrap: false,
-                style: const TextStyle(
-                  color: _brandBlue,
+                style: TextStyle(
+                  color:
+                      metric.valueColor ??
+                      (index == 0 ? _textPrimary : _metricBlue),
                   fontSize: 15,
                   height: 17 / 15,
                   fontWeight: FontWeight.w900,
@@ -230,7 +243,7 @@ class _ShopStoreAvatar extends StatelessWidget {
   final IconData fallbackIcon;
   final bool showOnline;
 
-  static const double _size = 58;
+  static const double _size = 64;
 
   @override
   Widget build(BuildContext context) {
@@ -249,7 +262,7 @@ class _ShopStoreAvatar extends StatelessWidget {
               ? Icon(
                   fallbackIcon,
                   color: ShopStoreInfoCard._textSecondary,
-                  size: 28,
+                  size: 32,
                 )
               : CachedNetworkImage(
                   imageUrl: avatarUrl,
@@ -257,12 +270,12 @@ class _ShopStoreAvatar extends StatelessWidget {
                   placeholder: (_, __) => Icon(
                     fallbackIcon,
                     color: ShopStoreInfoCard._textSecondary,
-                    size: 28,
+                    size: 32,
                   ),
                   errorWidget: (_, __, ___) => Icon(
                     fallbackIcon,
                     color: ShopStoreInfoCard._textSecondary,
-                    size: 28,
+                    size: 32,
                   ),
                 ),
         ),

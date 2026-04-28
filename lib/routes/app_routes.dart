@@ -74,6 +74,12 @@ class Routers {
   // ignore: non_constant_identifier_names
   static String WALLET_FLOW = '/wallet/flow';
   // ignore: non_constant_identifier_names
+  static String WALLET_FLOW_DETAIL = '/wallet/flow/detail';
+  // ignore: non_constant_identifier_names
+  static String WALLET_GIFT_CARD = '/wallet/gift-card';
+  // ignore: non_constant_identifier_names
+  static String WALLET_GIFT_CARD_CREATE = '/wallet/gift-card/create';
+  // ignore: non_constant_identifier_names
   static String WALLET_LOCKED = '/wallet/locked';
   // ignore: non_constant_identifier_names
   static String WALLET_LOCKED_DETAIL = '/wallet/locked/detail';

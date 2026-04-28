@@ -146,7 +146,7 @@ class _AboutInfoRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             width: 36,
@@ -170,7 +170,7 @@ class _AboutInfoRow extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(left: 12, top: 2),
+            padding: const EdgeInsets.only(left: 12),
             child: Text(
               value,
               textAlign: TextAlign.right,

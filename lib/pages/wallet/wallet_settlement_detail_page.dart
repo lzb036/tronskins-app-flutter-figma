@@ -11,10 +11,8 @@ import 'package:tronskins_app/common/storage/game_storage.dart';
 import 'package:tronskins_app/common/theme/order_detail_status_style.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
-import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
-import 'package:tronskins_app/components/game_item/sticker_row.dart';
-import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
+import 'package:tronskins_app/pages/wallet/widgets/wallet_order_asset_card.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
 class WalletSettlementDetailPage extends StatelessWidget {
@@ -103,7 +101,7 @@ class WalletSettlementDetailPage extends StatelessWidget {
   }
 
   String _pageTitle() {
-    return _text(zh: '订单详情', en: 'Order Details');
+    return _text(zh: '订单明细', en: 'Order Details');
   }
 
   Widget _buildTopNavigation(BuildContext context) {
@@ -262,8 +260,6 @@ class WalletSettlementDetailPage extends StatelessWidget {
     final receivedAmount = _resolveDetailReceivedAmount(detail);
     final wearText = _paintWearText(detail);
     final wearValue = _paintWearValue(detail);
-    final detailStickers = _detailStickers(detail);
-    final qualityLabel = quality?.label ?? rarity?.label;
 
     return _buildCard(
       child: Column(
@@ -271,93 +267,23 @@ class WalletSettlementDetailPage extends StatelessWidget {
         children: [
           _buildSectionTitle(_text(zh: '商品信息', en: 'Product Info')),
           const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: SizedBox(
-                  width: 96,
-                  height: 96,
-                  child: GameItemImage(
-                    imageUrl: imageUrl,
-                    appId: appId,
-                    rarity: rarity,
-                    quality: quality,
-                    exterior: exterior,
-                    phase: phase,
-                    percentage: percentage,
-                    count: count > 1 ? count : null,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _titleColor,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        height: 28 / 20,
-                      ),
-                    ),
-                    if (subtitle != null &&
-                        subtitle.isNotEmpty &&
-                        subtitle != title) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _mutedColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          height: 18 / 12,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _buildInfoChip(
-                          label: _gameName(appId),
-                          background: const Color(0xFFF1F5F9),
-                          foreground: const Color(0xFF475569),
-                        ),
-                        if (qualityLabel != null && qualityLabel.isNotEmpty)
-                          _buildInfoChip(
-                            label: qualityLabel,
-                            background: const Color(0xFFFEF2F2),
-                            foreground: const Color(0xFFDC2626),
-                          ),
-                        if (exterior?.label != null &&
-                            exterior!.label!.isNotEmpty)
-                          _buildInfoChip(
-                            label: exterior.label!,
-                            background: const Color(0xFFEEF6FF),
-                            foreground: const Color(0xFF2563EB),
-                          ),
-                        if (count > 1)
-                          _buildInfoChip(
-                            label: 'x$count',
-                            background: const Color(0xFFF8FAFC),
-                            foreground: const Color(0xFF475569),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          WalletOrderAssetCard(
+            title: title,
+            subtitle: subtitle,
+            imageUrl: imageUrl,
+            appId: appId,
+            priceText: _formatPrice(currency, listedAmount),
+            count: count,
+            raw: detail.raw,
+            schemaRaw: schema?.raw ?? const {},
+            stickerMap: stickers,
+            rarity: rarity,
+            quality: quality,
+            exterior: exterior,
+            phase: phase,
+            percentage: percentage,
+            paintWear: wearValue,
+            wearText: wearText,
           ),
           const SizedBox(height: 18),
           _buildDetailValueRow(
@@ -374,39 +300,6 @@ class WalletSettlementDetailPage extends StatelessWidget {
             label: _text(zh: '状态', en: 'State'),
             value: _statusText(),
           ),
-          if (wearText != null && wearText.isNotEmpty) ...[
-            const SizedBox(height: 22),
-            _buildWearValueRow(
-              label: _text(zh: '磨损度', en: 'Wear'),
-              value: wearText,
-            ),
-          ],
-          if (wearValue != null) ...[
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: WearProgressBar(
-                paintWear: wearValue,
-                height: 18,
-                style: WearProgressBarStyle.figmaCompact,
-              ),
-            ),
-          ],
-          if (detailStickers.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Text(
-              _text(zh: '印花信息', en: 'Sticker Info'),
-              style: const TextStyle(
-                color: _mutedColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                height: 18 / 12,
-                letterSpacing: 0.3,
-              ),
-            ),
-            const SizedBox(height: 10),
-            StickerRow(stickers: detailStickers, size: 28),
-          ],
         ],
       ),
     );
@@ -522,29 +415,6 @@ class WalletSettlementDetailPage extends StatelessWidget {
         fontSize: 14,
         fontWeight: FontWeight.w700,
         height: 20 / 14,
-      ),
-    );
-  }
-
-  Widget _buildInfoChip({
-    required String label,
-    required Color background,
-    required Color foreground,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: foreground,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          height: 1.25,
-        ),
       ),
     );
   }
@@ -696,36 +566,6 @@ class WalletSettlementDetailPage extends StatelessWidget {
               fontSize: 11,
               fontWeight: FontWeight.w700,
               height: 16 / 11,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWearValueRow({required String label, required String value}) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: _mutedColor,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            height: 18 / 12,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            value,
-            textAlign: TextAlign.right,
-            style: const TextStyle(
-              color: _bodyColor,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              height: 18 / 12,
             ),
           ),
         ),
@@ -906,19 +746,6 @@ class WalletSettlementDetailPage extends StatelessWidget {
     }
   }
 
-  String _gameName(int appId) {
-    switch (appId) {
-      case 730:
-        return 'CS2';
-      case 570:
-        return 'Dota 2';
-      case 440:
-        return 'TF2';
-      default:
-        return 'Steam';
-    }
-  }
-
   String _resolveImageUrl(
     WalletSettlementDetail detail,
     WalletSchemaInfo? schema,
@@ -1016,33 +843,10 @@ class WalletSettlementDetailPage extends StatelessWidget {
         _pickRawDouble(detail.raw, const ['paint_wear', 'paintWear']);
   }
 
-  List<GameItemSticker> _detailStickers(WalletSettlementDetail detail) {
-    final rawAsset = _pickRawMap(_pickRawValue(detail.raw, const ['asset']));
-    final rawCsgoAsset = _pickRawMap(
-      _pickRawValue(detail.raw, const ['csgoAsset']),
-    );
-    final stickerRaw =
-        _pickRawValue(detail.raw, const ['stickers']) ??
-        _pickRawValue(rawAsset, const ['stickers']) ??
-        _pickRawValue(rawCsgoAsset, const ['stickers']);
-    return parseStickerList(
-      stickerRaw,
-      schemaMap: schemas,
-      stickerMap: stickers,
-    );
-  }
-
   int _detailCount(WalletSettlementDetail detail) {
     final count =
         _pickRawInt(detail.raw, const ['count', 'num', 'quantity']) ?? 1;
     return count < 1 ? 1 : count;
-  }
-
-  Map? _pickRawMap(dynamic value) {
-    if (value is Map) {
-      return value;
-    }
-    return null;
   }
 
   int? _resolveCreatedTime() {

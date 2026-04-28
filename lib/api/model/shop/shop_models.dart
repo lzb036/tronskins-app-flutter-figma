@@ -1,4 +1,5 @@
 class ShopUserInfo {
+  final Map<String, dynamic> raw;
   final String? id;
   final String? uuid;
   final String? avatar;
@@ -7,6 +8,7 @@ class ShopUserInfo {
   final int? yearsLevel;
 
   const ShopUserInfo({
+    this.raw = const {},
     this.id,
     this.uuid,
     this.avatar,
@@ -17,6 +19,7 @@ class ShopUserInfo {
 
   factory ShopUserInfo.fromJson(Map<String, dynamic> json) {
     return ShopUserInfo(
+      raw: json,
       id: json['id']?.toString(),
       uuid: json['uuid']?.toString(),
       avatar: json['avatar']?.toString(),

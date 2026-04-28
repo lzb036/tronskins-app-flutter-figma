@@ -1534,7 +1534,6 @@ class ShopOrderDetailPage extends StatelessWidget {
       avatarUrl: avatarUrl,
       fallbackIcon: Icons.person_rounded,
       onTap: canOpenShop ? () => _openPartyShop(party, order) : null,
-      showChevron: canOpenShop,
       trailing: trailing,
       badges: [
         ShopStoreInfoBadge(label: party.roleLabel),
@@ -1551,6 +1550,10 @@ class ShopOrderDetailPage extends StatelessWidget {
   }
 
   List<ShopStoreInfoMetric> _partyMetrics(_PartyInfo party) {
+    final deliveryMetrics = _partyDeliveryMetrics(party.raw);
+    if (deliveryMetrics.isNotEmpty) {
+      return deliveryMetrics;
+    }
     return [
       if (party.level != null)
         ShopStoreInfoMetric(
@@ -1563,6 +1566,45 @@ class ShopOrderDetailPage extends StatelessWidget {
           value: _text(zh: '${party.yearsLevel} 年', en: '${party.yearsLevel}y'),
         ),
     ];
+  }
+
+  List<ShopStoreInfoMetric> _partyDeliveryMetrics(Map<String, dynamic> raw) {
+    final avg = _asDouble(raw['last7daysAvg'] ?? raw['last_7days_avg']);
+    final total = _asInt(raw['last7daysNums'] ?? raw['last_7days_nums']) ?? 0;
+    final notSend =
+        _asInt(raw['last7daysNotSend'] ?? raw['last_7days_not_send']) ?? 0;
+    if (avg == null && total <= 0) {
+      return const [];
+    }
+    return [
+      ShopStoreInfoMetric(
+        label: _text(zh: '平均发货', en: 'Avg. Delivery'),
+        value: _formatAverageDelivery(avg),
+      ),
+      ShopStoreInfoMetric(
+        label: _text(zh: '发货率', en: 'Fill Rate'),
+        value: _deliverySuccessRate(total: total, notSend: notSend),
+      ),
+    ];
+  }
+
+  String _formatAverageDelivery(double? value) {
+    if (value == null || value <= 0) {
+      return _text(zh: '0 分钟', en: '0 min');
+    }
+    if (value < 2) {
+      return _text(zh: '< 2 分钟', en: '< 2 min');
+    }
+    final text = value.toStringAsFixed(value >= 10 ? 0 : 1);
+    return _text(zh: '$text 分钟', en: '$text min');
+  }
+
+  String _deliverySuccessRate({required int total, required int notSend}) {
+    if (total <= 0) {
+      return '0%';
+    }
+    final rate = ((total - notSend) / total * 100).clamp(0, 100);
+    return '${rate.toStringAsFixed(1)}%';
   }
 
   Widget _buildSupportAction({
@@ -2165,6 +2207,7 @@ class ShopOrderDetailPage extends StatelessWidget {
     final data = res.datas!;
     final current = users[buyerId];
     users[buyerId] = ShopUserInfo(
+      raw: current?.raw ?? const {},
       id: current?.id ?? buyerId,
       uuid: current?.uuid,
       avatar: data['avatar']?.toString() ?? current?.avatar,
@@ -2275,6 +2318,7 @@ class ShopOrderDetailPage extends StatelessWidget {
       nickname: nickname?.isNotEmpty == true ? nickname : roleLabel,
       avatar: user?.avatar,
       shopUuid: user?.uuid,
+      raw: user?.raw ?? const {},
       level: user?.level,
       yearsLevel: user?.yearsLevel,
     );
@@ -3132,6 +3176,7 @@ class _PartyInfo {
     this.nickname,
     this.avatar,
     this.shopUuid,
+    this.raw = const {},
     this.level,
     this.yearsLevel,
   });
@@ -3142,6 +3187,7 @@ class _PartyInfo {
   final String? nickname;
   final String? avatar;
   final String? shopUuid;
+  final Map<String, dynamic> raw;
   final int? level;
   final int? yearsLevel;
 }

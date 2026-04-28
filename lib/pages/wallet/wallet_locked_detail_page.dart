@@ -15,11 +15,9 @@ import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/controllers/wallet/wallet_controller.dart';
 import 'package:tronskins_app/api/model/wallet/wallet_models.dart';
-import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
-import 'package:tronskins_app/components/game_item/sticker_row.dart';
-import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 import 'package:tronskins_app/components/notify/notify_trade_deliver_sheet.dart';
+import 'package:tronskins_app/pages/wallet/widgets/wallet_order_asset_card.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
 class WalletLockedDetailPage extends StatefulWidget {
@@ -368,19 +366,6 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
     return Icons.info_outline_rounded;
   }
 
-  String _gameName(int appId) {
-    switch (appId) {
-      case 730:
-        return 'CS2';
-      case 570:
-        return 'Dota 2';
-      case 440:
-        return 'TF2';
-      default:
-        return 'Steam';
-    }
-  }
-
   String? _schemaPaintWearText(
     WalletSchemaInfo? schema,
     WalletLockedOrder? order,
@@ -480,20 +465,6 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
           'image',
         ]) ??
         '';
-  }
-
-  List<GameItemSticker> _schemaStickers(
-    WalletSchemaInfo? schema,
-    WalletLockedOrder? order,
-  ) {
-    final rawAsset = _pickRawMap(order?.raw['asset']);
-    final rawCsgoAsset = _pickRawMap(order?.raw['csgoAsset']);
-    final stickerRaw =
-        _pickRawValue(schema?.raw, const ['stickers']) ??
-        _pickRawValue(order?.raw, const ['stickers']) ??
-        _pickRawValue(rawAsset, const ['stickers']) ??
-        _pickRawValue(rawCsgoAsset, const ['stickers']);
-    return parseStickerList(stickerRaw, stickerMap: _detail?.stickers);
   }
 
   Map? _pickRawMap(dynamic value) {
@@ -746,7 +717,8 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
     final topInset = MediaQuery.of(context).padding.top;
     final bottomInset = MediaQuery.of(context).padding.bottom;
     final primaryAction = _resolvePrimaryAction(_detail?.order);
-    final bottomPadding = bottomInset + 120;
+    final hasBottomAction = primaryAction != null;
+    final bottomPadding = bottomInset + (hasBottomAction ? 120 : 32);
 
     return BackToTopScope(
       enabled: false,
@@ -787,9 +759,17 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildStatusCard(currency),
-                              const SizedBox(height: 16),
+                              _buildStatusCard(),
+                              const SizedBox(height: 12),
                               _buildProductCard(currency),
+                              const SizedBox(height: 12),
+                              _buildNoticeCard(),
+                              const SizedBox(height: 18),
+                              _buildTrackingTitle(
+                                _text(zh: '资金追踪', en: 'Fund Tracking'),
+                              ),
+                              const SizedBox(height: 10),
+                              _buildFundTrackingSection(currency),
                             ],
                           ),
                         ),
@@ -797,7 +777,8 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
                     ),
             ),
             _buildTopNavigation(context),
-            _buildBottomActionBar(bottomInset, primaryAction),
+            if (hasBottomAction)
+              _buildBottomActionBar(bottomInset, primaryAction),
           ],
         ),
       ),
@@ -845,98 +826,51 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
     );
   }
 
-  Widget _buildStatusCard(CurrencyController currency) {
+  Widget _buildStatusCard() {
     final order = _detail?.order;
     final orderId = _resolvedOrderId(order);
-    final lockTime = _formatTimestamp(_resolvedLockTime(order));
-    final typeName = _resolvedTypeName(order);
-    final lockedAmount = _formatAmount(currency, _resolvedLockedAmountValue());
-    final lockedGift = _formatAmount(currency, _resolvedGiftAmountValue());
-    final headline = _statusHeadline(order);
-    final headlineColor = _statusHeadlineColor(order);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: kOrderDetailStatusCardGradientColors,
-        ),
-        borderRadius: BorderRadius.all(Radius.circular(12)),
-        boxShadow: kOrderDetailStatusCardShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return _buildCard(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 41,
-                height: 41,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(20.5),
-                ),
-                child: Icon(_statusIcon(order), color: Colors.white, size: 22),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: SizedBox(
-                  height: 32,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        headline,
-                        softWrap: false,
-                        style: TextStyle(
-                          color: headlineColor,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          height: 32 / 24,
-                          letterSpacing: -0.6,
-                        ),
-                      ),
-                    ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _text(zh: '订单号', en: 'Order Number').toUpperCase(),
+                  style: const TextStyle(
+                    color: _mutedColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    height: 16 / 11,
+                    letterSpacing: 0,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  orderId,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _titleColor,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    height: 20 / 15,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 24),
-          _buildGlassStatusRow(
-            label: '${_text(zh: '订单号', en: 'Order No')}:',
-            value: orderId,
-            onCopy: orderId == '-' ? null : () => _copy(orderId),
-          ),
-          const SizedBox(height: 8),
-          _buildGlassStatusRow(
-            label: '${_text(zh: '锁定时间', en: 'Lock Time')}:',
-            value: lockTime,
-          ),
-          const SizedBox(height: 8),
-          _buildGlassStatusRow(
-            label: '${_text(zh: '类型', en: 'Type')}:',
-            value: typeName,
-          ),
-          const SizedBox(height: 8),
-          _buildGlassStatusRow(
-            label: '${_text(zh: '锁定金额', en: 'Locked Amount')}:',
-            value: lockedAmount,
-          ),
-          const SizedBox(height: 8),
-          _buildGlassStatusRow(
-            label: '${_text(zh: '锁定礼品卡', en: 'Locked Gift')}:',
-            value: lockedGift,
-          ),
-          const SizedBox(height: 18),
-          _buildGlassButton(
-            label: _text(zh: '联系客服', en: 'Contact Customer Service'),
-            onTap: () => Get.toNamed(Routers.FEEDBACK_LIST),
+          const SizedBox(width: 12),
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            onPressed: orderId == '-' ? null : () => _copy(orderId),
+            icon: const Icon(
+              Icons.content_copy_rounded,
+              size: 18,
+              color: Color(0xFF2563EB),
+            ),
           ),
         ],
       ),
@@ -949,11 +883,8 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
     final name = schema?.marketName ?? schema?.marketHashName ?? '-';
     final subtitle = schema?.marketHashName;
     final orderPrice = _resolvedOrderPrice(order);
-    final sellMin = schema?.sellMin;
-    final buyMax = schema?.buyMax;
     final paintWearText = _schemaPaintWearText(schema, order);
     final paintWear = _schemaPaintWearValue(schema, order);
-    final stickers = _schemaStickers(schema, order);
     final appId = _resolveAppId(schema, order);
     final imageUrl = _resolveImageUrl(schema, order);
     final rarity = _schemaTag(schema, 'rarity');
@@ -961,153 +892,256 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
     final exterior = _schemaTag(schema, 'exterior');
     final phase = _pickRawText(schema?.raw, const ['phase']);
     final percentage = _pickRawText(schema?.raw, const ['percentage']);
-    final primaryQualityLabel = quality?.label ?? rarity?.label;
+    final amountValue = _resolvedLockedAmountValue() > 0
+        ? _resolvedLockedAmountValue()
+        : (orderPrice ?? 0);
+    final giftAmount = _resolvedGiftAmountValue();
 
     return _buildCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle(_text(zh: '商品信息', en: 'Product Info')),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: SizedBox(
-                  width: 96,
-                  height: 96,
-                  child: GameItemImage(
-                    imageUrl: imageUrl,
-                    appId: appId,
-                    rarity: rarity,
-                    quality: quality,
-                    exterior: exterior,
-                    phase: phase,
-                    percentage: percentage,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _titleColor,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        height: 28 / 20,
-                      ),
-                    ),
-                    if (subtitle != null &&
-                        subtitle.isNotEmpty &&
-                        subtitle != name) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _mutedColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          height: 18 / 12,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _buildInfoChip(
-                          label: _gameName(appId),
-                          background: const Color(0xFFF1F5F9),
-                          foreground: const Color(0xFF475569),
-                        ),
-                        if (primaryQualityLabel != null &&
-                            primaryQualityLabel.isNotEmpty)
-                          _buildInfoChip(
-                            label: primaryQualityLabel,
-                            background: const Color(0xFFFEF2F2),
-                            foreground: const Color(0xFFDC2626),
-                          ),
-                        if (exterior?.label != null &&
-                            exterior!.label!.isNotEmpty)
-                          _buildInfoChip(
-                            label: exterior.label!,
-                            background: const Color(0xFFEEF6FF),
-                            foreground: const Color(0xFF2563EB),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          WalletOrderAssetCard(
+            title: name,
+            subtitle: subtitle,
+            imageUrl: imageUrl,
+            appId: appId,
+            priceText: orderPrice == null
+                ? null
+                : _formatAmount(currency, orderPrice),
+            raw: order?.raw ?? const {},
+            schemaRaw: schema?.raw ?? const {},
+            stickerMap: _detail?.stickers ?? const {},
+            rarity: rarity,
+            quality: quality,
+            exterior: exterior,
+            phase: phase,
+            percentage: percentage,
+            paintWear: paintWear,
+            wearText: paintWearText,
           ),
-          if (orderPrice != null || sellMin != null || buyMax != null) ...[
-            const SizedBox(height: 18),
-            if (orderPrice != null)
-              _buildDetailValueRow(
-                label: _text(zh: '订单金额', en: 'Total Price'),
-                value: _formatAmount(currency, orderPrice),
-              ),
-            if (orderPrice != null && (sellMin != null || buyMax != null))
-              const SizedBox(height: 8),
-            if (sellMin != null)
-              _buildDetailValueRow(
-                label: 'app.market.detail.sale_lowest'.tr,
-                value: _formatAmount(currency, sellMin),
-              ),
-            if (sellMin != null && buyMax != null) const SizedBox(height: 8),
-            if (buyMax != null)
-              _buildDetailValueRow(
-                label: 'app.market.detail.purchase_highest'.tr,
-                value: _formatAmount(currency, buyMax),
-              ),
-          ],
-          if (paintWearText != null && paintWearText.isNotEmpty) ...[
-            const SizedBox(height: 22),
-            _buildWearValueRow(
-              label: _text(zh: '磨损度', en: 'Wear'),
-              value: paintWearText,
-            ),
-          ],
-          if (paintWear != null && paintWear > 0) ...[
+          const SizedBox(height: 18),
+          _buildDetailValueRow(
+            label: _text(zh: '结算金额', en: 'Settlement Amount'),
+            value: _formatAmount(currency, amountValue),
+            valueColor: const Color(0xFF2563EB),
+          ),
+          if (giftAmount > 0) ...[
             const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: WearProgressBar(
-                paintWear: paintWear,
-                height: 18,
-                style: WearProgressBarStyle.figmaCompact,
-              ),
+            _buildDetailValueRow(
+              label: _text(zh: '礼品卡金额', en: 'Gift Amount'),
+              value: _formatAmount(currency, giftAmount),
             ),
-          ],
-          if (stickers.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Text(
-              _text(zh: '印花信息', en: 'Sticker Info'),
-              style: const TextStyle(
-                color: _mutedColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                height: 18 / 12,
-                letterSpacing: 0.3,
-              ),
-            ),
-            const SizedBox(height: 10),
-            StickerRow(stickers: stickers, size: 28),
           ],
         ],
       ),
     );
+  }
+
+  Widget _buildNoticeCard() {
+    final order = _detail?.order;
+    final headline = _statusHeadline(order);
+    final lockTime = _formatTimestamp(_resolvedLockTime(order));
+    final statusColor = _statusHeadlineColor(order);
+    final message = _text(
+      zh: '当前资金状态：$headline。锁定时间 $lockTime，可在下方查看资金追踪。',
+      en: 'Current fund status: $headline. Locked at $lockTime. Track the fund movement below.',
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(_statusIcon(order), color: statusColor, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Color(0xFF1D4ED8),
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                height: 18 / 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrackingTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        color: _bodyColor,
+        fontSize: 15,
+        fontWeight: FontWeight.w800,
+        height: 22 / 15,
+      ),
+    );
+  }
+
+  Widget _buildFundTrackingSection(CurrencyController currency) {
+    final order = _detail?.order;
+    final amount = _resolvedLockedAmountValue();
+    final lockTime = _formatTimestamp(_resolvedLockTime(order));
+    final changeTime = _formatTimestamp(_resolvedChangeTime(order));
+    final headline = _statusHeadline(order);
+    final status = _resolvedStatus(order);
+    final currentTitle = status == 6
+        ? _text(zh: '解冻资金', en: 'Unfreeze Funds')
+        : headline;
+    final currentStatus = status == 6
+        ? _text(zh: '已完成', en: 'Completed')
+        : headline;
+
+    return Column(
+      children: [
+        _buildTrackingCard(
+          title: currentTitle,
+          time: changeTime,
+          amount: _formatTrackingAmount(currency, amount, positive: false),
+          status: currentStatus.toUpperCase(),
+          active: true,
+          amountColor: const Color(0xFF334155),
+        ),
+        const SizedBox(height: 10),
+        _buildTrackingCard(
+          title: _text(zh: '冻结资金', en: 'Freeze Funds'),
+          time: lockTime,
+          amount: _formatTrackingAmount(currency, amount, positive: true),
+          status: _text(zh: '已锁定', en: 'Settled').toUpperCase(),
+          active: false,
+          amountColor: const Color(0xFF2563EB),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTrackingCard({
+    required String title,
+    required String time,
+    required String amount,
+    required String status,
+    required bool active,
+    required Color amountColor,
+  }) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: _cardBg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 72,
+            color: active ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _titleColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            height: 20 / 14,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          time,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _mutedColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                            height: 14 / 10,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        amount,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                        style: TextStyle(
+                          color: amountColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          height: 20 / 14,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        status,
+                        style: const TextStyle(
+                          color: _mutedColor,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          height: 13 / 9,
+                          letterSpacing: 0,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  int? _resolvedChangeTime(WalletLockedOrder? order) {
+    return order?.changeTime ??
+        _asInt(
+          _pickRawValue(order?.raw, const [
+            'change_time',
+            'changeTime',
+            'update_time',
+            'updateTime',
+            'finish_time',
+            'finishTime',
+          ]),
+        ) ??
+        _resolvedCreatedTime(order);
+  }
+
+  String _formatTrackingAmount(
+    CurrencyController currency,
+    double value, {
+    required bool positive,
+  }) {
+    final formatted = currency.formatUsd(value).replaceFirst('\$ ', r'$');
+    return '${positive ? '+' : '-'}$formatted';
   }
 
   Widget _buildBottomActionBar(
@@ -1329,70 +1363,11 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        color: _mutedColor,
-        fontSize: 14,
-        fontWeight: FontWeight.w700,
-        height: 20 / 14,
-      ),
-    );
-  }
-
-  Widget _buildInfoChip({
+  Widget _buildDetailValueRow({
     required String label,
-    required Color background,
-    required Color foreground,
+    required String value,
+    Color? valueColor,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: foreground,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          height: 1.25,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGlassButton({
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            height: 20 / 14,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailValueRow({required String label, required String value}) {
     return Row(
       children: [
         Expanded(
@@ -1410,106 +1385,11 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
         Text(
           value,
           textAlign: TextAlign.right,
-          style: const TextStyle(
-            color: _titleColor,
+          style: TextStyle(
+            color: valueColor ?? _titleColor,
             fontSize: 15,
             fontWeight: FontWeight.w700,
             height: 20 / 15,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWearValueRow({required String label, required String value}) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: _mutedColor,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            height: 18 / 12,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            value,
-            textAlign: TextAlign.right,
-            style: const TextStyle(
-              color: _bodyColor,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              height: 18 / 12,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildGlassStatusRow({
-    required String label,
-    required String value,
-    VoidCallback? onCopy,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 116,
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Color.fromRGBO(255, 255, 255, 0.90),
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
-              height: 20 / 14,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 20,
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        value,
-                        softWrap: false,
-                        textAlign: TextAlign.right,
-                        style: const TextStyle(
-                          color: Color.fromRGBO(255, 255, 255, 0.90),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          height: 20 / 14,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              if (onCopy != null) ...[
-                const SizedBox(width: 6),
-                InkWell(
-                  onTap: onCopy,
-                  child: const Icon(
-                    Icons.content_copy_rounded,
-                    size: 14,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ],
           ),
         ),
       ],

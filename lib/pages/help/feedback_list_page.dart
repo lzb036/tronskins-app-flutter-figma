@@ -1,10 +1,11 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:tronskins_app/api/model/feedback/feedback_models.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/login_required_prompt.dart';
-import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/components/layout/list_end_tip.dart';
 import 'package:tronskins_app/controllers/help/feedback_controller.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
@@ -56,6 +57,15 @@ class _FeedbackListPageState extends State<FeedbackListPage> {
     }
   }
 
+  void _createFeedback() {
+    if (!userController.isLoggedIn.value) return;
+    if (controller.hasUnfinishedFeedback) {
+      AppSnackbar.info('app.user.feedback.have_unfinished_feedback'.tr);
+      return;
+    }
+    Get.toNamed(Routers.FEEDBACK_CREATE);
+  }
+
   String _formatTime(int? value) {
     if (value == null) return '--';
     final ts = value < 1000000000000 ? value * 1000 : value;
@@ -64,44 +74,41 @@ class _FeedbackListPageState extends State<FeedbackListPage> {
     ).format(DateTime.fromMillisecondsSinceEpoch(ts));
   }
 
-  void _createFeedback() {
-    if (!userController.isLoggedIn.value) {
-      return;
-    }
-    if (controller.hasUnfinishedFeedback) {
-      AppSnackbar.info('app.user.feedback.have_unfinished_feedback'.tr);
-      return;
-    }
-    Get.toNamed(Routers.FEEDBACK_CREATE);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Obx(() {
       final loggedIn = userController.isLoggedIn.value;
       return Scaffold(
         backgroundColor: _FeedbackStyle.pageBackground,
-        appBar: SettingsStyleAppBar(
-          title: Text('app.user.menu.feedback'.tr),
-          actions: loggedIn
-              ? [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.add_circle_outline,
-                      color: _FeedbackStyle.brandBlue,
-                    ),
-                    onPressed: _createFeedback,
-                  ),
-                ]
-              : const [],
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: loggedIn ? _buildFeedbackList() : _buildLoginPrompt(),
+            ),
+            _FeedbackTopBar(
+              title: 'app.user.menu.feedback'.tr,
+              onBack: () => Navigator.maybePop(context),
+              onAdd: loggedIn ? _createFeedback : null,
+            ),
+          ],
         ),
-        body: loggedIn ? _buildFeedbackList() : _buildLoginPrompt(),
       );
     });
   }
 
   Widget _buildLoginPrompt() {
-    return const LoginRequiredPrompt();
+    return Builder(
+      builder: (context) {
+        final topPadding = _FeedbackStyle.contentTopPadding(context);
+        return Padding(
+          padding: EdgeInsets.only(
+            top: topPadding,
+            bottom: _FeedbackStyle.contentBottomPadding,
+          ),
+          child: const LoginRequiredPrompt(),
+        );
+      },
+    );
   }
 
   Widget _buildFeedbackList() {
@@ -120,74 +127,98 @@ class _FeedbackListPageState extends State<FeedbackListPage> {
   }
 
   Widget _buildTicketScrollView({required List<FeedbackTicket> list}) {
-    return RefreshIndicator(
-      color: _FeedbackStyle.brandBlue,
-      backgroundColor: Colors.white,
-      strokeWidth: 2.2,
-      displacement: 22,
-      edgeOffset: 2,
-      elevation: 0,
-      notificationPredicate: (notification) => notification.depth == 0,
-      onRefresh: () => controller.loadTickets(refresh: true),
-      child: CustomScrollView(
-        controller: _scrollController,
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: ClampingScrollPhysics(),
-        ),
-        slivers: [
-          if (list.isEmpty)
-            const SliverFillRemaining(
-              hasScrollBody: false,
-              child: _FeedbackEmptyState(),
-            )
-          else ...[
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(26, 24, 26, 0),
-              sliver: SliverList.separated(
-                itemCount: list.length,
-                itemBuilder: (context, index) {
-                  final item = list[index];
-                  return _FeedbackTicketCard(
-                    item: item,
-                    formattedTime: _formatTime(item.createTime),
-                    onTap: () => Get.toNamed(
-                      Routers.FEEDBACK_DETAIL,
-                      arguments: {
-                        'id': item.id,
-                        'status': item.status,
-                        'statusName': item.statusName,
-                      },
-                    ),
-                  );
-                },
-                separatorBuilder: (_, _) => const SizedBox(height: 22),
-              ),
+    return Builder(
+      builder: (context) {
+        return RefreshIndicator(
+          color: _FeedbackStyle.brandBlue,
+          backgroundColor: Colors.white,
+          strokeWidth: 2.2,
+          displacement: 22,
+          edgeOffset: _FeedbackStyle.topBarHeight(context),
+          elevation: 0,
+          notificationPredicate: (notification) => notification.depth == 0,
+          onRefresh: () => controller.loadTickets(refresh: true),
+          child: CustomScrollView(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: ClampingScrollPhysics(),
             ),
-            SliverToBoxAdapter(
-              child: _buildLoadMoreFooter(
-                loading: controller.listLoadingMore.value,
-                hasMore: controller.hasMore,
-              ),
-            ),
-          ],
-        ],
-      ),
+            slivers: [
+              if (list.isEmpty)
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    _FeedbackStyle.contentTopPadding(context),
+                    16,
+                    _FeedbackStyle.contentBottomPadding,
+                  ),
+                  sliver: const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _FeedbackEmptyState(),
+                  ),
+                )
+              else ...[
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    _FeedbackStyle.contentTopPadding(context),
+                    16,
+                    0,
+                  ),
+                  sliver: SliverList.separated(
+                    itemCount: list.length,
+                    itemBuilder: (context, index) {
+                      final item = list[index];
+                      return _FeedbackTicketCard(
+                        item: item,
+                        formattedTime: _formatTime(item.createTime),
+                        onTap: () => Get.toNamed(
+                          Routers.FEEDBACK_DETAIL,
+                          arguments: {
+                            'id': item.id,
+                            'status': item.status,
+                            'statusName': item.statusName,
+                          },
+                        ),
+                      );
+                    },
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: _buildLoadMoreFooter(
+                    loading: controller.listLoadingMore.value,
+                    hasMore: controller.hasMore,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 
   Widget _buildLoadMoreFooter({required bool loading, required bool hasMore}) {
     if (loading && hasMore) {
       return const Padding(
-        padding: EdgeInsets.fromLTRB(26, 18, 26, 18),
+        padding: EdgeInsets.fromLTRB(16, 12, 16, 12),
         child: _FeedbackTicketSkeleton(),
       );
     }
 
     if (!hasMore) {
-      return const ListEndTip(padding: EdgeInsets.fromLTRB(8, 18, 8, 20));
+      return ListEndTip(
+        padding: EdgeInsets.fromLTRB(
+          8,
+          18,
+          8,
+          _FeedbackStyle.contentBottomPadding,
+        ),
+      );
     }
 
-    return const SizedBox(height: 20);
+    return const SizedBox(height: _FeedbackStyle.contentBottomPadding);
   }
 }
 
@@ -205,11 +236,9 @@ class _FeedbackTicketCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = item.status ?? -1;
-    final colors = _FeedbackStyle.statusColors(status);
     final title = item.title?.trim();
     final content = item.context?.trim();
     return Container(
-      constraints: const BoxConstraints(minHeight: 161),
       decoration: _FeedbackStyle.cardDecoration,
       child: Material(
         color: Colors.transparent,
@@ -217,113 +246,163 @@ class _FeedbackTicketCard extends StatelessWidget {
           borderRadius: _FeedbackStyle.cardRadius,
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 16, 18),
+            padding: const EdgeInsets.all(16),
             child: SizedBox(
-              height: 125,
-              child: Row(
+              height: 140.25,
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: colors.background,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: colors.border),
-                    ),
-                    child: Icon(
-                      _FeedbackStyle.statusIcon(status),
-                      color: colors.foreground,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                title?.isNotEmpty == true ? title! : '--',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: _FeedbackStyle.text,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  height: 1.25,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            _StatusChip(
-                              status: status,
-                              label: item.statusName ?? '',
-                            ),
-                          ],
-                        ),
-                        if (content?.isNotEmpty == true) ...[
-                          const SizedBox(height: 10),
-                          Text(
-                            content!,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: _FeedbackStyle.secondaryText,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              height: 1.45,
-                            ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title?.isNotEmpty == true ? title! : '--',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _FeedbackStyle.text,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            height: 22.5 / 15,
+                            letterSpacing: 0,
                           ),
-                        ],
-                        const Spacer(),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.schedule_rounded,
-                              size: 18,
-                              color: _FeedbackStyle.mutedText.withValues(
-                                alpha: 0.78,
-                              ),
-                            ),
-                            const SizedBox(width: 7),
-                            Expanded(
-                              child: Text(
-                                formattedTime,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: _FeedbackStyle.secondaryText,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  height: 1.25,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: _FeedbackStyle.softSurface,
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: const Icon(
-                                Icons.chevron_right_rounded,
-                                color: _FeedbackStyle.brandBlue,
-                                size: 28,
-                              ),
-                            ),
-                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 12),
+                      _StatusChip(status: status, label: item.statusName ?? ''),
+                    ],
+                  ),
+                  const SizedBox(height: 16.25),
+                  if (content?.isNotEmpty == true)
+                    Text(
+                      content!,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _FeedbackStyle.secondaryText,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        height: 22.75 / 14,
+                        letterSpacing: 0,
+                      ),
+                    )
+                  else
+                    const SizedBox(height: 68.25),
+                  const Spacer(),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.schedule_rounded,
+                        size: 10,
+                        color: _FeedbackStyle.mutedText.withValues(alpha: 0.8),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        formattedTime,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _FeedbackStyle.timeText,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          height: 18 / 12,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FeedbackTopBar extends StatelessWidget {
+  const _FeedbackTopBar({
+    required this.title,
+    required this.onBack,
+    required this.onAdd,
+  });
+
+  final String title;
+  final VoidCallback onBack;
+  final VoidCallback? onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    final topInset = MediaQuery.paddingOf(context).top;
+    return Positioned(
+      left: 0,
+      right: 0,
+      top: 0,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            height: _FeedbackStyle.topBarHeight(context),
+            padding: EdgeInsets.fromLTRB(24, topInset, 24, 0),
+            color: _FeedbackStyle.glassTopBar,
+            child: Row(
+              children: [
+                Material(
+                  color: Colors.transparent,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: onBack,
+                    child: const SizedBox(
+                      width: 32,
+                      height: 56,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Icon(
+                          Icons.arrow_back,
+                          color: _FeedbackStyle.brandBlueAlt,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _FeedbackStyle.brandBlueAlt,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      height: 28 / 20,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                if (onAdd == null)
+                  const SizedBox(width: 40, height: 40)
+                else
+                  IconButton(
+                    onPressed: onAdd,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints.tightFor(
+                      width: 40,
+                      height: 40,
+                    ),
+                    icon: const Icon(
+                      Icons.add_circle_outline_rounded,
+                      color: _FeedbackStyle.brandBlueAlt,
+                      size: 24,
+                    ),
+                    tooltip: 'app.user.feedback.text'.tr,
+                  ),
+              ],
             ),
           ),
         ),
@@ -345,25 +424,34 @@ class _StatusChip extends StatelessWidget {
         ? label.trim()
         : _FeedbackStyle.statusLabel(status);
     return Container(
-      constraints: const BoxConstraints(minWidth: 82, minHeight: 34),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      constraints: const BoxConstraints(minHeight: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         color: colors.background,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: colors.border),
       ),
-      alignment: Alignment.center,
-      child: Text(
-        resolvedLabel,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: colors.foreground,
-          fontSize: 14,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0,
-          height: 1,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            _FeedbackStyle.statusIcon(status),
+            color: colors.foreground,
+            size: 12,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            resolvedLabel,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: colors.foreground,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              height: 16 / 12,
+              letterSpacing: 0,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -406,30 +494,12 @@ class _FeedbackEmptyState extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 9),
-                Text(
-                  _emptySubtitle,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _FeedbackStyle.secondaryText.withValues(alpha: 0.84),
-                    fontSize: 14,
-                    height: 1.45,
-                  ),
-                ),
               ],
             ),
           ),
         ],
       ),
     );
-  }
-
-  String get _emptySubtitle {
-    final languageCode = Get.locale?.languageCode.toLowerCase() ?? '';
-    if (languageCode.startsWith('zh')) {
-      return '下拉刷新获取最新反馈';
-    }
-    return 'Pull down to refresh your feedback list.';
   }
 }
 
@@ -439,11 +509,16 @@ class _FeedbackSkeletonList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(26, 24, 26, 20),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        _FeedbackStyle.contentTopPadding(context),
+        16,
+        _FeedbackStyle.contentBottomPadding,
+      ),
       physics: const NeverScrollableScrollPhysics(),
       itemCount: 5,
       itemBuilder: (_, _) => const _FeedbackTicketSkeleton(),
-      separatorBuilder: (_, _) => const SizedBox(height: 22),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
     );
   }
 }
@@ -454,45 +529,33 @@ class _FeedbackTicketSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 161),
-      padding: const EdgeInsets.fromLTRB(20, 18, 16, 18),
+      padding: const EdgeInsets.all(16),
       decoration: _FeedbackStyle.cardDecoration,
       child: const SizedBox(
-        height: 125,
-        child: Row(
+        height: 140.25,
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _FeedbackSkeletonBox(width: 56, height: 56, radius: 18),
-            SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _FeedbackSkeletonBox(height: 20, radius: 10),
-                      ),
-                      SizedBox(width: 42),
-                      _FeedbackSkeletonBox(width: 82, height: 34, radius: 999),
-                    ],
-                  ),
-                  SizedBox(height: 14),
-                  _FeedbackSkeletonBox(height: 15, radius: 8),
-                  SizedBox(height: 9),
-                  _FeedbackSkeletonBox(width: 172, height: 15, radius: 8),
-                  Spacer(),
-                  Row(
-                    children: [
-                      _FeedbackSkeletonBox(width: 18, height: 18, radius: 999),
-                      SizedBox(width: 7),
-                      _FeedbackSkeletonBox(width: 150, height: 15, radius: 8),
-                      Spacer(),
-                      _FeedbackSkeletonBox(width: 36, height: 36, radius: 999),
-                    ],
-                  ),
-                ],
-              ),
+            Row(
+              children: [
+                Expanded(child: _FeedbackSkeletonBox(height: 18, radius: 9)),
+                SizedBox(width: 42),
+                _FeedbackSkeletonBox(width: 78, height: 24, radius: 999),
+              ],
+            ),
+            SizedBox(height: 18),
+            _FeedbackSkeletonBox(height: 14, radius: 7),
+            SizedBox(height: 9),
+            _FeedbackSkeletonBox(height: 14, radius: 7),
+            SizedBox(height: 9),
+            _FeedbackSkeletonBox(width: 220, height: 14, radius: 7),
+            Spacer(),
+            Row(
+              children: [
+                _FeedbackSkeletonBox(width: 10, height: 10, radius: 999),
+                SizedBox(width: 6),
+                _FeedbackSkeletonBox(width: 99, height: 12, radius: 6),
+              ],
             ),
           ],
         ),
@@ -528,48 +591,66 @@ class _FeedbackSkeletonBox extends StatelessWidget {
 class _FeedbackStyle {
   const _FeedbackStyle._();
 
-  static const pageBackground = Color(0xFFF7F9FB);
+  static const pageBackground = Color(0xFFF5F5F5);
   static const card = Color(0xFFFFFFFF);
   static const text = Color(0xFF191C1E);
   static const secondaryText = Color(0xFF4B5563);
   static const mutedText = Color(0xFF6B7280);
-  static const border = Color(0xFFDDE4EC);
+  static const timeText = Color(0xFF9CA3AF);
+  static const border = Color(0x00000000);
   static const brandBlue = Color(0xFF00288E);
-  static const softBlue = Color(0xFFEAF0FF);
-  static const softSurface = Color(0xFFF1F5F9);
+  static const brandBlueAlt = Color(0xFF1E3A8A);
+  static const softBlue = Color(0xFFE0E7FF);
   static const skeleton = Color(0xFFE8EEF4);
+  static const glassTopBar = Color.fromRGBO(248, 250, 252, 0.7);
+  static const contentBottomPadding = 24.0;
 
-  static final cardRadius = BorderRadius.circular(0);
+  static final cardRadius = BorderRadius.circular(12);
 
   static final cardDecoration = BoxDecoration(
     color: card,
     borderRadius: cardRadius,
     border: Border.all(color: border),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.04),
+        blurRadius: 4,
+        offset: const Offset(0, 2),
+      ),
+    ],
   );
+
+  static double topBarHeight(BuildContext context) {
+    return MediaQuery.paddingOf(context).top + 56;
+  }
+
+  static double contentTopPadding(BuildContext context) {
+    return topBarHeight(context) + 16;
+  }
 
   static ({Color background, Color foreground, Color border}) statusColors(
     int status,
   ) {
     return switch (status) {
       0 => (
-        background: const Color(0xFFFFF4DE),
-        foreground: const Color(0xFFB45309),
-        border: const Color(0xFFF6D59A),
+        background: const Color(0xFFFEF3C7),
+        foreground: const Color(0xFF92400E),
+        border: const Color(0x00FFFFFF),
       ),
       1 => (
-        background: softBlue,
-        foreground: brandBlue,
-        border: const Color(0xFFC9D7FF),
+        background: const Color(0xFFFEF3C7),
+        foreground: const Color(0xFF92400E),
+        border: const Color(0x00FFFFFF),
       ),
       2 => (
-        background: const Color(0xFFE8F9EF),
-        foreground: const Color(0xFF047A3B),
-        border: const Color(0xFFB8EACB),
+        background: const Color(0xFFD1FAE5),
+        foreground: const Color(0xFF065F46),
+        border: const Color(0x00FFFFFF),
       ),
       3 => (
-        background: const Color(0xFFF2F6FA),
-        foreground: const Color(0xFF56616D),
-        border: const Color(0xFFD7E1EA),
+        background: const Color(0xFFFEE2E2),
+        foreground: const Color(0xFF991B1B),
+        border: const Color(0x00FFFFFF),
       ),
       _ => (
         background: const Color(0xFFE9EEF1),
@@ -581,10 +662,10 @@ class _FeedbackStyle {
 
   static IconData statusIcon(int status) {
     return switch (status) {
-      0 => Icons.hourglass_top_rounded,
-      1 => Icons.autorenew_rounded,
-      2 => Icons.check_circle_rounded,
-      3 => Icons.lock_rounded,
+      0 => Icons.history_rounded,
+      1 => Icons.history_rounded,
+      2 => Icons.check_circle_outline_rounded,
+      3 => Icons.error_outline_rounded,
       _ => Icons.help_outline_rounded,
     };
   }

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class FeedbackPager {
   final int page;
   final int pageSize;
@@ -77,6 +79,7 @@ class FeedbackDetail {
   final int? status;
   final String? statusName;
   final int? createTime;
+  final List<String> images;
 
   const FeedbackDetail({
     this.id,
@@ -85,6 +88,7 @@ class FeedbackDetail {
     this.status,
     this.statusName,
     this.createTime,
+    this.images = const [],
   });
 
   factory FeedbackDetail.fromJson(Map<String, dynamic> json) {
@@ -96,6 +100,17 @@ class FeedbackDetail {
       statusName:
           json['statusName']?.toString() ?? json['status_name']?.toString(),
       createTime: _asInt(json['createTime'] ?? json['create_time']),
+      images: _asStringList(
+        json['images'] ??
+            json['image'] ??
+            json['imgs'] ??
+            json['imageUrls'] ??
+            json['image_urls'] ??
+            json['imageList'] ??
+            json['image_list'] ??
+            json['attachments'] ??
+            json['files'],
+      ),
     );
   }
 }
@@ -116,15 +131,21 @@ class FeedbackReply {
   });
 
   factory FeedbackReply.fromJson(Map<String, dynamic> json) {
-    final rawImages = json['images'];
-    final images = rawImages is List
-        ? rawImages.map((e) => e.toString()).toList()
-        : <String>[];
     return FeedbackReply(
       id: json['id']?.toString(),
       context: json['context']?.toString(),
       createTime: _asInt(json['createTime'] ?? json['create_time']),
-      images: images,
+      images: _asStringList(
+        json['images'] ??
+            json['image'] ??
+            json['imgs'] ??
+            json['imageUrls'] ??
+            json['image_urls'] ??
+            json['imageList'] ??
+            json['image_list'] ??
+            json['attachments'] ??
+            json['files'],
+      ),
       isAdmin: _asBool(json['is_admin'] ?? json['isAdmin']),
     );
   }
@@ -155,4 +176,76 @@ bool _asBool(dynamic value) {
   }
   final str = value.toString().toLowerCase();
   return str == '1' || str == 'true' || str == 'yes';
+}
+
+List<String> _asStringList(dynamic value) {
+  final result = <String>[];
+  final seen = <String>{};
+
+  void addString(dynamic raw) {
+    final text = raw?.toString().trim();
+    if (text == null || text.isEmpty || !seen.add(text)) return;
+    result.add(text);
+  }
+
+  void addValue(dynamic raw) {
+    if (raw == null) return;
+    if (raw is Map) {
+      const keys = [
+        'url',
+        'path',
+        'src',
+        'image',
+        'imageUrl',
+        'image_url',
+        'fileUrl',
+        'file_url',
+      ];
+      for (final key in keys) {
+        if (raw[key] != null) {
+          addString(raw[key]);
+          return;
+        }
+      }
+      return;
+    }
+    addString(raw);
+  }
+
+  if (value is List) {
+    for (final item in value) {
+      addValue(item);
+    }
+    return result;
+  }
+
+  if (value is String) {
+    final text = value.trim();
+    if (text.isEmpty) return result;
+    final looksLikeJson =
+        (text.startsWith('[') && text.endsWith(']')) ||
+        (text.startsWith('{') && text.endsWith('}'));
+    if (looksLikeJson) {
+      try {
+        final decoded = jsonDecode(text);
+        if (decoded is List) {
+          for (final item in decoded) {
+            addValue(item);
+          }
+        } else {
+          addValue(decoded);
+        }
+        return result;
+      } catch (_) {
+        // Fall through to comma separated parsing.
+      }
+    }
+    for (final item in text.split(',')) {
+      addValue(item);
+    }
+    return result;
+  }
+
+  addValue(value);
+  return result;
 }
