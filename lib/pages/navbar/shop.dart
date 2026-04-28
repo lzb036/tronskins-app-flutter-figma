@@ -773,38 +773,10 @@ class _ShopPageState extends State<ShopPage>
     return total > 0 ? total : 1;
   }
 
-  String _pendingDetailIdentity(ShopOrderDetail detail) {
-    final schemaId = detail.schemaId;
-    if (schemaId != null && schemaId > 0) {
-      return 'schema:$schemaId';
-    }
-    final marketHashName = (detail.marketHashName ?? '').trim();
-    if (marketHashName.isNotEmpty) {
-      return 'hash:$marketHashName';
-    }
-    final marketName = (detail.marketName ?? '').trim();
-    if (marketName.isNotEmpty) {
-      return 'name:$marketName';
-    }
-    return 'raw:${detail.hashCode}';
-  }
-
   bool _shouldUsePendingBatchPreview(ShopOrderItem order) {
     final details = _pendingVisibleDetails(order);
     final quantity = _pendingItemQuantity(order, details: details);
-    if (quantity <= 1) {
-      return false;
-    }
-    if (details.length <= 1) {
-      return true;
-    }
-    final baseIdentity = _pendingDetailIdentity(details.first);
-    for (final detail in details.skip(1)) {
-      if (_pendingDetailIdentity(detail) != baseIdentity) {
-        return false;
-      }
-    }
-    return true;
+    return quantity > 1;
   }
 
   List<ShopOrderDetail> _pendingPreviewDetails(ShopOrderItem order) {
