@@ -809,6 +809,13 @@ class _ShopPageState extends State<ShopPage>
     return '$quantity';
   }
 
+  String _pendingHiddenCountLabel(int count) {
+    if (count > 99) {
+      return '+99';
+    }
+    return '+$count';
+  }
+
   int _sellRecordItemQuantity(ShopOrderItem record) {
     if (record.nums != null && record.nums! > 0) {
       return record.nums!;
@@ -2425,62 +2432,37 @@ class _ShopPageState extends State<ShopPage>
         useBatchPreview: false,
       );
     }
+    final totalCount = _pendingItemQuantity(
+      order,
+      details: _pendingVisibleDetails(order),
+    );
     const tileSize = 80.0;
-    const horizontalPeek = 14.0;
-    const verticalPeek = 8.0;
-    const badgeSize = 24.0;
-    const badgeOverlap = 8.0;
-    final stackCount = previewDetails.length > 3 ? 3 : previewDetails.length;
-    final width = tileSize + ((stackCount - 1) * horizontalPeek);
-    final height = tileSize + ((stackCount - 1) * verticalPeek);
     return SizedBox(
-      width: width,
-      height: height,
+      width: tileSize,
+      height: tileSize,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          for (var layer = stackCount - 1; layer >= 0; layer--)
-            Positioned(
-              left: layer * horizontalPeek,
-              top: layer * verticalPeek,
-              child: _buildPendingBatchPreviewTile(
-                previewDetails[layer],
-                isFront: layer == 0,
-                visualDepth: layer,
-              ),
-            ),
-          Positioned(
-            left: tileSize - badgeSize + badgeOverlap,
-            top: -badgeOverlap,
-            child: Container(
-              constraints: const BoxConstraints(minWidth: 24),
-              height: 24,
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF00288E),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: Colors.white, width: 1.5),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x1A0F172A),
-                    blurRadius: 15,
-                    offset: Offset(0, 4),
-                    spreadRadius: -2,
-                  ),
-                ],
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                _pendingBatchCountLabel(order),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  height: 1,
-                ),
-              ),
+          Positioned.fill(
+            child: _buildPendingBatchPreviewTile(
+              previewDetails.first,
+              isFront: true,
+              visualDepth: 0,
             ),
           ),
+          Positioned(
+            left: -5,
+            top: -5,
+            child: _buildPendingBatchCountBadge(_pendingBatchCountLabel(order)),
+          ),
+          if (totalCount <= 3)
+            ..._buildPendingSmallPreviewStack(previewDetails.skip(1).toList())
+          else
+            Positioned(
+              right: -3,
+              bottom: -3,
+              child: _buildPendingOverflowBadge(totalCount - 1),
+            ),
         ],
       ),
     );
@@ -2490,6 +2472,8 @@ class _ShopPageState extends State<ShopPage>
     ShopOrderDetail detail, {
     required bool isFront,
     required int visualDepth,
+    double size = 80,
+    bool showExteriorBar = true,
   }) {
     final schema = _lookupSchema(
       orderController.schemas,
@@ -2503,15 +2487,27 @@ class _ShopPageState extends State<ShopPage>
     final exterior = _schemaTag(schema, 'exterior');
     final exteriorColor = parseHexColor(exterior?.color);
 
-    final imageOpacity = isFront ? 1.0 : (visualDepth == 1 ? 0.9 : 0.78);
+    final isSmallTile = size < 60;
+    final imageOpacity = isSmallTile
+        ? 1.0
+        : (isFront ? 1.0 : (visualDepth == 1 ? 0.9 : 0.78));
+    final tileRadius = BorderRadius.circular(isSmallTile ? 6 : 8);
 
     return Container(
-      width: 80,
-      height: 80,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: const Color(0xFFECEEF0),
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: isFront
+        borderRadius: tileRadius,
+        boxShadow: isSmallTile
+            ? const [
+                BoxShadow(
+                  color: Color(0x260F172A),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ]
+            : isFront
             ? const [
                 BoxShadow(
                   color: Color(0x1A000000),
@@ -2533,6 +2529,12 @@ class _ShopPageState extends State<ShopPage>
                 ),
               ],
       ),
+      foregroundDecoration: isSmallTile
+          ? BoxDecoration(
+              borderRadius: tileRadius,
+              border: Border.all(color: Colors.white, width: 1.5),
+            )
+          : null,
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
@@ -2548,7 +2550,7 @@ class _ShopPageState extends State<ShopPage>
               ),
             ),
           ),
-          if (isFront && exteriorColor != null)
+          if (showExteriorBar && isFront && exteriorColor != null)
             Positioned(
               left: 0,
               right: 0,
@@ -2556,6 +2558,88 @@ class _ShopPageState extends State<ShopPage>
               child: _buildPendingExteriorColorBar(exteriorColor),
             ),
         ],
+      ),
+    );
+  }
+
+  List<Widget> _buildPendingSmallPreviewStack(List<ShopOrderDetail> details) {
+    const smallTileSize = 28.0;
+    const smallTilePeek = 7.0;
+    final visibleDetails = details.take(2).toList();
+    return [
+      for (var layer = visibleDetails.length - 1; layer >= 0; layer--)
+        Positioned(
+          right: -2 + (layer * smallTilePeek),
+          bottom: -2 + (layer * smallTilePeek),
+          child: _buildPendingBatchPreviewTile(
+            visibleDetails[layer],
+            isFront: true,
+            visualDepth: 0,
+            size: smallTileSize,
+            showExteriorBar: false,
+          ),
+        ),
+    ];
+  }
+
+  Widget _buildPendingBatchCountBadge(String text) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 18),
+      height: 18,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFF00288E),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white, width: 1.25),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1A0F172A),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+            spreadRadius: -2,
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          height: 1,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPendingOverflowBadge(int hiddenCount) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 30),
+      height: 24,
+      padding: const EdgeInsets.symmetric(horizontal: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xCC0F172A),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white, width: 1.25),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x330F172A),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+            spreadRadius: -2,
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        _pendingHiddenCountLabel(hiddenCount),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          height: 1,
+        ),
       ),
     );
   }
