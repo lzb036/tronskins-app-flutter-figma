@@ -21,6 +21,7 @@ import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 import 'package:tronskins_app/components/game_item/game_item_wear_overlay.dart';
+import 'package:tronskins_app/components/shop/shop_store_info_card.dart';
 import 'package:tronskins_app/controllers/shop/shop_order_controller.dart';
 import 'package:tronskins_app/controllers/shop/shop_shipping_notice_controller.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
@@ -574,151 +575,38 @@ class ShopOrderDetailPage extends StatelessWidget {
         if (buyer == null) {
           return const SizedBox.shrink();
         }
-        final chips = <Widget>[
-          if (buyer.level != null)
-            _buildSteamInfoChip(
-              label: 'Lv.${buyer.level}',
-              background: const Color(0xFFEFF6FF),
-              foreground: const Color(0xFF2563EB),
-            ),
-          if (buyer.yearsLevel != null)
-            _buildSteamInfoChip(
-              label: _text(
-                zh: 'Steam ${buyer.yearsLevel} 年',
-                en: 'Steam ${buyer.yearsLevel}y',
-              ),
-              background: const Color(0xFFF8FAFC),
-              foreground: const Color(0xFF475569),
-            ),
-        ];
 
-        return _buildCard(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildPendingBuyerAvatar(buyer),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionTitle(
-                      _text(zh: '买家 Steam 信息', en: 'Buyer Steam Info'),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      buyer.nickname?.trim().isNotEmpty == true
-                          ? buyer.nickname!
-                          : _text(zh: 'Steam 买家', en: 'Steam Buyer'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _titleColor,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        height: 24 / 18,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: chips.isEmpty
-                              ? Text(
-                                  _text(
-                                    zh: '暂未获取到更多 Steam 信息',
-                                    en: 'More Steam info unavailable',
-                                  ),
-                                  style: const TextStyle(
-                                    color: _mutedColor,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    height: 18 / 12,
-                                  ),
-                                )
-                              : Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: chips,
-                                ),
-                        ),
-                        const SizedBox(width: 12),
-                        _buildSteamRefreshButton(
-                          refreshing: refreshing,
-                          onTap: () async {
-                            if (refreshing) {
-                              return;
-                            }
-                            setState(() => refreshing = true);
-                            try {
-                              await _refreshBuyerInfo(
-                                users: users,
-                                order: order,
-                              );
-                            } finally {
-                              if (context.mounted) {
-                                setState(() => refreshing = false);
-                              }
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: _buildSectionTitle(_text(zh: '买家信息', en: 'Buyer Info')),
+            ),
+            const SizedBox(height: 10),
+            _buildPartyInfoCard(
+              buyer,
+              order: order,
+              trailing: _buildSteamRefreshButton(
+                refreshing: refreshing,
+                onTap: () async {
+                  if (refreshing) {
+                    return;
+                  }
+                  setState(() => refreshing = true);
+                  try {
+                    await _refreshBuyerInfo(users: users, order: order);
+                  } finally {
+                    if (context.mounted) {
+                      setState(() => refreshing = false);
+                    }
+                  }
+                },
               ),
-            ],
-          ),
+            ),
+          ],
         );
       },
-    );
-  }
-
-  Widget _buildPendingBuyerAvatar(_PartyInfo buyer) {
-    final avatarUrl = _resolveAvatarUrl(buyer.avatar);
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: avatarUrl.isEmpty
-          ? const Icon(Icons.person_outline_rounded, color: _mutedColor)
-          : Image.network(
-              avatarUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return const Icon(
-                  Icons.person_outline_rounded,
-                  color: _mutedColor,
-                );
-              },
-            ),
-    );
-  }
-
-  Widget _buildSteamInfoChip({
-    required String label,
-    required Color background,
-    required Color foreground,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: foreground,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          height: 16 / 11,
-        ),
-      ),
     );
   }
 
@@ -767,21 +655,20 @@ class ShopOrderDetailPage extends StatelessWidget {
         !_isCurrentUserParty(secondary, currentUserId)) {
       visibleSecondary = secondary;
     }
-    return _buildCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionTitle(primary.sectionTitle),
-          const SizedBox(height: 16),
-          _buildPartyRow(primary, order: order),
-          if (visibleSecondary != null) ...[
-            const SizedBox(height: 12),
-            const Divider(height: 1, color: _lineColor),
-            const SizedBox(height: 12),
-            _buildMiniPartyRow(visibleSecondary),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: _buildSectionTitle(primary.sectionTitle),
+        ),
+        const SizedBox(height: 10),
+        _buildPartyInfoCard(primary, order: order),
+        if (visibleSecondary != null) ...[
+          const SizedBox(height: 10),
+          _buildPartyInfoCard(visibleSecondary, order: order),
         ],
-      ),
+      ],
     );
   }
 
@@ -1635,161 +1522,47 @@ class ShopOrderDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildPartyRow(_PartyInfo party, {required ShopOrderItem order}) {
+  Widget _buildPartyInfoCard(
+    _PartyInfo party, {
+    required ShopOrderItem order,
+    Widget? trailing,
+  }) {
     final avatarUrl = _resolveAvatarUrl(party.avatar);
     final canOpenShop = (party.shopUuid ?? '').isNotEmpty;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: const BoxDecoration(
-            color: Color(0xFFE2E8F0),
-            shape: BoxShape.circle,
+    return ShopStoreInfoCard(
+      title: party.nickname ?? '-',
+      avatarUrl: avatarUrl,
+      fallbackIcon: Icons.person_rounded,
+      onTap: canOpenShop ? () => _openPartyShop(party, order) : null,
+      showChevron: canOpenShop,
+      trailing: trailing,
+      badges: [
+        ShopStoreInfoBadge(label: party.roleLabel),
+        if (canOpenShop)
+          ShopStoreInfoBadge(
+            label: _text(zh: '进入店铺', en: 'View Shop'),
+            onTap: () => _openPartyShop(party, order),
+            backgroundColor: const Color(0xFFF1F5F9),
+            foregroundColor: _brandColor,
           ),
-          clipBehavior: Clip.hardEdge,
-          child: avatarUrl.isEmpty
-              ? const Icon(Icons.person_rounded, color: _bodyColor)
-              : Image.network(
-                  avatarUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(Icons.person_rounded, color: _bodyColor);
-                  },
-                ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                party.nickname ?? '-',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: _titleColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  height: 24 / 16,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _partyMetaText(party),
-                style: const TextStyle(
-                  color: _mutedColor,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  height: 16 / 11,
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (party.level != null || canOpenShop) ...[
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              if (party.level != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    'Lv.${party.level}',
-                    style: const TextStyle(
-                      color: Color(0xFF2563EB),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      height: 1.2,
-                    ),
-                  ),
-                ),
-              if (canOpenShop) ...[
-                if (party.level != null) const SizedBox(height: 10),
-                InkWell(
-                  borderRadius: BorderRadius.circular(999),
-                  onTap: () => _openPartyShop(party, order),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.storefront_outlined,
-                          size: 16,
-                          color: _brandColor,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          _text(zh: '进入店铺', en: 'View Shop'),
-                          style: const TextStyle(
-                            color: _brandColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            height: 16 / 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
       ],
+      metrics: _partyMetrics(party),
     );
   }
 
-  Widget _buildMiniPartyRow(_PartyInfo party) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            party.roleLabel,
-            style: const TextStyle(
-              color: _bodyColor,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+  List<ShopStoreInfoMetric> _partyMetrics(_PartyInfo party) {
+    return [
+      if (party.level != null)
+        ShopStoreInfoMetric(
+          label: _text(zh: '等级', en: 'Level'),
+          value: 'Lv.${party.level}',
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            party.nickname ?? '-',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: _titleColor,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+      if (party.yearsLevel != null)
+        ShopStoreInfoMetric(
+          label: 'Steam',
+          value: _text(zh: '${party.yearsLevel} 年', en: '${party.yearsLevel}y'),
         ),
-      ],
-    );
+    ];
   }
 
   Widget _buildSupportAction({
@@ -3004,22 +2777,6 @@ class ShopOrderDetailPage extends StatelessWidget {
       }
     }
     return null;
-  }
-
-  String _partyMetaText(_PartyInfo party) {
-    final parts = <String>[];
-    if (party.level != null) {
-      parts.add('Lv.${party.level}');
-    }
-    if (party.yearsLevel != null) {
-      parts.add(
-        _text(
-          zh: 'Steam 年限 ${party.yearsLevel}',
-          en: 'Steam ${party.yearsLevel}y',
-        ),
-      );
-    }
-    return parts.isEmpty ? party.roleLabel : parts.join(' · ');
   }
 
   String _buildStatusText(ShopOrderItem order) {

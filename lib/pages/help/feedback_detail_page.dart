@@ -203,7 +203,7 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
                 : const AlwaysScrollableScrollPhysics(
                     parent: ClampingScrollPhysics(),
                   ),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            padding: const EdgeInsets.fromLTRB(26, 24, 26, 24),
             children: showSkeleton
                 ? [
                     _buildHeaderLoading(context),
@@ -330,12 +330,12 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
   Widget _buildHeaderLoading(BuildContext context) {
     return Container(
       decoration: _FeedbackDetailStyle.cardDecoration,
-      padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
+      padding: const EdgeInsets.fromLTRB(22, 18, 20, 20),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildLoadingLine(context, width: 44, height: 44, radius: 14),
-          const SizedBox(width: 13),
+          _buildLoadingLine(context, width: 56, height: 56, radius: 18),
+          const SizedBox(width: 18),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -352,18 +352,21 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
                     const SizedBox(width: 42),
                     _buildLoadingLine(
                       context,
-                      width: 64,
-                      height: 28,
+                      width: 82,
+                      height: 34,
                       radius: 999,
                     ),
                   ],
                 ),
-                const SizedBox(height: 13),
-                _buildLoadingLine(context, width: 150, height: 13),
-                const SizedBox(height: 17),
-                _buildLoadingLine(context, width: double.infinity, height: 14),
-                const SizedBox(height: 8),
-                _buildLoadingLine(context, width: 220, height: 14),
+                const SizedBox(height: 16),
+                _buildLoadingLine(context, width: 172, height: 15),
+                const SizedBox(height: 18),
+                _buildLoadingLine(
+                  context,
+                  width: double.infinity,
+                  height: 42,
+                  radius: 16,
+                ),
               ],
             ),
           ),
@@ -390,25 +393,25 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
     final content = detail.context?.trim();
     return Container(
       decoration: _FeedbackDetailStyle.cardDecoration,
-      padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
+      padding: const EdgeInsets.fromLTRB(22, 18, 20, 20),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
               color: colors.background,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(color: colors.border),
             ),
             child: Icon(
               _FeedbackDetailStyle.statusIcon(status),
               color: colors.foreground,
-              size: 22,
+              size: 28,
             ),
           ),
-          const SizedBox(width: 13),
+          const SizedBox(width: 18),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -423,27 +426,27 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: _FeedbackDetailStyle.text,
-                          fontSize: 17,
+                          fontSize: 18,
                           fontWeight: FontWeight.w900,
-                          height: 1.22,
+                          height: 1.25,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     _StatusChip(status: status, label: statusLabel),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Row(
                   children: [
                     Icon(
                       Icons.schedule_rounded,
-                      size: 15,
+                      size: 18,
                       color: _FeedbackDetailStyle.mutedText.withValues(
-                        alpha: 0.82,
+                        alpha: 0.78,
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 7),
                     Expanded(
                       child: Text(
                         _formatTime(detail.createTime),
@@ -451,30 +454,30 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: _FeedbackDetailStyle.secondaryText,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          height: 1.2,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          height: 1.25,
                         ),
                       ),
                     ),
                   ],
                 ),
                 if (content?.isNotEmpty == true) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
+                    padding: const EdgeInsets.fromLTRB(17, 14, 17, 14),
                     decoration: BoxDecoration(
                       color: _FeedbackDetailStyle.softSurface,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
                       content!,
                       style: const TextStyle(
                         color: _FeedbackDetailStyle.text,
-                        fontSize: 14,
+                        fontSize: 16,
                         fontWeight: FontWeight.w500,
-                        height: 1.48,
+                        height: 1.45,
                       ),
                     ),
                   ),
@@ -505,11 +508,11 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
         ? 'app.user.feedback.customer_service_reply'.tr
         : 'app.user.feedback.text_before'.tr;
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.fromLTRB(15, 14, 15, 15),
+      margin: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.fromLTRB(20, 18, 18, 18),
       decoration: BoxDecoration(
         color: bubbleColor,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: borderColor),
         boxShadow: isAdmin ? _FeedbackDetailStyle.cardShadow : const [],
       ),
@@ -517,21 +520,21 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 38,
-            height: 38,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
               color: avatarColor,
-              borderRadius: BorderRadius.circular(13),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
               isAdmin
                   ? Icons.support_agent_rounded
                   : Icons.person_outline_rounded,
               color: iconColor,
-              size: 21,
+              size: 22,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -546,32 +549,32 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: _FeedbackDetailStyle.text,
-                          fontSize: 14,
+                          fontSize: 16,
                           fontWeight: FontWeight.w900,
-                          height: 1.2,
+                          height: 1.25,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Text(
                       _formatTime(item.createTime),
                       style: const TextStyle(
                         color: _FeedbackDetailStyle.secondaryText,
-                        fontSize: 12,
+                        fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        height: 1.2,
+                        height: 1.25,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 Text(
                   item.context ?? '',
                   style: const TextStyle(
                     color: _FeedbackDetailStyle.text,
-                    fontSize: 14,
+                    fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    height: 1.48,
+                    height: 1.5,
                   ),
                 ),
                 if (item.images.isNotEmpty) ...[
@@ -693,8 +696,8 @@ class _StatusChip extends StatelessWidget {
         ? label.trim()
         : _FeedbackDetailStyle.statusLabel(status);
     return Container(
-      constraints: const BoxConstraints(minWidth: 64),
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+      constraints: const BoxConstraints(minWidth: 82, minHeight: 34),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
       decoration: BoxDecoration(
         color: colors.background,
         borderRadius: BorderRadius.circular(999),
@@ -707,9 +710,9 @@ class _StatusChip extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: colors.foreground,
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: FontWeight.w800,
-          letterSpacing: 0.2,
+          letterSpacing: 0,
           height: 1,
         ),
       ),
@@ -746,34 +749,34 @@ class _FeedbackLoadingBubble extends StatelessWidget {
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.fromLTRB(15, 14, 15, 15),
+      margin: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.fromLTRB(20, 18, 18, 18),
       decoration: BoxDecoration(
         color: bubbleColor,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: borderColor),
         boxShadow: isAdmin ? _FeedbackDetailStyle.cardShadow : const [],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          loadingLine(38, 38),
-          const SizedBox(width: 12),
+          loadingLine(42, 42),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    loadingLine(96, 12),
+                    loadingLine(96, 14),
                     const SizedBox(width: 8),
-                    loadingLine(72, 10),
+                    loadingLine(72, 12),
                   ],
                 ),
                 const SizedBox(height: 12),
-                loadingLine(double.infinity, 14),
+                loadingLine(double.infinity, 16),
                 const SizedBox(height: 8),
-                loadingLine(210, 14),
+                loadingLine(210, 16),
               ],
             ),
           ),
@@ -858,13 +861,13 @@ class _FeedbackDetailStyle {
   static const text = Color(0xFF191C1E);
   static const secondaryText = Color(0xFF4B5563);
   static const mutedText = Color(0xFF6B7280);
-  static const border = Color(0xFFE6E8EA);
+  static const border = Color(0xFFDDE4EC);
   static const brandBlue = Color(0xFF00288E);
   static const softBlue = Color(0xFFEAF0FF);
   static const softSurface = Color(0xFFF1F5F9);
   static const skeleton = Color(0xFFE8EEF4);
-  static const userBubble = Color(0xFFEAF4F8);
-  static const userBubbleBorder = Color(0xFFC8DDE7);
+  static const userBubble = Color(0xFFEAF6FC);
+  static const userBubbleBorder = Color(0xFFB8DDEE);
   static const userSkeleton = Color(0xFFD4E5ED);
 
   static final cardShadow = [
@@ -893,9 +896,9 @@ class _FeedbackDetailStyle {
 
   static final cardDecoration = BoxDecoration(
     color: card,
-    borderRadius: BorderRadius.circular(18),
+    borderRadius: BorderRadius.circular(20),
     border: Border.all(color: border),
-    boxShadow: cardShadow,
+    boxShadow: const [],
   );
 
   static ({Color background, Color foreground, Color border}) statusColors(
@@ -913,14 +916,14 @@ class _FeedbackDetailStyle {
         border: const Color(0xFFC9D7FF),
       ),
       2 => (
-        background: const Color(0xFFE8F7EE),
-        foreground: const Color(0xFF15803D),
-        border: const Color(0xFFBFE7CD),
+        background: const Color(0xFFE8F9EF),
+        foreground: const Color(0xFF047A3B),
+        border: const Color(0xFFB8EACB),
       ),
       3 => (
-        background: const Color(0xFFEFF2F5),
+        background: const Color(0xFFF2F6FA),
         foreground: const Color(0xFF56616D),
-        border: const Color(0xFFD7DEE5),
+        border: const Color(0xFFD7E1EA),
       ),
       _ => (
         background: const Color(0xFFE9EEF1),

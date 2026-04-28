@@ -142,7 +142,7 @@ class _FeedbackListPageState extends State<FeedbackListPage> {
             )
           else ...[
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              padding: const EdgeInsets.fromLTRB(26, 24, 26, 0),
               sliver: SliverList.separated(
                 itemCount: list.length,
                 itemBuilder: (context, index) {
@@ -160,7 +160,7 @@ class _FeedbackListPageState extends State<FeedbackListPage> {
                     ),
                   );
                 },
-                separatorBuilder: (_, _) => const SizedBox(height: 16),
+                separatorBuilder: (_, _) => const SizedBox(height: 22),
               ),
             ),
             SliverToBoxAdapter(
@@ -178,7 +178,7 @@ class _FeedbackListPageState extends State<FeedbackListPage> {
   Widget _buildLoadMoreFooter({required bool loading, required bool hasMore}) {
     if (loading && hasMore) {
       return const Padding(
-        padding: EdgeInsets.fromLTRB(20, 16, 20, 18),
+        padding: EdgeInsets.fromLTRB(26, 18, 26, 18),
         child: _FeedbackTicketSkeleton(),
       );
     }
@@ -208,118 +208,122 @@ class _FeedbackTicketCard extends StatelessWidget {
     final colors = _FeedbackStyle.statusColors(status);
     final title = item.title?.trim();
     final content = item.context?.trim();
-    return DecoratedBox(
+    return Container(
+      constraints: const BoxConstraints(minHeight: 161),
       decoration: _FeedbackStyle.cardDecoration,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.zero,
+          borderRadius: _FeedbackStyle.cardRadius,
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 15, 14, 15),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: colors.background,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: colors.border),
+            padding: const EdgeInsets.fromLTRB(20, 18, 16, 18),
+            child: SizedBox(
+              height: 125,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: colors.background,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: colors.border),
+                    ),
+                    child: Icon(
+                      _FeedbackStyle.statusIcon(status),
+                      color: colors.foreground,
+                      size: 28,
+                    ),
                   ),
-                  child: Icon(
-                    _FeedbackStyle.statusIcon(status),
-                    color: colors.foreground,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 13),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              title?.isNotEmpty == true ? title! : '--',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: _FeedbackStyle.text,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                height: 1.25,
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                title?.isNotEmpty == true ? title! : '--',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: _FeedbackStyle.text,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.25,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          _StatusChip(
-                            status: status,
-                            label: item.statusName ?? '',
+                            const SizedBox(width: 12),
+                            _StatusChip(
+                              status: status,
+                              label: item.statusName ?? '',
+                            ),
+                          ],
+                        ),
+                        if (content?.isNotEmpty == true) ...[
+                          const SizedBox(height: 10),
+                          Text(
+                            content!,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: _FeedbackStyle.secondaryText,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              height: 1.45,
+                            ),
                           ),
                         ],
-                      ),
-                      if (content?.isNotEmpty == true) ...[
-                        const SizedBox(height: 9),
-                        Text(
-                          content!,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: _FeedbackStyle.secondaryText,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            height: 1.45,
-                          ),
+                        const Spacer(),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.schedule_rounded,
+                              size: 18,
+                              color: _FeedbackStyle.mutedText.withValues(
+                                alpha: 0.78,
+                              ),
+                            ),
+                            const SizedBox(width: 7),
+                            Expanded(
+                              child: Text(
+                                formattedTime,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: _FeedbackStyle.secondaryText,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.25,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: _FeedbackStyle.softSurface,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: const Icon(
+                                Icons.chevron_right_rounded,
+                                color: _FeedbackStyle.brandBlue,
+                                size: 28,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
-                      const SizedBox(height: 14),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.schedule_rounded,
-                            size: 15,
-                            color: _FeedbackStyle.mutedText.withValues(
-                              alpha: 0.82,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              formattedTime,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: _FeedbackStyle.secondaryText,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                height: 1.2,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: _FeedbackStyle.softSurface,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: const Icon(
-                              Icons.chevron_right_rounded,
-                              color: _FeedbackStyle.brandBlue,
-                              size: 22,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -341,8 +345,8 @@ class _StatusChip extends StatelessWidget {
         ? label.trim()
         : _FeedbackStyle.statusLabel(status);
     return Container(
-      constraints: const BoxConstraints(minWidth: 64),
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+      constraints: const BoxConstraints(minWidth: 82, minHeight: 34),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
       decoration: BoxDecoration(
         color: colors.background,
         borderRadius: BorderRadius.circular(999),
@@ -355,9 +359,9 @@ class _StatusChip extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: colors.foreground,
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: FontWeight.w800,
-          letterSpacing: 0.2,
+          letterSpacing: 0,
           height: 1,
         ),
       ),
@@ -371,7 +375,7 @@ class _FeedbackEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 34, 20, 24),
+      padding: const EdgeInsets.fromLTRB(26, 34, 26, 24),
       child: Column(
         children: [
           Container(
@@ -435,11 +439,11 @@ class _FeedbackSkeletonList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      padding: const EdgeInsets.fromLTRB(26, 24, 26, 20),
       physics: const NeverScrollableScrollPhysics(),
       itemCount: 5,
       itemBuilder: (_, _) => const _FeedbackTicketSkeleton(),
-      separatorBuilder: (_, _) => const SizedBox(height: 16),
+      separatorBuilder: (_, _) => const SizedBox(height: 22),
     );
   }
 }
@@ -450,44 +454,48 @@ class _FeedbackTicketSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 15, 14, 15),
+      constraints: const BoxConstraints(minHeight: 161),
+      padding: const EdgeInsets.fromLTRB(20, 18, 16, 18),
       decoration: _FeedbackStyle.cardDecoration,
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _FeedbackSkeletonBox(width: 44, height: 44, radius: 14),
-          SizedBox(width: 13),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _FeedbackSkeletonBox(height: 18, radius: 9),
-                    ),
-                    SizedBox(width: 42),
-                    _FeedbackSkeletonBox(width: 64, height: 28, radius: 999),
-                  ],
-                ),
-                SizedBox(height: 11),
-                _FeedbackSkeletonBox(height: 13, radius: 7),
-                SizedBox(height: 8),
-                _FeedbackSkeletonBox(width: 172, height: 13, radius: 7),
-                SizedBox(height: 16),
-                Row(
-                  children: [
-                    _FeedbackSkeletonBox(width: 15, height: 15, radius: 999),
-                    SizedBox(width: 7),
-                    _FeedbackSkeletonBox(width: 150, height: 13, radius: 7),
-                    Spacer(),
-                    _FeedbackSkeletonBox(width: 28, height: 28, radius: 999),
-                  ],
-                ),
-              ],
+      child: const SizedBox(
+        height: 125,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _FeedbackSkeletonBox(width: 56, height: 56, radius: 18),
+            SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _FeedbackSkeletonBox(height: 20, radius: 10),
+                      ),
+                      SizedBox(width: 42),
+                      _FeedbackSkeletonBox(width: 82, height: 34, radius: 999),
+                    ],
+                  ),
+                  SizedBox(height: 14),
+                  _FeedbackSkeletonBox(height: 15, radius: 8),
+                  SizedBox(height: 9),
+                  _FeedbackSkeletonBox(width: 172, height: 15, radius: 8),
+                  Spacer(),
+                  Row(
+                    children: [
+                      _FeedbackSkeletonBox(width: 18, height: 18, radius: 999),
+                      SizedBox(width: 7),
+                      _FeedbackSkeletonBox(width: 150, height: 15, radius: 8),
+                      Spacer(),
+                      _FeedbackSkeletonBox(width: 36, height: 36, radius: 999),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -525,25 +533,18 @@ class _FeedbackStyle {
   static const text = Color(0xFF191C1E);
   static const secondaryText = Color(0xFF4B5563);
   static const mutedText = Color(0xFF6B7280);
-  static const border = Color(0xFFE6E8EA);
+  static const border = Color(0xFFDDE4EC);
   static const brandBlue = Color(0xFF00288E);
   static const softBlue = Color(0xFFEAF0FF);
   static const softSurface = Color(0xFFF1F5F9);
   static const skeleton = Color(0xFFE8EEF4);
 
-  static final softShadow = [
-    BoxShadow(
-      color: brandBlue.withValues(alpha: 0.045),
-      blurRadius: 22,
-      offset: const Offset(0, 12),
-    ),
-  ];
+  static final cardRadius = BorderRadius.circular(0);
 
   static final cardDecoration = BoxDecoration(
     color: card,
-    borderRadius: BorderRadius.zero,
+    borderRadius: cardRadius,
     border: Border.all(color: border),
-    boxShadow: softShadow,
   );
 
   static ({Color background, Color foreground, Color border}) statusColors(
@@ -561,14 +562,14 @@ class _FeedbackStyle {
         border: const Color(0xFFC9D7FF),
       ),
       2 => (
-        background: const Color(0xFFE8F7EE),
-        foreground: const Color(0xFF15803D),
-        border: const Color(0xFFBFE7CD),
+        background: const Color(0xFFE8F9EF),
+        foreground: const Color(0xFF047A3B),
+        border: const Color(0xFFB8EACB),
       ),
       3 => (
-        background: const Color(0xFFEFF2F5),
+        background: const Color(0xFFF2F6FA),
         foreground: const Color(0xFF56616D),
-        border: const Color(0xFFD7DEE5),
+        border: const Color(0xFFD7E1EA),
       ),
       _ => (
         background: const Color(0xFFE9EEF1),

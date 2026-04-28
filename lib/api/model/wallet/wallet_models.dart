@@ -47,18 +47,24 @@ class WalletListResponse<T> {
 }
 
 class WalletFundFlowItem {
+  final Map<String, dynamic> raw;
   final String? id;
+  final String? srcId;
   final String? serialNumber;
   final int? type;
+  final int? lockType;
   final String? typeName;
   final double? amount;
   final double? beforeBalance;
   final int? createTime;
 
   const WalletFundFlowItem({
+    this.raw = const {},
     this.id,
+    this.srcId,
     this.serialNumber,
     this.type,
+    this.lockType,
     this.typeName,
     this.amount,
     this.beforeBalance,
@@ -67,10 +73,17 @@ class WalletFundFlowItem {
 
   factory WalletFundFlowItem.fromJson(Map<String, dynamic> json) {
     return WalletFundFlowItem(
+      raw: json,
       id: json['id']?.toString(),
+      srcId:
+          json['srcId']?.toString() ??
+          json['src_id']?.toString() ??
+          json['sourceId']?.toString() ??
+          json['source_id']?.toString(),
       serialNumber:
           json['serialNumber']?.toString() ?? json['serial_number']?.toString(),
       type: _asInt(json['type']),
+      lockType: _asInt(json['lockType'] ?? json['lock_type']),
       typeName: json['typeName']?.toString() ?? json['type_name']?.toString(),
       amount: _asDouble(json['amount']),
       beforeBalance: _asDouble(json['beforeBalance'] ?? json['before_balance']),

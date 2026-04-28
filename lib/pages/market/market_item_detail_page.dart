@@ -17,6 +17,7 @@ import 'package:tronskins_app/common/widgets/steam_style_confirm_dialog.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/game_item/sticker_row.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
+import 'package:tronskins_app/components/shop/shop_store_info_card.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
 class MarketItemDetailPage extends StatefulWidget {
@@ -29,7 +30,6 @@ class MarketItemDetailPage extends StatefulWidget {
 class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
   static const Color _pageBackground = Color(0xFFF7F9FB);
   static const Color _surfaceCard = Colors.white;
-  static const Color _surfaceSoft = Color(0xFFF2F4F6);
   static const Color _lineColor = Color(0xFFF1F5F9);
   static const Color _textPrimary = Color(0xFF191C1E);
   static const Color _textSecondary = Color(0xFF757684);
@@ -38,7 +38,6 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
   static const Color _priceOrange = Color(0xFFFF6B35);
   static const Color _dangerRed = Color(0xFFBA1A1A);
   static const Color _dangerRedSoft = Color(0xFFFFDAD6);
-  static const Color _successGreen = Color(0xFF22C55E);
 
   final ApiMarketServer _marketServer = ApiMarketServer();
   final ApiShopServer _shopServer = ApiShopServer();
@@ -902,19 +901,26 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
 
   Widget _buildShopInfoLoadingCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 14, 16),
       decoration: BoxDecoration(
-        color: _surfaceSoft,
-        borderRadius: BorderRadius.circular(12),
+        color: _surfaceCard,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromRGBO(25, 28, 30, 0.06),
+            blurRadius: 28,
+            offset: Offset(0, 10),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 58,
+            height: 58,
             decoration: const BoxDecoration(
-              color: Colors.white,
+              color: Color(0xFFF1F5F9),
               shape: BoxShape.circle,
             ),
           ),
@@ -931,11 +937,23 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
             ),
           ),
           const SizedBox(width: 12),
-          _buildLoadingPill(
-            width: 84,
-            height: 34,
-            borderRadius: BorderRadius.circular(10),
-            color: Colors.white,
+          Container(width: 1, height: 60, color: const Color(0xFFE7ECF3)),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 72,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildLoadingPill(width: 54, height: 10),
+                const SizedBox(height: 5),
+                _buildLoadingPill(width: 66, height: 14),
+                const SizedBox(height: 9),
+                _buildLoadingPill(width: 44, height: 10),
+                const SizedBox(height: 5),
+                _buildLoadingPill(width: 58, height: 14),
+              ],
+            ),
           ),
         ],
       ),
@@ -967,61 +985,6 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     return _deliverySuccessRate(total: total, notSend: notSend);
   }
 
-  Widget _buildShopInlineMetrics(Map<String, dynamic>? shopInfo) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildShopMetricValue(
-          label: _avgShipLabel,
-          value: _formatAverageShip(_asDouble(shopInfo?['last7daysAvg'])),
-        ),
-        Container(
-          width: 1,
-          height: 18,
-          margin: const EdgeInsets.symmetric(horizontal: 6),
-          color: const Color(0xFFE2E8F0),
-        ),
-        _buildShopMetricValue(
-          label: _rateLabel,
-          value: _last7DaysRate(shopInfo),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildShopMetricValue({required String label, required String value}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          maxLines: 1,
-          softWrap: false,
-          style: const TextStyle(
-            color: _textSecondary,
-            fontSize: 8,
-            height: 11 / 8,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.4,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          maxLines: 1,
-          softWrap: false,
-          style: const TextStyle(
-            color: _brandBlue,
-            fontSize: 13,
-            height: 15 / 13,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildShopInfoCard() {
     if (_loadingShopInfo) {
       return _buildShopInfoLoadingCard();
@@ -1046,143 +1009,25 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
         shopInfo?['isOnline'] == true || shopInfo?['is_online'] == true;
     final canOpenStore = (_resolveSellerUuid()?.isNotEmpty ?? false);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: canOpenStore ? _openSellerStore : null,
-        borderRadius: BorderRadius.circular(12),
-        child: Ink(
-          padding: const EdgeInsets.fromLTRB(16, 16, 8, 16),
-          decoration: BoxDecoration(
-            color: _surfaceSoft,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: ClipOval(
-                            child: avatar.isEmpty
-                                ? const Icon(
-                                    Icons.storefront_outlined,
-                                    size: 20,
-                                    color: _textSecondary,
-                                  )
-                                : CachedNetworkImage(
-                                    imageUrl: avatar,
-                                    fit: BoxFit.cover,
-                                    errorWidget: (context, _, __) => const Icon(
-                                      Icons.storefront_outlined,
-                                      size: 20,
-                                      color: _textSecondary,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                        if (isOnline)
-                          Positioned(
-                            right: 0,
-                            bottom: 0,
-                            child: Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                color: _successGreen,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  shopName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: _textPrimary,
-                                    fontSize: 14,
-                                    height: 20 / 14,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          GestureDetector(
-                            onTap: _showShopDeliverTips,
-                            behavior: HitTestBehavior.opaque,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFD8E2FF),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                _shopDeliverLabel(),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Color(0xFF004395),
-                                  fontSize: 9,
-                                  height: 13.5 / 9,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerRight,
-                child: _buildShopInlineMetrics(shopInfo),
-              ),
-              const SizedBox(width: 4),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 22,
-                color: canOpenStore
-                    ? _textSecondary
-                    : _textSecondary.withValues(alpha: 0.45),
-              ),
-            ],
-          ),
+    return ShopStoreInfoCard(
+      title: shopName,
+      avatarUrl: avatar,
+      showOnline: isOnline,
+      onTap: canOpenStore ? _openSellerStore : null,
+      showChevron: canOpenStore,
+      badges: [
+        ShopStoreInfoBadge(
+          label: _shopDeliverLabel(),
+          onTap: _showShopDeliverTips,
         ),
-      ),
+      ],
+      metrics: [
+        ShopStoreInfoMetric(
+          label: _avgShipLabel,
+          value: _formatAverageShip(_asDouble(shopInfo?['last7daysAvg'])),
+        ),
+        ShopStoreInfoMetric(label: _rateLabel, value: _last7DaysRate(shopInfo)),
+      ],
     );
   }
 
@@ -2163,10 +2008,22 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
         appBar: SettingsStyleAppBar(
           title: Text(_pageTitle),
           actions: [
-            IconButton(
-              tooltip: 'app.market.product.title'.tr,
+            TextButton(
               onPressed: _openMarketDetail,
-              icon: const Icon(Icons.storefront_rounded),
+              style: TextButton.styleFrom(
+                foregroundColor: _brandBlue,
+                minimumSize: const Size(44, 40),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                'app.market.detail.right_text'.tr,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  height: 1.4,
+                ),
+              ),
             ),
           ],
         ),
