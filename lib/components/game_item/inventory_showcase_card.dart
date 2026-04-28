@@ -108,7 +108,18 @@ class InventoryShowcaseCard extends StatelessWidget {
             ? gameItemConditionColor(conditionLabel)
             : null);
     final rarityLabel = rarity?.label?.trim();
+    final isNonTradable = item.tradable == false;
     final statusLabel = disabledLabel?.trim();
+    final nonTradableRibbonLabel = isNonTradable
+        ? (statusLabel != null && statusLabel.isNotEmpty
+              ? statusLabel
+              : 'app.trade.non_tradable'.tr)
+        : null;
+    final topLeftStatusLabel = isNonTradable ? null : statusLabel;
+    final hasNonTradableRibbon =
+        nonTradableRibbonLabel != null && nonTradableRibbonLabel.isNotEmpty;
+    final hasCornerRibbon =
+        hasNonTradableRibbon || (showQualityRibbon && quality != null);
     final cooldownLabel = _resolveCooldownLabel(item, asset);
     final shouldShowOnSaleBadge =
         showOnSaleBadge && (item.status == 1 || item.status == 2);
@@ -212,15 +223,15 @@ class InventoryShowcaseCard extends StatelessWidget {
                             Positioned(
                               left: 5,
                               top: 5,
-                              right: showQualityRibbon ? 54 : 5,
+                              right: hasCornerRibbon ? 54 : 5,
                               child: Wrap(
                                 spacing: 3,
                                 runSpacing: 3,
                                 children: [
-                                  if (statusLabel != null &&
-                                      statusLabel.isNotEmpty)
+                                  if (topLeftStatusLabel != null &&
+                                      topLeftStatusLabel.isNotEmpty)
                                     _buildBadge(
-                                      label: statusLabel,
+                                      label: topLeftStatusLabel,
                                       backgroundColor: _statusBadgeColor(),
                                       textColor: Colors.white,
                                     ),
@@ -271,7 +282,15 @@ class InventoryShowcaseCard extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            if (showQualityRibbon && quality != null)
+                            if (hasNonTradableRibbon)
+                              Positioned(
+                                top: 0,
+                                right: 0,
+                                child: _buildNonTradableRibbon(
+                                  nonTradableRibbonLabel,
+                                ),
+                              )
+                            else if (showQualityRibbon && quality != null)
                               Positioned(
                                 top: 0,
                                 right: 0,
@@ -392,7 +411,7 @@ class InventoryShowcaseCard extends StatelessWidget {
                               if (cooldownLabel != null &&
                                   cooldownLabel.isNotEmpty) ...[
                                 const SizedBox(width: 6),
-                                Flexible(
+                                Expanded(
                                   child: Text(
                                     cooldownLabel,
                                     maxLines: 1,
@@ -494,6 +513,29 @@ class InventoryShowcaseCard extends StatelessWidget {
       return const SizedBox.shrink();
     }
     final color = parseHexColor(quality.color) ?? const Color(0xFFFF9A3C);
+    return _buildCornerRibbon(
+      label: label,
+      backgroundColor: Colors.black.withValues(alpha: 0.84),
+      textColor: color,
+      fontWeight: FontWeight.w700,
+    );
+  }
+
+  Widget _buildNonTradableRibbon(String label) {
+    return _buildCornerRibbon(
+      label: label,
+      backgroundColor: const Color(0xFFB91C1C),
+      textColor: Colors.white,
+      fontWeight: FontWeight.w800,
+    );
+  }
+
+  Widget _buildCornerRibbon({
+    required String label,
+    required Color backgroundColor,
+    required Color textColor,
+    required FontWeight fontWeight,
+  }) {
     return IgnorePointer(
       child: SizedBox(
         width: 58,
@@ -511,17 +553,17 @@ class InventoryShowcaseCard extends StatelessWidget {
                     width: 82,
                     height: 18,
                     alignment: Alignment.center,
-                    color: Colors.black.withValues(alpha: 0.84),
+                    color: backgroundColor,
                     child: Text(
                       label,
                       maxLines: 1,
                       overflow: TextOverflow.fade,
                       softWrap: false,
                       style: TextStyle(
-                        color: color,
+                        color: textColor,
                         fontSize: 9,
                         height: 1,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: fontWeight,
                         letterSpacing: 0.1,
                       ),
                     ),

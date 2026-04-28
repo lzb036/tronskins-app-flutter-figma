@@ -856,6 +856,13 @@ class _ShopPageState extends State<ShopPage>
     return '$quantity';
   }
 
+  String _sellRecordHiddenCountLabel(int count) {
+    if (count > 99) {
+      return '+99';
+    }
+    return '+$count';
+  }
+
   int _pendingShippingType(ShopOrderItem order) {
     for (final detail in order.details) {
       if (detail.type == 2) {
@@ -3104,63 +3111,39 @@ class _ShopPageState extends State<ShopPage>
         useStackPreview: false,
       );
     }
+    final totalCount = _sellRecordItemQuantity(record);
     const tileSize = 80.0;
-    const horizontalPeek = 12.0;
-    const verticalPeek = 7.0;
-    const badgeSize = 24.0;
-    const badgeOverlap = 8.0;
-    final stackCount = previewDetails.length > 3 ? 3 : previewDetails.length;
-    final width = tileSize + ((stackCount - 1) * horizontalPeek);
-    final height = tileSize + ((stackCount - 1) * verticalPeek);
 
     return SizedBox(
-      width: width,
-      height: height,
+      width: tileSize,
+      height: tileSize,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          for (var layer = stackCount - 1; layer >= 0; layer--)
-            Positioned(
-              left: layer * horizontalPeek,
-              top: layer * verticalPeek,
-              child: _buildSellRecordStackPreviewTile(
-                previewDetails[layer],
-                isFront: layer == 0,
-                visualDepth: layer,
-              ),
-            ),
-          Positioned(
-            left: tileSize - badgeSize + badgeOverlap,
-            top: -badgeOverlap,
-            child: Container(
-              constraints: const BoxConstraints(minWidth: 24),
-              height: 24,
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: Colors.white, width: 1.5),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x1A0F172A),
-                    blurRadius: 15,
-                    offset: Offset(0, 4),
-                    spreadRadius: -2,
-                  ),
-                ],
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                _sellRecordStackCountLabel(record),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  height: 1,
-                ),
-              ),
+          Positioned.fill(
+            child: _buildSellRecordStackPreviewTile(
+              previewDetails.first,
+              isFront: true,
+              visualDepth: 0,
             ),
           ),
+          Positioned(
+            left: -5,
+            top: -5,
+            child: _buildSellRecordStackCountBadge(
+              _sellRecordStackCountLabel(record),
+            ),
+          ),
+          if (totalCount <= 3)
+            ..._buildSellRecordSmallPreviewStack(
+              previewDetails.skip(1).toList(),
+            )
+          else
+            Positioned(
+              right: -3,
+              bottom: -3,
+              child: _buildSellRecordOverflowBadge(totalCount - 1),
+            ),
         ],
       ),
     );
@@ -3170,21 +3153,34 @@ class _ShopPageState extends State<ShopPage>
     ShopOrderDetail detail, {
     required bool isFront,
     required int visualDepth,
+    double size = 80,
   }) {
-    final imageOpacity = isFront ? 1.0 : (visualDepth == 1 ? 0.9 : 0.78);
+    final isSmallTile = size < 60;
+    final imageOpacity = isSmallTile
+        ? 1.0
+        : (isFront ? 1.0 : (visualDepth == 1 ? 0.9 : 0.78));
+    final tileRadius = BorderRadius.circular(isSmallTile ? 6 : 8);
 
     return Container(
-      width: 80,
-      height: 80,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0x1AC4C5D5)),
+        borderRadius: tileRadius,
+        border: isSmallTile ? null : Border.all(color: const Color(0x1AC4C5D5)),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
         ),
-        boxShadow: isFront
+        boxShadow: isSmallTile
+            ? const [
+                BoxShadow(
+                  color: Color(0x260F172A),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ]
+            : isFront
             ? const [
                 BoxShadow(
                   color: Color(0x1A000000),
@@ -3206,6 +3202,12 @@ class _ShopPageState extends State<ShopPage>
                 ),
               ],
       ),
+      foregroundDecoration: isSmallTile
+          ? BoxDecoration(
+              borderRadius: tileRadius,
+              border: Border.all(color: Colors.white, width: 1.5),
+            )
+          : null,
       clipBehavior: Clip.antiAlias,
       child: Center(
         child: Opacity(
@@ -3213,10 +3215,95 @@ class _ShopPageState extends State<ShopPage>
           child: _buildSellRecordDetailImage(
             detail: detail,
             schemas: salesController.schemas,
-            width: 80,
-            height: 80,
+            width: size,
+            height: size,
             showTopBadges: false,
             showStickers: false,
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildSellRecordSmallPreviewStack(
+    List<ShopOrderDetail> details,
+  ) {
+    const smallTileSize = 28.0;
+    const smallTilePeek = 7.0;
+    final visibleDetails = details.take(2).toList();
+    return [
+      for (var layer = visibleDetails.length - 1; layer >= 0; layer--)
+        Positioned(
+          right: -2 + (layer * smallTilePeek),
+          bottom: -2 + (layer * smallTilePeek),
+          child: _buildSellRecordStackPreviewTile(
+            visibleDetails[layer],
+            isFront: true,
+            visualDepth: 0,
+            size: smallTileSize,
+          ),
+        ),
+    ];
+  }
+
+  Widget _buildSellRecordStackCountBadge(String text) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 18),
+      height: 18,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFF00288E),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white, width: 1.25),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1A0F172A),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+            spreadRadius: -2,
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          height: 1,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSellRecordOverflowBadge(int hiddenCount) {
+    return Container(
+      width: 26,
+      height: 26,
+      padding: const EdgeInsets.all(4),
+      decoration: const BoxDecoration(
+        color: Color(0xE60F172A),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x330F172A),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+            spreadRadius: -2,
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          _sellRecordHiddenCountLabel(hiddenCount),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            height: 1,
           ),
         ),
       ),

@@ -44,6 +44,18 @@ class _BuyingPageState extends State<BuyingPage>
   static const Color _buyRecordMutedColor = Color(0xFF94A3B8);
   static const Color _buyRecordBrandColor = Color(0xFF1E40AF);
   static const Color _buyRecordSkeletonColor = Color(0xFFE2E8F0);
+  static const double _recordPreviewSize = 72;
+  static const double _recordStackScale = _recordPreviewSize / 80;
+  static const double _recordStackSmallTileSize = 28 * _recordStackScale;
+  static const double _recordStackSmallTilePeek = 7 * _recordStackScale;
+  static const double _recordStackOverflowBadgeSize = 26 * _recordStackScale;
+  static const double _recordStackOverflowBadgePadding = 4 * _recordStackScale;
+  static const double _recordStackCountBadgeHeight = 18 * _recordStackScale;
+  static const double _recordStackCountBadgeMinWidth = 18 * _recordStackScale;
+  static const double _recordStackCountBadgePaddingX = 5 * _recordStackScale;
+  static const double _recordStackBadgeFontSize = 10 * _recordStackScale;
+  static const double _recordStackSmallBorderWidth = 1.5 * _recordStackScale;
+  static const double _recordStackCountBorderWidth = 1.25 * _recordStackScale;
   static const String _defaultPurchaseSortField = 'time';
   static const bool _defaultPurchaseSortAsc = false;
   static const List<SortOption> _purchaseSortOptions = [
@@ -1010,6 +1022,13 @@ class _BuyingPageState extends State<BuyingPage>
     return null;
   }
 
+  String _recordHiddenCountLabel(int count) {
+    if (count > 99) {
+      return '+99';
+    }
+    return '+$count';
+  }
+
   double _recordUnitPrice(BuyRequestItem item) {
     return item.price ??
         _rawDouble(item.raw, const ['price', 'unit_price', 'unitPrice']) ??
@@ -1179,21 +1198,76 @@ class _BuyingPageState extends State<BuyingPage>
 
   Widget _buildRecordPreviewImage(BuyRequestItem item, ShopSchemaInfo? schema) {
     final badgeCount = _recordBadgeCount(item);
+    final quantity = _recordDisplayQuantity(item);
     return SizedBox(
-      width: 64,
-      height: 64,
+      width: _recordPreviewSize,
+      height: _recordPreviewSize,
       child: Stack(
-        clipBehavior: Clip.none,
+        clipBehavior: Clip.hardEdge,
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: _buyRecordSoftSurfaceColor,
-              borderRadius: BorderRadius.circular(4),
+          Positioned.fill(child: _buildRecordPreviewTile(item, schema)),
+          if (badgeCount != null)
+            Positioned(
+              left: 0,
+              top: 0,
+              child: _buildRecordCountBadge('$badgeCount'),
             ),
-            clipBehavior: Clip.antiAlias,
-            child: Padding(
+          if (quantity > 1 && quantity <= 3)
+            ..._buildRecordSmallPreviewStack(item, schema, quantity - 1)
+          else if (quantity > 3)
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: _buildRecordOverflowBadge(quantity - 1),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecordPreviewTile(
+    BuyRequestItem item,
+    ShopSchemaInfo? schema, {
+    double size = _recordPreviewSize,
+  }) {
+    final isSmallTile = size < 60;
+    final tileRadius = BorderRadius.circular(isSmallTile ? 6 : 4);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: _buyRecordSoftSurfaceColor,
+        borderRadius: tileRadius,
+        boxShadow: isSmallTile
+            ? const [
+                BoxShadow(
+                  color: Color(0x260F172A),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ]
+            : null,
+      ),
+      foregroundDecoration: isSmallTile
+          ? BoxDecoration(
+              borderRadius: tileRadius,
+              border: Border.all(
+                color: Colors.white,
+                width: _recordStackSmallBorderWidth,
+              ),
+            )
+          : null,
+      clipBehavior: Clip.antiAlias,
+      child: isSmallTile
+          ? GameItemImage(
+              imageUrl: schema?.imageUrl,
+              appId: item.appId ?? _currentAppId,
+              rarity: _schemaTag(schema, 'rarity'),
+              quality: _schemaTag(schema, 'quality'),
+              exterior: _schemaTag(schema, 'exterior'),
+              showTopBadges: false,
+            )
+          : Padding(
               padding: const EdgeInsets.all(8),
               child: GameItemImage(
                 imageUrl: schema?.imageUrl,
@@ -1204,32 +1278,88 @@ class _BuyingPageState extends State<BuyingPage>
                 showTopBadges: false,
               ),
             ),
+    );
+  }
+
+  List<Widget> _buildRecordSmallPreviewStack(
+    BuyRequestItem item,
+    ShopSchemaInfo? schema,
+    int count,
+  ) {
+    final visibleCount = count.clamp(0, 2).toInt();
+    return [
+      for (var layer = visibleCount - 1; layer >= 0; layer--)
+        Positioned(
+          right: layer * _recordStackSmallTilePeek,
+          bottom: layer * _recordStackSmallTilePeek,
+          child: _buildRecordPreviewTile(
+            item,
+            schema,
+            size: _recordStackSmallTileSize,
           ),
-          if (badgeCount != null)
-            Positioned(
-              right: -4,
-              top: -4,
-              child: Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: Colors.white, width: 1.5),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '$badgeCount',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    height: 1,
-                  ),
-                ),
-              ),
-            ),
+        ),
+    ];
+  }
+
+  Widget _buildRecordCountBadge(String text) {
+    return Container(
+      constraints: const BoxConstraints(
+        minWidth: _recordStackCountBadgeMinWidth,
+      ),
+      height: _recordStackCountBadgeHeight,
+      padding: const EdgeInsets.symmetric(
+        horizontal: _recordStackCountBadgePaddingX,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFF00288E),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: Colors.white,
+          width: _recordStackCountBorderWidth,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: _recordStackBadgeFontSize,
+          fontWeight: FontWeight.w700,
+          height: 1,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecordOverflowBadge(int hiddenCount) {
+    return Container(
+      width: _recordStackOverflowBadgeSize,
+      height: _recordStackOverflowBadgeSize,
+      padding: const EdgeInsets.all(_recordStackOverflowBadgePadding),
+      decoration: const BoxDecoration(
+        color: Color(0xE60F172A),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x330F172A),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+            spreadRadius: -2,
+          ),
         ],
+      ),
+      alignment: Alignment.center,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          _recordHiddenCountLabel(hiddenCount),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: _recordStackBadgeFontSize,
+            fontWeight: FontWeight.w800,
+            height: 1,
+          ),
+        ),
       ),
     );
   }
