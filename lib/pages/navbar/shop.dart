@@ -2615,13 +2615,12 @@ class _ShopPageState extends State<ShopPage>
 
   Widget _buildPendingOverflowBadge(int hiddenCount) {
     return Container(
-      constraints: const BoxConstraints(minWidth: 30),
-      height: 24,
-      padding: const EdgeInsets.symmetric(horizontal: 7),
+      width: 26,
+      height: 26,
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xCC0F172A),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white, width: 1.25),
+        color: const Color(0xE60F172A),
+        shape: BoxShape.circle,
         boxShadow: const [
           BoxShadow(
             color: Color(0x330F172A),
@@ -2632,13 +2631,16 @@ class _ShopPageState extends State<ShopPage>
         ],
       ),
       alignment: Alignment.center,
-      child: Text(
-        _pendingHiddenCountLabel(hiddenCount),
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-          height: 1,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          _pendingHiddenCountLabel(hiddenCount),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            height: 1,
+          ),
         ),
       ),
     );
