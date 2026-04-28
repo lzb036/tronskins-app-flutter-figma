@@ -106,10 +106,10 @@ class ApiFeedbackServer {
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(file.path, filename: name),
     });
-    final response = await http.request(
+    final response = await http.post(
       isReply ? 'api/app/ticket/reply/upload' : 'api/app/ticket/upload',
       data: formData,
-      options: Options(method: 'POST', contentType: 'multipart/form-data'),
+      options: Options(contentType: Headers.multipartFormDataContentType),
     );
     return BaseHttpResponse.fromJson(
       response.data as Map<String, dynamic>,

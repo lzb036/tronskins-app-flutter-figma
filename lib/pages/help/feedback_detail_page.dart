@@ -1,15 +1,16 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:tronskins_app/common/utils/app_snackbar.dart';
-import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:tronskins_app/api/model/feedback/feedback_models.dart';
+import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/components/layout/list_end_tip.dart';
 import 'package:tronskins_app/controllers/help/feedback_controller.dart';
-import 'package:tronskins_app/routes/app_routes.dart';
 
 class FeedbackDetailPage extends StatefulWidget {
   const FeedbackDetailPage({super.key});
@@ -23,10 +24,19 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
       ? Get.find<FeedbackController>()
       : Get.put(FeedbackController());
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _replyController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
+  final List<String> _replyImagePaths = [];
+  final List<String> _replyImageIds = [];
 
   String _ticketId = '';
   int? _status;
   bool _refreshing = false;
+  bool _replyUploading = false;
+  bool _replySubmitting = false;
+  bool _replySolving = false;
+
+  static const int _maxReplyImageCount = 5;
 
   @override
   void initState() {
@@ -54,6 +64,7 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _replyController.dispose();
     super.dispose();
   }
 
@@ -66,18 +77,15 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
   }
 
   String _formatShortTime(int? value) {
-    if (value == null) return '--:--';
+    if (value == null) return '--';
     final ts = value < 1000000000000 ? value * 1000 : value;
-    return DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(ts));
+    return DateFormat(
+      'yyyy-MM-dd HH:mm:ss',
+    ).format(DateTime.fromMillisecondsSinceEpoch(ts));
   }
 
   String _timelineLabel(int? value) {
-    final timestamp = value == null
-        ? DateTime.now()
-        : DateTime.fromMillisecondsSinceEpoch(
-            value < 1000000000000 ? value * 1000 : value,
-          );
-    return DateFormat('yyyy-MM-dd HH:mm').format(timestamp);
+    return _formatShortTime(value);
   }
 
   String _topBarTitle(FeedbackDetail? detail) {
@@ -91,38 +99,6 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
         .trim();
     if (id.isEmpty) return '';
     return id.length > 5 ? id.substring(id.length - 5) : id;
-  }
-
-  String _attachmentName(String url, String fallbackSuffix) {
-    try {
-      final uri = Uri.tryParse(url);
-      final segment = uri?.pathSegments.isNotEmpty == true
-          ? uri!.pathSegments.last
-          : '';
-      final decoded = Uri.decodeComponent(segment).trim();
-      if (decoded.isNotEmpty) return decoded;
-    } catch (_) {
-      // Keep the generated fallback when the URL cannot be decoded.
-    }
-    return fallbackSuffix.isEmpty ? 'IMAGE.PNG' : 'ISSUE_$fallbackSuffix.PNG';
-  }
-
-  Future<bool> _solveTicket() async {
-    try {
-      final res = await controller.solveFeedback(_ticketId);
-      if (res.success) {
-        AppSnackbar.success('app.user.feedback.message.solve_success'.tr);
-        controller.loadTickets(refresh: true);
-        return true;
-      }
-      final message = res.message.isNotEmpty
-          ? res.message
-          : 'app.system.message.not_open'.tr;
-      AppSnackbar.info(message);
-    } catch (_) {
-      AppSnackbar.error('app.user.login.message.error'.tr);
-    }
-    return false;
   }
 
   Future<void> _refreshDetail() async {
@@ -140,18 +116,133 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
     }
   }
 
-  void _backToList() {
-    var found = false;
-    Get.until((route) {
-      if (route.settings.name == Routers.FEEDBACK_LIST) {
-        found = true;
-        return true;
-      }
-      return false;
-    });
-    if (!found) {
-      Get.offNamed(Routers.FEEDBACK_LIST);
+  Future<void> _pickReplyImage() async {
+    if (_replyUploading || _replySubmitting) return;
+    if (_replyImagePaths.length >= _maxReplyImageCount) {
+      AppSnackbar.info(_replyImageLimitNotice);
+      return;
     }
+    setState(() => _replyUploading = true);
+    try {
+      final file = await _picker.pickImage(source: ImageSource.gallery);
+      if (file == null) return;
+      final id = await controller.uploadImage(
+        filePath: file.path,
+        isReply: true,
+      );
+      if (!mounted) return;
+      if (id != null) {
+        setState(() {
+          _replyImagePaths.add(file.path);
+          _replyImageIds.add(id);
+        });
+        AppSnackbar.success(
+          'app.user.feedback.message.image_upload_success'.tr,
+        );
+      } else {
+        AppSnackbar.error('app.user.feedback.message.image_upload_failed'.tr);
+      }
+    } catch (_) {
+      AppSnackbar.error('app.user.feedback.message.image_upload_failed'.tr);
+    } finally {
+      if (mounted) {
+        setState(() => _replyUploading = false);
+      }
+    }
+  }
+
+  void _removeReplyImage(int index) {
+    if (index < 0 || index >= _replyImagePaths.length) return;
+    setState(() {
+      _replyImagePaths.removeAt(index);
+      if (index < _replyImageIds.length) {
+        _replyImageIds.removeAt(index);
+      }
+    });
+  }
+
+  Future<void> _sendReply() async {
+    final text = _replyController.text.trim();
+    if (_replySubmitting || _replyUploading) return;
+    if (_ticketId.isEmpty) {
+      AppSnackbar.error('app.user.login.message.error'.tr);
+      return;
+    }
+    if (text.isEmpty) {
+      AppSnackbar.error('app.user.feedback.message.fill_feedback'.tr);
+      return;
+    }
+    setState(() => _replySubmitting = true);
+    try {
+      final ok = await controller.addReply(
+        ticketId: _ticketId,
+        context: text,
+        ids: _replyImageIds,
+      );
+      if (!mounted) return;
+      if (ok) {
+        _replyController.clear();
+        setState(() {
+          _replyImagePaths.clear();
+          _replyImageIds.clear();
+        });
+        AppSnackbar.success('app.user.feedback.message.reply_success'.tr);
+        controller.loadTickets(refresh: true);
+        await controller.loadReplies(ticketId: _ticketId, refresh: true);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!_scrollController.hasClients) return;
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOut,
+          );
+        });
+      } else {
+        AppSnackbar.info('app.system.message.not_open'.tr);
+      }
+    } catch (_) {
+      AppSnackbar.error('app.user.login.message.error'.tr);
+    } finally {
+      if (mounted) {
+        setState(() => _replySubmitting = false);
+      }
+    }
+  }
+
+  Future<bool> _solveTicket() async {
+    if (_replySolving || _replySubmitting || _replyUploading) return false;
+    if (_ticketId.isEmpty) {
+      AppSnackbar.error('app.user.login.message.error'.tr);
+      return false;
+    }
+    setState(() => _replySolving = true);
+    try {
+      final res = await controller.solveFeedback(_ticketId);
+      if (!mounted) return false;
+      if (res.success) {
+        _replyController.clear();
+        _markDetailSolvedLocally();
+        AppSnackbar.success('app.user.feedback.message.solve_success'.tr);
+        controller.loadTickets(refresh: true);
+        await Future.wait([
+          controller.loadDetail(_ticketId),
+          controller.loadReplies(ticketId: _ticketId, refresh: true),
+        ]);
+        return true;
+      } else {
+        final message = res.message.isNotEmpty
+            ? res.message
+            : 'app.system.message.not_open'.tr;
+        AppSnackbar.info(message);
+      }
+    } catch (_) {
+      AppSnackbar.error('app.user.login.message.error'.tr);
+    } finally {
+      if (mounted) {
+        setState(() => _replySolving = false);
+      }
+    }
+    return false;
   }
 
   Future<void> _confirmSolveTicket() async {
@@ -164,30 +255,47 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
         primaryLabel: 'app.common.confirm'.tr,
         secondaryLabel: 'app.common.cancel'.tr,
         icon: Icons.check_circle_outline_rounded,
-        iconColor: _FeedbackDetailStyle.brandBlue,
-        iconBackgroundColor: _FeedbackDetailStyle.softBlue,
+        iconColor: const Color(0xFF16A34A),
+        iconBackgroundColor: const Color.fromRGBO(22, 163, 74, 0.10),
+        accentColor: const Color(0xFF16A34A),
         onSecondary: () => popModalRoute(context),
         onConfirm: (dialogContext) async {
           final solved = await _solveTicket();
-          if (!solved) {
-            return;
-          }
+          if (!solved) return;
           if (dialogContext.mounted) {
             popModalRoute(dialogContext);
-          }
-          if (mounted) {
-            _backToList();
           }
         },
       ),
     );
   }
 
-  void _addReply() {
-    Get.toNamed(
-      Routers.FEEDBACK_CREATE,
-      arguments: {'type': 'addFeedback', 'id': _ticketId},
+  void _markDetailSolvedLocally() {
+    final current = controller.detail.value;
+    setState(() {
+      _status = 2;
+      _replyImagePaths.clear();
+      _replyImageIds.clear();
+    });
+    if (current == null) return;
+    controller.detail.value = FeedbackDetail(
+      id: current.id,
+      title: current.title,
+      context: current.context,
+      status: 2,
+      statusName: 'app.user.feedback.solved'.tr,
+      createTime: current.createTime,
+      images: current.images,
     );
+  }
+
+  String get _replyImageLimitNotice {
+    final isZh =
+        Get.locale?.languageCode.toLowerCase().startsWith('zh') == true;
+    if (isZh) {
+      return '最多可上传 5 张图片';
+    }
+    return 'You can upload up to 5 images.';
   }
 
   @override
@@ -199,11 +307,20 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
         final detailLoading = controller.detailLoading.value;
         final list = controller.replies;
         final detail = controller.detail.value;
+        final initialReply = detail == null
+            ? null
+            : _initialFeedbackReply(list);
+        final conversationReplies = initialReply == null
+            ? List<FeedbackReply>.of(list)
+            : list.skip(1).toList(growable: false);
         final effectiveStatus = detail?.status ?? _status;
         final closed = effectiveStatus == 2 || effectiveStatus == 3;
-        final showLoadingFooter = loading && list.isNotEmpty;
+        final canInput = !closed;
+        final showLoadingFooter = loading && conversationReplies.isNotEmpty;
         final showNoMoreFooter =
-            list.isNotEmpty && !loading && !controller.repliesHasMore;
+            conversationReplies.isNotEmpty &&
+            !loading &&
+            !controller.repliesHasMore;
         final showSkeleton =
             _refreshing ||
             (detailLoading && detail == null) ||
@@ -229,7 +346,13 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
                     24,
                     _FeedbackDetailStyle.contentTopPadding(context),
                     24,
-                    _FeedbackDetailStyle.footerHeight(context) + 24,
+                    canInput
+                        ? _FeedbackDetailStyle.footerHeight(
+                                context,
+                                _replyImagePaths.length,
+                              ) +
+                              24
+                        : MediaQuery.paddingOf(context).bottom + 24,
                   ),
                   children: showSkeleton
                       ? [
@@ -238,19 +361,26 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
                           _buildConversationLoading(context),
                         ]
                       : [
-                          if (detail != null) _buildHeader(context, detail),
+                          if (detail != null)
+                            _buildHeader(
+                              context,
+                              detail,
+                              initialReply: initialReply,
+                            ),
                           if (detail != null) const SizedBox(height: 32),
-                          if (list.isNotEmpty)
+                          if (conversationReplies.isNotEmpty)
                             _TimelineChip(
                               label: _timelineLabel(
-                                list.first.createTime ?? detail?.createTime,
+                                conversationReplies.first.createTime ??
+                                    detail?.createTime,
                               ),
                             ),
-                          if (list.isNotEmpty) const SizedBox(height: 24),
-                          if (list.isEmpty)
+                          if (conversationReplies.isNotEmpty)
+                            const SizedBox(height: 24),
+                          if (conversationReplies.isEmpty)
                             _buildEmptyReplies()
                           else
-                            ...list.map(
+                            ...conversationReplies.map(
                               (item) => _buildReplyBubble(context, item),
                             ),
                           _buildLoadMoreFooter(
@@ -264,16 +394,38 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
             _FeedbackDetailTopBar(
               title: _topBarTitle(detail),
               onBack: () => Navigator.maybePop(context),
-              onInfo: closed ? null : _confirmSolveTicket,
+              resolvedLabel: _resolvedButtonLabel,
+              resolving: _replySolving,
+              onResolve: canInput ? _confirmSolveTicket : null,
             ),
-            _FeedbackChatFooter(
-              placeholder: 'app.user.feedback.problem_placeholder'.tr,
-              onSend: closed ? null : _addReply,
-            ),
+            if (canInput)
+              _FeedbackChatFooter(
+                controller: _replyController,
+                placeholder: 'app.user.feedback.problem_placeholder'.tr,
+                imagePaths: _replyImagePaths,
+                uploading: _replyUploading,
+                submitting: _replySubmitting,
+                solving: _replySolving,
+                onPickImage: _pickReplyImage,
+                onRemoveImage: _removeReplyImage,
+                onSend: _sendReply,
+              ),
           ],
         );
       }),
     );
+  }
+
+  String get _resolvedButtonLabel {
+    final isZh =
+        Get.locale?.languageCode.toLowerCase().startsWith('zh') == true;
+    return isZh ? '已解决' : 'Resolved';
+  }
+
+  FeedbackReply? _initialFeedbackReply(List<FeedbackReply> replies) {
+    if (replies.isEmpty) return null;
+    final first = replies.first;
+    return first.isAdmin ? null : first;
   }
 
   Widget _buildEmptyReplies() {
@@ -323,7 +475,10 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
           child: SizedBox(
             width: 22,
             height: 22,
-            child: CircularProgressIndicator(strokeWidth: 2.2),
+            child: CircularProgressIndicator(
+              color: _FeedbackDetailStyle.brandBlue,
+              strokeWidth: 2.2,
+            ),
           ),
         ),
       );
@@ -383,13 +538,20 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, FeedbackDetail detail) {
-    final content = detail.context?.trim();
-    final images = detail.images;
-    final attachmentId = _ticketSuffix(detail);
-    final attachmentName = images.isEmpty
-        ? ''
-        : _attachmentName(images.first, attachmentId);
+  Widget _buildHeader(
+    BuildContext context,
+    FeedbackDetail detail, {
+    FeedbackReply? initialReply,
+  }) {
+    final detailContent = detail.context?.trim();
+    final replyContent = initialReply?.context?.trim();
+    final content = detailContent?.isNotEmpty == true
+        ? detailContent
+        : replyContent;
+    final images = detail.images.isNotEmpty
+        ? detail.images
+        : initialReply?.images ?? const <String>[];
+    final createTime = initialReply?.createTime ?? detail.createTime;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -427,38 +589,17 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
                 const SizedBox(height: 20),
               ] else
                 const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: images.isEmpty
-                    ? MainAxisAlignment.end
-                    : MainAxisAlignment.spaceBetween,
-                children: [
-                  if (images.isNotEmpty) ...[
-                    Flexible(
-                      child: Text(
-                        attachmentName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _FeedbackDetailStyle.mutedTextAlt,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          height: 15 / 10,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  Text(
-                    _formatShortTime(detail.createTime),
-                    style: const TextStyle(
-                      color: _FeedbackDetailStyle.mutedTextAlt,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      height: 15 / 10,
-                    ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  _formatShortTime(createTime),
+                  style: const TextStyle(
+                    color: _FeedbackDetailStyle.mutedTextAlt,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    height: 15 / 10,
                   ),
-                ],
+                ),
               ),
             ],
           ),
@@ -675,7 +816,7 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
                   fit: BoxFit.contain,
                   placeholder: (context, _) => const Center(
                     child: CircularProgressIndicator(
-                      color: Colors.white,
+                      color: _FeedbackDetailStyle.brandBlue,
                       strokeWidth: 2.2,
                     ),
                   ),
@@ -709,38 +850,63 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
   }
 }
 
-class _FeedbackHeaderImages extends StatelessWidget {
+class _FeedbackHeaderImages extends StatefulWidget {
   const _FeedbackHeaderImages({required this.images, required this.onPreview});
 
   final List<String> images;
   final ValueChanged<String> onPreview;
 
   @override
+  State<_FeedbackHeaderImages> createState() => _FeedbackHeaderImagesState();
+}
+
+class _FeedbackHeaderImagesState extends State<_FeedbackHeaderImages> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final images = widget.images;
     if (images.length == 1) {
       return _FeedbackHeaderImage(
         url: images.first,
         height: 200,
-        onTap: () => onPreview(images.first),
+        onTap: () => widget.onPreview(images.first),
       );
     }
 
     return SizedBox(
-      height: 112,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: images.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final url = images[index];
-          return _FeedbackHeaderImage(
-            url: url,
-            width: 150,
-            height: 112,
-            onTap: () => onPreview(url),
-          );
-        },
+      height: 128,
+      child: Scrollbar(
+        controller: _scrollController,
+        thumbVisibility: true,
+        trackVisibility: true,
+        interactive: true,
+        radius: const Radius.circular(999),
+        thickness: 3,
+        scrollbarOrientation: ScrollbarOrientation.bottom,
+        child: ListView.separated(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.only(bottom: 16),
+          physics: const BouncingScrollPhysics(),
+          itemCount: images.length,
+          separatorBuilder: (_, _) => const SizedBox(width: 12),
+          itemBuilder: (context, index) {
+            final url = images[index];
+            return _FeedbackHeaderImage(
+              url: url,
+              width: 150,
+              height: 112,
+              onTap: () => widget.onPreview(url),
+            );
+          },
+        ),
       ),
     );
   }
@@ -778,7 +944,10 @@ class _FeedbackHeaderImage extends StatelessWidget {
             child: const SizedBox(
               width: 18,
               height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: CircularProgressIndicator(
+                color: _FeedbackDetailStyle.brandBlue,
+                strokeWidth: 2,
+              ),
             ),
           ),
           errorWidget: (context, _, __) => Container(
@@ -801,12 +970,16 @@ class _FeedbackDetailTopBar extends StatelessWidget {
   const _FeedbackDetailTopBar({
     required this.title,
     required this.onBack,
-    required this.onInfo,
+    required this.resolvedLabel,
+    required this.resolving,
+    required this.onResolve,
   });
 
   final String title;
   final VoidCallback onBack;
-  final VoidCallback? onInfo;
+  final String resolvedLabel;
+  final bool resolving;
+  final VoidCallback? onResolve;
 
   @override
   Widget build(BuildContext context) {
@@ -837,7 +1010,7 @@ class _FeedbackDetailTopBar extends StatelessWidget {
                   onPressed: onBack,
                   icon: const Icon(
                     Icons.arrow_back,
-                    color: _FeedbackDetailStyle.brandBlue,
+                    color: _FeedbackDetailStyle.brandBlueAlt,
                     size: 20,
                   ),
                 ),
@@ -848,7 +1021,7 @@ class _FeedbackDetailTopBar extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: Color(0xFF0F172A),
+                      color: _FeedbackDetailStyle.brandBlueAlt,
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
                       height: 28 / 20,
@@ -856,14 +1029,15 @@ class _FeedbackDetailTopBar extends StatelessWidget {
                     ),
                   ),
                 ),
-                IconButton(
-                  onPressed: onInfo,
-                  icon: const Icon(
-                    Icons.info_outline_rounded,
-                    color: _FeedbackDetailStyle.brandBlue,
-                    size: 20,
-                  ),
-                ),
+                const SizedBox(width: 12),
+                if (onResolve != null)
+                  _FeedbackResolveButton(
+                    label: resolvedLabel,
+                    loading: resolving,
+                    onTap: resolving ? null : onResolve,
+                  )
+                else
+                  const SizedBox(width: 0),
               ],
             ),
           ),
@@ -904,14 +1078,32 @@ class _TimelineChip extends StatelessWidget {
 }
 
 class _FeedbackChatFooter extends StatelessWidget {
-  const _FeedbackChatFooter({required this.placeholder, required this.onSend});
+  const _FeedbackChatFooter({
+    required this.controller,
+    required this.placeholder,
+    required this.imagePaths,
+    required this.uploading,
+    required this.submitting,
+    required this.solving,
+    required this.onPickImage,
+    required this.onRemoveImage,
+    required this.onSend,
+  });
 
+  final TextEditingController controller;
   final String placeholder;
-  final VoidCallback? onSend;
+  final List<String> imagePaths;
+  final bool uploading;
+  final bool submitting;
+  final bool solving;
+  final VoidCallback onPickImage;
+  final ValueChanged<int> onRemoveImage;
+  final VoidCallback onSend;
 
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final disabled = uploading || submitting || solving;
     return Positioned(
       left: 0,
       right: 0,
@@ -925,6 +1117,13 @@ class _FeedbackChatFooter extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (imagePaths.isNotEmpty) ...[
+                  _FeedbackReplyImageStrip(
+                    paths: imagePaths,
+                    onRemove: disabled ? null : onRemoveImage,
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 Container(
                   height: 56,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -935,48 +1134,85 @@ class _FeedbackChatFooter extends StatelessWidget {
                   child: Row(
                     children: [
                       IconButton(
-                        onPressed: onSend,
+                        onPressed: disabled ? null : onPickImage,
                         visualDensity: VisualDensity.compact,
-                        icon: const Icon(
-                          Icons.attach_file_rounded,
-                          color: _FeedbackDetailStyle.mutedTextAlt,
-                          size: 20,
-                        ),
+                        icon: uploading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  color: _FeedbackDetailStyle.brandBlue,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.attach_file_rounded,
+                                color: _FeedbackDetailStyle.mutedTextAlt,
+                                size: 20,
+                              ),
                       ),
                       const SizedBox(width: 4),
                       Expanded(
-                        child: Text(
-                          placeholder,
+                        child: TextField(
+                          controller: controller,
+                          enabled: !submitting,
+                          minLines: 1,
                           maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) {
+                            if (!disabled) onSend();
+                          },
                           style: const TextStyle(
-                            color: Color.fromRGBO(117, 118, 132, 0.6),
+                            color: _FeedbackDetailStyle.text,
                             fontSize: 14,
-                            fontWeight: FontWeight.w400,
+                            fontWeight: FontWeight.w500,
+                            height: 20 / 14,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: placeholder,
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                            hintStyle: const TextStyle(
+                              color: Color.fromRGBO(117, 118, 132, 0.6),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       GestureDetector(
-                        onTap: onSend,
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            gradient: _FeedbackDetailStyle.primaryGradient,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.10),
-                                blurRadius: 15,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.arrow_forward_rounded,
-                            color: Colors.white,
-                            size: 20,
+                        onTap: disabled ? null : onSend,
+                        child: Opacity(
+                          opacity: disabled ? 0.55 : 1,
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              gradient: _FeedbackDetailStyle.primaryGradient,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.10),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: submitting
+                                ? const Padding(
+                                    padding: EdgeInsets.all(10),
+                                    child: CircularProgressIndicator(
+                                      color: _FeedbackDetailStyle.fieldSurface,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.arrow_forward_rounded,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
                           ),
                         ),
                       ),
@@ -987,6 +1223,151 @@ class _FeedbackChatFooter extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _FeedbackReplyImageStrip extends StatelessWidget {
+  const _FeedbackReplyImageStrip({required this.paths, required this.onRemove});
+
+  final List<String> paths;
+  final ValueChanged<int>? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 62,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: paths.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          return _FeedbackReplyImageTile(
+            path: paths[index],
+            onRemove: onRemove == null ? null : () => onRemove!(index),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _FeedbackResolveButton extends StatelessWidget {
+  const _FeedbackResolveButton({
+    required this.label,
+    required this.loading,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool loading;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.58,
+        child: Container(
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE4F7EA),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (loading)
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF16A34A),
+                    strokeWidth: 2,
+                  ),
+                )
+              else
+                const Icon(
+                  Icons.check_circle_outline_rounded,
+                  color: Color(0xFF16A34A),
+                  size: 16,
+                ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Color(0xFF15803D),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  height: 18 / 13,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FeedbackReplyImageTile extends StatelessWidget {
+  const _FeedbackReplyImageTile({required this.path, required this.onRemove});
+
+  final String path;
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 62,
+      height: 62,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.file(
+                File(path),
+                fit: BoxFit.cover,
+                errorBuilder: (context, _, __) => const ColoredBox(
+                  color: _FeedbackDetailStyle.fieldSurface,
+                  child: Center(
+                    child: Icon(
+                      Icons.image_not_supported_outlined,
+                      color: _FeedbackDetailStyle.mutedTextAlt,
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 3,
+            right: 3,
+            child: GestureDetector(
+              onTap: onRemove,
+              child: Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.58),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.close_rounded,
+                  color: Colors.white,
+                  size: 14,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1066,7 +1447,7 @@ class _FeedbackDetailStyle {
   static const text = Color(0xFF191C1E);
   static const border = Color(0xFFDDE4EC);
   static const brandBlue = Color(0xFF00288E);
-  static const softBlue = Color(0xFFEAF0FF);
+  static const brandBlueAlt = Color(0xFF1E3A8A);
   static const fieldSurface = Color(0xFFE0E3E5);
   static const mutedTextAlt = Color(0xFF757684);
   static const skeleton = Color(0xFFE8EEF4);
@@ -1104,7 +1485,8 @@ class _FeedbackDetailStyle {
     return topBarHeight(context) + 16;
   }
 
-  static double footerHeight(BuildContext context) {
-    return 92 + MediaQuery.paddingOf(context).bottom;
+  static double footerHeight(BuildContext context, int imageCount) {
+    final previewHeight = imageCount > 0 ? 74.0 : 0.0;
+    return 92 + previewHeight + MediaQuery.paddingOf(context).bottom;
   }
 }
