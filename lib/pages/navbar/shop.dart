@@ -1028,6 +1028,10 @@ class _ShopPageState extends State<ShopPage>
   }
 
   String _buildRecordStatusText(ShopOrderItem record) {
+    final override = _sellRecordStatusOverride(record);
+    if (override != null) {
+      return override;
+    }
     final status = record.status;
     if (status == 2) {
       return 'app.market.product.wait_for_sending'.tr;
@@ -1052,6 +1056,42 @@ class _ShopPageState extends State<ShopPage>
       return statusName;
     }
     return 'app.trade.filter.failed'.tr;
+  }
+
+  String? _sellRecordStatusOverride(ShopOrderItem record) {
+    if (_isSellRecordFailed(record)) {
+      return _isEnglishLocale ? 'Sale Failed' : '出售失败';
+    }
+    if (_isSellRecordSuccess(record)) {
+      return _isEnglishLocale ? 'Sale Success' : '出售成功';
+    }
+    return null;
+  }
+
+  bool _isSellRecordFailed(ShopOrderItem record) {
+    if (record.status == -1 || record.status == -2) {
+      return true;
+    }
+    final statusName = (record.statusName ?? '').trim().toLowerCase();
+    return statusName.contains('cancel') ||
+        statusName.contains('revok') ||
+        statusName.contains('closed') ||
+        statusName.contains('已取消') ||
+        statusName.contains('取消') ||
+        statusName.contains('已撤销') ||
+        statusName.contains('撤销');
+  }
+
+  bool _isSellRecordSuccess(ShopOrderItem record) {
+    if (record.status == 6) {
+      return true;
+    }
+    final statusName = (record.statusName ?? '').trim().toLowerCase();
+    return statusName.contains('success') ||
+        statusName.contains('completed') ||
+        statusName.contains('交易成功') ||
+        statusName.contains('已完成') ||
+        statusName.contains('完成');
   }
 
   Widget? _buildSellRecordStatusSecondary(ShopOrderItem record) {

@@ -567,6 +567,7 @@ class _MyPurchasePageState extends State<MyPurchasePage>
       Routers.SHOP_ORDER_DETAIL,
       arguments: {
         'order': order,
+        'statusText': _buildStatusText(order),
         'schemas': Map<String, ShopSchemaInfo>.from(controller.schemas),
         'users': Map<String, ShopUserInfo>.from(controller.users),
         'stickers': Map<String, dynamic>.from(controller.stickers),
@@ -575,8 +576,40 @@ class _MyPurchasePageState extends State<MyPurchasePage>
   }
 
   String _buildStatusText(ShopOrderItem order) {
+    if (_isPurchaseFailedStatus(order.status)) {
+      return _text(zh: '购买失败', en: 'Purchase Failed');
+    }
+    if (_isPurchaseSuccessStatus(order.status)) {
+      return _text(zh: '购买成功', en: 'Purchase Success');
+    }
     final statusName = order.statusName?.trim();
-    return statusName == null || statusName.isEmpty ? '-' : statusName;
+    if (statusName != null && statusName.isNotEmpty) {
+      return statusName;
+    }
+    if (order.status == 3) {
+      return 'app.trade.filter.in'.tr;
+    }
+    if (order.status == 4) {
+      return 'app.market.product.wait_for_receipt'.tr;
+    }
+    if (order.status == 2) {
+      return 'app.market.product.wait_for_sending'.tr;
+    }
+    if (order.status == 5) {
+      return 'app.trade.filter.settling'.tr;
+    }
+    if (order.status == 6) {
+      return 'app.trade.filter.success'.tr;
+    }
+    return 'app.trade.filter.failed'.tr;
+  }
+
+  bool _isPurchaseFailedStatus(int? status) {
+    return status == -1 || status == -2;
+  }
+
+  bool _isPurchaseSuccessStatus(int? status) {
+    return status == 6;
   }
 
   ({Color bg, Color fg, Color border, IconData icon}) _statusPalette(

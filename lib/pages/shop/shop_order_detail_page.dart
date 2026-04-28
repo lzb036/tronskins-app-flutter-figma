@@ -106,6 +106,7 @@ class ShopOrderDetailPage extends StatelessWidget {
                         _buildStatusCard(
                           context: context,
                           order: order,
+                          statusText: args.statusText,
                           currency: currency,
                           totalPrice: totalPrice,
                           totalItemCount: totalItemCount,
@@ -116,7 +117,10 @@ class ShopOrderDetailPage extends StatelessWidget {
                           useDeliveryGoodsPalette: args.fromDeliveryGoodsDrawer,
                         ),
                         const SizedBox(height: 16),
-                        _buildOrderStatusCard(order: order),
+                        _buildOrderStatusCard(
+                          order: order,
+                          statusText: args.statusText,
+                        ),
                         if (pendingBuyer != null) ...[
                           const SizedBox(height: 16),
                           _buildPendingBuyerCard(
@@ -208,13 +212,14 @@ class ShopOrderDetailPage extends StatelessWidget {
   Widget _buildStatusCard({
     required BuildContext context,
     required ShopOrderItem order,
+    required String? statusText,
     required CurrencyController? currency,
     required double totalPrice,
     required int totalItemCount,
     required VoidCallback? onCopy,
     required bool useDeliveryGoodsPalette,
   }) {
-    final statusLabel = _statusHeadline(order);
+    final statusLabel = _statusCardHeadline(order, statusText: statusText);
     final statusRows = _buildStatusRows(order);
     return Container(
       width: double.infinity,
@@ -334,8 +339,11 @@ class ShopOrderDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildOrderStatusCard({required ShopOrderItem order}) {
-    final statusLabel = _statusHeadline(order);
+  Widget _buildOrderStatusCard({
+    required ShopOrderItem order,
+    required String? statusText,
+  }) {
+    final statusLabel = _statusHeadline(order, statusText: statusText);
     final statusColor = _statusHeadlineColor(order);
     return _buildCard(
       child: Row(
@@ -2126,8 +2134,32 @@ class ShopOrderDetailPage extends StatelessWidget {
     return rows;
   }
 
-  String _statusHeadline(ShopOrderItem order) {
+  String _statusCardHeadline(ShopOrderItem order, {String? statusText}) {
+    final failureReason = _failureReason(order);
+    if (failureReason != null) {
+      return failureReason;
+    }
+    return _statusHeadline(order, statusText: statusText);
+  }
+
+  String _statusHeadline(ShopOrderItem order, {String? statusText}) {
+    final listStatusText = statusText?.trim();
+    if (listStatusText != null && listStatusText.isNotEmpty) {
+      return listStatusText;
+    }
+    final specialStatus = _purchaseStatusOverride(order.status);
+    if (specialStatus != null) {
+      return specialStatus;
+    }
     return _buildStatusText(order);
+  }
+
+  String? _failureReason(ShopOrderItem order) {
+    if (!_isPurchaseFailedStatus(order.status)) {
+      return null;
+    }
+    final cancelDesc = order.cancelDesc?.trim();
+    return cancelDesc == null || cancelDesc.isEmpty ? null : cancelDesc;
   }
 
   bool _canCancelOrder(ShopOrderItem order) {
@@ -2991,8 +3023,59 @@ class ShopOrderDetailPage extends StatelessWidget {
   }
 
   String _buildStatusText(ShopOrderItem order) {
+    final status = order.status;
+    final specialStatus = _purchaseStatusOverride(status);
+    if (specialStatus != null) {
+      return specialStatus;
+    }
     final statusName = order.statusName?.trim();
-    return statusName == null || statusName.isEmpty ? '-' : statusName;
+    if (statusName != null && statusName.isNotEmpty) {
+      return statusName;
+    }
+    if (status == 6) {
+      return _text(zh: '交易成功', en: 'Completed');
+    }
+    if (status == 5) {
+      return _text(zh: '结算中', en: 'Settling');
+    }
+    final cancelDesc = order.cancelDesc?.trim();
+    if (status == -1 || status == -2) {
+      if (cancelDesc != null && cancelDesc.isNotEmpty) {
+        return cancelDesc;
+      }
+      return _text(zh: '订单已关闭', en: 'Order Closed');
+    }
+    if (cancelDesc != null && cancelDesc.isNotEmpty) {
+      return cancelDesc;
+    }
+    if (status == 2) {
+      return 'app.market.product.wait_for_sending'.tr;
+    }
+    if (status == 3) {
+      return 'app.trade.filter.in'.tr;
+    }
+    if (status == 4) {
+      return 'app.market.product.wait_for_receipt'.tr;
+    }
+    return _text(zh: '处理中', en: 'Processing');
+  }
+
+  String? _purchaseStatusOverride(int? status) {
+    if (_isPurchaseFailedStatus(status)) {
+      return _text(zh: '购买失败', en: 'Purchase Failed');
+    }
+    if (_isPurchaseSuccessStatus(status)) {
+      return _text(zh: '购买成功', en: 'Purchase Success');
+    }
+    return null;
+  }
+
+  bool _isPurchaseFailedStatus(int? status) {
+    return status == -1 || status == -2;
+  }
+
+  bool _isPurchaseSuccessStatus(int? status) {
+    return status == 6;
   }
 
   String _resolveTypeName(ShopOrderItem order) {
@@ -3136,6 +3219,7 @@ class ShopOrderDetailPage extends StatelessWidget {
 class _ShopOrderDetailArgs {
   const _ShopOrderDetailArgs({
     this.order,
+    this.statusText,
     this.orders = const [],
     this.schemas = const {},
     this.users = const {},
@@ -3145,6 +3229,7 @@ class _ShopOrderDetailArgs {
   });
 
   final ShopOrderItem? order;
+  final String? statusText;
   final List<ShopOrderItem> orders;
   final Map<String, ShopSchemaInfo> schemas;
   final Map<String, ShopUserInfo> users;
@@ -3159,6 +3244,7 @@ class _ShopOrderDetailArgs {
     final order = _parseOrder(raw['order'] ?? raw['item']);
     return _ShopOrderDetailArgs(
       order: order,
+      statusText: _parseText(raw['statusText'] ?? raw['statusName']),
       orders: _parseOrders(raw['orders']),
       schemas: _parseSchemas(raw['schemas']),
       users: _parseUsers(raw['users']),
@@ -3166,6 +3252,11 @@ class _ShopOrderDetailArgs {
       disableOrderActions: _parseBool(raw['disableOrderActions']),
       fromDeliveryGoodsDrawer: _parseBool(raw['fromDeliveryGoodsDrawer']),
     );
+  }
+
+  static String? _parseText(dynamic value) {
+    final text = value?.toString().trim();
+    return text == null || text.isEmpty ? null : text;
   }
 
   static bool _parseBool(dynamic value) {

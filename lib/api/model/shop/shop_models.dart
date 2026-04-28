@@ -249,7 +249,8 @@ class ShopOrderItem {
       tradeOfferId:
           json['trade_offer_id']?.toString() ??
           json['tradeOfferId']?.toString(),
-      cancelDesc: json['cancel_desc']?.toString(),
+      cancelDesc:
+          json['cancelDesc']?.toString() ?? json['cancel_desc']?.toString(),
       buyerId: json['buyer']?.toString() ?? json['buyer_id']?.toString(),
       details: details,
       user: json['user'] is Map<String, dynamic>
