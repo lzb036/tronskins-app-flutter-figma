@@ -783,6 +783,7 @@ final Map<String, String> ge_DE = {
   "app.steam.message.loading_steam_id": "Steam-ID wird geladen...",
   "app.steam.message.loading_account_status": "Kontostatus wird geladen...",
   "app.steam.message.verify_success": "Verifizierung erfolgreich!",
+  "app.steam.message.verify_failed": "Verifizierung fehlgeschlagen!",
   "app.system.snackbar.success_title": "Erfolg",
   "app.system.snackbar.failed_title": "Fehlgeschlagen",
   "app.system.message.success": "Operation erfolgreich!",

@@ -766,6 +766,7 @@ final Map<String, String> in_ID = {
   "app.steam.message.loading_steam_id": "Memuat ID Steam...",
   "app.steam.message.loading_account_status": "Memuat status akun...",
   "app.steam.message.verify_success": "Verifikasi berhasil!",
+  "app.steam.message.verify_failed": "Verifikasi gagal!",
   "app.system.snackbar.success_title": "Sukses",
   "app.system.snackbar.failed_title": "Gagal",
   "app.system.message.success": "Operasi berhasil!",

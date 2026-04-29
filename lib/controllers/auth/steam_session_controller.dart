@@ -79,7 +79,7 @@ class SteamSessionController extends GetxController {
       );
 
       if (publicKeyMod.isEmpty || publicKeyExp.isEmpty || timestamp.isEmpty) {
-        errorMessage.value = 'app.user.login.message.error';
+        errorMessage.value = 'app.steam.message.verify_failed';
         return;
       }
 
@@ -91,7 +91,7 @@ class SteamSessionController extends GetxController {
       );
       final encryptedPassword = _readString(encryptRes.datas);
       if (!encryptRes.success || encryptedPassword.isEmpty) {
-        errorMessage.value = 'app.user.login.message.error';
+        errorMessage.value = 'app.steam.message.verify_failed';
         return;
       }
 
@@ -114,7 +114,7 @@ class SteamSessionController extends GetxController {
       );
 
       if (_clientId!.isEmpty || _requestId!.isEmpty || _steamId!.isEmpty) {
-        errorMessage.value = 'app.user.login.message.error';
+        errorMessage.value = 'app.steam.message.verify_failed';
         return;
       }
 
@@ -122,7 +122,7 @@ class SteamSessionController extends GetxController {
       isCodeDialogVisible.value = true;
       _startPollingIfNeeded(generation);
     } catch (_) {
-      errorMessage.value = 'app.user.login.message.error';
+      errorMessage.value = 'app.steam.message.verify_failed';
     } finally {
       isLoading.value = false;
     }
@@ -154,7 +154,7 @@ class SteamSessionController extends GetxController {
         steamId == null ||
         clientId.isEmpty ||
         steamId.isEmpty) {
-      errorMessage.value = 'app.user.login.message.error';
+      errorMessage.value = 'app.steam.message.verify_failed';
       return;
     }
 
@@ -194,7 +194,7 @@ class SteamSessionController extends GetxController {
 
       if (_isSteamResultError(result)) {
         codeController.clear();
-        errorMessage.value = 'app.user.login.message.error';
+        errorMessage.value = 'app.steam.message.verify_failed';
         return;
       }
 
@@ -203,7 +203,7 @@ class SteamSessionController extends GetxController {
     } catch (_) {
       isWaitingForVerificationResult.value = false;
       codeController.clear();
-      errorMessage.value = 'app.user.login.message.error';
+      errorMessage.value = 'app.steam.message.verify_failed';
     } finally {
       isCodeSubmitting.value = false;
     }
@@ -233,7 +233,7 @@ class SteamSessionController extends GetxController {
         requestId.isEmpty) {
       _failVerification(
         clearCredentials: false,
-        message: 'app.user.login.message.error',
+        message: 'app.steam.message.verify_failed',
       );
       return false;
     }
@@ -268,14 +268,14 @@ class SteamSessionController extends GetxController {
         if (_isSteamResultError(result)) {
           _failVerification(
             clearCredentials: false,
-            message: 'app.user.login.message.error',
+            message: 'app.steam.message.verify_failed',
           );
           return false;
         }
       } catch (_) {
         _failVerification(
           clearCredentials: false,
-          message: 'app.user.login.message.error',
+          message: 'app.steam.message.verify_failed',
         );
         return false;
       }
@@ -289,7 +289,7 @@ class SteamSessionController extends GetxController {
 
     _failVerification(
       clearCredentials: false,
-      message: 'app.user.login.message.error',
+      message: 'app.steam.message.verify_failed',
     );
     return false;
   }
@@ -325,7 +325,7 @@ class SteamSessionController extends GetxController {
     if (steamId == null || steamId.isEmpty) {
       _failVerification(
         clearCredentials: false,
-        message: 'app.user.login.message.error',
+        message: 'app.steam.message.verify_failed',
       );
       return false;
     }
@@ -387,10 +387,7 @@ class SteamSessionController extends GetxController {
     if (raw.toLowerCase() == 'unbind steam') {
       return 'app.steam.message.unbind';
     }
-    if (raw.isNotEmpty) {
-      return raw;
-    }
-    return 'app.user.login.message.error';
+    return 'app.steam.message.verify_failed';
   }
 
   Map<String, dynamic> _responseData(Map<String, dynamic> payload) {

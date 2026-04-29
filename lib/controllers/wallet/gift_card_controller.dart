@@ -1,116 +1,179 @@
 import 'package:get/get.dart';
+import 'package:tronskins_app/api/model/wallet/wallet_models.dart';
+import 'package:tronskins_app/api/wallet.dart';
 
-enum GiftCardFilter { all, available, used, expired }
+enum GiftCardFilter { all, available, used }
 
-enum GiftCardStatus { available, used, expired }
-
-class GiftCardItem {
-  const GiftCardItem({
-    required this.id,
-    required this.ownerName,
-    required this.code,
-    required this.amount,
-    required this.status,
-    this.statusNote,
-  });
-
-  final String id;
-  final String ownerName;
-  final String code;
-  final double amount;
-  final GiftCardStatus status;
-  final String? statusNote;
-
-  String get maskedCode {
-    final clean = code.replaceAll(RegExp(r'\s+'), '');
-    final last = clean.length <= 4 ? clean : clean.substring(clean.length - 4);
-    return '.... .... .... $last';
+extension GiftCardFilterApi on GiftCardFilter {
+  String? get apiStatus {
+    return switch (this) {
+      GiftCardFilter.all => null,
+      GiftCardFilter.available => '0',
+      GiftCardFilter.used => '1',
+    };
   }
 }
 
 class GiftCardController extends GetxController {
+  GiftCardController({ApiWalletServer? api}) : _api = api ?? ApiWalletServer();
+
+  static const int _pageSize = 20;
+
+  final ApiWalletServer _api;
+
   final Rx<GiftCardFilter> selectedFilter = GiftCardFilter.all.obs;
-  final RxList<GiftCardItem> cards = <GiftCardItem>[
-    const GiftCardItem(
-      id: 'gc-8821',
-      ownerName: 'LinNorth',
-      code: 'TRON-GIFT-0000-8821',
-      amount: 100,
-      status: GiftCardStatus.available,
-    ),
-    const GiftCardItem(
-      id: 'gc-4490',
-      ownerName: 'LinNorth',
-      code: 'TRON-GIFT-0000-4490',
-      amount: 50,
-      status: GiftCardStatus.used,
-      statusNote: 'Redeemed Oct 12',
-    ),
-    const GiftCardItem(
-      id: 'gc-3012',
-      ownerName: 'LinNorth',
-      code: 'TRON-GIFT-0000-3012',
-      amount: 25,
-      status: GiftCardStatus.available,
-    ),
-    const GiftCardItem(
-      id: 'gc-0019',
-      ownerName: 'LinNorth',
-      code: 'TRON-GIFT-0000-0019',
-      amount: 20,
-      status: GiftCardStatus.expired,
-    ),
-  ].obs;
+  final RxList<WalletGiftCardItem> cards = <WalletGiftCardItem>[].obs;
+  final RxList<WalletGiftCardAmountOption> amountOptions =
+      <WalletGiftCardAmountOption>[].obs;
 
-  List<GiftCardItem> get filteredCards {
-    final filter = selectedFilter.value;
-    if (filter == GiftCardFilter.all) {
-      return cards;
-    }
-    return cards.where((card) {
-      return switch (filter) {
-        GiftCardFilter.available => card.status == GiftCardStatus.available,
-        GiftCardFilter.used => card.status == GiftCardStatus.used,
-        GiftCardFilter.expired => card.status == GiftCardStatus.expired,
-        GiftCardFilter.all => true,
-      };
-    }).toList();
+  final RxBool isLoadingCards = false.obs;
+  final RxBool isLoadingMoreCards = false.obs;
+  final RxBool isLoadingAmountOptions = false.obs;
+  final RxBool isGenerating = false.obs;
+
+  int _page = 1;
+  bool _hasMoreCards = true;
+  int _total = 0;
+
+  bool get hasMoreCards => _hasMoreCards;
+  int get total => _total;
+
+  int get availableCount => cards.where((card) => card.isAvailable).length;
+
+  int get usedCount => cards.where((card) => card.isUsed).length;
+
+  double get totalBalance {
+    return cards.fold<double>(0, (sum, card) => sum + card.value);
   }
 
-  int get availableCount =>
-      cards.where((card) => card.status == GiftCardStatus.available).length;
-
-  int get usedCount =>
-      cards.where((card) => card.status == GiftCardStatus.used).length;
-
-  double get totalBalance =>
-      cards.fold<double>(0, (sum, card) => sum + card.amount);
-
-  void setFilter(GiftCardFilter filter) {
+  Future<void> setFilter(GiftCardFilter filter) async {
+    if (selectedFilter.value == filter && cards.isNotEmpty) {
+      return;
+    }
     selectedFilter.value = filter;
+    await loadCards(reset: true);
   }
 
-  void createCards({required double amount, required int quantity}) {
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final createdCards = <GiftCardItem>[];
-    for (var index = 0; index < quantity; index += 1) {
-      final suffix = ((now + index) % 10000).toString().padLeft(4, '0');
-      final id = 'gc-$now-$index';
-      createdCards.add(
-        GiftCardItem(
-          id: id,
-          ownerName: 'LinNorth',
-          code: 'TRON-GIFT-${now % 100000000}-$suffix',
-          amount: amount,
-          status: GiftCardStatus.available,
-        ),
-      );
+  Future<void> loadCards({bool reset = false}) async {
+    if (reset) {
+      _page = 1;
+      _hasMoreCards = true;
+      _total = 0;
+      cards.clear();
     }
-    cards.insertAll(0, createdCards);
-    selectedFilter.value = GiftCardFilter.all;
+    if (!_hasMoreCards && !reset) {
+      return;
+    }
+
+    final loadingFlag = reset ? isLoadingCards : isLoadingMoreCards;
+    if (loadingFlag.value) {
+      return;
+    }
+
+    loadingFlag.value = true;
+    try {
+      final response = await _api.giftCardList(
+        page: _page,
+        pageSize: _pageSize,
+        status: selectedFilter.value.apiStatus,
+      );
+      if (!response.success) {
+        return;
+      }
+
+      final data = response.datas;
+      final list = data?.list ?? <WalletGiftCardItem>[];
+      _total = data?.pager?.total ?? (reset ? list.length : cards.length);
+      if (reset) {
+        cards.assignAll(list);
+      } else {
+        cards.addAll(list);
+      }
+
+      _hasMoreCards = _resolveHasMore(
+        pager: data?.pager,
+        fetchedCount: list.length,
+        accumulatedCount: cards.length,
+      );
+      if (_hasMoreCards) {
+        _page += 1;
+      }
+    } finally {
+      loadingFlag.value = false;
+    }
   }
 
-  void removeCard(GiftCardItem item) {
-    cards.removeWhere((card) => card.id == item.id);
+  Future<String?> loadPassword(WalletGiftCardItem item) async {
+    final response = await _api.giftCardPassword(id: item.id);
+    if (!response.success) {
+      return null;
+    }
+    final password = response.datas?.password.trim() ?? '';
+    return password.isEmpty ? null : password;
+  }
+
+  Future<void> loadAmountOptions({bool force = false}) async {
+    if (isLoadingAmountOptions.value) {
+      return;
+    }
+    if (!force && amountOptions.isNotEmpty) {
+      return;
+    }
+
+    isLoadingAmountOptions.value = true;
+    try {
+      final response = await _api.giftCardAmountOptions();
+      if (response.success) {
+        amountOptions.assignAll(
+          response.datas ?? <WalletGiftCardAmountOption>[],
+        );
+      }
+    } finally {
+      isLoadingAmountOptions.value = false;
+    }
+  }
+
+  Future<bool> generateCard({
+    required WalletGiftCardAmountOption amount,
+    required int quantity,
+  }) async {
+    if (isGenerating.value) {
+      return false;
+    }
+    isGenerating.value = true;
+    try {
+      final response = await _api.addGiftCard(
+        number: quantity,
+        value: amount.submitValue,
+      );
+      if (!response.success) {
+        return false;
+      }
+      selectedFilter.value = GiftCardFilter.all;
+      await loadCards(reset: true);
+      return true;
+    } finally {
+      isGenerating.value = false;
+    }
+  }
+
+  bool _resolveHasMore({
+    required WalletPager? pager,
+    required int fetchedCount,
+    required int accumulatedCount,
+  }) {
+    if (fetchedCount <= 0) {
+      return false;
+    }
+    if (pager == null) {
+      return fetchedCount >= _pageSize;
+    }
+    if (pager.total > 0) {
+      return accumulatedCount < pager.total;
+    }
+    if (pager.pages != null && pager.pages! > 0) {
+      return pager.page < pager.pages!;
+    }
+    return fetchedCount >= (pager.pageSize > 0 ? pager.pageSize : _pageSize);
   }
 }

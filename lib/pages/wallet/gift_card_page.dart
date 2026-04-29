@@ -3,79 +3,134 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+import 'package:tronskins_app/api/model/wallet/wallet_models.dart';
+import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/controllers/wallet/gift_card_controller.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
-class GiftCardPage extends StatelessWidget {
+class GiftCardPage extends StatefulWidget {
   const GiftCardPage({super.key});
 
+  @override
+  State<GiftCardPage> createState() => _GiftCardPageState();
+}
+
+class _GiftCardPageState extends State<GiftCardPage> {
   static const Color _pageBackground = Color(0xFFF8FAFC);
   static const Color _surfaceContainer = Color(0xFFF1F5F9);
   static const Color _surfaceLowest = Colors.white;
   static const Color _brandBlue = Color(0xFF00288E);
-  static const Color _primaryBlue = Color(0xFF1E40AF);
   static const Color _titleColor = Color(0xFF0F172A);
   static const Color _bodyColor = Color(0xFF444653);
   static const Color _mutedColor = Color(0xFF94A3B8);
   static const Color _successColor = Color(0xFF16A34A);
-  static const Color _dangerColor = Color(0xFFDC2626);
 
-  GiftCardController get _controller => Get.isRegistered<GiftCardController>()
+  final GiftCardController controller = Get.isRegistered<GiftCardController>()
       ? Get.find<GiftCardController>()
       : Get.put(GiftCardController());
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    controller.loadCards(reset: true);
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    if (_scrollController.position.pixels >
+        _scrollController.position.maxScrollExtent - 240) {
+      controller.loadCards();
+    }
+  }
+
+  Future<void> _openCreatePage() async {
+    await Get.toNamed(Routers.WALLET_GIFT_CARD_CREATE);
+    if (mounted) {
+      await controller.loadCards(reset: true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top + 88;
-    final bottomPadding = MediaQuery.of(context).padding.bottom + 122;
-    final controller = _controller;
+    final bottomPadding = MediaQuery.of(context).padding.bottom + 32;
 
     return Scaffold(
       backgroundColor: _pageBackground,
       body: Stack(
         children: [
-          ListView(
-            physics: const ClampingScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(24, topPadding, 24, bottomPadding),
-            children: [
-              Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 672),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _GiftCardSummary(controller: controller),
-                      const SizedBox(height: 32),
-                      _GiftCardFilters(controller: controller),
-                      const SizedBox(height: 24),
-                      _GiftCardList(controller: controller),
-                    ],
+          RefreshIndicator(
+            color: _brandBlue,
+            backgroundColor: Colors.white,
+            onRefresh: () => controller.loadCards(reset: true),
+            child: ListView(
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: ClampingScrollPhysics(),
+              ),
+              padding: EdgeInsets.fromLTRB(24, topPadding, 24, bottomPadding),
+              children: [
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 672),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _GiftCardSummary(controller: controller),
+                        const SizedBox(height: 32),
+                        _GiftCardFilters(controller: controller),
+                        const SizedBox(height: 24),
+                        _GiftCardList(controller: controller),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           _GiftCardTopBar(
             title: 'app.user.wallet.gift'.tr,
-            actionLabel: 'Add Card',
-            onAction: () => Get.toNamed(Routers.WALLET_GIFT_CARD_CREATE),
+            actionLabel: 'app.user.gift_card.generate'.tr,
+            onAction: _openCreatePage,
           ),
-          const _GiftCardBottomBar(),
         ],
       ),
     );
   }
 
-  static String formatMoney(double value) => '\$${value.toStringAsFixed(2)}';
+  static String formatMoney(double value) {
+    final currency = Get.find<CurrencyController>();
+    return currency.formatUsd(value).replaceFirst('\$ ', r'$');
+  }
 
-  static String statusLabel(GiftCardStatus status) {
-    return switch (status) {
-      GiftCardStatus.available => 'AVAILABLE',
-      GiftCardStatus.used => 'USED',
-      GiftCardStatus.expired => 'EXPIRED',
-    };
+  static String statusLabel(WalletGiftCardItem item) {
+    return item.isUsed
+        ? 'app.user.gift_card.status_used'.tr.toUpperCase()
+        : 'app.user.gift_card.status_available'.tr.toUpperCase();
+  }
+
+  static String formatDate(int? timestamp) {
+    if (timestamp == null) {
+      return '';
+    }
+    return DateFormat(
+      'yyyy-MM-dd HH:mm',
+    ).format(DateTime.fromMillisecondsSinceEpoch(timestamp).toLocal());
   }
 }
 
@@ -133,7 +188,7 @@ class _GiftCardTopBar extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: GiftCardPage._titleColor,
+                          color: _GiftCardPageState._titleColor,
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                           height: 28 / 18,
@@ -143,7 +198,7 @@ class _GiftCardTopBar extends StatelessWidget {
                     TextButton(
                       onPressed: onAction,
                       style: TextButton.styleFrom(
-                        foregroundColor: GiftCardPage._brandBlue,
+                        foregroundColor: _GiftCardPageState._brandBlue,
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         minimumSize: const Size(0, 40),
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -179,10 +234,10 @@ class _GiftCardSummary extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'TOTAL BALANCE',
-            style: TextStyle(
-              color: GiftCardPage._bodyColor,
+          Text(
+            'app.user.gift_card.total_balance'.tr.toUpperCase(),
+            style: const TextStyle(
+              color: _GiftCardPageState._bodyColor,
               fontSize: 12,
               fontWeight: FontWeight.w500,
               height: 16 / 12,
@@ -196,9 +251,9 @@ class _GiftCardSummary extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(
-                GiftCardPage.formatMoney(controller.totalBalance),
+                _GiftCardPageState.formatMoney(controller.totalBalance),
                 style: const TextStyle(
-                  color: GiftCardPage._titleColor,
+                  color: _GiftCardPageState._titleColor,
                   fontSize: 36,
                   fontWeight: FontWeight.w900,
                   height: 40 / 36,
@@ -206,11 +261,15 @@ class _GiftCardSummary extends StatelessWidget {
               ),
               _SummaryPill(
                 color: const Color(0xFF22C55E),
-                label: '${controller.availableCount} Available',
+                label: 'app.user.gift_card.available_count'.trArgs([
+                  '${controller.availableCount}',
+                ]),
               ),
               _SummaryPill(
                 color: const Color(0xFFCBD5E1),
-                label: '${controller.usedCount} Used',
+                label: 'app.user.gift_card.used_count'.trArgs([
+                  '${controller.usedCount}',
+                ]),
               ),
             ],
           ),
@@ -240,7 +299,7 @@ class _SummaryPill extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            color: GiftCardPage._bodyColor,
+            color: _GiftCardPageState._bodyColor,
             fontSize: 12,
             fontWeight: FontWeight.w700,
             height: 16 / 12,
@@ -259,10 +318,9 @@ class _GiftCardFilters extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final filters = <(GiftCardFilter, String)>[
-      (GiftCardFilter.all, 'All'),
-      (GiftCardFilter.available, 'Available'),
-      (GiftCardFilter.used, 'Used'),
-      (GiftCardFilter.expired, 'Expired'),
+      (GiftCardFilter.all, 'app.common.all'.tr),
+      (GiftCardFilter.available, 'app.user.gift_card.available'.tr),
+      (GiftCardFilter.used, 'app.user.gift_card.used'.tr),
     ];
 
     return SingleChildScrollView(
@@ -300,8 +358,8 @@ class _FilterChipButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: selected
-          ? GiftCardPage._brandBlue
-          : GiftCardPage._surfaceContainer,
+          ? _GiftCardPageState._brandBlue
+          : _GiftCardPageState._surfaceContainer,
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         borderRadius: BorderRadius.circular(999),
@@ -311,7 +369,7 @@ class _FilterChipButton extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? Colors.white : GiftCardPage._bodyColor,
+              color: selected ? Colors.white : _GiftCardPageState._bodyColor,
               fontSize: 12,
               fontWeight: FontWeight.w700,
               height: 16 / 12,
@@ -328,15 +386,24 @@ class _GiftCardList extends StatelessWidget {
 
   final GiftCardController controller;
 
-  Future<void> _copyCode(GiftCardItem item) async {
-    await Clipboard.setData(ClipboardData(text: item.code));
+  Future<void> _copyPassword(WalletGiftCardItem item) async {
+    final password = await controller.loadPassword(item);
+    if (password == null || password.isEmpty) {
+      AppSnackbar.error('app.user.gift_card.password_load_failed'.tr);
+      return;
+    }
+    await Clipboard.setData(ClipboardData(text: password));
     AppSnackbar.success('app.system.message.copy_success'.tr);
   }
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final cards = controller.filteredCards;
+      final cards = controller.cards.toList(growable: false);
+      final loading = controller.isLoadingCards.value;
+      if (loading && cards.isEmpty) {
+        return const _GiftCardSkeletonList();
+      }
       if (cards.isEmpty) {
         return const _GiftCardEmptyState();
       }
@@ -347,8 +414,17 @@ class _GiftCardList extends StatelessWidget {
             if (index > 0) const SizedBox(height: 16),
             _GiftCardTile(
               item: cards[index],
-              onCopy: () => _copyCode(cards[index]),
-              onRemove: () => controller.removeCard(cards[index]),
+              onCopyPassword: () => _copyPassword(cards[index]),
+            ),
+          ],
+          if (controller.isLoadingMoreCards.value) ...[
+            const SizedBox(height: 18),
+            const Center(
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
             ),
           ],
         ],
@@ -366,7 +442,7 @@ class _GiftCardEmptyState extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
       decoration: BoxDecoration(
-        color: GiftCardPage._surfaceLowest,
+        color: _GiftCardPageState._surfaceLowest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: const [
           BoxShadow(
@@ -376,18 +452,19 @@ class _GiftCardEmptyState extends StatelessWidget {
           ),
         ],
       ),
-      child: const Column(
+      child: Column(
         children: [
-          Icon(
+          const Icon(
             Icons.card_giftcard_rounded,
             size: 36,
-            color: GiftCardPage._mutedColor,
+            color: _GiftCardPageState._mutedColor,
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Text(
-            'No gift cards here',
-            style: TextStyle(
-              color: GiftCardPage._bodyColor,
+            'app.user.gift_card.empty'.tr,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: _GiftCardPageState._bodyColor,
               fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
@@ -399,53 +476,43 @@ class _GiftCardEmptyState extends StatelessWidget {
 }
 
 class _GiftCardTile extends StatelessWidget {
-  const _GiftCardTile({
-    required this.item,
-    required this.onCopy,
-    required this.onRemove,
-  });
+  const _GiftCardTile({required this.item, required this.onCopyPassword});
 
-  final GiftCardItem item;
-  final VoidCallback onCopy;
-  final VoidCallback onRemove;
+  final WalletGiftCardItem item;
+  final VoidCallback onCopyPassword;
 
   Color get _statusColor {
-    return switch (item.status) {
-      GiftCardStatus.available => GiftCardPage._successColor,
-      GiftCardStatus.used => GiftCardPage._bodyColor,
-      GiftCardStatus.expired => GiftCardPage._dangerColor,
-    };
+    return item.isAvailable
+        ? _GiftCardPageState._successColor
+        : _GiftCardPageState._bodyColor;
   }
 
   Color get _iconBackground {
-    return switch (item.status) {
-      GiftCardStatus.available => const Color.fromRGBO(0, 40, 142, 0.10),
-      GiftCardStatus.used => GiftCardPage._surfaceContainer,
-      GiftCardStatus.expired => const Color(0xFFFEE2E2),
-    };
+    return item.isAvailable
+        ? const Color.fromRGBO(0, 40, 142, 0.10)
+        : _GiftCardPageState._surfaceContainer;
   }
 
   Color get _iconColor {
-    return switch (item.status) {
-      GiftCardStatus.available => GiftCardPage._brandBlue,
-      GiftCardStatus.used => GiftCardPage._mutedColor,
-      GiftCardStatus.expired => const Color(0xFFF87171),
-    };
-  }
-
-  Color get _amountColor {
-    return item.status == GiftCardStatus.expired
-        ? const Color(0xFFCBD5E1)
-        : GiftCardPage._titleColor;
+    return item.isAvailable
+        ? _GiftCardPageState._brandBlue
+        : _GiftCardPageState._mutedColor;
   }
 
   @override
   Widget build(BuildContext context) {
-    final muted = item.status != GiftCardStatus.available;
+    final muted = item.isUsed;
+    final chargeUser = item.chargeUser?.trim();
+    final userLabel = chargeUser == null || chargeUser.isEmpty
+        ? 'app.common.none'.tr
+        : chargeUser;
+    final usedDate = _GiftCardPageState.formatDate(item.chargeTime);
     return Container(
       padding: const EdgeInsets.all(21),
       decoration: BoxDecoration(
-        color: GiftCardPage._surfaceLowest.withValues(alpha: muted ? 0.76 : 1),
+        color: _GiftCardPageState._surfaceLowest.withValues(
+          alpha: muted ? 0.76 : 1,
+        ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: const [
           BoxShadow(
@@ -479,20 +546,20 @@ class _GiftCardTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item.ownerName,
+                      userLabel,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: muted
-                            ? GiftCardPage._bodyColor
-                            : GiftCardPage._titleColor,
+                            ? _GiftCardPageState._bodyColor
+                            : _GiftCardPageState._titleColor,
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                         height: 24 / 16,
                       ),
                     ),
                     Text(
-                      GiftCardPage.statusLabel(item.status),
+                      _GiftCardPageState.statusLabel(item),
                       style: TextStyle(
                         color: _statusColor,
                         fontSize: 10,
@@ -506,10 +573,12 @@ class _GiftCardTile extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                GiftCardPage.formatMoney(item.amount),
+                _GiftCardPageState.formatMoney(item.value),
                 textAlign: TextAlign.right,
                 style: TextStyle(
-                  color: _amountColor,
+                  color: muted
+                      ? const Color(0xFFCBD5E1)
+                      : _GiftCardPageState._titleColor,
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
                   height: 32 / 24,
@@ -522,13 +591,13 @@ class _GiftCardTile extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  item.maskedCode,
+                  item.maskedCardNumber,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: muted
                         ? const Color(0xFFCBD5E1)
-                        : GiftCardPage._mutedColor,
+                        : _GiftCardPageState._mutedColor,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     height: 16 / 12,
@@ -536,15 +605,15 @@ class _GiftCardTile extends StatelessWidget {
                   ),
                 ),
               ),
-              if (item.status == GiftCardStatus.available)
-                _CopyButton(onTap: onCopy)
-              else if (item.status == GiftCardStatus.expired)
-                _RemoveRecordButton(onTap: onRemove)
+              if (item.isAvailable)
+                _CopyButton(onTap: onCopyPassword)
               else
                 Text(
-                  item.statusNote?.toUpperCase() ?? 'REDEEMED',
+                  usedDate.isEmpty
+                      ? 'app.user.gift_card.status_used'.tr.toUpperCase()
+                      : 'app.user.gift_card.redeemed_at'.trArgs([usedDate]),
                   style: const TextStyle(
-                    color: GiftCardPage._mutedColor,
+                    color: _GiftCardPageState._mutedColor,
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
                     height: 15 / 10,
@@ -567,7 +636,7 @@ class _CopyButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: GiftCardPage._pageBackground,
+      color: _GiftCardPageState._pageBackground,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
@@ -584,13 +653,13 @@ class _CopyButton extends StatelessWidget {
               const Icon(
                 Icons.copy_rounded,
                 size: 14,
-                color: GiftCardPage._brandBlue,
+                color: _GiftCardPageState._brandBlue,
               ),
               const SizedBox(width: 8),
               Text(
                 'app.common.copy'.tr.toUpperCase(),
                 style: const TextStyle(
-                  color: GiftCardPage._brandBlue,
+                  color: _GiftCardPageState._brandBlue,
                   fontSize: 12,
                   fontWeight: FontWeight.w900,
                   height: 16 / 12,
@@ -605,69 +674,49 @@ class _CopyButton extends StatelessWidget {
   }
 }
 
-class _RemoveRecordButton extends StatelessWidget {
-  const _RemoveRecordButton({required this.onTap});
-
-  final VoidCallback onTap;
+class _GiftCardSkeletonList extends StatelessWidget {
+  const _GiftCardSkeletonList();
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: onTap,
-      style: TextButton.styleFrom(
-        foregroundColor: GiftCardPage._dangerColor,
-        padding: const EdgeInsets.symmetric(horizontal: 0),
-        minimumSize: const Size(0, 32),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ),
-      child: const Text(
-        'REMOVE RECORD',
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
-          height: 15 / 10,
-          letterSpacing: 1,
-        ),
-      ),
-    );
-  }
-}
-
-class _GiftCardBottomBar extends StatelessWidget {
-  const _GiftCardBottomBar();
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).padding.bottom;
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+    return Column(
+      children: List.generate(
+        3,
+        (index) => Padding(
+          padding: EdgeInsets.only(top: index == 0 ? 0 : 16),
           child: Container(
-            color: Colors.white.withValues(alpha: 0.9),
-            padding: EdgeInsets.fromLTRB(24, 12, 24, bottomInset + 18),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            height: 150,
+            decoration: BoxDecoration(
+              color: _GiftCardPageState._surfaceLowest,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            padding: const EdgeInsets.all(21),
+            child: Column(
               children: [
-                _BottomNavItem(
-                  icon: Icons.account_balance_outlined,
-                  label: 'GALLERY',
+                Row(
+                  children: [
+                    _SkeletonBox(width: 48, height: 48, radius: 12),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _SkeletonBox(width: 120, height: 16, radius: 4),
+                          SizedBox(height: 8),
+                          _SkeletonBox(width: 68, height: 10, radius: 4),
+                        ],
+                      ),
+                    ),
+                    _SkeletonBox(width: 96, height: 24, radius: 4),
+                  ],
                 ),
-                _BottomNavItem(
-                  icon: Icons.account_balance_wallet_rounded,
-                  label: 'WALLET',
-                  active: true,
-                ),
-                _BottomNavItem(
-                  icon: Icons.confirmation_number_outlined,
-                  label: 'EVENTS',
-                ),
-                _BottomNavItem(
-                  icon: Icons.person_outline_rounded,
-                  label: 'PROFILE',
+                const Spacer(),
+                const Row(
+                  children: [
+                    Expanded(child: _SkeletonBox(height: 12, radius: 4)),
+                    SizedBox(width: 24),
+                    _SkeletonBox(width: 88, height: 34, radius: 8),
+                  ],
                 ),
               ],
             ),
@@ -678,49 +727,22 @@ class _GiftCardBottomBar extends StatelessWidget {
   }
 }
 
-class _BottomNavItem extends StatelessWidget {
-  const _BottomNavItem({
-    required this.icon,
-    required this.label,
-    this.active = false,
-  });
+class _SkeletonBox extends StatelessWidget {
+  const _SkeletonBox({this.width, required this.height, required this.radius});
 
-  final IconData icon;
-  final String label;
-  final bool active;
+  final double? width;
+  final double height;
+  final double radius;
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? GiftCardPage._brandBlue : const Color(0xFF94A3B8);
-    final content = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 20, color: color),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: color,
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-            height: 15 / 10,
-            letterSpacing: 1,
-          ),
-        ),
-      ],
-    );
-
-    if (!active) {
-      return Opacity(opacity: 0.6, child: content);
-    }
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      width: width,
+      height: height,
       decoration: BoxDecoration(
-        color: GiftCardPage._primaryBlue.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(radius),
       ),
-      child: content,
     );
   }
 }

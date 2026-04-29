@@ -43,12 +43,6 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
 
   String get _sessionUrl => 'https://steamcommunity.com/login/home/?l=english';
 
-  bool get _isChinese =>
-      (Get.locale?.languageCode ?? '').toLowerCase().startsWith('zh');
-
-  String get _savingTokenLabel =>
-      _isChinese ? '正在更新 Steam 会话...' : 'Updating Steam session...';
-
   @override
   void initState() {
     super.initState();
@@ -421,7 +415,7 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
     } catch (_) {
       _hasHandledToken = false;
       _hasPendingTokenPayload = false;
-      _showError('app.user.login.message.error'.tr);
+      _showError('app.steam.message.verify_failed'.tr);
     } finally {
       if (mounted) {
         setState(() => _isSavingToken = false);
@@ -436,10 +430,7 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
     if (raw.toLowerCase() == 'unbind steam') {
       return 'app.steam.message.unbind'.tr;
     }
-    if (raw.isNotEmpty) {
-      return raw;
-    }
-    return 'app.user.login.message.error'.tr;
+    return 'app.steam.message.verify_failed'.tr;
   }
 
   String _readText(dynamic value) => value?.toString().trim() ?? '';
@@ -484,22 +475,8 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
           if (_isSavingToken)
             Container(
               color: Colors.black12,
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(color: Color(0xFF171A21)),
-                    const SizedBox(height: 12),
-                    Text(
-                      _savingTokenLabel,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF171A21),
-                      ),
-                    ),
-                  ],
-                ),
+              child: const Center(
+                child: CircularProgressIndicator(color: Color(0xFF171A21)),
               ),
             ),
         ],

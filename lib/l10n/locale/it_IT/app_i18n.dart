@@ -775,6 +775,7 @@ final Map<String, String> it_IT = {
   "app.steam.message.loading_steam_id": "Caricamento ID Steam...",
   "app.steam.message.loading_account_status": "Caricamento stato account...",
   "app.steam.message.verify_success": "Verifica riuscita!",
+  "app.steam.message.verify_failed": "Verifica non riuscita!",
   "app.system.snackbar.success_title": "Successo",
   "app.system.snackbar.failed_title": "Fallito",
   "app.system.message.success": "Operazione riuscita!",

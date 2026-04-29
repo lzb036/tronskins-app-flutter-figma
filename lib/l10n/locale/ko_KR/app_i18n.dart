@@ -680,6 +680,7 @@ final Map<String, String> ko_KR = {
   "app.steam.message.loading_steam_id": "Steam ID를 불러오는 중...",
   "app.steam.message.loading_account_status": "계정 상태를 불러오는 중...",
   "app.steam.message.verify_success": "인증에 성공했습니다!",
+  "app.steam.message.verify_failed": "인증에 실패했습니다!",
   "app.system.snackbar.success_title": "성공",
   "app.system.snackbar.failed_title": "실패",
   "app.system.message.success": "작업 성공!",

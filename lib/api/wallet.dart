@@ -189,6 +189,72 @@ class ApiWalletServer {
     });
   }
 
+  Future<BaseHttpResponse<WalletListResponse<WalletGiftCardItem>>>
+  giftCardList({int page = 1, int pageSize = 20, String? status}) async {
+    final response = await http.get(
+      'api/app/charge/card/list.do',
+      queryParameters: {
+        'page': page,
+        'pageSize': pageSize,
+        if (status != null && status.isNotEmpty) 'status': status,
+      },
+    );
+    return BaseHttpResponse.fromJson(
+      response.data as Map<String, dynamic>,
+      (json) => WalletListResponse.fromJson(
+        json as Map<String, dynamic>,
+        WalletGiftCardItem.fromJson,
+      ),
+    );
+  }
+
+  Future<BaseHttpResponse<WalletGiftCardPassword>> giftCardPassword({
+    required String id,
+    String twoFa = '',
+  }) async {
+    final response = await http.get(
+      'api/app/charge/card/get.do',
+      queryParameters: {'id': id, 'twoFa': twoFa},
+    );
+    return BaseHttpResponse.fromJson(
+      response.data as Map<String, dynamic>,
+      (json) => WalletGiftCardPassword.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  Future<BaseHttpResponse<List<WalletGiftCardAmountOption>>>
+  giftCardAmountOptions() async {
+    final response = await http.post(
+      'api/pub/dict/module/dictcode2.do',
+      data: {'parentId': 0, 'type': 'card_value_type'},
+    );
+    return BaseHttpResponse.fromJson(response.data as Map<String, dynamic>, (
+      json,
+    ) {
+      if (json is List) {
+        return json
+            .whereType<Map<String, dynamic>>()
+            .map(WalletGiftCardAmountOption.fromJson)
+            .toList();
+      }
+      return <WalletGiftCardAmountOption>[];
+    });
+  }
+
+  Future<BaseHttpResponse<dynamic>> addGiftCard({
+    required int number,
+    required String value,
+  }) async {
+    final response = await http.post(
+      'api/app/charge/card/add.do',
+      data: {'number': number, 'value': value},
+    );
+    return BaseHttpResponse.fromJson(
+      response.data as Map<String, dynamic>,
+      (json) => json,
+    );
+  }
+
   Future<BaseHttpResponse<List<WalletLotteryPrize>>> lotteryPrizeList() async {
     final response = await http.get('api/app/lottery/app/prize/list');
     return BaseHttpResponse.fromJson(response.data as Map<String, dynamic>, (

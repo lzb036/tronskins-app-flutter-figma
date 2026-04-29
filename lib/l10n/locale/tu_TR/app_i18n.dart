@@ -756,6 +756,7 @@ final Map<String, String> tu_TR = {
   "app.steam.message.loading_steam_id": "Steam kimligi yukleniyor...",
   "app.steam.message.loading_account_status": "Hesap durumu yukleniyor...",
   "app.steam.message.verify_success": "Dogrulama basarili!",
+  "app.steam.message.verify_failed": "Dogrulama basarisiz!",
   "app.system.snackbar.success_title": "Başarılı",
   "app.system.snackbar.failed_title": "Başarısız",
   "app.system.message.success": "Operasyon başarılı!",

@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:tronskins_app/l10n/gift_card_i18n.dart';
 import 'package:tronskins_app/l10n/locale/en_US/app_i18n.dart';
 import 'package:tronskins_app/l10n/locale/fr_FR/app_i18n.dart';
 import 'package:tronskins_app/l10n/locale/ge_DE/app_i18n.dart';
@@ -19,29 +20,35 @@ import 'package:tronskins_app/l10n/locale/zh_TW/app_i18n.dart';
 
 class AppTranslations extends Translations {
   @override
-  Map<String, Map<String, String>> get keys => {
-    'en_US': en_US,
-    'fr_FR': fr_FR,
-    'ge_DE': ge_DE,
-    'de_DE': ge_DE,
-    'in_ID': in_ID,
-    'id_ID': in_ID,
-    'it_IT': it_IT,
-    'ja_JP': ja_JP,
-    'ko_KR': ko_KR,
-    'la_LAT': la_LAT,
-    'po_PL': po_PL,
-    'pl_PL': po_PL,
-    'po_PT': po_PT,
-    'pt_PT': po_PT,
-    'ru_RU': ru_RU,
-    'sp_ES': sp_ES,
-    'es_ES': sp_ES,
-    'th_TH': th_TH,
-    'tu_TR': tu_TR,
-    'tr_TR': tu_TR,
-    'vi_VN': vi_VN,
-    'zh_CN': zh_CN,
-    'zh_TW': zh_TW,
-  };
+  Map<String, Map<String, String>> get keys {
+    final base = <String, Map<String, String>>{
+      'en_US': en_US,
+      'fr_FR': fr_FR,
+      'ge_DE': ge_DE,
+      'de_DE': ge_DE,
+      'in_ID': in_ID,
+      'id_ID': in_ID,
+      'it_IT': it_IT,
+      'ja_JP': ja_JP,
+      'ko_KR': ko_KR,
+      'la_LAT': la_LAT,
+      'po_PL': po_PL,
+      'pl_PL': po_PL,
+      'po_PT': po_PT,
+      'pt_PT': po_PT,
+      'ru_RU': ru_RU,
+      'sp_ES': sp_ES,
+      'es_ES': sp_ES,
+      'th_TH': th_TH,
+      'tu_TR': tu_TR,
+      'tr_TR': tu_TR,
+      'vi_VN': vi_VN,
+      'zh_CN': zh_CN,
+      'zh_TW': zh_TW,
+    };
+
+    return base.map((locale, messages) {
+      return MapEntry(locale, {...messages, ...giftCardMessagesFor(locale)});
+    });
+  }
 }

@@ -459,6 +459,112 @@ class WalletCouponRecord {
   }
 }
 
+class WalletGiftCardItem {
+  final Map<String, dynamic> raw;
+  final String id;
+  final int? status;
+  final double value;
+  final String? chargeUser;
+  final int? chargeTime;
+
+  const WalletGiftCardItem({
+    required this.raw,
+    required this.id,
+    this.status,
+    required this.value,
+    this.chargeUser,
+    this.chargeTime,
+  });
+
+  factory WalletGiftCardItem.fromJson(Map<String, dynamic> json) {
+    return WalletGiftCardItem(
+      raw: json,
+      id: json['id']?.toString() ?? '',
+      status: _asInt(json['status']),
+      value: _asDouble(json['value']) ?? 0,
+      chargeUser:
+          json['chargeUser']?.toString() ?? json['charge_user']?.toString(),
+      chargeTime: _asTimestamp(
+        json['chargeTime'] ??
+            json['charge_time'] ??
+            json['useTime'] ??
+            json['use_time'],
+      ),
+    );
+  }
+
+  bool get isUsed => status == 1;
+  bool get isAvailable => !isUsed;
+
+  String get maskedCardNumber {
+    final clean = id.replaceAll(RegExp(r'\s+'), '');
+    if (clean.isEmpty) {
+      return '.... .... ....';
+    }
+    final last = clean.length <= 4 ? clean : clean.substring(clean.length - 4);
+    return '.... .... .... $last';
+  }
+}
+
+class WalletGiftCardPassword {
+  final String password;
+
+  const WalletGiftCardPassword({required this.password});
+
+  factory WalletGiftCardPassword.fromJson(Map<String, dynamic> json) {
+    return WalletGiftCardPassword(password: json['password']?.toString() ?? '');
+  }
+}
+
+class WalletGiftCardAmountOption {
+  final Map<String, dynamic> raw;
+  final String id;
+  final String label;
+  final String name;
+  final double? value;
+
+  const WalletGiftCardAmountOption({
+    required this.raw,
+    required this.id,
+    required this.label,
+    required this.name,
+    this.value,
+  });
+
+  factory WalletGiftCardAmountOption.fromJson(Map<String, dynamic> json) {
+    return WalletGiftCardAmountOption(
+      raw: json,
+      id: json['id']?.toString() ?? '',
+      label: json['label']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      value: _asDouble(json['value']),
+    );
+  }
+
+  String get displayLabel {
+    final rawLabel = label.trim().isNotEmpty ? label.trim() : submitValue;
+    if (rawLabel.startsWith(r'$')) {
+      return rawLabel;
+    }
+    return '\$$rawLabel';
+  }
+
+  String get submitValue {
+    final rawName = name.trim();
+    if (rawName.isNotEmpty) {
+      return rawName;
+    }
+    if (value != null) {
+      return value == value!.roundToDouble()
+          ? value!.toInt().toString()
+          : value!.toString();
+    }
+    return label.replaceFirst(r'$', '').trim();
+  }
+
+  double get amount => _asDouble(submitValue) ?? value ?? 0;
+}
+
 class WalletLotteryPrize {
   final Map<String, dynamic> raw;
   final int? index;

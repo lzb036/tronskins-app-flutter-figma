@@ -779,6 +779,7 @@ final Map<String, String> po_PT = {
   "app.steam.message.loading_steam_id": "Carregando ID da Steam...",
   "app.steam.message.loading_account_status": "Carregando status da conta...",
   "app.steam.message.verify_success": "Verificacao bem-sucedida!",
+  "app.steam.message.verify_failed": "Verificacao falhou!",
   "app.system.snackbar.success_title": "Sucesso",
   "app.system.snackbar.failed_title": "Falha",
   "app.system.message.success": "Operação bem sucedida!",

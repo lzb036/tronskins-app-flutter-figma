@@ -776,6 +776,7 @@ final Map<String, String> en_US = {
   "app.steam.message.loading_steam_id": "Loading Steam ID...",
   "app.steam.message.loading_account_status": "Loading account status...",
   "app.steam.message.verify_success": "Verification successful!",
+  "app.steam.message.verify_failed": "Verification failed!",
   "app.system.snackbar.success_title": "Success",
   "app.system.snackbar.failed_title": "Failed",
   "app.system.message.success": "Operation successful!",

@@ -756,6 +756,7 @@ final Map<String, String> vi_VN = {
   "app.steam.message.loading_account_status":
       "Dang tai trang thai tai khoan...",
   "app.steam.message.verify_success": "Xac minh thanh cong!",
+  "app.steam.message.verify_failed": "Xac minh that bai!",
   "app.system.snackbar.success_title": "Thành công",
   "app.system.snackbar.failed_title": "Thất bại",
   "app.system.message.success": "Hoạt động thành công!",

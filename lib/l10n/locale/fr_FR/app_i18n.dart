@@ -790,6 +790,7 @@ final Map<String, String> fr_FR = {
   "app.steam.message.loading_account_status":
       "Chargement de l'etat du compte...",
   "app.steam.message.verify_success": "Verification reussie !",
+  "app.steam.message.verify_failed": "Verification echouee !",
   "app.system.snackbar.success_title": "Succès",
   "app.system.snackbar.failed_title": "Échec",
   "app.system.message.success": "Opération réussie !",

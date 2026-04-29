@@ -2,6 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:tronskins_app/api/model/wallet/wallet_models.dart';
+import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/controllers/wallet/gift_card_controller.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
@@ -15,42 +17,57 @@ class GiftCardCreatePage extends StatefulWidget {
 
 class _GiftCardCreatePageState extends State<GiftCardCreatePage> {
   static const Color _pageBackground = Color(0xFFF8FAFC);
-  static const Color _surfaceContainer = Color(0xFFECEEF0);
+  static const Color _surfaceContainer = Color(0xFFF1F5F9);
   static const Color _surfaceLowest = Colors.white;
   static const Color _brandBlue = Color(0xFF00288E);
   static const Color _primaryBlue = Color(0xFF1E40AF);
   static const Color _secondaryBlue = Color(0xFF3B82F6);
-  static const Color _titleColor = Color(0xFF191C1E);
+  static const Color _titleColor = Color(0xFF0F172A);
   static const Color _bodyColor = Color(0xFF444653);
-  static const Color _mutedColor = Color(0xFF757684);
-
-  static const List<double> _amounts = [
-    0.1,
-    0.2,
-    0.5,
-    1,
-    2,
-    5,
-    10,
-    20,
-    50,
-    100,
-    200,
-    500,
-    1000,
-    2000,
-    5000,
-    10000,
-  ];
+  static const Color _mutedColor = Color(0xFF94A3B8);
+  static const int _maxQuantity = 10;
 
   final GiftCardController controller = Get.isRegistered<GiftCardController>()
       ? Get.find<GiftCardController>()
       : Get.put(GiftCardController());
 
-  double _selectedAmount = 10;
+  WalletGiftCardAmountOption? _selectedAmount;
   int _quantity = 1;
 
-  double get _total => _selectedAmount * _quantity;
+  @override
+  void initState() {
+    super.initState();
+    _loadAmountOptions();
+  }
+
+  Future<void> _loadAmountOptions() async {
+    try {
+      await controller.loadAmountOptions();
+    } catch (_) {
+      if (mounted) {
+        AppSnackbar.error('app.user.gift_card.load_amount_failed'.tr);
+      }
+    }
+  }
+
+  WalletGiftCardAmountOption? _currentAmount(
+    List<WalletGiftCardAmountOption> options,
+  ) {
+    final selected = _selectedAmount;
+    if (selected != null) {
+      for (final option in options) {
+        if (option.id == selected.id &&
+            option.submitValue == selected.submitValue) {
+          return option;
+        }
+      }
+      return selected;
+    }
+    if (options.isEmpty) {
+      return null;
+    }
+    return options.first;
+  }
 
   void _decreaseQuantity() {
     if (_quantity <= 1) {
@@ -60,81 +77,120 @@ class _GiftCardCreatePageState extends State<GiftCardCreatePage> {
   }
 
   void _increaseQuantity() {
+    if (_quantity >= _maxQuantity) {
+      return;
+    }
     setState(() => _quantity += 1);
   }
 
-  void _submit() {
-    controller.createCards(amount: _selectedAmount, quantity: _quantity);
-    AppSnackbar.success('Gift card generated');
-    if (Navigator.of(context).canPop()) {
-      Get.back();
-    } else {
-      Get.offNamed(Routers.WALLET_GIFT_CARD);
+  Future<void> _submit(List<WalletGiftCardAmountOption> options) async {
+    final amount = _currentAmount(options);
+    if (amount == null) {
+      AppSnackbar.error('app.user.gift_card.select_amount_required'.tr);
+      return;
+    }
+
+    try {
+      final success = await controller.generateCard(
+        amount: amount,
+        quantity: _quantity,
+      );
+      if (!mounted) {
+        return;
+      }
+      if (success) {
+        AppSnackbar.success('app.user.gift_card.generate_success'.tr);
+        if (Navigator.of(context).canPop()) {
+          Get.back(result: true);
+        } else {
+          Get.offNamed(Routers.WALLET_GIFT_CARD);
+        }
+      } else {
+        AppSnackbar.error('app.user.gift_card.generate_failed'.tr);
+      }
+    } catch (_) {
+      if (mounted) {
+        AppSnackbar.error('app.user.gift_card.generate_failed'.tr);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top + 96;
-    final bottomPadding = MediaQuery.of(context).padding.bottom + 128;
+    final bottomPadding = MediaQuery.of(context).padding.bottom + 112;
 
-    return Scaffold(
-      backgroundColor: _pageBackground,
-      body: Stack(
-        children: [
-          ListView(
-            physics: const ClampingScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(24, topPadding, 24, bottomPadding),
-            children: [
-              Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 672),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _GiftCardHero(),
-                      const SizedBox(height: 40),
-                      _AmountSelector(
-                        amounts: _amounts,
-                        selectedAmount: _selectedAmount,
-                        onChanged: (value) {
-                          setState(() => _selectedAmount = value);
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                      _QuantitySelector(
-                        quantity: _quantity,
-                        onDecrease: _decreaseQuantity,
-                        onIncrease: _increaseQuantity,
-                      ),
-                      const SizedBox(height: 30),
-                      _OrderSummary(
-                        selectedAmount: _selectedAmount,
-                        quantity: _quantity,
-                        total: _total,
-                      ),
-                    ],
+    return Obx(() {
+      final options = controller.amountOptions.toList(growable: false);
+      final currentAmount = _currentAmount(options);
+      final isLoadingOptions = controller.isLoadingAmountOptions.value;
+      final isGenerating = controller.isGenerating.value;
+      final submitEnabled =
+          !isLoadingOptions && !isGenerating && currentAmount != null;
+
+      return Scaffold(
+        backgroundColor: _pageBackground,
+        body: Stack(
+          children: [
+            ListView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: ClampingScrollPhysics(),
+              ),
+              padding: EdgeInsets.fromLTRB(24, topPadding, 24, bottomPadding),
+              children: [
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 672),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _GiftCardHero(amount: currentAmount),
+                        const SizedBox(height: 36),
+                        _AmountSelector(
+                          options: options,
+                          selectedAmount: currentAmount,
+                          isLoading: isLoadingOptions,
+                          onChanged: (value) {
+                            setState(() => _selectedAmount = value);
+                          },
+                          onRetry: () => _loadAmountOptions(),
+                        ),
+                        const SizedBox(height: 24),
+                        _QuantitySelector(
+                          quantity: _quantity,
+                          maxQuantity: _maxQuantity,
+                          onDecrease: _decreaseQuantity,
+                          onIncrease: _increaseQuantity,
+                        ),
+                        const SizedBox(height: 30),
+                        _OrderSummary(
+                          selectedAmount: currentAmount,
+                          quantity: _quantity,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const _CreateGiftCardTopBar(),
-          _CreateGiftCardActionBar(quantity: _quantity, onSubmit: _submit),
-        ],
-      ),
-    );
+              ],
+            ),
+            const _CreateGiftCardTopBar(),
+            _CreateGiftCardActionBar(
+              quantity: _quantity,
+              enabled: submitEnabled,
+              isLoading: isGenerating,
+              onSubmit: () => _submit(options),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
-  static String amountLabel(double value) {
-    if (value == value.roundToDouble()) {
-      return '\$${value.toInt()}';
-    }
-    return '\$${value.toStringAsFixed(1)}';
+  static String formatMoney(double value) {
+    final currency = Get.find<CurrencyController>();
+    return currency.formatUsd(value).replaceFirst('\$ ', r'$');
   }
-
-  static String money(double value) => '\$${value.toStringAsFixed(2)}';
 }
 
 class _CreateGiftCardTopBar extends StatelessWidget {
@@ -152,7 +208,7 @@ class _CreateGiftCardTopBar extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           child: Container(
             color: _GiftCardCreatePageState._pageBackground.withValues(
-              alpha: 0.72,
+              alpha: 0.78,
             ),
             padding: EdgeInsets.only(top: topInset),
             child: SizedBox(
@@ -179,12 +235,12 @@ class _CreateGiftCardTopBar extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Create Gift Card',
+                        'app.user.gift_card.create_title'.tr,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Color(0xFF1E3A8A),
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -192,14 +248,10 @@ class _CreateGiftCardTopBar extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const Text(
-                      'GC',
-                      style: TextStyle(
-                        color: Color(0xFF1E3A8A),
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        height: 28 / 20,
-                      ),
+                    const Icon(
+                      Icons.card_giftcard_rounded,
+                      color: Color(0xFF1E3A8A),
+                      size: 22,
                     ),
                   ],
                 ),
@@ -213,30 +265,29 @@ class _CreateGiftCardTopBar extends StatelessWidget {
 }
 
 class _GiftCardHero extends StatelessWidget {
-  const _GiftCardHero();
+  const _GiftCardHero({required this.amount});
+
+  final WalletGiftCardAmountOption? amount;
 
   @override
   Widget build(BuildContext context) {
+    final amountLabel = amount == null
+        ? '--'
+        : _GiftCardCreatePageState.formatMoney(amount!.amount);
+
     return Container(
-      height: 256,
+      height: 244,
       width: double.infinity,
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
         color: _GiftCardCreatePageState._surfaceContainer,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(15, 23, 42, 0.05),
-            blurRadius: 20,
-            offset: Offset(0, 6),
-          ),
-        ],
       ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           Positioned.fill(
-            top: 24,
+            top: 18,
             bottom: 6,
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -264,24 +315,41 @@ class _GiftCardHero extends StatelessWidget {
           Positioned(
             left: 18,
             right: 18,
-            top: 72,
+            top: 64,
             child: Text(
-              'GIFT VALUED',
+              'app.user.gift_card.hero_label'.tr.toUpperCase(),
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.68),
-                fontSize: 15,
+                fontSize: 13,
                 fontWeight: FontWeight.w800,
-                letterSpacing: 2.6,
+                letterSpacing: 2.4,
               ),
             ),
           ),
-          const Positioned(
+          Positioned(
+            left: 18,
+            right: 18,
+            top: 94,
+            child: Text(
+              amountLabel,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 42,
+                fontWeight: FontWeight.w900,
+                height: 1,
+              ),
+            ),
+          ),
+          Positioned(
             left: 18,
             bottom: 42,
             child: Text(
-              'PREMIUM EDITION',
-              style: TextStyle(
+              'app.user.gift_card.hero_edition'.tr.toUpperCase(),
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 10,
                 fontWeight: FontWeight.w500,
@@ -290,19 +358,19 @@ class _GiftCardHero extends StatelessWidget {
               ),
             ),
           ),
-          const Positioned(
+          Positioned(
             left: 18,
             right: 18,
             bottom: 18,
             child: Text(
-              "The Curator's Card",
+              'app.user.gift_card.hero_title'.tr,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
-                fontSize: 30,
+                fontSize: 28,
                 fontWeight: FontWeight.w900,
-                height: 30 / 30,
+                height: 1,
               ),
             ),
           ),
@@ -314,27 +382,31 @@ class _GiftCardHero extends StatelessWidget {
 
 class _AmountSelector extends StatelessWidget {
   const _AmountSelector({
-    required this.amounts,
+    required this.options,
     required this.selectedAmount,
+    required this.isLoading,
     required this.onChanged,
+    required this.onRetry,
   });
 
-  final List<double> amounts;
-  final double selectedAmount;
-  final ValueChanged<double> onChanged;
+  final List<WalletGiftCardAmountOption> options;
+  final WalletGiftCardAmountOption? selectedAmount;
+  final bool isLoading;
+  final ValueChanged<WalletGiftCardAmountOption> onChanged;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
+        Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Expanded(
               child: Text(
-                'Select Amount',
-                style: TextStyle(
+                'app.user.gift_card.select_amount'.tr,
+                style: const TextStyle(
                   color: _GiftCardCreatePageState._titleColor,
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
@@ -343,8 +415,8 @@ class _AmountSelector extends StatelessWidget {
               ),
             ),
             Text(
-              'VALUES IN USD',
-              style: TextStyle(
+              'app.user.gift_card.values_in_usd'.tr.toUpperCase(),
+              style: const TextStyle(
                 color: _GiftCardCreatePageState._mutedColor,
                 fontSize: 10,
                 fontWeight: FontWeight.w500,
@@ -354,28 +426,49 @@ class _AmountSelector extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 24),
-        GridView.builder(
-          padding: EdgeInsets.zero,
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          itemCount: amounts.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 4,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            mainAxisExtent: 56,
+        if (isLoading && options.isEmpty)
+          const _AmountSkeletonGrid()
+        else if (options.isEmpty)
+          _AmountEmptyState(onRetry: onRetry)
+        else
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final crossAxisCount = constraints.maxWidth < 360 ? 3 : 4;
+              return GridView.builder(
+                padding: EdgeInsets.zero,
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                itemCount: options.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  mainAxisExtent: 56,
+                ),
+                itemBuilder: (context, index) {
+                  final option = options[index];
+                  return _AmountButton(
+                    label: option.displayLabel,
+                    selected: _isSameAmount(option, selectedAmount),
+                    onTap: () => onChanged(option),
+                  );
+                },
+              );
+            },
           ),
-          itemBuilder: (context, index) {
-            final amount = amounts[index];
-            return _AmountButton(
-              label: _GiftCardCreatePageState.amountLabel(amount),
-              selected: amount == selectedAmount,
-              onTap: () => onChanged(amount),
-            );
-          },
-        ),
       ],
     );
+  }
+
+  bool _isSameAmount(
+    WalletGiftCardAmountOption option,
+    WalletGiftCardAmountOption? selected,
+  ) {
+    if (selected == null) {
+      return false;
+    }
+    return option.id == selected.id &&
+        option.submitValue == selected.submitValue;
   }
 }
 
@@ -406,24 +499,16 @@ class _AmountButton extends StatelessWidget {
             border: Border.all(
               width: 2,
               color: selected
-                  ? _GiftCardCreatePageState._brandBlue.withValues(alpha: 0.4)
+                  ? _GiftCardCreatePageState._brandBlue.withValues(alpha: 0.42)
                   : Colors.transparent,
             ),
-            boxShadow: selected
-                ? const [
-                    BoxShadow(
-                      color: Color.fromRGBO(0, 40, 142, 0.05),
-                      blurRadius: 12,
-                      offset: Offset(0, 4),
-                    ),
-                  ]
-                : const [
-                    BoxShadow(
-                      color: Color.fromRGBO(15, 23, 42, 0.02),
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
+            boxShadow: const [
+              BoxShadow(
+                color: Color.fromRGBO(15, 23, 42, 0.03),
+                blurRadius: 12,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
           child: FittedBox(
             fit: BoxFit.scaleDown,
@@ -445,14 +530,89 @@ class _AmountButton extends StatelessWidget {
   }
 }
 
+class _AmountEmptyState extends StatelessWidget {
+  const _AmountEmptyState({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+      decoration: BoxDecoration(
+        color: _GiftCardCreatePageState._surfaceContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.card_giftcard_rounded,
+            color: _GiftCardCreatePageState._mutedColor,
+            size: 30,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'app.user.gift_card.amount_empty'.tr,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: _GiftCardCreatePageState._bodyColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              height: 18 / 13,
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextButton(onPressed: onRetry, child: Text('app.common.retry'.tr)),
+        ],
+      ),
+    );
+  }
+}
+
+class _AmountSkeletonGrid extends StatelessWidget {
+  const _AmountSkeletonGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = constraints.maxWidth < 360 ? 3 : 4;
+        return GridView.builder(
+          padding: EdgeInsets.zero,
+          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true,
+          itemCount: crossAxisCount * 2,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            mainAxisExtent: 56,
+          ),
+          itemBuilder: (context, index) {
+            return Container(
+              decoration: BoxDecoration(
+                color: _GiftCardCreatePageState._surfaceLowest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
 class _QuantitySelector extends StatelessWidget {
   const _QuantitySelector({
     required this.quantity,
+    required this.maxQuantity,
     required this.onDecrease,
     required this.onIncrease,
   });
 
   final int quantity;
+  final int maxQuantity;
   final VoidCallback onDecrease;
   final VoidCallback onIncrease;
 
@@ -467,23 +627,23 @@ class _QuantitySelector extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Quantity',
-                  style: TextStyle(
+                  'app.user.gift_card.quantity'.tr,
+                  style: const TextStyle(
                     color: _GiftCardCreatePageState._titleColor,
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     height: 28 / 18,
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  'Number of cards\nto issue',
-                  style: TextStyle(
+                  'app.user.gift_card.quantity_hint'.trArgs(['$maxQuantity']),
+                  style: const TextStyle(
                     color: _GiftCardCreatePageState._bodyColor,
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
@@ -515,7 +675,7 @@ class _QuantitySelector extends StatelessWidget {
                   enabled: quantity > 1,
                 ),
                 SizedBox(
-                  width: 56,
+                  width: 48,
                   child: Text(
                     '$quantity',
                     textAlign: TextAlign.center,
@@ -527,7 +687,11 @@ class _QuantitySelector extends StatelessWidget {
                     ),
                   ),
                 ),
-                _QuantityButton(icon: Icons.add_rounded, onTap: onIncrease),
+                _QuantityButton(
+                  icon: Icons.add_rounded,
+                  onTap: onIncrease,
+                  enabled: quantity < maxQuantity,
+                ),
               ],
             ),
           ),
@@ -573,18 +737,16 @@ class _QuantityButton extends StatelessWidget {
 }
 
 class _OrderSummary extends StatelessWidget {
-  const _OrderSummary({
-    required this.selectedAmount,
-    required this.quantity,
-    required this.total,
-  });
+  const _OrderSummary({required this.selectedAmount, required this.quantity});
 
-  final double selectedAmount;
+  final WalletGiftCardAmountOption? selectedAmount;
   final int quantity;
-  final double total;
 
   @override
   Widget build(BuildContext context) {
+    final amountValue = selectedAmount?.amount ?? 0;
+    final total = amountValue * quantity;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(32, 80, 32, 32),
@@ -613,9 +775,9 @@ class _OrderSummary extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'ORDER SUMMARY',
-                style: TextStyle(
+              Text(
+                'app.user.gift_card.order_summary'.tr.toUpperCase(),
+                style: const TextStyle(
                   color: _GiftCardCreatePageState._mutedColor,
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
@@ -625,15 +787,18 @@ class _OrderSummary extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               _SummaryRow(
-                label: 'Selected Amount',
-                value: _GiftCardCreatePageState.money(selectedAmount),
+                label: 'app.user.gift_card.selected_amount'.tr,
+                value: _GiftCardCreatePageState.formatMoney(amountValue),
               ),
               const SizedBox(height: 16),
-              _SummaryRow(label: 'Quantity', value: '$quantity'),
+              _SummaryRow(
+                label: 'app.user.gift_card.quantity'.tr,
+                value: '$quantity',
+              ),
               const SizedBox(height: 16),
               _SummaryRow(
-                label: 'Service Fee',
-                value: _GiftCardCreatePageState.money(0),
+                label: 'app.user.gift_card.service_fee'.tr,
+                value: _GiftCardCreatePageState.formatMoney(0),
                 valueColor: _GiftCardCreatePageState._brandBlue,
               ),
               const SizedBox(height: 17),
@@ -642,10 +807,10 @@ class _OrderSummary extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Total',
-                      style: TextStyle(
+                      'app.user.gift_card.total'.tr,
+                      style: const TextStyle(
                         color: _GiftCardCreatePageState._titleColor,
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
@@ -658,7 +823,7 @@ class _OrderSummary extends StatelessWidget {
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerRight,
                       child: Text(
-                        _GiftCardCreatePageState.money(total),
+                        _GiftCardCreatePageState.formatMoney(total),
                         style: const TextStyle(
                           color: _GiftCardCreatePageState._brandBlue,
                           fontSize: 36,
@@ -721,15 +886,20 @@ class _SummaryRow extends StatelessWidget {
 class _CreateGiftCardActionBar extends StatelessWidget {
   const _CreateGiftCardActionBar({
     required this.quantity,
+    required this.enabled,
+    required this.isLoading,
     required this.onSubmit,
   });
 
   final int quantity;
+  final bool enabled;
+  final bool isLoading;
   final VoidCallback onSubmit;
 
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
+    final label = 'app.user.gift_card.generate_button'.trArgs(['$quantity']);
     return Positioned(
       left: 0,
       right: 0,
@@ -745,18 +915,20 @@ class _CreateGiftCardActionBar extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               child: InkWell(
                 borderRadius: BorderRadius.circular(8),
-                onTap: onSubmit,
+                onTap: enabled ? onSubmit : null,
                 child: Ink(
                   height: 56,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
-                      colors: [
-                        _GiftCardCreatePageState._primaryBlue,
-                        _GiftCardCreatePageState._secondaryBlue,
-                      ],
+                      colors: enabled
+                          ? const [
+                              _GiftCardCreatePageState._primaryBlue,
+                              _GiftCardCreatePageState._secondaryBlue,
+                            ]
+                          : const [Color(0xFFCBD5E1), Color(0xFFE2E8F0)],
                     ),
                     boxShadow: const [
                       BoxShadow(
@@ -769,21 +941,34 @@ class _CreateGiftCardActionBar extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
-                        Icons.auto_awesome_rounded,
-                        size: 22,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'GENERATE $quantity GIFT CARD'
-                        '${quantity > 1 ? 'S' : ''}',
-                        style: const TextStyle(
+                      if (isLoading)
+                        const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      else
+                        const Icon(
+                          Icons.auto_awesome_rounded,
+                          size: 22,
                           color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          height: 20 / 14,
-                          letterSpacing: 1.4,
+                        ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          label.toUpperCase(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            height: 20 / 14,
+                            letterSpacing: 1.4,
+                          ),
                         ),
                       ),
                     ],

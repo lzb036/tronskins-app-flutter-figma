@@ -632,6 +632,7 @@ final Map<String, String> zh_TW = {
   "app.steam.message.loading_steam_id": "正在載入 Steam ID...",
   "app.steam.message.loading_account_status": "正在載入帳號狀態...",
   "app.steam.message.verify_success": "驗證成功！",
+  "app.steam.message.verify_failed": "驗證失敗！",
   "app.system.snackbar.success_title": "成功",
   "app.system.snackbar.failed_title": "失敗",
   "app.system.message.success": "操作成功！",
