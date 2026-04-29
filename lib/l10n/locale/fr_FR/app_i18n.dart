@@ -500,6 +500,7 @@ final Map<String, String> fr_FR = {
   "app.user.wallet.title": "Mon portefeuille",
   "app.user.wallet.address": "Adresse du portefeuille",
   "app.user.wallet.flow": "Flux de fonds",
+  "app.user.wallet.flow_details": "Details des fonds",
   "app.user.wallet.secret_key": "clé secrète",
   "app.user.wallet.lock_amount": "Verrouillage",
   "app.user.wallet.assets_total": "Total des actifs",

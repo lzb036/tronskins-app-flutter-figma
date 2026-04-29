@@ -414,6 +414,7 @@ final Map<String, String> ja_JP = {
   "app.user.wallet.title": "マイウォレット",
   "app.user.wallet.address": "ウォレットアドレス",
   "app.user.wallet.flow": "資金の流れ",
+  "app.user.wallet.flow_details": "資金明細",
   "app.user.wallet.secret_key": "秘密キー",
   "app.user.wallet.lock_amount": "ロックダウン",
   "app.user.wallet.assets_total": "総資産",

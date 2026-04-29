@@ -146,6 +146,10 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
     return currency.formatUsd(value);
   }
 
+  String _formatOptionalAmount(CurrencyController currency, double? value) {
+    return value == null ? '-' : _formatAmount(currency, value);
+  }
+
   int? _resolvedStatus(WalletLockedOrder? order) {
     return order?.status ??
         _asInt(_pickRawValue(_detail?.raw, const ['status']));
@@ -294,6 +298,60 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
             'price',
             'total_price',
             'totalPrice',
+          ]),
+        );
+  }
+
+  double? _resolvedSellMinPrice(
+    WalletSchemaInfo? schema,
+    WalletLockedOrder? order,
+  ) {
+    return schema?.sellMin ??
+        _asDouble(
+          _pickRawValue(schema?.raw, const [
+            'sell_min',
+            'sellMin',
+            'sale_min',
+            'saleMin',
+            'lowest_sell_price',
+            'lowestSellPrice',
+          ]),
+        ) ??
+        _asDouble(
+          _pickRawValue(order?.raw, const [
+            'sell_min',
+            'sellMin',
+            'sale_min',
+            'saleMin',
+            'lowest_sell_price',
+            'lowestSellPrice',
+          ]),
+        );
+  }
+
+  double? _resolvedBuyMaxPrice(
+    WalletSchemaInfo? schema,
+    WalletLockedOrder? order,
+  ) {
+    return schema?.buyMax ??
+        _asDouble(
+          _pickRawValue(schema?.raw, const [
+            'buy_max',
+            'buyMax',
+            'purchase_max',
+            'purchaseMax',
+            'highest_buy_price',
+            'highestBuyPrice',
+          ]),
+        ) ??
+        _asDouble(
+          _pickRawValue(order?.raw, const [
+            'buy_max',
+            'buyMax',
+            'purchase_max',
+            'purchaseMax',
+            'highest_buy_price',
+            'highestBuyPrice',
           ]),
         );
   }
@@ -892,10 +950,8 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
     final exterior = _schemaTag(schema, 'exterior');
     final phase = _pickRawText(schema?.raw, const ['phase']);
     final percentage = _pickRawText(schema?.raw, const ['percentage']);
-    final amountValue = _resolvedLockedAmountValue() > 0
-        ? _resolvedLockedAmountValue()
-        : (orderPrice ?? 0);
-    final giftAmount = _resolvedGiftAmountValue();
+    final sellMinPrice = _resolvedSellMinPrice(schema, order);
+    final buyMaxPrice = _resolvedBuyMaxPrice(schema, order);
 
     return _buildCard(
       child: Column(
@@ -922,17 +978,15 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
           ),
           const SizedBox(height: 18),
           _buildDetailValueRow(
-            label: _text(zh: '结算金额', en: 'Settlement Amount'),
-            value: _formatAmount(currency, amountValue),
+            label: _text(zh: '在售最低价', en: 'Lowest Listing'),
+            value: _formatOptionalAmount(currency, sellMinPrice),
             valueColor: const Color(0xFF2563EB),
           ),
-          if (giftAmount > 0) ...[
-            const SizedBox(height: 8),
-            _buildDetailValueRow(
-              label: _text(zh: '礼品卡金额', en: 'Gift Amount'),
-              value: _formatAmount(currency, giftAmount),
-            ),
-          ],
+          const SizedBox(height: 8),
+          _buildDetailValueRow(
+            label: _text(zh: '求购最高价', en: 'Highest Buy Order'),
+            value: _formatOptionalAmount(currency, buyMaxPrice),
+          ),
         ],
       ),
     );
@@ -990,34 +1044,27 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
 
   Widget _buildFundTrackingSection(CurrencyController currency) {
     final order = _detail?.order;
-    final amount = _resolvedLockedAmountValue();
+    final lockedAmount = _resolvedLockedAmountValue();
+    final lockedGift = _resolvedGiftAmountValue();
     final lockTime = _formatTimestamp(_resolvedLockTime(order));
-    final changeTime = _formatTimestamp(_resolvedChangeTime(order));
-    final headline = _statusHeadline(order);
-    final status = _resolvedStatus(order);
-    final currentTitle = status == 6
-        ? _text(zh: '解冻资金', en: 'Unfreeze Funds')
-        : headline;
-    final currentStatus = status == 6
-        ? _text(zh: '已完成', en: 'Completed')
-        : headline;
+    final lockedStatus = _text(zh: '已锁定', en: 'Locked').toUpperCase();
 
     return Column(
       children: [
         _buildTrackingCard(
-          title: currentTitle,
-          time: changeTime,
-          amount: _formatTrackingAmount(currency, amount, positive: false),
-          status: currentStatus.toUpperCase(),
+          title: _text(zh: '锁定金额', en: 'Locked Amount'),
+          time: lockTime,
+          amount: _formatAmount(currency, lockedAmount),
+          status: lockedStatus,
           active: true,
           amountColor: const Color(0xFF334155),
         ),
         const SizedBox(height: 10),
         _buildTrackingCard(
-          title: _text(zh: '冻结资金', en: 'Freeze Funds'),
+          title: _text(zh: '锁定礼物', en: 'Locked Gift'),
           time: lockTime,
-          amount: _formatTrackingAmount(currency, amount, positive: true),
-          status: _text(zh: '已锁定', en: 'Settled').toUpperCase(),
+          amount: _formatAmount(currency, lockedGift),
+          status: lockedStatus,
           active: false,
           amountColor: const Color(0xFF2563EB),
         ),
@@ -1118,30 +1165,6 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
         ],
       ),
     );
-  }
-
-  int? _resolvedChangeTime(WalletLockedOrder? order) {
-    return order?.changeTime ??
-        _asInt(
-          _pickRawValue(order?.raw, const [
-            'change_time',
-            'changeTime',
-            'update_time',
-            'updateTime',
-            'finish_time',
-            'finishTime',
-          ]),
-        ) ??
-        _resolvedCreatedTime(order);
-  }
-
-  String _formatTrackingAmount(
-    CurrencyController currency,
-    double value, {
-    required bool positive,
-  }) {
-    final formatted = currency.formatUsd(value).replaceFirst('\$ ', r'$');
-    return '${positive ? '+' : '-'}$formatted';
   }
 
   Widget _buildBottomActionBar(

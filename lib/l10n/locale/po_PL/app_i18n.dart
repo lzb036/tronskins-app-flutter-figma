@@ -480,6 +480,7 @@ final Map<String, String> po_PL = {
   "app.user.wallet.title": "Mój portfel",
   "app.user.wallet.address": "Adres portfela",
   "app.user.wallet.flow": "przepływ funduszy",
+  "app.user.wallet.flow_details": "Szczegoly srodkow",
   "app.user.wallet.secret_key": "Tajny klucz",
   "app.user.wallet.lock_amount": "Zamknięcie",
   "app.user.wallet.assets_total": "Całkowite aktywa",

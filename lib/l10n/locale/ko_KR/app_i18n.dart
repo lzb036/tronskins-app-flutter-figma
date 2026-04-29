@@ -422,6 +422,7 @@ final Map<String, String> ko_KR = {
   "app.user.wallet.title": "내 지갑",
   "app.user.wallet.address": "지갑 주소",
   "app.user.wallet.flow": "자금의 흐름",
+  "app.user.wallet.flow_details": "자금 상세",
   "app.user.wallet.secret_key": "비밀 키",
   "app.user.wallet.lock_amount": "잠금",
   "app.user.wallet.assets_total": "총 자산",

@@ -388,6 +388,7 @@ final Map<String, String> zh_TW = {
   "app.user.wallet.title": "我的錢包",
   "app.user.wallet.address": "錢包地址",
   "app.user.wallet.flow": "資金流動",
+  "app.user.wallet.flow_details": "資金明細",
   "app.user.wallet.secret_key": "金鑰",
   "app.user.wallet.lock_amount": "禁閉",
   "app.user.wallet.assets_total": "總資產增長",

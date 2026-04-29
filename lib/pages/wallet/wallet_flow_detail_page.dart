@@ -80,7 +80,7 @@ class WalletFlowDetailPage extends StatelessWidget {
                     ),
             ),
             SettingsStyleTopNavigation(
-              title: 'app.trade.order.details'.tr,
+              title: 'app.user.wallet.flow_details'.tr,
               onBack: () => Navigator.of(context).maybePop(),
             ),
           ],

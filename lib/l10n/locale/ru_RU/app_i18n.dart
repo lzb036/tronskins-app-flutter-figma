@@ -489,6 +489,7 @@ final Map<String, String> ru_RU = {
   "app.user.wallet.title": "Мой кошелек",
   "app.user.wallet.address": "Адрес кошелька",
   "app.user.wallet.flow": "Поток средств",
+  "app.user.wallet.flow_details": "Детали средств",
   "app.user.wallet.secret_key": "Секретный ключ",
   "app.user.wallet.lock_amount": "Блокировка",
   "app.user.wallet.assets_total": "Всего активов",

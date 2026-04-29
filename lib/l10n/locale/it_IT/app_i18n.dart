@@ -487,6 +487,7 @@ final Map<String, String> it_IT = {
   "app.user.wallet.title": "Il mio portafoglio",
   "app.user.wallet.address": "Indirizzo portafoglio",
   "app.user.wallet.flow": "Flusso di fondi",
+  "app.user.wallet.flow_details": "Dettagli fondi",
   "app.user.wallet.secret_key": "Chiave segreta",
   "app.user.wallet.lock_amount": "Bloccaggio",
   "app.user.wallet.assets_total": "Totale attività",

@@ -470,6 +470,7 @@ final Map<String, String> vi_VN = {
   "app.user.wallet.title": "Ví của tôi",
   "app.user.wallet.address": "Địa chỉ ví",
   "app.user.wallet.flow": "Dòng chảy của quỹ",
+  "app.user.wallet.flow_details": "Chi tiết quỹ",
   "app.user.wallet.secret_key": "Chìa khóa bí mật",
   "app.user.wallet.lock_amount": "Khóa",
   "app.user.wallet.assets_total": "Tổng tài sản",

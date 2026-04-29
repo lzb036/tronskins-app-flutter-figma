@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:tronskins_app/api/model/wallet/wallet_models.dart';
 import 'package:tronskins_app/components/layout/list_end_tip.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
+import 'package:tronskins_app/common/theme/order_detail_status_style.dart';
+import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/controllers/wallet/wallet_controller.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
@@ -125,6 +127,121 @@ class _WalletLockedPageState extends State<WalletLockedPage> {
     return DateFormat('HH:mm:ss').format(value);
   }
 
+  bool get _isChineseLocale {
+    final languageCode = Get.locale?.languageCode.toLowerCase();
+    return languageCode != null && languageCode.startsWith('zh');
+  }
+
+  String _text({required String zh, required String en}) {
+    return _isChineseLocale ? zh : en;
+  }
+
+  String _lockedStatusText(WalletLockedItem item) {
+    final statusName = item.statusName?.trim();
+    if (statusName != null && statusName.isNotEmpty) {
+      return statusName;
+    }
+
+    final typeName = item.typeName?.trim();
+    if (typeName != null && typeName.isNotEmpty) {
+      return typeName;
+    }
+
+    if (item.lockType == 1) {
+      return _text(zh: '购买', en: 'Buying');
+    }
+    if (item.lockType == 3) {
+      return _text(zh: '提现', en: 'Withdraw');
+    }
+    return _text(zh: '锁定中', en: 'Locked');
+  }
+
+  Color _lockedStatusColor(WalletLockedItem item, String statusText) {
+    final normalized = statusText.trim().toLowerCase();
+    final status = item.status;
+    if (status == -1 ||
+        status == -2 ||
+        normalized.contains('取消') ||
+        normalized.contains('关闭') ||
+        normalized.contains('失败') ||
+        normalized.contains('cancel') ||
+        normalized.contains('closed') ||
+        normalized.contains('fail')) {
+      return kOrderDetailStatusTextDanger;
+    }
+    if (status == 6 ||
+        normalized.contains('完成') ||
+        normalized.contains('成功') ||
+        normalized.contains('complete') ||
+        normalized.contains('success')) {
+      return kOrderDetailStatusTextSuccess;
+    }
+    if (item.lockType == 3 ||
+        normalized.contains('提现') ||
+        normalized.contains('withdraw')) {
+      return kOrderDetailStatusTextProcessing;
+    }
+    if (item.lockType == 1 ||
+        normalized.contains('购买') ||
+        normalized.contains('buy')) {
+      return kOrderDetailStatusTextSettlement;
+    }
+    return kOrderDetailStatusTextNeutral;
+  }
+
+  bool _isWithdrawLockedItem(WalletLockedItem item) {
+    final statusText = _lockedStatusText(item).toLowerCase();
+    return item.lockType == 3 ||
+        statusText.contains('提现') ||
+        statusText.contains('withdraw');
+  }
+
+  bool _canOpenLockedDetail(WalletLockedItem item) {
+    return item.id != null && !_isWithdrawLockedItem(item);
+  }
+
+  void _handleLockedRecordTap(WalletLockedItem item) {
+    if (!_canOpenLockedDetail(item)) {
+      _showLockedDetailNotice(item);
+      return;
+    }
+
+    Get.toNamed(
+      Routers.WALLET_LOCKED_DETAIL,
+      arguments: {
+        'id': item.id.toString(),
+        'srcId': item.srcId,
+        'lockType': item.lockType,
+        'lockAmount': item.amount,
+        'lockedAmount': item.amount,
+        'giftAmount': item.giftAmount,
+        'lockTime': item.lockAmount,
+        'typeName': item.typeName,
+        'statusText': item.statusName,
+      },
+    );
+  }
+
+  void _showLockedDetailNotice(WalletLockedItem item) {
+    if (_isWithdrawLockedItem(item)) {
+      AppSnackbar.info(
+        _text(
+          zh: '提现申请正在审核中，请耐心等待。',
+          en: 'Withdrawal application is under review, please wait patiently.',
+        ),
+      );
+      return;
+    }
+
+    final statusText = _lockedStatusText(item);
+    AppSnackbar.info(
+      _text(
+        zh: '当前状态：$statusText，暂无可查看的详情。',
+        en: 'Current status: $statusText. No detail page is available.',
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currency = Get.find<CurrencyController>();
@@ -189,6 +306,8 @@ class _WalletLockedPageState extends State<WalletLockedPage> {
                     itemBuilder: (context, index) {
                       final item = items[index];
                       final time = _lockedTime(item);
+                      final statusText = _lockedStatusText(item);
+                      final canOpenDetail = _canOpenLockedDetail(item);
                       return Center(
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 896),
@@ -199,23 +318,10 @@ class _WalletLockedPageState extends State<WalletLockedPage> {
                             giftAmount: currency.formatUsd(
                               item.giftAmount ?? 0,
                             ),
-                            enabled: item.id != null,
-                            onTap: item.id == null
-                                ? null
-                                : () => Get.toNamed(
-                                    Routers.WALLET_LOCKED_DETAIL,
-                                    arguments: {
-                                      'id': item.id.toString(),
-                                      'srcId': item.srcId,
-                                      'lockType': item.lockType,
-                                      'lockAmount': item.amount,
-                                      'lockedAmount': item.amount,
-                                      'giftAmount': item.giftAmount,
-                                      'lockTime': item.lockAmount,
-                                      'typeName': item.typeName,
-                                      'statusText': item.statusName,
-                                    },
-                                  ),
+                            statusText: statusText,
+                            statusColor: _lockedStatusColor(item, statusText),
+                            enabled: canOpenDetail,
+                            onTap: () => _handleLockedRecordTap(item),
                           ),
                         ),
                       );
@@ -249,6 +355,8 @@ class _LockedRecordTile extends StatelessWidget {
     required this.time,
     required this.lockAmount,
     required this.giftAmount,
+    required this.statusText,
+    required this.statusColor,
     required this.enabled,
     this.onTap,
   });
@@ -257,6 +365,8 @@ class _LockedRecordTile extends StatelessWidget {
   final String time;
   final String lockAmount;
   final String giftAmount;
+  final String statusText;
+  final Color statusColor;
   final bool enabled;
   final VoidCallback? onTap;
 
@@ -281,66 +391,77 @@ class _LockedRecordTile extends StatelessWidget {
               ),
             ],
           ),
-          child: Opacity(
-            opacity: enabled ? 1 : 0.62,
-            child: Row(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    date,
+                    maxLines: 1,
+                    softWrap: false,
+                    style: const TextStyle(
+                      color: _WalletLockedPageState._strongText,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      height: 20 / 14,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    time,
+                    maxLines: 1,
+                    softWrap: false,
+                    style: const TextStyle(
+                      color: _WalletLockedPageState._bodyText,
+                      fontSize: 10,
+                      height: 15 / 10,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    statusText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      height: 15 / 11,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      date,
-                      maxLines: 1,
-                      softWrap: false,
-                      style: const TextStyle(
-                        color: _WalletLockedPageState._strongText,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        height: 20 / 14,
-                      ),
+                    _LockedAmountLine(
+                      label: 'app.user.wallet.lock_amount'.tr,
+                      value: lockAmount,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      time,
-                      maxLines: 1,
-                      softWrap: false,
-                      style: const TextStyle(
-                        color: _WalletLockedPageState._bodyText,
-                        fontSize: 10,
-                        height: 15 / 10,
-                      ),
+                    const SizedBox(height: 6),
+                    _LockedAmountLine(
+                      label: 'app.user.wallet.gift_amount'.tr,
+                      value: giftAmount,
                     ),
                   ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _LockedAmountLine(
-                        label: 'app.user.wallet.lock_amount'.tr,
-                        value: lockAmount,
-                      ),
-                      const SizedBox(height: 6),
-                      _LockedAmountLine(
-                        label: 'app.user.wallet.gift_amount'.tr,
-                        value: giftAmount,
-                      ),
-                    ],
-                  ),
-                ),
+              ),
+              if (enabled) ...[
                 const SizedBox(width: 10),
                 Icon(
                   Icons.chevron_right_rounded,
                   color: _WalletLockedPageState._bodyText.withValues(
-                    alpha: enabled ? 0.62 : 0.28,
+                    alpha: 0.62,
                   ),
                   size: 22,
                 ),
               ],
-            ),
+            ],
           ),
         ),
       ),

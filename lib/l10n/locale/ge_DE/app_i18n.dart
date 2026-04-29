@@ -492,6 +492,7 @@ final Map<String, String> ge_DE = {
   "app.user.wallet.title": "Meine Brieftasche",
   "app.user.wallet.address": "Wallet Adresse",
   "app.user.wallet.flow": "Fluss von Mitteln",
+  "app.user.wallet.flow_details": "Fondsdaten",
   "app.user.wallet.secret_key": "Geheimer Schlüssel",
   "app.user.wallet.lock_amount": "Verriegelung",
   "app.user.wallet.assets_total": "Gesamte Vermögenswerte",

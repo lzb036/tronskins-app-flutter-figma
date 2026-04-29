@@ -498,6 +498,7 @@ final Map<String, String> la_LAT = {
   "app.user.wallet.title": "Mi cartera",
   "app.user.wallet.address": "Dirección de cartera",
   "app.user.wallet.flow": "Flujo de fondos",
+  "app.user.wallet.flow_details": "Detalles de fondos",
   "app.user.wallet.secret_key": "llave secreta",
   "app.user.wallet.lock_amount": "Bloqueo",
   "app.user.wallet.assets_total": "Total de activos",

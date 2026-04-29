@@ -460,6 +460,7 @@ final Map<String, String> th_TH = {
   "app.user.wallet.title": "กระเป๋าสตางค์ของฉัน",
   "app.user.wallet.address": "ที่อยู่กระเป๋าสตางค์",
   "app.user.wallet.flow": "การไหลเงิน",
+  "app.user.wallet.flow_details": "รายละเอียดเงินทุน",
   "app.user.wallet.secret_key": "คีย์ลับ",
   "app.user.wallet.lock_amount": "ล็อค",
   "app.user.wallet.assets_total": "ทรัพย์สินทั้งหมด",

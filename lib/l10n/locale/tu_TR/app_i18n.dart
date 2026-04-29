@@ -470,6 +470,7 @@ final Map<String, String> tu_TR = {
   "app.user.wallet.title": "Cüzdanım",
   "app.user.wallet.address": "Cüzdan Adresi",
   "app.user.wallet.flow": "Fonların Akışı",
+  "app.user.wallet.flow_details": "Fon Detaylari",
   "app.user.wallet.secret_key": "Gizli Anahtar",
   "app.user.wallet.lock_amount": "Kilitleme",
   "app.user.wallet.assets_total": "Toplam Varlıklar",
