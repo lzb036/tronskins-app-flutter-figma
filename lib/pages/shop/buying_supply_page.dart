@@ -24,6 +24,8 @@ class BuyingSupplyPage extends StatefulWidget {
 }
 
 class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
+  static const int _inventoryPageSize = 50;
+
   final ApiInventoryServer _inventoryApi = ApiInventoryServer();
   final ApiShopProductServer _shopApi = ApiShopProductServer();
   final ApiSteamServer _steamApi = ApiSteamServer();
@@ -105,11 +107,23 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
     final res = await _inventoryApi.inventoryList(
       appId: appId,
       page: page,
-      pageSize: 50,
+      pageSize: _inventoryPageSize,
       schemaId: schemaId,
       canSupply: true,
     );
     return res.datas;
+  }
+
+  bool _hasNextInventoryPage(InventoryResponse data, int loadedCount) {
+    final total = data.total ?? data.pager?.total;
+    if (total != null && total > 0) {
+      return loadedCount < total;
+    }
+    if (data.items.isEmpty) {
+      return false;
+    }
+    final pageSize = data.pager?.pageSize ?? _inventoryPageSize;
+    return data.items.length >= pageSize;
   }
 
   Future<void> _refresh() async {
@@ -134,8 +148,8 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
           ..addAll(data?.items ?? const <InventoryItem>[]);
         _schemas.addAll(data?.schemas ?? const {});
         _selectedIds.clear();
-        _page = (data?.items.isNotEmpty ?? false) ? 2 : 1;
-        _hasMore = data != null && data.items.isNotEmpty;
+        _hasMore = data != null && _hasNextInventoryPage(data, _items.length);
+        _page = _hasMore ? 2 : 1;
         _hasLoadedOnce = true;
       });
     } finally {
@@ -171,7 +185,10 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
           _hasMore = false;
         } else {
           _items.addAll(data.items);
-          _page += 1;
+          _hasMore = _hasNextInventoryPage(data, _items.length);
+          if (_hasMore) {
+            _page += 1;
+          }
         }
         _schemas.addAll(data?.schemas ?? const {});
         _hasLoadedOnce = true;
@@ -911,30 +928,18 @@ class _SupplyInventoryItemCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   _SupplyBlueProgressBar(paintWear: visual.paintWearValue),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Obx(
-                          () => Text(
-                            currency.format(price),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleSmall
-                                ?.copyWith(
-                                  color: _SupplyPalette.ink,
-                                  fontSize: 14,
-                                  height: 20 / 14,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                          ),
-                        ),
+                  Obx(
+                    () => Text(
+                      currency.format(price),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: _SupplyPalette.ink,
+                        fontSize: 14,
+                        height: 20 / 14,
+                        fontWeight: FontWeight.w700,
                       ),
-                      const Icon(
-                        Icons.info_outline_rounded,
-                        size: 15,
-                        color: Color(0xFF94A3B8),
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ),
@@ -1024,12 +1029,9 @@ class _SupplyInventorySkeletonCard extends StatelessWidget {
               SizedBox(height: 8),
               _SupplySkeletonBox(height: 6, radius: 999),
               SizedBox(height: 8),
-              Row(
-                children: [
-                  _SupplySkeletonBox(width: 54, height: 16, radius: 8),
-                  Spacer(),
-                  _SupplySkeletonBox(width: 15, height: 15, radius: 999),
-                ],
+              Align(
+                alignment: Alignment.centerLeft,
+                child: _SupplySkeletonBox(width: 54, height: 16, radius: 8),
               ),
             ],
           ),
