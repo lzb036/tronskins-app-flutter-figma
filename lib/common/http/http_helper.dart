@@ -99,6 +99,7 @@ class HttpHelper {
     Map<String, dynamic>? queryParameters,
     bool rawAuthorization = false,
     bool skipCookie = false,
+    bool skipAppHeaders = false,
   }) {
     final extra = <String, dynamic>{};
     if (rawAuthorization) {
@@ -106,6 +107,9 @@ class HttpHelper {
     }
     if (skipCookie) {
       extra['skip_cookie'] = true;
+    }
+    if (skipAppHeaders) {
+      extra['skip_app_headers'] = true;
     }
     final requestOptions = extra.isEmpty ? null : Options(extra: extra);
     return request(
@@ -121,13 +125,44 @@ class HttpHelper {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
+    bool rawAuthorization = false,
+    bool skipCookie = false,
+    bool skipAppHeaders = false,
   }) => request(
     path,
     method: 'POST',
     data: data,
     queryParameters: queryParameters,
-    options: options,
+    options: _mergeExtraOptions(
+      options,
+      rawAuthorization: rawAuthorization,
+      skipCookie: skipCookie,
+      skipAppHeaders: skipAppHeaders,
+    ),
   );
+
+  Options? _mergeExtraOptions(
+    Options? options, {
+    required bool rawAuthorization,
+    required bool skipCookie,
+    required bool skipAppHeaders,
+  }) {
+    final currentExtra = options?.extra ?? const <String, dynamic>{};
+    final extra = <String, dynamic>{...currentExtra};
+    if (rawAuthorization) {
+      extra['raw_authorization'] = true;
+    }
+    if (skipCookie) {
+      extra['skip_cookie'] = true;
+    }
+    if (skipAppHeaders) {
+      extra['skip_app_headers'] = true;
+    }
+    if (extra.isEmpty) {
+      return options;
+    }
+    return (options ?? Options()).copyWith(extra: extra);
+  }
 
   // 错误统一处理 + 401 清理登录态
   HttpException _handleError(DioException e) {

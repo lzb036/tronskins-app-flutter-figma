@@ -817,6 +817,8 @@ int? _asTimestamp(dynamic value) {
 
   if (timestamp >= 1000000000000000) {
     timestamp = (timestamp / 1000).round();
+  } else if (timestamp < 1000000000000) {
+    timestamp *= 1000;
   }
   return timestamp;
 }

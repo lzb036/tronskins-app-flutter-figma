@@ -191,13 +191,11 @@ class ApiWalletServer {
 
   Future<BaseHttpResponse<WalletListResponse<WalletGiftCardItem>>>
   giftCardList({int page = 1, int pageSize = 20, String? status}) async {
-    final response = await http.get(
-      'api/app/charge/card/list.do',
-      queryParameters: {
-        'page': page,
-        'pageSize': pageSize,
-        if (status != null && status.isNotEmpty) 'status': status,
-      },
+    final response = await http.post(
+      'api/app/charge/card/list',
+      data: {'page': page, 'pageSize': pageSize, 'status': status ?? ''},
+      rawAuthorization: true,
+      skipAppHeaders: true,
     );
     return BaseHttpResponse.fromJson(
       response.data as Map<String, dynamic>,
@@ -215,6 +213,8 @@ class ApiWalletServer {
     final response = await http.get(
       'api/app/charge/card/get.do',
       queryParameters: {'id': id, 'twoFa': twoFa},
+      rawAuthorization: true,
+      skipAppHeaders: true,
     );
     return BaseHttpResponse.fromJson(
       response.data as Map<String, dynamic>,
@@ -227,6 +227,8 @@ class ApiWalletServer {
     final response = await http.post(
       'api/pub/dict/module/dictcode2.do',
       data: {'parentId': 0, 'type': 'card_value_type'},
+      rawAuthorization: true,
+      skipAppHeaders: true,
     );
     return BaseHttpResponse.fromJson(response.data as Map<String, dynamic>, (
       json,
@@ -248,6 +250,8 @@ class ApiWalletServer {
     final response = await http.post(
       'api/app/charge/card/add.do',
       data: {'number': number, 'value': value},
+      rawAuthorization: true,
+      skipAppHeaders: true,
     );
     return BaseHttpResponse.fromJson(
       response.data as Map<String, dynamic>,

@@ -98,18 +98,26 @@ class GiftCardController extends GetxController {
       if (_hasMoreCards) {
         _page += 1;
       }
+    } catch (_) {
+      if (reset) {
+        _hasMoreCards = false;
+      }
     } finally {
       loadingFlag.value = false;
     }
   }
 
   Future<String?> loadPassword(WalletGiftCardItem item) async {
-    final response = await _api.giftCardPassword(id: item.id);
-    if (!response.success) {
+    try {
+      final response = await _api.giftCardPassword(id: item.id);
+      if (!response.success) {
+        return null;
+      }
+      final password = response.datas?.password.trim() ?? '';
+      return password.isEmpty ? null : password;
+    } catch (_) {
       return null;
     }
-    final password = response.datas?.password.trim() ?? '';
-    return password.isEmpty ? null : password;
   }
 
   Future<void> loadAmountOptions({bool force = false}) async {
@@ -128,6 +136,8 @@ class GiftCardController extends GetxController {
           response.datas ?? <WalletGiftCardAmountOption>[],
         );
       }
+    } catch (_) {
+      amountOptions.clear();
     } finally {
       isLoadingAmountOptions.value = false;
     }
@@ -152,6 +162,8 @@ class GiftCardController extends GetxController {
       selectedFilter.value = GiftCardFilter.all;
       await loadCards(reset: true);
       return true;
+    } catch (_) {
+      return false;
     } finally {
       isGenerating.value = false;
     }

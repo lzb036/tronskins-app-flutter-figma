@@ -9,13 +9,16 @@ class HeaderInterceptor extends Interceptor {
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    // 公共 header
-    options.headers['App-Type'] = 'app';
-    options.headers['Platform'] = GetPlatform.isAndroid ? 'android' : 'ios';
-    options.headers.putIfAbsent(
-      'X-Browser-Fingerprint',
-      SessionStorage.getBrowserFingerprint,
-    );
+    final skipAppHeaders = options.extra['skip_app_headers'] == true;
+    if (!skipAppHeaders) {
+      // 公共 header
+      options.headers['App-Type'] = 'app';
+      options.headers['Platform'] = GetPlatform.isAndroid ? 'android' : 'ios';
+      options.headers.putIfAbsent(
+        'X-Browser-Fingerprint',
+        SessionStorage.getBrowserFingerprint,
+      );
+    }
 
     // 语言
     final locale = Get.find<UseLocale>().currentLocale;
