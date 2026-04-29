@@ -10,6 +10,7 @@ import 'package:tronskins_app/api/steam.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/user_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/game_item/game_item_utils.dart';
@@ -307,16 +308,15 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
       AppSnackbar.info('app.trade.supply.message.more_than_needed'.tr);
       return;
     }
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showFigmaModal<bool>(
       context: context,
-      builder: (context) {
-        return _SupplyConfirmDialog(
-          count: _selectedIds.length,
-          total: _totalAmount(),
-          fee: _feeAmount(),
-          income: _incomeAmount(),
-        );
-      },
+      barrierDismissible: false,
+      child: _SupplyConfirmDialog(
+        count: _selectedIds.length,
+        total: _totalAmount(),
+        fee: _feeAmount(),
+        income: _incomeAmount(),
+      ),
     );
     if (confirmed == true) {
       await _submitSupply();
@@ -1635,70 +1635,59 @@ class _SupplyConfirmDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final currency = Get.find<CurrencyController>();
     final points = (total * 100).floor() / 100;
-    return Dialog(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'app.trade.supply.text'.tr,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 12),
-            _buildRow(
-              context,
-              label: 'app.inventory.count'.tr,
-              value: '$count ${'app.market.unit_qty'.tr}',
-            ),
-            Obx(
-              () => _buildRow(
+    return FigmaConfirmationDialog(
+      icon: Icons.inventory_2_rounded,
+      iconColor: _SupplyPalette.blue,
+      iconBackgroundColor: const Color.fromRGBO(37, 99, 235, 0.10),
+      accentColor: _SupplyPalette.blue,
+      title: 'app.trade.supply.text'.tr,
+      primaryLabel: 'app.trade.supply.text'.tr,
+      secondaryLabel: 'app.common.cancel'.tr,
+      onPrimary: () => popModalRoute(context, true),
+      onSecondary: () => popModalRoute(context, false),
+      content: SizedBox(
+        width: double.infinity,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildRow(
                 context,
-                label: 'app.inventory.upshop.expected_income'.tr,
-                value: currency.format(total),
+                label: 'app.inventory.count'.tr,
+                value: '$count ${'app.market.unit_qty'.tr}',
               ),
-            ),
-            Obx(
-              () => _buildRow(
-                context,
-                label: 'app.inventory.upshop.handling_charge'.tr,
-                value: currency.format(fee),
-              ),
-            ),
-            Obx(
-              () => _buildRow(
-                context,
-                label: 'app.trade.supply.actual_income'.tr,
-                value: currency.format(income),
-                highlight: true,
-              ),
-            ),
-            _buildRow(
-              context,
-              label: 'app.user.integral.award'.tr,
-              value:
-                  '${points.toStringAsFixed(2)} ${'app.user.integral.unit'.tr}',
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: Text('app.common.cancel'.tr),
-                  ),
+              Obx(
+                () => _buildRow(
+                  context,
+                  label: 'app.inventory.upshop.expected_income'.tr,
+                  value: currency.format(total),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: Text('app.trade.supply.text'.tr),
-                  ),
+              ),
+              Obx(
+                () => _buildRow(
+                  context,
+                  label: 'app.inventory.upshop.handling_charge'.tr,
+                  value: currency.format(fee),
                 ),
-              ],
-            ),
-          ],
+              ),
+              Obx(
+                () => _buildRow(
+                  context,
+                  label: 'app.trade.supply.actual_income'.tr,
+                  value: currency.format(income),
+                  highlight: true,
+                ),
+              ),
+              _buildRow(
+                context,
+                label: 'app.user.integral.award'.tr,
+                value:
+                    '${points.toStringAsFixed(2)} '
+                    '${'app.user.integral.unit'.tr}',
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1710,19 +1699,38 @@ class _SupplyConfirmDialog extends StatelessWidget {
     required String value,
     bool highlight = false,
   }) {
-    final style = Theme.of(context).textTheme.bodyMedium!;
+    final labelStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+      color: _SupplyPalette.muted,
+      fontSize: 13,
+      height: 18 / 13,
+      fontWeight: FontWeight.w500,
+    );
+    final valueStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+      color: highlight ? _SupplyPalette.blue : _SupplyPalette.ink,
+      fontSize: 13,
+      height: 18 / 13,
+      fontWeight: highlight ? FontWeight.w800 : FontWeight.w700,
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Expanded(child: Text(label, style: style)),
-          Text(
-            value,
-            style: style.copyWith(
-              color: highlight
-                  ? Theme.of(context).colorScheme.primary
-                  : style.color,
-              fontWeight: highlight ? FontWeight.w600 : style.fontWeight,
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: labelStyle,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
+              style: valueStyle,
             ),
           ),
         ],
