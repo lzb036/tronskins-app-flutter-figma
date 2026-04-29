@@ -220,7 +220,7 @@ class WalletFlowDetailPage extends StatelessWidget {
             value: _flowTypeLabel(item),
           ),
           const SizedBox(height: 8),
-          _buildDetailValueRow(
+          _buildTimeValueRow(
             label: _text(zh: '时间', en: 'Time'),
             value: _formatDateTime(item.createTime),
           ),
@@ -459,6 +459,37 @@ class WalletFlowDetailPage extends StatelessWidget {
             textAlign: TextAlign.right,
             style: TextStyle(
               color: valueColor ?? _titleColor,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              height: 20 / 15,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimeValueRow({required String label, required String value}) {
+    return Row(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: _bodyColor,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            height: 18 / 13,
+          ),
+        ),
+        const SizedBox(width: 96),
+        Expanded(
+          child: Text(
+            value,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.visible,
+            style: const TextStyle(
+              color: _titleColor,
               fontSize: 15,
               fontWeight: FontWeight.w800,
               height: 20 / 15,
