@@ -604,6 +604,11 @@ final Map<String, String> tu_TR = {
       "Tek tıklama teslimat seçeneğini onaylayor musunuz?",
   "app.trade.supply.text": "Tedarik",
   "app.trade.supply.inventory": "envanter tedariki",
+  "app.trade.supply.selected_count": "SELECTED @count/@total",
+  "app.trade.supply.total_amount": "TOTAL AMOUNT",
+  "app.trade.supply.all_supply": "ALL SUPPLY",
+  "app.trade.supply.float": "Float",
+  "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Gerçek Gelir",
   "app.trade.supply.message.confirm":
       "Tedariki onayladıktan sonra, bir teklif 30 dakika içinde başlatılmalıdır (tekrar denemelere izin verilir). Tedarik başarısız olursa, satın alma 3 gün içinde yerine getirilemez.",

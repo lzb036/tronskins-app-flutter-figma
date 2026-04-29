@@ -602,6 +602,11 @@ final Map<String, String> vi_VN = {
       "Bạn có xác nhận tùy chọn giao hàng một nhấp chuột không?",
   "app.trade.supply.text": "Cung cấp",
   "app.trade.supply.inventory": "Cung cấp hàng tồn kho",
+  "app.trade.supply.selected_count": "SELECTED @count/@total",
+  "app.trade.supply.total_amount": "TOTAL AMOUNT",
+  "app.trade.supply.all_supply": "ALL SUPPLY",
+  "app.trade.supply.float": "Float",
+  "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Thu nhập thực tế",
   "app.trade.supply.message.confirm":
       "Sau khi xác nhận cung cấp, một báo giá phải được bắt đầu trong vòng 30 phút (thử lại được phép). Nếu cung cấp thất bại, việc mua không thể được thực hiện trong vòng 3 ngày.",

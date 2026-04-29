@@ -628,6 +628,11 @@ final Map<String, String> ge_DE = {
       "Bestätigen Sie die One-Click-Lieferoption?",
   "app.trade.supply.text": "Versorgung",
   "app.trade.supply.inventory": "Bestandsversorgung",
+  "app.trade.supply.selected_count": "SELECTED @count/@total",
+  "app.trade.supply.total_amount": "TOTAL AMOUNT",
+  "app.trade.supply.all_supply": "ALL SUPPLY",
+  "app.trade.supply.float": "Float",
+  "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Faktisches Einkommen",
   "app.trade.supply.message.confirm":
       "Nach der Bestätigung der Lieferung muss innerhalb von 30 Minuten ein Angebot eingeleitet werden (erneute Versuche erlaubt). Wenn die Lieferung fehlschlägt, kann der Kauf nicht innerhalb von 3 Tagen erfüllt werden.",

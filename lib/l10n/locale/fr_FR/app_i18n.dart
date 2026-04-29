@@ -635,6 +635,11 @@ final Map<String, String> fr_FR = {
       "Confirmez-vous l'option de livraison en un clic ?",
   "app.trade.supply.text": "Approvisionnement",
   "app.trade.supply.inventory": "Approvisionnement en inventaire",
+  "app.trade.supply.selected_count": "SELECTED @count/@total",
+  "app.trade.supply.total_amount": "TOTAL AMOUNT",
+  "app.trade.supply.all_supply": "ALL SUPPLY",
+  "app.trade.supply.float": "Float",
+  "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Revenu réel",
   "app.trade.supply.message.confirm":
       "Après confirmation de la livraison, un devis doit être lancé dans les 30 minutes (réussites autorisées). Si la livraison échoue, l'achat ne peut pas être réalisé dans les 3 jours.",

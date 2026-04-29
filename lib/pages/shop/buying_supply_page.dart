@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:get/get.dart';
@@ -615,11 +614,11 @@ class _SupplySelectedItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: _SupplyPalette.selectedPanel,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(color: _SupplyPalette.ghostBorder),
           boxShadow: const [
             BoxShadow(
@@ -630,22 +629,22 @@ class _SupplySelectedItemCard extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(21),
+          padding: const EdgeInsets.all(12),
           child: Row(
             children: [
               Container(
-                width: 80,
-                height: 80,
+                width: 64,
+                height: 64,
                 padding: const EdgeInsets.all(1),
                 decoration: BoxDecoration(
                   color: _SupplyPalette.galleryWall,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: _SupplyPalette.softSurface),
                 ),
                 child: Center(
                   child: SizedBox(
-                    width: 64,
-                    height: 64,
+                    width: 52,
+                    height: 52,
                     child: GameItemImage(
                       imageUrl: imageUrl,
                       appId: appId,
@@ -654,7 +653,7 @@ class _SupplySelectedItemCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -666,18 +665,18 @@ class _SupplySelectedItemCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: _SupplyPalette.ink,
-                        fontSize: 16,
-                        height: 20 / 16,
+                        fontSize: 15,
+                        height: 19 / 15,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       'x${count > 0 ? count : 1}',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: _SupplyPalette.blue,
-                        fontSize: 12,
-                        height: 16 / 12,
+                        fontSize: 11,
+                        height: 15 / 11,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -706,9 +705,9 @@ class _SupplyInventoryHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 24),
+      padding: const EdgeInsets.only(top: 14),
       child: Container(
-        height: 49,
+        height: 42,
         decoration: const BoxDecoration(
           color: _SupplyPalette.assetCase,
           border: Border(
@@ -726,23 +725,26 @@ class _SupplyInventoryHeader extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: _SupplyPalette.muted,
-                  fontSize: 14,
-                  height: 20 / 14,
+                  fontSize: 13,
+                  height: 18 / 13,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Container(
-              width: 90,
-              height: 24,
+              width: 86,
+              height: 22,
               decoration: BoxDecoration(
                 color: _SupplyPalette.blueSoft,
                 border: Border.all(color: _SupplyPalette.blueBorder),
               ),
               alignment: Alignment.center,
               child: Text(
-                'SELECTED $selectedCount/$targetCount',
+                'app.trade.supply.selected_count'.trParams({
+                  'count': selectedCount.toString(),
+                  'total': targetCount.toString(),
+                }),
                 maxLines: 1,
                 softWrap: false,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -828,33 +830,12 @@ class _SupplyInventoryItemCard extends StatelessWidget {
                           child: Stack(
                             children: [
                               Positioned.fill(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(9),
-                                  child: Opacity(
-                                    opacity: disabledLabel == null ? 1 : 0.58,
-                                    child: CachedNetworkImage(
-                                      imageUrl: visual.imageUrl,
-                                      fit: BoxFit.contain,
-                                      placeholder: (context, url) =>
-                                          const Center(
-                                            child: SizedBox(
-                                              width: 18,
-                                              height: 18,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                              ),
-                                            ),
-                                          ),
-                                      errorWidget: (context, url, error) =>
-                                          const Center(
-                                            child: Icon(
-                                              Icons
-                                                  .image_not_supported_outlined,
-                                              size: 22,
-                                              color: _SupplyPalette.muted,
-                                            ),
-                                          ),
-                                    ),
+                                child: Opacity(
+                                  opacity: disabledLabel == null ? 1 : 0.58,
+                                  child: GameItemImage(
+                                    imageUrl: visual.imageUrl,
+                                    appId: item.appId,
+                                    showTopBadges: false,
                                   ),
                                 ),
                               ),
@@ -905,7 +886,7 @@ class _SupplyInventoryItemCard extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(
                     visual.title,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: _SupplyPalette.body,
@@ -916,7 +897,7 @@ class _SupplyInventoryItemCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Float: ${visual.paintWearText ?? '-'}',
+                    '${'app.trade.supply.float'.tr}: ${visual.paintWearText ?? '-'}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -1183,7 +1164,7 @@ class _SupplyLoadingMoreFooter extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  _supplyLoadingText(),
+                  'app.trade.supply.loading'.tr,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: _SupplyPalette.muted,
                     fontSize: 11,
@@ -1255,30 +1236,41 @@ class _SupplyBottomActionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: DecoratedBox(
-          decoration: const BoxDecoration(
-            color: _SupplyPalette.footerGlass,
-            border: Border(top: BorderSide(color: _SupplyPalette.ghostBorder)),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x12000000),
-                blurRadius: 22,
-                offset: Offset(0, -8),
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final topPadding = 12.0;
+    final bottomPadding = bottomInset > 0 ? bottomInset + 10 : 18.0;
+    final barHeight = topPadding + 42.0 + bottomPadding;
+
+    return SizedBox(
+      height: barHeight,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              color: _SupplyPalette.footerGlass,
+              border: Border(
+                top: BorderSide(color: _SupplyPalette.ghostBorder),
               ),
-            ],
-          ),
-          child: SafeArea(
-            top: false,
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x12000000),
+                  blurRadius: 22,
+                  offset: Offset(0, -8),
+                ),
+              ],
+            ),
             child: Align(
-              alignment: Alignment.center,
-              heightFactor: 1,
+              alignment: Alignment.topCenter,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 672),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 17, 24, 32),
+                  padding: EdgeInsets.fromLTRB(
+                    24,
+                    topPadding,
+                    24,
+                    bottomPadding,
+                  ),
                   child: Row(
                     children: [
                       SizedBox(
@@ -1288,13 +1280,13 @@ class _SupplyBottomActionBar extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'TOTAL AMOUNT',
+                              'app.trade.supply.total_amount'.tr,
                               maxLines: 1,
                               style: Theme.of(context).textTheme.labelSmall
                                   ?.copyWith(
                                     color: _SupplyPalette.muted,
-                                    fontSize: 10,
-                                    height: 15 / 10,
+                                    fontSize: 9,
+                                    height: 13 / 9,
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: 1,
                                   ),
@@ -1307,8 +1299,8 @@ class _SupplyBottomActionBar extends StatelessWidget {
                                 style: Theme.of(context).textTheme.headlineSmall
                                     ?.copyWith(
                                       color: _SupplyPalette.ink,
-                                      fontSize: 24,
-                                      height: 32 / 24,
+                                      fontSize: 22,
+                                      height: 29 / 22,
                                       fontWeight: FontWeight.w700,
                                       letterSpacing: -0.6,
                                     ),
@@ -1369,7 +1361,7 @@ class _SupplyAllSupplyButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: SizedBox(
-          height: 42,
+          height: 40,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Row(
@@ -1399,7 +1391,7 @@ class _SupplyAllSupplyButton extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'ALL SUPPLY',
+                  'app.trade.supply.all_supply'.tr,
                   maxLines: 1,
                   softWrap: false,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -1463,8 +1455,8 @@ class _SupplySubmitButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             onTap: disabled ? null : onTap,
             child: SizedBox(
-              width: 94,
-              height: 42,
+              width: 90,
+              height: 40,
               child: Center(
                 child: loading
                     ? const SizedBox(
@@ -1663,11 +1655,6 @@ double _resolveSupplyCardPrice(InventoryItem item, ShopSchemaInfo? schema) {
     }
   }
   return 0;
-}
-
-String _supplyLoadingText() {
-  final languageCode = Get.locale?.languageCode.toLowerCase() ?? '';
-  return languageCode.startsWith('zh') ? '加载中...' : 'Loading...';
 }
 
 String? _formatSupplyWear(double? wear) {

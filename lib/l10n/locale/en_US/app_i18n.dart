@@ -623,6 +623,11 @@ final Map<String, String> en_US = {
       "Are you confirming the one-click delivery option?",
   "app.trade.supply.text": "Supply",
   "app.trade.supply.inventory": "Inventory Supply",
+  "app.trade.supply.selected_count": "SELECTED @count/@total",
+  "app.trade.supply.total_amount": "TOTAL AMOUNT",
+  "app.trade.supply.all_supply": "ALL SUPPLY",
+  "app.trade.supply.float": "Float",
+  "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Actual Income",
   "app.trade.supply.message.confirm":
       "After confirming the supply, a quotation must be initiated within 30 minutes (retries allowed). If the supply fails, the purchase cannot be fulfilled within 3 days.",

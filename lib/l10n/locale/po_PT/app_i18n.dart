@@ -626,6 +626,11 @@ final Map<String, String> po_PT = {
       "Você está confirmando a opção de entrega em um clique?",
   "app.trade.supply.text": "fornecimento",
   "app.trade.supply.inventory": "Fornecimento de Inventário",
+  "app.trade.supply.selected_count": "SELECTED @count/@total",
+  "app.trade.supply.total_amount": "TOTAL AMOUNT",
+  "app.trade.supply.all_supply": "ALL SUPPLY",
+  "app.trade.supply.float": "Float",
+  "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Rendimento real",
   "app.trade.supply.message.confirm":
       "Após a confirmação do fornecimento, uma cotação deve ser iniciada dentro de 30 minutos (tentativas repetidas permitidas). Se o fornecimento falhar, a compra não pode ser cumprida dentro de 3 dias.",

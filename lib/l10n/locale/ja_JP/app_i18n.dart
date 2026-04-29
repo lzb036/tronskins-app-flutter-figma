@@ -527,6 +527,11 @@ final Map<String, String> ja_JP = {
   "app.trade.receipt.message.confirm_auto": "ワンクリック配達オプションを確認していますか？",
   "app.trade.supply.text": "供給",
   "app.trade.supply.inventory": "在庫供給",
+  "app.trade.supply.selected_count": "SELECTED @count/@total",
+  "app.trade.supply.total_amount": "TOTAL AMOUNT",
+  "app.trade.supply.all_supply": "ALL SUPPLY",
+  "app.trade.supply.float": "Float",
+  "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "実際収入",
   "app.trade.supply.message.confirm":
       "供給を確認した後、30分以内に引用を開始する必要があります（再試行が許可されています）。供給が失敗した場合、購入は3日以内に完了できません。",

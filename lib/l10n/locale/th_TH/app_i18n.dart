@@ -588,6 +588,11 @@ final Map<String, String> th_TH = {
       "คุณยืนยันตัวเลือกการจัดส่งคลิกเดียวหรือไม่?",
   "app.trade.supply.text": "การจัดหา",
   "app.trade.supply.inventory": "การจัดหาสินค้าคลัง",
+  "app.trade.supply.selected_count": "SELECTED @count/@total",
+  "app.trade.supply.total_amount": "TOTAL AMOUNT",
+  "app.trade.supply.all_supply": "ALL SUPPLY",
+  "app.trade.supply.float": "Float",
+  "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "รายได้จริง",
   "app.trade.supply.message.confirm":
       "หลังจากยืนยันการจัดหา ต้องเริ่มต้นการเสนอราคาภายใน 30 นาที (อนุญาตให้ลองใหม่) หากการจัดหาล้มเหลว การซื้อไม่สามารถดำเนินการได้ภายใน 3 วัน",

@@ -634,6 +634,11 @@ final Map<String, String> sp_ES = {
       " ¿Estás confirmando la opción de entrega con un solo clic?",
   "app.trade.supply.text": "Suministro",
   "app.trade.supply.inventory": "Suministro de inventario",
+  "app.trade.supply.selected_count": "SELECTED @count/@total",
+  "app.trade.supply.total_amount": "TOTAL AMOUNT",
+  "app.trade.supply.all_supply": "ALL SUPPLY",
+  "app.trade.supply.float": "Float",
+  "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Ingresos reales",
   "app.trade.supply.message.confirm":
       "Después de confirmar el suministro, una cotización debe iniciarse en un plazo de 30 minutos (se permiten repetidos intentos). Si el suministro falla, la compra no puede cumplirse dentro de 3 días.",

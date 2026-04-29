@@ -610,6 +610,11 @@ final Map<String, String> po_PL = {
       "Potwierdzasz opcję dostawy jednym kliknięciem?",
   "app.trade.supply.text": "Dostawy",
   "app.trade.supply.inventory": "Zapasowanie zapasów",
+  "app.trade.supply.selected_count": "SELECTED @count/@total",
+  "app.trade.supply.total_amount": "TOTAL AMOUNT",
+  "app.trade.supply.all_supply": "ALL SUPPLY",
+  "app.trade.supply.float": "Float",
+  "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Rzeczywisty dochód",
   "app.trade.supply.message.confirm":
       "Po potwierdzeniu dostawy, wycena musi zostać zainicjowana w ciągu 30 minut (dozwolone ponowne próby). W przypadku awarii dostawy zakup nie może być wykonany w ciągu 3 dni.",

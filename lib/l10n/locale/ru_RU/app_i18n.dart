@@ -621,6 +621,11 @@ final Map<String, String> ru_RU = {
       "Вы подтверждаете вариант доставки одним кликом?",
   "app.trade.supply.text": "Поставки",
   "app.trade.supply.inventory": "Инвентаризация поставок",
+  "app.trade.supply.selected_count": "SELECTED @count/@total",
+  "app.trade.supply.total_amount": "TOTAL AMOUNT",
+  "app.trade.supply.all_supply": "ALL SUPPLY",
+  "app.trade.supply.float": "Float",
+  "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Фактический доход",
   "app.trade.supply.message.confirm":
       "После подтверждения поставки, котировка должна быть инициирована в течение 30 минут (допускаются повторные попытки). Если поставка не удастся, покупка не может быть выполнена в течение 3 дней.",

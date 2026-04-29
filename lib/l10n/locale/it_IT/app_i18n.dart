@@ -622,6 +622,11 @@ final Map<String, String> it_IT = {
       "Stai confermando l'opzione di consegna con un solo clic?",
   "app.trade.supply.text": "Fornitura",
   "app.trade.supply.inventory": "Fornitura di inventario",
+  "app.trade.supply.selected_count": "SELECTED @count/@total",
+  "app.trade.supply.total_amount": "TOTAL AMOUNT",
+  "app.trade.supply.all_supply": "ALL SUPPLY",
+  "app.trade.supply.float": "Float",
+  "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Reddito effettivo",
   "app.trade.supply.message.confirm":
       "Dopo la conferma della fornitura, un preventivo deve essere avviato entro 30 minuti (riprova consentita). Se la fornitura fallisce, l'acquisto non può essere effettuato entro 3 giorni.",

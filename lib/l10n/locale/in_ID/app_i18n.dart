@@ -615,6 +615,11 @@ final Map<String, String> in_ID = {
       "Apakah Anda mengkonfirmasi opsi pengiriman satu klik?",
   "app.trade.supply.text": "Pasokan",
   "app.trade.supply.inventory": "Pasokan persediaan",
+  "app.trade.supply.selected_count": "SELECTED @count/@total",
+  "app.trade.supply.total_amount": "TOTAL AMOUNT",
+  "app.trade.supply.all_supply": "ALL SUPPLY",
+  "app.trade.supply.float": "Float",
+  "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Pendapatan aktual",
   "app.trade.supply.message.confirm":
       "Setelah mengkonfirmasi pasokan, penawaran harus dimulai dalam waktu 30 menit (coba ulang diizinkan). Jika pasokan gagal, pembelian tidak dapat dipenuhi dalam waktu 3 hari.",

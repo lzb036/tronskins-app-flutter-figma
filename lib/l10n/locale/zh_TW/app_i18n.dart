@@ -504,6 +504,11 @@ final Map<String, String> zh_TW = {
   "app.trade.receipt.message.confirm_auto": "您是否確認一鍵交付選項？",
   "app.trade.supply.text": "供應",
   "app.trade.supply.inventory": "庫存供應",
+  "app.trade.supply.selected_count": "已選 @count/@total",
+  "app.trade.supply.total_amount": "總金額",
+  "app.trade.supply.all_supply": "全部供應",
+  "app.trade.supply.float": "磨損",
+  "app.trade.supply.loading": "載入中...",
   "app.trade.supply.actual_income": "實際收入",
   "app.trade.supply.message.confirm":
       "確認供應後，必須在30分鐘內啟動報價（允許重試）。 如果供應失敗，則無法在3天內完成購買。",

@@ -540,6 +540,11 @@ final Map<String, String> ko_KR = {
   "app.trade.receipt.message.confirm_auto": "원클릭 배달 옵션을 확인하고 있습니까?",
   "app.trade.supply.text": "공급",
   "app.trade.supply.inventory": "재고 공급",
+  "app.trade.supply.selected_count": "SELECTED @count/@total",
+  "app.trade.supply.total_amount": "TOTAL AMOUNT",
+  "app.trade.supply.all_supply": "ALL SUPPLY",
+  "app.trade.supply.float": "Float",
+  "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "실제 소득",
   "app.trade.supply.message.confirm":
       "공급을 확인한 후 30 분 이내에 견적을 시작해야합니다 (재시도가 허용됩니다).공급이 실패하면 구매는 3일 이내에 이루어질 수 없습니다.",
