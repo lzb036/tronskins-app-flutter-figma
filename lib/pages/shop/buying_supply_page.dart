@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:get/get.dart';
@@ -13,7 +14,6 @@ import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/game_item/game_item_utils.dart';
-import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 import 'package:tronskins_app/components/layout/list_end_tip.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
@@ -40,6 +40,8 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
   int _page = 1;
   bool _hasMore = true;
   bool _isLoading = false;
+  bool _isRefreshing = false;
+  bool _hasLoadedOnce = false;
   bool _isSubmitting = false;
   double _feeRate = 0;
   bool _loadingFee = true;
@@ -95,41 +97,86 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
     }
   }
 
-  Future<void> _refresh() async {
-    _page = 1;
-    _hasMore = true;
-    _items.clear();
-    _selectedIds.clear();
-    await _loadInventory();
-  }
-
-  Future<void> _loadInventory() async {
-    if (_isLoading || !_hasMore) {
-      return;
-    }
+  Future<InventoryResponse?> _fetchInventoryPage(int page) async {
     final appId = _request.appId ?? 730;
     final schemaId = _request.schemaId;
     if (schemaId == null) {
-      _hasMore = false;
+      return null;
+    }
+    final res = await _inventoryApi.inventoryList(
+      appId: appId,
+      page: page,
+      pageSize: 50,
+      schemaId: schemaId,
+      canSupply: true,
+    );
+    return res.datas;
+  }
+
+  Future<void> _refresh() async {
+    if (_isRefreshing || _isLoading) {
+      return;
+    }
+    final showInitialSkeleton = _items.isEmpty;
+    setState(() {
+      _isRefreshing = true;
+      if (showInitialSkeleton) {
+        _isLoading = true;
+      }
+    });
+    try {
+      final data = await _fetchInventoryPage(1);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _items
+          ..clear()
+          ..addAll(data?.items ?? const <InventoryItem>[]);
+        _schemas.addAll(data?.schemas ?? const {});
+        _selectedIds.clear();
+        _page = (data?.items.isNotEmpty ?? false) ? 2 : 1;
+        _hasMore = data != null && data.items.isNotEmpty;
+        _hasLoadedOnce = true;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+          _isLoading = false;
+          _hasLoadedOnce = true;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadInventory() async {
+    if (_isLoading || _isRefreshing || !_hasMore) {
+      return;
+    }
+    if (_request.schemaId == null) {
+      setState(() {
+        _hasMore = false;
+        _hasLoadedOnce = true;
+      });
       return;
     }
     setState(() => _isLoading = true);
     try {
-      final res = await _inventoryApi.inventoryList(
-        appId: appId,
-        page: _page,
-        pageSize: 50,
-        schemaId: schemaId,
-        canSupply: true,
-      );
-      final data = res.datas;
-      if (data == null || data.items.isEmpty) {
-        _hasMore = false;
-      } else {
-        _items.addAll(data.items);
-        _page += 1;
+      final data = await _fetchInventoryPage(_page);
+      if (!mounted) {
+        return;
       }
-      _schemas.addAll(data?.schemas ?? const {});
+      setState(() {
+        if (data == null || data.items.isEmpty) {
+          _hasMore = false;
+        } else {
+          _items.addAll(data.items);
+          _page += 1;
+        }
+        _schemas.addAll(data?.schemas ?? const {});
+        _hasLoadedOnce = true;
+      });
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -391,11 +438,13 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
         '-';
     final imageUrl =
         fallbackSchema?.imageUrl ?? _request.raw['image_url']?.toString() ?? '';
-    final price = _request.price ?? 0;
     final maxNeed = _maxNeed;
     final isAllSelected = maxNeed > 0
         ? _selectedIds.length >= maxNeed
         : _items.isNotEmpty && _selectedIds.length >= _items.length;
+    final showInitialSkeleton =
+        _items.isEmpty && (_isLoading || !_hasLoadedOnce);
+    final showLoadMoreSkeleton = _isLoading && _items.isNotEmpty;
     return Scaffold(
       backgroundColor: _SupplyPalette.galleryWall,
       appBar: SettingsStyleAppBar(title: Text('app.trade.supply.inventory'.tr)),
@@ -411,25 +460,39 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
                   imageUrl: imageUrl,
                   appId: _request.appId ?? 730,
                   count: maxNeed,
-                  selectedCount: _selectedIds.length,
-                  price: price,
-                  currency: currency,
                 ),
                 _SupplyInventoryHeader(
                   title: 'app.trade.supply.message.select_inventory'.tr,
                   selectedCount: _selectedIds.length,
-                  totalCount: _items.length,
+                  targetCount: maxNeed > 0 ? maxNeed : _items.length,
                 ),
                 Expanded(
                   child: RefreshIndicator(
+                    color: _SupplyPalette.blue,
+                    backgroundColor: _SupplyPalette.assetCase,
+                    strokeWidth: 2.4,
+                    displacement: 28,
+                    edgeOffset: 6,
                     onRefresh: _refresh,
                     child: CustomScrollView(
                       controller: _scrollController,
                       physics: const AlwaysScrollableScrollPhysics(),
                       slivers: [
-                        if (_items.isEmpty && _isLoading)
-                          const SliverFillRemaining(
-                            child: Center(child: CircularProgressIndicator()),
+                        if (showInitialSkeleton)
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            sliver: SliverGrid.builder(
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    mainAxisSpacing: 16,
+                                    crossAxisSpacing: 16,
+                                    childAspectRatio: 0.58,
+                                  ),
+                              itemCount: 4,
+                              itemBuilder: (context, index) =>
+                                  const _SupplyInventorySkeletonCard(),
+                            ),
                           )
                         else if (_items.isEmpty)
                           SliverFillRemaining(
@@ -437,17 +500,22 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
                           )
                         else
                           SliverPadding(
-                            padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                             sliver: SliverGrid.builder(
                               gridDelegate:
                                   const SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: 2,
-                                    mainAxisSpacing: 14,
-                                    crossAxisSpacing: 14,
-                                    childAspectRatio: 0.74,
+                                    mainAxisSpacing: 16,
+                                    crossAxisSpacing: 16,
+                                    childAspectRatio: 0.58,
                                   ),
-                              itemCount: _items.length,
+                              itemCount:
+                                  _items.length +
+                                  (showLoadMoreSkeleton ? 2 : 0),
                               itemBuilder: (context, index) {
+                                if (index >= _items.length) {
+                                  return const _SupplyInventorySkeletonCard();
+                                }
                                 final item = _items[index];
                                 final schema = _lookupSchema(item);
                                 final selected = _selectedIds.contains(
@@ -470,7 +538,6 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
                                 return _SupplyInventoryItemCard(
                                   item: item,
                                   schema: schema,
-                                  price: item.price ?? price,
                                   currency: currency,
                                   selected: selected,
                                   disabledLabel: disabled
@@ -493,8 +560,8 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
       ),
       bottomNavigationBar: _SupplyBottomActionBar(
         isAllSelected: isAllSelected,
-        selectedCount: _selectedIds.length,
-        totalCount: _items.length,
+        totalAmount: _totalAmount(),
+        currency: currency,
         isSubmitting: _isSubmitting,
         isActionDisabled: _isSubmitting || _loadingFee,
         onToggleSelectAll: _toggleSelectAll,
@@ -506,16 +573,9 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
 
   Widget _buildLoadMoreFooter() {
     if (_isLoading) {
-      return const Padding(
-        padding: EdgeInsets.fromLTRB(0, 4, 0, 12),
-        child: Center(
-          child: SizedBox(
-            width: 22,
-            height: 22,
-            child: CircularProgressIndicator(strokeWidth: 2.2),
-          ),
-        ),
-      );
+      return _items.isEmpty
+          ? const SizedBox(height: 16)
+          : const _SupplyLoadingMoreFooter();
     }
     if (!_hasMore && _items.isNotEmpty) {
       return const ListEndTip(padding: EdgeInsets.fromLTRB(8, 6, 8, 12));
@@ -526,15 +586,17 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
 
 class _SupplyPalette {
   static const galleryWall = Color(0xFFF8FAFC);
+  static const softSurface = Color(0xFFF1F5F9);
   static const assetCase = Color(0xFFFFFFFF);
-  static const selectedPanel = Color(0xFFEFF7F8);
-  static const footerGlass = Color(0xF3F5FCFF);
+  static const selectedPanel = Color(0xFFFFFFFF);
+  static const footerGlass = Color(0xE6FFFFFF);
   static const ink = Color(0xFF0F172A);
   static const body = Color(0xFF1E293B);
-  static const teal = Color(0xFF007B8B);
-  static const tealDark = Color(0xFF006B7C);
-  static const pill = Color(0xFFCFEAF2);
-  static const ghostBorder = Color(0x26C4C5D5);
+  static const muted = Color(0xFF64748B);
+  static const blue = Color(0xFF2563EB);
+  static const blueSoft = Color(0xFFEFF6FF);
+  static const blueBorder = Color(0xFFDBEAFE);
+  static const ghostBorder = Color(0xFFE2E8F0);
 }
 
 class _SupplySelectedItemCard extends StatelessWidget {
@@ -543,23 +605,17 @@ class _SupplySelectedItemCard extends StatelessWidget {
     required this.imageUrl,
     required this.appId,
     required this.count,
-    required this.selectedCount,
-    required this.price,
-    required this.currency,
   });
 
   final String title;
   final String imageUrl;
   final int appId;
   final int count;
-  final int selectedCount;
-  final double price;
-  final CurrencyController currency;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: _SupplyPalette.selectedPanel,
@@ -567,96 +623,69 @@ class _SupplySelectedItemCard extends StatelessWidget {
           border: Border.all(color: _SupplyPalette.ghostBorder),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x12000000),
-              blurRadius: 12,
-              offset: Offset(0, 4),
+              color: Color(0x0D000000),
+              blurRadius: 2,
+              offset: Offset(0, 1),
             ),
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(21),
           child: Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(2),
-                child: SizedBox(
-                  width: 122,
-                  height: 72,
-                  child: GameItemImage(
-                    imageUrl: imageUrl,
-                    appId: appId,
-                    count: count > 0 ? count : null,
-                    alwaysShowCount: count > 0,
-                    showTopBadges: false,
+              Container(
+                width: 80,
+                height: 80,
+                padding: const EdgeInsets.all(1),
+                decoration: BoxDecoration(
+                  color: _SupplyPalette.galleryWall,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _SupplyPalette.softSurface),
+                ),
+                child: Center(
+                  child: SizedBox(
+                    width: 64,
+                    height: 64,
+                    child: GameItemImage(
+                      imageUrl: imageUrl,
+                      appId: appId,
+                      showTopBadges: false,
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.black,
-                        fontSize: 17,
-                        height: 1.35,
-                        fontWeight: FontWeight.w500,
+                        color: _SupplyPalette.ink,
+                        fontSize: 16,
+                        height: 20 / 16,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Obx(
-                      () => Text(
-                        currency.format(price),
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: _SupplyPalette.teal,
-                          fontSize: 17,
-                          height: 1.2,
-                          fontWeight: FontWeight.w800,
-                        ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'x${count > 0 ? count : 1}',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: _SupplyPalette.blue,
+                        fontSize: 12,
+                        height: 16 / 12,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
               ),
-              if (count > 0) ...[
-                const SizedBox(width: 10),
-                _SupplyCountPill(text: '$selectedCount/$count'),
-              ],
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SupplyCountPill extends StatelessWidget {
-  const _SupplyCountPill({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minWidth: 56),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(
-        color: _SupplyPalette.pill,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-          color: _SupplyPalette.ink,
-          fontSize: 15,
-          height: 1.1,
-          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -667,35 +696,66 @@ class _SupplyInventoryHeader extends StatelessWidget {
   const _SupplyInventoryHeader({
     required this.title,
     required this.selectedCount,
-    required this.totalCount,
+    required this.targetCount,
   });
 
   final String title;
   final int selectedCount;
-  final int totalCount;
+  final int targetCount;
 
   @override
   Widget build(BuildContext context) {
-    final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-      color: Colors.black,
-      fontSize: 16,
-      height: 1.25,
-      fontWeight: FontWeight.w400,
-    );
     return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 16, 22, 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: textStyle,
-            ),
+      padding: const EdgeInsets.only(top: 24),
+      child: Container(
+        height: 49,
+        decoration: const BoxDecoration(
+          color: _SupplyPalette.assetCase,
+          border: Border(
+            top: BorderSide(color: _SupplyPalette.ghostBorder),
+            bottom: BorderSide(color: _SupplyPalette.ghostBorder),
           ),
-          Text('$selectedCount/$totalCount', style: textStyle),
-        ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: _SupplyPalette.muted,
+                  fontSize: 14,
+                  height: 20 / 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              width: 90,
+              height: 24,
+              decoration: BoxDecoration(
+                color: _SupplyPalette.blueSoft,
+                border: Border.all(color: _SupplyPalette.blueBorder),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                'SELECTED $selectedCount/$targetCount',
+                maxLines: 1,
+                softWrap: false,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: _SupplyPalette.blue,
+                  fontSize: 10,
+                  height: 15 / 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -705,7 +765,6 @@ class _SupplyInventoryItemCard extends StatelessWidget {
   const _SupplyInventoryItemCard({
     required this.item,
     required this.schema,
-    required this.price,
     required this.currency,
     required this.selected,
     required this.disabledLabel,
@@ -714,7 +773,6 @@ class _SupplyInventoryItemCard extends StatelessWidget {
 
   final InventoryItem item;
   final ShopSchemaInfo? schema;
-  final double price;
   final CurrencyController currency;
   final bool selected;
   final String? disabledLabel;
@@ -723,155 +781,417 @@ class _SupplyInventoryItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final visual = _SupplyItemVisualData.from(item, schema);
+    final price = _resolveSupplyCardPrice(item, schema);
     final borderColor = selected
-        ? _SupplyPalette.teal.withValues(alpha: 0.45)
+        ? _SupplyPalette.blue.withValues(alpha: 0.55)
         : _SupplyPalette.ghostBorder;
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x14000000),
-            blurRadius: 10,
-            offset: Offset(0, 3),
+            color: Color(0x0D000000),
+            blurRadius: 1,
+            offset: Offset(0, 1),
           ),
         ],
       ),
       child: Material(
         color: _SupplyPalette.assetCase,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
           child: DecoratedBox(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: borderColor, width: selected ? 1.2 : 1),
             ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final maxImageHeight = constraints.maxHeight * 0.64;
-                final minImageHeight = maxImageHeight < 96
-                    ? maxImageHeight
-                    : 96.0;
-                final imageHeight = (constraints.maxWidth * 0.78)
-                    .clamp(minImageHeight, maxImageHeight)
-                    .toDouble();
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SizedBox(
-                      height: imageHeight,
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: Opacity(
-                              opacity: disabledLabel == null ? 1 : 0.68,
-                              child: GameItemImage(
-                                imageUrl: visual.imageUrl,
-                                appId: item.appId,
-                                rarity: visual.rarity,
-                                quality: visual.quality,
-                                exterior: visual.exterior,
-                                cooldown: item.cooldown,
-                                paintSeed: visual.paintSeed,
-                                phase: visual.phase,
-                                percentage: visual.percentage,
-                                paintWearText: visual.paintWearText,
-                                count: item.count,
-                                selected: false,
-                                showOnSaleBadge: visual.showOnSaleBadge,
-                                disabledLabel: disabledLabel,
-                                stickers: visual.stickers,
-                                gems: visual.gems,
-                                stickerBottomOffset: visual.stickerBottomOffset,
-                                onSaleBottomOffset: visual.onSaleBottomOffset,
-                                avoidTopLeftBadgeOverlap: true,
-                                compactTopLeftBadges: true,
-                                topBadgeScale: 0.95,
-                              ),
-                            ),
-                          ),
-                          if (selected) const _SupplySelectedOverlay(),
-                        ],
-                      ),
-                    ),
-                    if (visual.paintWearValue != null)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
-                        child: WearProgressBar(
-                          paintWear: visual.paintWearValue!,
-                          height: 18,
-                          accentColor: visual.wearAccentColor,
+            child: Padding(
+              padding: const EdgeInsets.all(11),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Flexible(
+                    fit: FlexFit.loose,
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: _SupplyPalette.galleryWall,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: _SupplyPalette.softSurface),
                         ),
-                      )
-                    else
-                      const SizedBox(height: 10),
-                    Expanded(
-                      child: ColoredBox(
-                        color: _SupplyPalette.galleryWall,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Stack(
                             children: [
-                              Text(
-                                visual.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.bodyLarge
-                                    ?.copyWith(
-                                      color: _SupplyPalette.body,
-                                      fontSize: 16,
-                                      height: 1.25,
-                                      fontWeight: FontWeight.w500,
+                              Positioned.fill(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(9),
+                                  child: Opacity(
+                                    opacity: disabledLabel == null ? 1 : 0.58,
+                                    child: CachedNetworkImage(
+                                      imageUrl: visual.imageUrl,
+                                      fit: BoxFit.contain,
+                                      placeholder: (context, url) =>
+                                          const Center(
+                                            child: SizedBox(
+                                              width: 18,
+                                              height: 18,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            ),
+                                          ),
+                                      errorWidget: (context, url, error) =>
+                                          const Center(
+                                            child: Icon(
+                                              Icons
+                                                  .image_not_supported_outlined,
+                                              size: 22,
+                                              color: _SupplyPalette.muted,
+                                            ),
+                                          ),
                                     ),
+                                  ),
+                                ),
                               ),
-                              const Spacer(),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Obx(
-                                      () => Text(
-                                        currency.format(price),
+                              if (selected) const _SupplySelectedOverlay(),
+                              if (disabledLabel != null)
+                                Positioned(
+                                  left: 8,
+                                  right: 8,
+                                  bottom: 8,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.86,
+                                      ),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 3,
+                                      ),
+                                      child: Text(
+                                        disabledLabel!,
                                         maxLines: 1,
+                                        textAlign: TextAlign.center,
                                         overflow: TextOverflow.ellipsis,
                                         style: Theme.of(context)
                                             .textTheme
-                                            .titleMedium
+                                            .labelSmall
                                             ?.copyWith(
-                                              color: _SupplyPalette.teal,
-                                              fontSize: 18,
-                                              height: 1.15,
-                                              fontWeight: FontWeight.w800,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.error,
+                                              fontSize: 10,
+                                              height: 1.2,
+                                              fontWeight: FontWeight.w700,
                                             ),
                                       ),
                                     ),
                                   ),
-                                  if (item.tradable == false)
-                                    Text(
-                                      'app.trade.non_tradable'.tr,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelSmall
-                                          ?.copyWith(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.error,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                ],
-                              ),
+                                ),
                             ],
                           ),
                         ),
                       ),
                     ),
-                  ],
-                );
-              },
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    visual.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: _SupplyPalette.body,
+                      fontSize: 11,
+                      height: 13.75 / 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Float: ${visual.paintWearText ?? '-'}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: _SupplyPalette.muted,
+                      fontSize: 10,
+                      height: 15 / 10,
+                      fontWeight: FontWeight.w400,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _SupplyBlueProgressBar(paintWear: visual.paintWearValue),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Obx(
+                          () => Text(
+                            currency.format(price),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(
+                                  color: _SupplyPalette.ink,
+                                  fontSize: 14,
+                                  height: 20 / 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.info_outline_rounded,
+                        size: 15,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SupplyBlueProgressBar extends StatelessWidget {
+  const _SupplyBlueProgressBar({required this.paintWear});
+
+  final double? paintWear;
+
+  @override
+  Widget build(BuildContext context) {
+    final fill = paintWear == null
+        ? 1.0
+        : (1 - paintWear! * 2).clamp(0.04, 1.0).toDouble();
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(999),
+      child: SizedBox(
+        height: 6,
+        child: ColoredBox(
+          color: _SupplyPalette.softSurface,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: FractionallySizedBox(
+              widthFactor: fill,
+              heightFactor: 1,
+              child: const ColoredBox(color: _SupplyPalette.blue),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SupplyInventorySkeletonCard extends StatelessWidget {
+  const _SupplyInventorySkeletonCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return _SupplySkeletonShimmer(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: _SupplyPalette.assetCase,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _SupplyPalette.ghostBorder),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0D000000),
+              blurRadius: 1,
+              offset: Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(11),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: const [
+              Flexible(
+                fit: FlexFit.loose,
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: _SupplySkeletonBox(radius: 8),
+                ),
+              ),
+              SizedBox(height: 12),
+              _SupplySkeletonBox(height: 12, radius: 6),
+              SizedBox(height: 6),
+              FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: 0.72,
+                child: _SupplySkeletonBox(height: 12, radius: 6),
+              ),
+              SizedBox(height: 10),
+              FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: 0.78,
+                child: _SupplySkeletonBox(height: 10, radius: 5),
+              ),
+              SizedBox(height: 8),
+              _SupplySkeletonBox(height: 6, radius: 999),
+              SizedBox(height: 8),
+              Row(
+                children: [
+                  _SupplySkeletonBox(width: 54, height: 16, radius: 8),
+                  Spacer(),
+                  _SupplySkeletonBox(width: 15, height: 15, radius: 999),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SupplySkeletonBox extends StatelessWidget {
+  const _SupplySkeletonBox({this.width, this.height, required this.radius});
+
+  final double? width;
+  final double? height;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8EEF5),
+        borderRadius: BorderRadius.circular(radius),
+      ),
+      child: SizedBox(width: width, height: height),
+    );
+  }
+}
+
+class _SupplySkeletonShimmer extends StatefulWidget {
+  const _SupplySkeletonShimmer({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_SupplySkeletonShimmer> createState() => _SupplySkeletonShimmerState();
+}
+
+class _SupplySkeletonShimmerState extends State<_SupplySkeletonShimmer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final shimmerWidth = constraints.maxWidth * 0.62;
+              final travel = constraints.maxWidth + shimmerWidth * 2;
+              final left = -shimmerWidth + travel * _controller.value;
+              return Stack(
+                children: [
+                  child!,
+                  Positioned(
+                    top: 0,
+                    bottom: 0,
+                    left: left,
+                    width: shimmerWidth,
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [
+                              Colors.white.withValues(alpha: 0),
+                              Colors.white.withValues(alpha: 0.58),
+                              Colors.white.withValues(alpha: 0),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+class _SupplyLoadingMoreFooter extends StatelessWidget {
+  const _SupplyLoadingMoreFooter();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+      child: Center(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: _SupplyPalette.assetCase,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: _SupplyPalette.ghostBorder),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      _SupplyPalette.blue,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _supplyLoadingText(),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: _SupplyPalette.muted,
+                    fontSize: 11,
+                    height: 16 / 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -888,7 +1208,7 @@ class _SupplySelectedOverlay extends StatelessWidget {
     return Stack(
       children: [
         Positioned.fill(
-          child: ColoredBox(color: _SupplyPalette.teal.withValues(alpha: 0.12)),
+          child: ColoredBox(color: _SupplyPalette.blue.withValues(alpha: 0.12)),
         ),
         Positioned(
           top: 8,
@@ -897,7 +1217,7 @@ class _SupplySelectedOverlay extends StatelessWidget {
             width: 24,
             height: 24,
             decoration: const BoxDecoration(
-              color: _SupplyPalette.teal,
+              color: _SupplyPalette.blue,
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -915,8 +1235,8 @@ class _SupplySelectedOverlay extends StatelessWidget {
 class _SupplyBottomActionBar extends StatelessWidget {
   const _SupplyBottomActionBar({
     required this.isAllSelected,
-    required this.selectedCount,
-    required this.totalCount,
+    required this.totalAmount,
+    required this.currency,
     required this.isSubmitting,
     required this.isActionDisabled,
     required this.onToggleSelectAll,
@@ -925,8 +1245,8 @@ class _SupplyBottomActionBar extends StatelessWidget {
   });
 
   final bool isAllSelected;
-  final int selectedCount;
-  final int totalCount;
+  final double totalAmount;
+  final CurrencyController currency;
   final bool isSubmitting;
   final bool isActionDisabled;
   final VoidCallback onToggleSelectAll;
@@ -952,33 +1272,75 @@ class _SupplyBottomActionBar extends StatelessWidget {
           ),
           child: SafeArea(
             top: false,
-            child: Center(
+            child: Align(
+              alignment: Alignment.center,
+              heightFactor: 1,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 672),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(28, 20, 14, 20),
+                  padding: const EdgeInsets.fromLTRB(24, 17, 24, 32),
                   child: Row(
                     children: [
-                      _SupplyCheckbox(
-                        selected: isAllSelected,
-                        onTap: onToggleSelectAll,
-                      ),
-                      const SizedBox(width: 18),
-                      Text(
-                        '$selectedCount/$totalCount',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.black,
-                          fontSize: 15,
-                          height: 1.2,
-                          fontWeight: FontWeight.w400,
+                      SizedBox(
+                        width: 118,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'TOTAL AMOUNT',
+                              maxLines: 1,
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: _SupplyPalette.muted,
+                                    fontSize: 10,
+                                    height: 15 / 10,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 1,
+                                  ),
+                            ),
+                            Obx(
+                              () => Text(
+                                currency.format(totalAmount),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.headlineSmall
+                                    ?.copyWith(
+                                      color: _SupplyPalette.ink,
+                                      fontSize: 24,
+                                      height: 32 / 24,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: -0.6,
+                                    ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const Spacer(),
-                      _SupplySubmitButton(
-                        label: label,
-                        loading: isSubmitting,
-                        disabled: isActionDisabled,
-                        onTap: onSupply,
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _SupplyAllSupplyButton(
+                                  selected: isAllSelected,
+                                  onTap: onToggleSelectAll,
+                                ),
+                                const SizedBox(width: 8),
+                                _SupplySubmitButton(
+                                  label: label,
+                                  loading: isSubmitting,
+                                  disabled: isActionDisabled,
+                                  onTap: onSupply,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -992,8 +1354,8 @@ class _SupplyBottomActionBar extends StatelessWidget {
   }
 }
 
-class _SupplyCheckbox extends StatelessWidget {
-  const _SupplyCheckbox({required this.selected, required this.onTap});
+class _SupplyAllSupplyButton extends StatelessWidget {
+  const _SupplyAllSupplyButton({required this.selected, required this.onTap});
 
   final bool selected;
   final VoidCallback onTap;
@@ -1002,34 +1364,53 @@ class _SupplyCheckbox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        customBorder: const CircleBorder(),
+        borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: SizedBox(
-          width: 30,
-          height: 30,
-          child: Center(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              width: 23,
-              height: 23,
-              decoration: BoxDecoration(
-                color: selected ? _SupplyPalette.teal : Colors.transparent,
-                borderRadius: BorderRadius.circular(3),
-                border: Border.all(
-                  color: selected
-                      ? _SupplyPalette.teal
-                      : const Color(0xFF455A64),
-                  width: 2,
+          height: 42,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  width: 13.5,
+                  height: 13.5,
+                  decoration: BoxDecoration(
+                    color: selected ? _SupplyPalette.blue : Colors.transparent,
+                    borderRadius: BorderRadius.circular(1.5),
+                    border: Border.all(
+                      color: selected
+                          ? _SupplyPalette.blue
+                          : const Color(0xFF94A3B8),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: selected
+                      ? const Icon(
+                          Icons.check_rounded,
+                          size: 10,
+                          color: Colors.white,
+                        )
+                      : null,
                 ),
-              ),
-              child: selected
-                  ? const Icon(
-                      Icons.check_rounded,
-                      size: 17,
-                      color: Colors.white,
-                    )
-                  : null,
+                const SizedBox(width: 6),
+                Text(
+                  'ALL SUPPLY',
+                  maxLines: 1,
+                  softWrap: false,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: const Color(0xFF475569),
+                    fontSize: 11,
+                    height: 16.5 / 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.55,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -1058,29 +1439,32 @@ class _SupplySubmitButton extends StatelessWidget {
       opacity: disabled ? 0.58 : 1,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [_SupplyPalette.tealDark, _SupplyPalette.teal],
-          ),
-          borderRadius: BorderRadius.circular(26),
+          color: _SupplyPalette.blue,
+          borderRadius: BorderRadius.circular(12),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x26007B8B),
-              blurRadius: 18,
-              offset: Offset(0, 8),
+              color: Color(0x332563EB),
+              blurRadius: 15,
+              offset: Offset(0, 10),
+              spreadRadius: -3,
+            ),
+            BoxShadow(
+              color: Color(0x332563EB),
+              blurRadius: 6,
+              offset: Offset(0, 4),
+              spreadRadius: -4,
             ),
           ],
         ),
         child: Material(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(26),
+          borderRadius: BorderRadius.circular(12),
           child: InkWell(
-            borderRadius: BorderRadius.circular(26),
+            borderRadius: BorderRadius.circular(12),
             onTap: disabled ? null : onTap,
             child: SizedBox(
-              width: 98,
-              height: 50,
+              width: 94,
+              height: 42,
               child: Center(
                 child: loading
                     ? const SizedBox(
@@ -1098,15 +1482,16 @@ class _SupplySubmitButton extends StatelessWidget {
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            label,
+                            label.toUpperCase(),
                             maxLines: 1,
                             softWrap: false,
                             style: Theme.of(context).textTheme.labelLarge
                                 ?.copyWith(
                                   color: Colors.white,
-                                  fontSize: 16,
-                                  height: 1.1,
-                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                  height: 16 / 12,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.6,
                                 ),
                           ),
                         ),
@@ -1247,6 +1632,42 @@ double? _extractSupplyDouble(dynamic raw, List<String> keys) {
     }
   }
   return null;
+}
+
+double _parseSupplyPrice(dynamic value) {
+  if (value is num) {
+    return value.toDouble();
+  }
+  return double.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+double _normalizeSupplyPrice(double value) {
+  if (!value.isFinite || value <= 0) {
+    return 0;
+  }
+  return double.parse(value.toStringAsFixed(2));
+}
+
+double _resolveSupplyCardPrice(InventoryItem item, ShopSchemaInfo? schema) {
+  final itemPrice = _parseSupplyPrice(item.price);
+  if (itemPrice > 0) {
+    return _normalizeSupplyPrice(itemPrice);
+  }
+  final raw = schema?.raw;
+  if (raw != null) {
+    final schemaPrice = _parseSupplyPrice(
+      raw['buff_min_price'] ?? raw['buffMinPrice'],
+    );
+    if (schemaPrice > 0) {
+      return _normalizeSupplyPrice(schemaPrice);
+    }
+  }
+  return 0;
+}
+
+String _supplyLoadingText() {
+  final languageCode = Get.locale?.languageCode.toLowerCase() ?? '';
+  return languageCode.startsWith('zh') ? '加载中...' : 'Loading...';
 }
 
 String? _formatSupplyWear(double? wear) {
