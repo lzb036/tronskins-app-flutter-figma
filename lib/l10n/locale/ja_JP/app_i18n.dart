@@ -417,6 +417,7 @@ final Map<String, String> ja_JP = {
   "app.user.wallet.flow_details": "資金明細",
   "app.user.wallet.secret_key": "秘密キー",
   "app.user.wallet.lock_amount": "ロックダウン",
+  "app.user.wallet.lock_breakdown": "ロック内訳",
   "app.user.wallet.assets_total": "総資産",
   "app.user.wallet.lock_details": "ロックダウンの詳細",
   "app.user.wallet.integral_details": "統合の詳細",

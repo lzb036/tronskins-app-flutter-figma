@@ -484,6 +484,7 @@ final Map<String, String> in_ID = {
   "app.user.wallet.flow_details": "Detail dana",
   "app.user.wallet.secret_key": "Kunci Rahasia",
   "app.user.wallet.lock_amount": "Penguncian",
+  "app.user.wallet.lock_breakdown": "Rincian kunci",
   "app.user.wallet.assets_total": "Total Aset",
   "app.user.wallet.lock_details": "Detail Penguncian",
   "app.user.wallet.integral_details": "Detail integrasi",

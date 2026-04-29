@@ -425,6 +425,7 @@ final Map<String, String> ko_KR = {
   "app.user.wallet.flow_details": "자금 상세",
   "app.user.wallet.secret_key": "비밀 키",
   "app.user.wallet.lock_amount": "잠금",
+  "app.user.wallet.lock_breakdown": "잠금 내역",
   "app.user.wallet.assets_total": "총 자산",
   "app.user.wallet.lock_details": "잠금 세부사항",
   "app.user.wallet.integral_details": "통합 세부사항",

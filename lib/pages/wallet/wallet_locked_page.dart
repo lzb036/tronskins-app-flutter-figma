@@ -190,10 +190,7 @@ class _WalletLockedPageState extends State<WalletLockedPage> {
   }
 
   bool _isWithdrawLockedItem(WalletLockedItem item) {
-    final statusText = _lockedStatusText(item).toLowerCase();
-    return item.lockType == 3 ||
-        statusText.contains('提现') ||
-        statusText.contains('withdraw');
+    return item.lockType == 3;
   }
 
   bool _canOpenLockedDetail(WalletLockedItem item) {

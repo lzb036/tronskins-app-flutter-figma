@@ -503,6 +503,7 @@ final Map<String, String> fr_FR = {
   "app.user.wallet.flow_details": "Details des fonds",
   "app.user.wallet.secret_key": "clé secrète",
   "app.user.wallet.lock_amount": "Verrouillage",
+  "app.user.wallet.lock_breakdown": "Details du verrouillage",
   "app.user.wallet.assets_total": "Total des actifs",
   "app.user.wallet.lock_details": "Détails de verrouillage",
   "app.user.wallet.integral_details": "Détails de l'intégration",

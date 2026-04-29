@@ -501,6 +501,7 @@ final Map<String, String> sp_ES = {
   "app.user.wallet.flow_details": "Detalles de fondos",
   "app.user.wallet.secret_key": "llave secreta",
   "app.user.wallet.lock_amount": "Bloqueo",
+  "app.user.wallet.lock_breakdown": "Desglose del bloqueo",
   "app.user.wallet.assets_total": "Total de activos",
   "app.user.wallet.lock_details": "Detalles del bloqueo",
   "app.user.wallet.integral_details": "Detalles de integración",

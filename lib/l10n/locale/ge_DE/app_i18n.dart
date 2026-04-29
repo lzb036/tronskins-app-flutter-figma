@@ -495,6 +495,7 @@ final Map<String, String> ge_DE = {
   "app.user.wallet.flow_details": "Fondsdaten",
   "app.user.wallet.secret_key": "Geheimer Schlüssel",
   "app.user.wallet.lock_amount": "Verriegelung",
+  "app.user.wallet.lock_breakdown": "Sperraufschlüsselung",
   "app.user.wallet.assets_total": "Gesamte Vermögenswerte",
   "app.user.wallet.lock_details": "Details zum Lockdown",
   "app.user.wallet.integral_details": "Details zur Integration",

@@ -492,6 +492,7 @@ final Map<String, String> po_PT = {
   "app.user.wallet.flow_details": "Detalhes dos fundos",
   "app.user.wallet.secret_key": "Chave secreta",
   "app.user.wallet.lock_amount": "Bloqueamento",
+  "app.user.wallet.lock_breakdown": "Detalhe do bloqueio",
   "app.user.wallet.assets_total": "Ativos totais",
   "app.user.wallet.lock_details": "Detalhes do bloqueio",
   "app.user.wallet.integral_details": "Detalhes da integração",

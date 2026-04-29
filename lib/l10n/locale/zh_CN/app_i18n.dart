@@ -390,6 +390,7 @@ final Map<String, String> zh_CN = {
   "app.user.wallet.flow_details": "资金明细",
   "app.user.wallet.secret_key": "密钥",
   "app.user.wallet.lock_amount": "锁定金额",
+  "app.user.wallet.lock_breakdown": "锁定构成",
   "app.user.wallet.assets_total": "总资产",
   "app.user.wallet.lock_details": "锁定明细",
   "app.user.wallet.integral_details": "积分明细",

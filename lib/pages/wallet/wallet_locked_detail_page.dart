@@ -824,7 +824,7 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
                               _buildNoticeCard(),
                               const SizedBox(height: 18),
                               _buildTrackingTitle(
-                                _text(zh: '资金追踪', en: 'Fund Tracking'),
+                                'app.user.wallet.lock_breakdown'.tr,
                               ),
                               const SizedBox(height: 10),
                               _buildFundTrackingSection(currency),
@@ -998,8 +998,8 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
     final lockTime = _formatTimestamp(_resolvedLockTime(order));
     final statusColor = _statusHeadlineColor(order);
     final message = _text(
-      zh: '当前资金状态：$headline。锁定时间 $lockTime，可在下方查看资金追踪。',
-      en: 'Current fund status: $headline. Locked at $lockTime. Track the fund movement below.',
+      zh: '当前资金状态：$headline。锁定时间 $lockTime，可在下方查看锁定构成。',
+      en: 'Current fund status: $headline. Locked at $lockTime. Review the lock breakdown below.',
     );
 
     return Container(

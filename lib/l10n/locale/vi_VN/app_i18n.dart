@@ -473,6 +473,7 @@ final Map<String, String> vi_VN = {
   "app.user.wallet.flow_details": "Chi tiết quỹ",
   "app.user.wallet.secret_key": "Chìa khóa bí mật",
   "app.user.wallet.lock_amount": "Khóa",
+  "app.user.wallet.lock_breakdown": "Chi tiết khóa",
   "app.user.wallet.assets_total": "Tổng tài sản",
   "app.user.wallet.lock_details": "Chi tiết khóa",
   "app.user.wallet.integral_details": "Chi tiết tích hợp",

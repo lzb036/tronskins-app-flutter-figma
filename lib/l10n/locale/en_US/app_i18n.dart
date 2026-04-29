@@ -480,6 +480,7 @@ final Map<String, String> en_US = {
   "app.user.wallet.flow_details": "Fund Details",
   "app.user.wallet.secret_key": "Secret Key",
   "app.user.wallet.lock_amount": "Lockdown",
+  "app.user.wallet.lock_breakdown": "Lock Breakdown",
   "app.user.wallet.assets_total": "Total Assets",
   "app.user.wallet.lock_details": "Lockdown Details",
   "app.user.wallet.integral_details": "Integration details",
