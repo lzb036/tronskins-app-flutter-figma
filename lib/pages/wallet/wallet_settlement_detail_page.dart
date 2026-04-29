@@ -56,7 +56,7 @@ class WalletSettlementDetailPage extends StatelessWidget {
                   16,
                   topInset + 80,
                   16,
-                  bottomInset + 120,
+                  bottomInset + 132,
                 ),
                 child: Align(
                   alignment: Alignment.topCenter,
@@ -67,18 +67,13 @@ class WalletSettlementDetailPage extends StatelessWidget {
                       children: [
                         _buildStatusCard(context, currency),
                         const SizedBox(height: 16),
-                        if (record.details.isEmpty)
-                          _buildEmptyCard()
-                        else
-                          ...record.details.map(
-                            (detail) => Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: _buildDetailCard(
-                                detail: detail,
-                                currency: currency,
-                              ),
-                            ),
-                          ),
+                        _buildOrderStatusCard(),
+                        const SizedBox(height: 16),
+                        _buildProductCard(currency: currency),
+                        const SizedBox(height: 16),
+                        _buildPriceCard(currency: currency),
+                        const SizedBox(height: 16),
+                        _buildTipsCard(),
                       ],
                     ),
                   ),
@@ -148,14 +143,25 @@ class WalletSettlementDetailPage extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: Text(
-                  _statusHeadline(),
-                  style: TextStyle(
-                    color: statusStyle.headlineColor,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    height: 32 / 24,
-                    letterSpacing: -0.5,
+                child: SizedBox(
+                  height: 32,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        _statusHeadline(),
+                        softWrap: false,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          height: 32 / 24,
+                          letterSpacing: -0.6,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -198,46 +204,87 @@ class WalletSettlementDetailPage extends StatelessWidget {
               value: buyerName,
             ),
           ],
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _buildGlassMetricChip(
-                label: _text(zh: '售价', en: 'Price'),
-                value: _formatPrice(currency, _resolveRecordListedAmount()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderStatusCard() {
+    final statusStyle = _statusStyle();
+    return _buildCard(
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildSectionTitle(_text(zh: '订单状态', en: 'Order Status')),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    statusStyle.icon,
+                    color: statusStyle.headlineColor,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      _statusText(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        color: statusStyle.headlineColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        height: 20 / 14,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              _buildGlassMetricChip(
-                label: _text(zh: '到账金额', en: 'Received'),
-                value: _formatPrice(currency, _resolveRecordReceivedAmount()),
-              ),
-              _buildGlassMetricChip(
-                label: _text(zh: '件数', en: 'Items'),
-                value: _totalItemCount().toString(),
-              ),
-            ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyCard() {
+  Widget _buildProductCard({required CurrencyController? currency}) {
+    final title = record.details.length > 1
+        ? '${_text(zh: '商品信息', en: 'Product Info')} (${_totalItemCount()})'
+        : _text(zh: '商品信息', en: 'Product Info');
     return _buildCard(
-      child: Center(
-        child: Text(
-          'app.common.no_data'.tr,
-          style: const TextStyle(
-            color: _mutedColor,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle(title),
+          const SizedBox(height: 16),
+          if (record.details.isEmpty)
+            _buildEmptyBlock()
+          else
+            ...List.generate(record.details.length, (index) {
+              final detail = record.details[index];
+              return Column(
+                children: [
+                  _buildDetailItem(detail: detail, currency: currency),
+                  if (index != record.details.length - 1) ...[
+                    const SizedBox(height: 16),
+                    const Divider(height: 1, color: Color(0xFFECEEF0)),
+                    const SizedBox(height: 16),
+                  ],
+                ],
+              );
+            }),
+        ],
       ),
     );
   }
 
-  Widget _buildDetailCard({
+  Widget _buildDetailItem({
     required WalletSettlementDetail detail,
     required CurrencyController? currency,
   }) {
@@ -257,48 +304,112 @@ class WalletSettlementDetailPage extends StatelessWidget {
     final appId = _resolveDetailAppId(detail, schema);
     final count = _detailCount(detail);
     final listedAmount = _resolveDetailListedAmount(detail);
-    final receivedAmount = _resolveDetailReceivedAmount(detail);
     final wearText = _paintWearText(detail);
     final wearValue = _paintWearValue(detail);
+
+    return WalletOrderAssetCard(
+      title: title,
+      subtitle: subtitle,
+      imageUrl: imageUrl,
+      appId: appId,
+      priceText: _formatPrice(currency, listedAmount),
+      count: count,
+      raw: detail.raw,
+      schemaRaw: schema?.raw ?? const {},
+      stickerMap: stickers,
+      rarity: rarity,
+      quality: quality,
+      exterior: exterior,
+      phase: phase,
+      percentage: percentage,
+      paintWear: wearValue,
+      wearText: wearText,
+    );
+  }
+
+  Widget _buildPriceCard({required CurrencyController? currency}) {
+    final listedAmount = _resolveRecordListedAmount();
+    final receivedAmount = _resolveRecordReceivedAmount();
+    final feeAmount = _resolveRecordFeeAmount(
+      listedAmount: listedAmount,
+      receivedAmount: receivedAmount,
+    );
 
     return _buildCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle(_text(zh: '商品信息', en: 'Product Info')),
+          _buildSectionTitle(_text(zh: '结算明细', en: 'Settlement Breakdown')),
           const SizedBox(height: 16),
-          WalletOrderAssetCard(
-            title: title,
-            subtitle: subtitle,
-            imageUrl: imageUrl,
-            appId: appId,
-            priceText: _formatPrice(currency, listedAmount),
-            count: count,
-            raw: detail.raw,
-            schemaRaw: schema?.raw ?? const {},
-            stickerMap: stickers,
-            rarity: rarity,
-            quality: quality,
-            exterior: exterior,
-            phase: phase,
-            percentage: percentage,
-            paintWear: wearValue,
-            wearText: wearText,
+          _buildPriceRow(
+            _text(zh: '件数', en: 'Items'),
+            _totalItemCount().toString(),
           ),
-          const SizedBox(height: 18),
-          _buildDetailValueRow(
-            label: _text(zh: '售价', en: 'Price'),
-            value: _formatPrice(currency, listedAmount),
+          const SizedBox(height: 12),
+          _buildPriceRow(
+            _text(zh: '成交金额', en: 'Sale Price'),
+            _formatPrice(currency, listedAmount),
           ),
-          const SizedBox(height: 8),
-          _buildDetailValueRow(
-            label: _text(zh: '到账金额', en: 'Received Price'),
-            value: _formatPrice(currency, receivedAmount),
+          if (feeAmount != null) ...[
+            const SizedBox(height: 12),
+            _buildPriceRow(
+              _text(zh: '服务费', en: 'Service Fee'),
+              '-${_formatPrice(currency, feeAmount)}',
+              valueColor: const Color(0xFFBA1A1A),
+            ),
+          ],
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: Color(0xFFECEEF0)),
+          const SizedBox(height: 12),
+          _buildPriceRow(
+            _text(zh: '实际到账', en: 'Actual Income'),
+            _formatPrice(currency, receivedAmount),
+            labelStyle: const TextStyle(
+              color: _titleColor,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              height: 1.5,
+            ),
+            valueStyle: const TextStyle(
+              color: Color(0xFF10B981),
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              height: 1.4,
+            ),
           ),
-          const SizedBox(height: 8),
-          _buildStatusValueRow(
-            label: _text(zh: '状态', en: 'State'),
-            value: _statusText(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTipsCard() {
+    final tips = [
+      'app.user.wallet.unsettled_tips'.tr,
+      _text(
+        zh: '若预计到账时间后仍未到账，可通过底部入口联系平台客服。',
+        en: 'If the income is not credited after the release time, contact support from the bottom action.',
+      ),
+    ].where((item) => item.trim().isNotEmpty).toList();
+
+    return _buildCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle(_text(zh: '温馨提示', en: 'Warm Tips')),
+          const SizedBox(height: 14),
+          ...tips.map(
+            (tip) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                tip,
+                style: const TextStyle(
+                  color: _bodyColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  height: 20 / 13,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -419,41 +530,6 @@ class WalletSettlementDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildGlassMetricChip({required String label, required String value}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: Color.fromRGBO(255, 255, 255, 0.78),
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              height: 16 / 11,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              height: 20 / 15,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildGlassStatusRow({
     required String label,
     required String value,
@@ -463,7 +539,7 @@ class WalletSettlementDetailPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 112,
+          width: 90,
           child: Text(
             label,
             style: const TextStyle(
@@ -479,14 +555,25 @@ class WalletSettlementDetailPage extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: Text(
-                  value,
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    color: Color.fromRGBO(255, 255, 255, 0.94),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    height: 20 / 14,
+                child: SizedBox(
+                  height: 20,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        value,
+                        softWrap: false,
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(
+                          color: Color.fromRGBO(255, 255, 255, 0.90),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          height: 20 / 14,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -508,66 +595,56 @@ class WalletSettlementDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailValueRow({required String label, required String value}) {
+  Widget _buildEmptyBlock() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      alignment: Alignment.center,
+      child: Text(
+        'app.common.no_data'.tr,
+        style: const TextStyle(
+          color: _mutedColor,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPriceRow(
+    String label,
+    String value, {
+    Color? valueColor,
+    TextStyle? labelStyle,
+    TextStyle? valueStyle,
+  }) {
     return Row(
       children: [
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(
-              color: _bodyColor,
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
-              height: 20 / 14,
-            ),
+            style:
+                labelStyle ??
+                const TextStyle(
+                  color: _bodyColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  height: 20 / 14,
+                ),
           ),
         ),
         const SizedBox(width: 12),
         Text(
           value,
           textAlign: TextAlign.right,
-          style: const TextStyle(
-            color: _titleColor,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            height: 20 / 15,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatusValueRow({required String label, required String value}) {
-    final style = _statusStyle();
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: _bodyColor,
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
-              height: 20 / 14,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: style.badgeBackground,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            value,
-            style: TextStyle(
-              color: style.badgeForeground,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              height: 16 / 11,
-            ),
-          ),
+          style:
+              valueStyle ??
+              TextStyle(
+                color: valueColor ?? _titleColor,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                height: 20 / 14,
+              ),
         ),
       ],
     );
@@ -673,8 +750,6 @@ class WalletSettlementDetailPage extends StatelessWidget {
     if (isPending) {
       return const _SettlementDetailStatusStyle(
         headlineColor: kOrderDetailStatusTextSettlement,
-        badgeBackground: Color(0xFFEFF6FF),
-        badgeForeground: Color(0xFF2563EB),
         icon: Icons.schedule_rounded,
       );
     }
@@ -688,8 +763,6 @@ class WalletSettlementDetailPage extends StatelessWidget {
     if (isCompleted) {
       return const _SettlementDetailStatusStyle(
         headlineColor: kOrderDetailStatusTextSuccess,
-        badgeBackground: Color(0xFFF0FDF4),
-        badgeForeground: Color(0xFF16A34A),
         icon: Icons.check_circle_outline_rounded,
       );
     }
@@ -703,16 +776,12 @@ class WalletSettlementDetailPage extends StatelessWidget {
     if (isCancelled) {
       return const _SettlementDetailStatusStyle(
         headlineColor: kOrderDetailStatusTextDanger,
-        badgeBackground: Color(0xFFF1F5F9),
-        badgeForeground: Color(0xFF64748B),
         icon: Icons.cancel_outlined,
       );
     }
 
     return const _SettlementDetailStatusStyle(
       headlineColor: kOrderDetailStatusTextProcessing,
-      badgeBackground: Color(0xFFF1F5F9),
-      badgeForeground: Color(0xFF64748B),
       icon: Icons.info_outline_rounded,
     );
   }
@@ -938,6 +1007,32 @@ class WalletSettlementDetailPage extends StatelessWidget {
     return listed;
   }
 
+  double? _resolveRecordFeeAmount({
+    required double listedAmount,
+    required double receivedAmount,
+  }) {
+    final direct = _pickRawDouble(record.raw, const [
+      'service_fee',
+      'serviceFee',
+      'fee',
+      'commission',
+      'commission_fee',
+      'commissionFee',
+      'charge_fee',
+      'chargeFee',
+      'tax',
+    ]);
+    if (direct != null && direct != 0) {
+      return direct.abs();
+    }
+
+    final diff = listedAmount - receivedAmount;
+    if (diff > 0.0001) {
+      return diff;
+    }
+    return null;
+  }
+
   double _sumDetailAmounts(double Function(WalletSettlementDetail) mapper) {
     double total = 0;
     for (final detail in record.details) {
@@ -1007,13 +1102,6 @@ class WalletSettlementDetailPage extends StatelessWidget {
       return listed - fee;
     }
 
-    if (record.details.length == 1) {
-      final recordLevel = _resolveRecordReceivedAmount();
-      if (recordLevel > 0) {
-        return recordLevel;
-      }
-    }
-
     return listed;
   }
 
@@ -1039,13 +1127,9 @@ class WalletSettlementDetailPage extends StatelessWidget {
 class _SettlementDetailStatusStyle {
   const _SettlementDetailStatusStyle({
     required this.headlineColor,
-    required this.badgeBackground,
-    required this.badgeForeground,
     required this.icon,
   });
 
   final Color headlineColor;
-  final Color badgeBackground;
-  final Color badgeForeground;
   final IconData icon;
 }

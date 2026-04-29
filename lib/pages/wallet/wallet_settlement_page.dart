@@ -151,6 +151,23 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
     return null;
   }
 
+  double? _asDouble(dynamic value) {
+    if (value is double) {
+      return value;
+    }
+    if (value is num) {
+      return value.toDouble();
+    }
+    if (value is String) {
+      return double.tryParse(value);
+    }
+    return null;
+  }
+
+  double? _pickRawDouble(dynamic source, List<String> keys) {
+    return _asDouble(_pickRawValue(source, keys));
+  }
+
   int _resolveAppId(WalletSettlementDetail detail, WalletSchemaInfo? schema) {
     return detail.appId ??
         schema?.appId ??
@@ -405,9 +422,10 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
 
   Widget _buildSettlementInfoPanel(
     WalletSettlementRecord record,
-    double price,
     CurrencyController currency,
   ) {
+    final receivedAmount = _resolveRecordReceivedAmount(record);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -419,8 +437,8 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
         children: [
           Expanded(
             child: _buildInfoMetric(
-              label: _isChineseLocale ? '结算金额' : 'Amount',
-              child: _buildRecordPrice(price, currency),
+              label: _isChineseLocale ? '到账金额' : 'Received',
+              child: _buildRecordPrice(receivedAmount, currency),
             ),
           ),
           Container(
@@ -479,6 +497,149 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
         letterSpacing: 0.2,
       ),
     );
+  }
+
+  double _resolveRecordReceivedAmount(WalletSettlementRecord record) {
+    final direct = _pickRawDouble(record.raw, const [
+      'actual_income',
+      'actualIncome',
+      'income',
+      'seller_income',
+      'sellerIncome',
+      'real_income',
+      'realIncome',
+      'final_income',
+      'finalIncome',
+      'receivable',
+      'receivable_amount',
+      'receivableAmount',
+      'received_price',
+      'receivedPrice',
+      'settlement_amount',
+      'settlementAmount',
+    ]);
+    if (direct != null) {
+      return direct;
+    }
+
+    final listed = _resolveRecordListedAmount(record);
+    final fee = _pickRawDouble(record.raw, const [
+      'service_fee',
+      'serviceFee',
+      'fee',
+      'commission',
+      'commission_fee',
+      'commissionFee',
+      'charge_fee',
+      'chargeFee',
+      'tax',
+    ]);
+    if (fee != null) {
+      return listed - fee;
+    }
+
+    final detailTotal = _sumDetailAmounts(record, _resolveDetailReceivedAmount);
+    if (detailTotal > 0) {
+      return detailTotal;
+    }
+
+    return listed;
+  }
+
+  double _resolveRecordListedAmount(WalletSettlementRecord record) {
+    final direct = _pickRawDouble(record.raw, const [
+      'total_price',
+      'totalPrice',
+      'price',
+      'sale_price',
+      'salePrice',
+      'list_price',
+      'listPrice',
+    ]);
+    if (direct != null) {
+      return direct;
+    }
+
+    final detailTotal = _sumDetailAmounts(record, _resolveDetailListedAmount);
+    if (detailTotal > 0) {
+      return detailTotal;
+    }
+
+    return record.price ?? 0;
+  }
+
+  double _sumDetailAmounts(
+    WalletSettlementRecord record,
+    double Function(WalletSettlementDetail) mapper,
+  ) {
+    double total = 0;
+    for (final detail in record.details) {
+      total += mapper(detail);
+    }
+    return total;
+  }
+
+  double _resolveDetailListedAmount(WalletSettlementDetail detail) {
+    final count = _detailCount(detail);
+    return _pickRawDouble(detail.raw, const [
+          'total_price',
+          'totalPrice',
+          'price',
+          'sale_price',
+          'salePrice',
+          'list_price',
+          'listPrice',
+        ]) ??
+        ((detail.price ?? 0) * count);
+  }
+
+  double _resolveDetailReceivedAmount(WalletSettlementDetail detail) {
+    final direct = _pickRawDouble(detail.raw, const [
+      'actual_income',
+      'actualIncome',
+      'income',
+      'seller_income',
+      'sellerIncome',
+      'real_income',
+      'realIncome',
+      'final_income',
+      'finalIncome',
+      'receivable',
+      'receivable_amount',
+      'receivableAmount',
+      'received_price',
+      'receivedPrice',
+      'settlement_amount',
+      'settlementAmount',
+    ]);
+    if (direct != null) {
+      return direct;
+    }
+
+    final listed = _resolveDetailListedAmount(detail);
+    final fee = _pickRawDouble(detail.raw, const [
+      'service_fee',
+      'serviceFee',
+      'fee',
+      'commission',
+      'commission_fee',
+      'commissionFee',
+      'charge_fee',
+      'chargeFee',
+      'tax',
+    ]);
+    if (fee != null) {
+      return listed - fee;
+    }
+
+    return listed;
+  }
+
+  int _detailCount(WalletSettlementDetail detail) {
+    final count =
+        _asInt(_pickRawValue(detail.raw, const ['count', 'num', 'quantity'])) ??
+        1;
+    return count < 1 ? 1 : count;
   }
 
   Widget _buildMultiPreviewStack(List<WalletSettlementDetail> details) {
@@ -540,13 +701,7 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
   ) {
     final detail = record.details.isNotEmpty ? record.details.first : null;
     if (detail == null) {
-      return Row(
-        children: [
-          Expanded(child: _buildRecordPrice(record.price ?? 0, currency)),
-          const SizedBox(width: 12),
-          _buildRecordTrailingMeta(record),
-        ],
-      );
+      return _buildSettlementInfoPanel(record, currency);
     }
 
     final schema = _findSchema(detail);
@@ -614,11 +769,7 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
           ],
         ),
         const SizedBox(height: 16),
-        _buildSettlementInfoPanel(
-          record,
-          record.price ?? detail.price ?? 0,
-          currency,
-        ),
+        _buildSettlementInfoPanel(record, currency),
       ],
     );
   }
@@ -687,7 +838,7 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
           ],
         ),
         const SizedBox(height: 16),
-        _buildSettlementInfoPanel(record, record.price ?? 0, currency),
+        _buildSettlementInfoPanel(record, currency),
       ],
     );
   }
