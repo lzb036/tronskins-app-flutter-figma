@@ -603,6 +603,7 @@ final Map<String, String> in_ID = {
   "app.trade.purchase.message.remaining_tips":
       "Anda telah menerbitkan {0} permintaan, Anda dapat menerbitkan {1}",
   "app.trade.deliver.go": "Pergi Pengiriman",
+  "app.trade.deliver.now": "Deliver Now",
   "app.trade.deliver.num": "Kuantitas Pengiriman",
   "app.trade.deliver.combined": "Pengiriman Gabungan",
   "app.trade.deliver.message.creating": "Membuat Quotation ..",
@@ -622,7 +623,7 @@ final Map<String, String> in_ID = {
   "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Pendapatan aktual",
   "app.trade.supply.message.confirm":
-      "Setelah mengkonfirmasi pasokan, penawaran harus dimulai dalam waktu 30 menit (coba ulang diizinkan). Jika pasokan gagal, pembelian tidak dapat dipenuhi dalam waktu 3 hari.",
+      "You need to create a trade offer within 30 minutes. Go to delivery now?",
   "app.trade.supply.message.not_selected":
       "Anda belum memilih perhiasan saat ini.",
   "app.trade.supply.message.select_inventory":
@@ -735,6 +736,7 @@ final Map<String, String> in_ID = {
   "app.common.deselect_all": "Hapus semua pilihan",
   "app.common.confirm": "Konfirmasi",
   "app.common.cancel": "Pembatalan",
+  "app.common.close": "Close",
   "app.common.delete": "Hapus",
   "app.common.save": "Simpan",
   "app.common.copy": "Salin",

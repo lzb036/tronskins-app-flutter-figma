@@ -608,6 +608,7 @@ final Map<String, String> ru_RU = {
   "app.trade.purchase.message.remaining_tips":
       "Вы опубликовали {0} запросов, вы можете опубликовать {1}",
   "app.trade.deliver.go": "Иди Доставка",
+  "app.trade.deliver.now": "Deliver Now",
   "app.trade.deliver.num": "Количество отгрузки",
   "app.trade.deliver.combined": "Комбинированная доставка",
   "app.trade.deliver.message.creating": "Создание цитаты. ..",
@@ -628,7 +629,7 @@ final Map<String, String> ru_RU = {
   "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Фактический доход",
   "app.trade.supply.message.confirm":
-      "После подтверждения поставки, котировка должна быть инициирована в течение 30 минут (допускаются повторные попытки). Если поставка не удастся, покупка не может быть выполнена в течение 3 дней.",
+      "You need to create a trade offer within 30 minutes. Go to delivery now?",
   "app.trade.supply.message.not_selected":
       "На данный момент вы не выбрали никаких украшений.",
   "app.trade.supply.message.select_inventory":
@@ -743,6 +744,7 @@ final Map<String, String> ru_RU = {
   "app.common.deselect_all": "Снять выделение со всего",
   "app.common.confirm": "Подтвердить",
   "app.common.cancel": "Отменить",
+  "app.common.close": "Close",
   "app.common.delete": "Удалить",
   "app.common.save": "Сохранить",
   "app.common.copy": "Копировать",

@@ -589,6 +589,7 @@ final Map<String, String> vi_VN = {
   "app.trade.purchase.message.remaining_tips":
       "Bạn đã xuất bản {0} yêu cầu, bạn có thể xuất bản {1}",
   "app.trade.deliver.go": "Đi giao hàng",
+  "app.trade.deliver.now": "Deliver Now",
   "app.trade.deliver.num": "Số lượng vận chuyển",
   "app.trade.deliver.combined": "Giao hàng kết hợp",
   "app.trade.deliver.message.creating": "Tạo Quote ..",
@@ -609,7 +610,7 @@ final Map<String, String> vi_VN = {
   "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Thu nhập thực tế",
   "app.trade.supply.message.confirm":
-      "Sau khi xác nhận cung cấp, một báo giá phải được bắt đầu trong vòng 30 phút (thử lại được phép). Nếu cung cấp thất bại, việc mua không thể được thực hiện trong vòng 3 ngày.",
+      "You need to create a trade offer within 30 minutes. Go to delivery now?",
   "app.trade.supply.message.not_selected":
       "Hiện tại bạn chưa chọn đồ trang sức nào.",
   "app.trade.supply.message.select_inventory":
@@ -724,6 +725,7 @@ final Map<String, String> vi_VN = {
   "app.common.deselect_all": "Bỏ chọn tất cả",
   "app.common.confirm": "Xác nhận",
   "app.common.cancel": "Hủy bỏ",
+  "app.common.close": "Close",
   "app.common.delete": "Xóa",
   "app.common.save": "Lưu",
   "app.common.copy": "Sao chép",

@@ -592,6 +592,7 @@ final Map<String, String> tu_TR = {
   "app.trade.purchase.message.remaining_tips":
       " {0} istek yayınladınız, yayınlayabilirsiniz {1}",
   "app.trade.deliver.go": "Git Teslimat",
+  "app.trade.deliver.now": "Deliver Now",
   "app.trade.deliver.num": "Nakliye miktarı",
   "app.trade.deliver.combined": "Kombine Teslimat",
   "app.trade.deliver.message.creating": "Teklif oluşturmak. ..",
@@ -611,7 +612,7 @@ final Map<String, String> tu_TR = {
   "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Gerçek Gelir",
   "app.trade.supply.message.confirm":
-      "Tedariki onayladıktan sonra, bir teklif 30 dakika içinde başlatılmalıdır (tekrar denemelere izin verilir). Tedarik başarısız olursa, satın alma 3 gün içinde yerine getirilemez.",
+      "You need to create a trade offer within 30 minutes. Go to delivery now?",
   "app.trade.supply.message.not_selected":
       "Şu anda hiçbir mücevher seçmediniz.",
   "app.trade.supply.message.select_inventory":
@@ -724,6 +725,7 @@ final Map<String, String> tu_TR = {
   "app.common.deselect_all": "Tüm seçimi kaldır",
   "app.common.confirm": "Onayla",
   "app.common.cancel": "İptal et",
+  "app.common.close": "Close",
   "app.common.delete": "Sil",
   "app.common.save": "Kaydet",
   "app.common.copy": "Kopyala",

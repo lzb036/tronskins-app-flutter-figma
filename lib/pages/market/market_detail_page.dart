@@ -3592,18 +3592,6 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     );
     if (result == true) {
       await controller.loadBuyRequests(reset: true);
-      await Get.dialog<void>(
-        AlertDialog(
-          title: Text('app.system.tips.title'.tr),
-          content: Text('app.trade.supply.message.confirm'.tr),
-          actions: [
-            TextButton(
-              onPressed: () => Get.back(),
-              child: Text('app.common.confirm'.tr),
-            ),
-          ],
-        ),
-      );
     }
   }
 

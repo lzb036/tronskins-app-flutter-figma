@@ -518,6 +518,7 @@ final Map<String, String> ja_JP = {
   "app.trade.purchase.message.remaining_tips":
       " {0} 件のリクエストを公開しました。 {1} 件を公開できます。",
   "app.trade.deliver.go": "配達へ",
+  "app.trade.deliver.now": "Deliver Now",
   "app.trade.deliver.num": "出荷量",
   "app.trade.deliver.combined": "組み合わせ配達",
   "app.trade.deliver.message.creating": "引用を作成する。..",
@@ -534,7 +535,7 @@ final Map<String, String> ja_JP = {
   "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "実際収入",
   "app.trade.supply.message.confirm":
-      "供給を確認した後、30分以内に引用を開始する必要があります（再試行が許可されています）。供給が失敗した場合、購入は3日以内に完了できません。",
+      "You need to create a trade offer within 30 minutes. Go to delivery now?",
   "app.trade.supply.message.not_selected": "現在、宝石を選択していません。",
   "app.trade.supply.message.select_inventory": "Steamのインベントリからアクセサリーを選択",
   "app.trade.supply.message.more_than_needed": "最大限度を超える！",
@@ -636,6 +637,7 @@ final Map<String, String> ja_JP = {
   "app.common.deselect_all": "すべて選択解除",
   "app.common.confirm": "確認",
   "app.common.cancel": "キャンセル",
+  "app.common.close": "Close",
   "app.common.delete": "削除する",
   "app.common.save": "保存する",
   "app.common.copy": "コピー",

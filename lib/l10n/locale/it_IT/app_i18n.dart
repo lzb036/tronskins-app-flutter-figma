@@ -610,6 +610,7 @@ final Map<String, String> it_IT = {
   "app.trade.purchase.message.remaining_tips":
       "Hai pubblicato {0} richieste, puoi pubblicare {1}",
   "app.trade.deliver.go": "Vai consegna",
+  "app.trade.deliver.now": "Deliver Now",
   "app.trade.deliver.num": "Quantità di spedizione",
   "app.trade.deliver.combined": "Consegna combinata",
   "app.trade.deliver.message.creating": "Creare il preventivo. ..",
@@ -629,7 +630,7 @@ final Map<String, String> it_IT = {
   "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Reddito effettivo",
   "app.trade.supply.message.confirm":
-      "Dopo la conferma della fornitura, un preventivo deve essere avviato entro 30 minuti (riprova consentita). Se la fornitura fallisce, l'acquisto non può essere effettuato entro 3 giorni.",
+      "You need to create a trade offer within 30 minutes. Go to delivery now?",
   "app.trade.supply.message.not_selected":
       "Al momento non hai selezionato nessun gioiello.",
   "app.trade.supply.message.select_inventory":
@@ -744,6 +745,7 @@ final Map<String, String> it_IT = {
   "app.common.deselect_all": "Deseleziona tutto",
   "app.common.confirm": "Conferma",
   "app.common.cancel": "Annulla",
+  "app.common.close": "Close",
   "app.common.delete": "Elimina",
   "app.common.save": "Salva",
   "app.common.copy": "Copia",

@@ -622,6 +622,7 @@ final Map<String, String> fr_FR = {
   "app.trade.purchase.message.remaining_tips":
       "Vous avez publié {0} demandes, vous pouvez publier {1}",
   "app.trade.deliver.go": "Allez livraison",
+  "app.trade.deliver.now": "Deliver Now",
   "app.trade.deliver.num": "Quantité d'expédition",
   "app.trade.deliver.combined": "Livraison combinée",
   "app.trade.deliver.message.creating": "Créer la citation. ..",
@@ -642,7 +643,7 @@ final Map<String, String> fr_FR = {
   "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Revenu réel",
   "app.trade.supply.message.confirm":
-      "Après confirmation de la livraison, un devis doit être lancé dans les 30 minutes (réussites autorisées). Si la livraison échoue, l'achat ne peut pas être réalisé dans les 3 jours.",
+      "You need to create a trade offer within 30 minutes. Go to delivery now?",
   "app.trade.supply.message.not_selected":
       "Vous n'avez pas sélectionné de bijoux pour le moment.",
   "app.trade.supply.message.select_inventory":
@@ -757,6 +758,7 @@ final Map<String, String> fr_FR = {
   "app.common.deselect_all": "Tout désélectionner",
   "app.common.confirm": "Confirmer",
   "app.common.cancel": "Annuler",
+  "app.common.close": "Close",
   "app.common.delete": "Supprimer",
   "app.common.save": "Enregistrer",
   "app.common.copy": "Copier",

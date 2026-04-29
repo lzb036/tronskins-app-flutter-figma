@@ -615,6 +615,7 @@ final Map<String, String> ge_DE = {
   "app.trade.purchase.message.remaining_tips":
       "Sie haben {0} Anfragen veröffentlicht, Sie können {1} veröffentlichen",
   "app.trade.deliver.go": "Go Lieferung",
+  "app.trade.deliver.now": "Deliver Now",
   "app.trade.deliver.num": "Versandmenge",
   "app.trade.deliver.combined": "Kombinierte Lieferung",
   "app.trade.deliver.message.creating": "Erstellen des Angebots. ..",
@@ -635,7 +636,7 @@ final Map<String, String> ge_DE = {
   "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Faktisches Einkommen",
   "app.trade.supply.message.confirm":
-      "Nach der Bestätigung der Lieferung muss innerhalb von 30 Minuten ein Angebot eingeleitet werden (erneute Versuche erlaubt). Wenn die Lieferung fehlschlägt, kann der Kauf nicht innerhalb von 3 Tagen erfüllt werden.",
+      "You need to create a trade offer within 30 minutes. Go to delivery now?",
   "app.trade.supply.message.not_selected":
       "Sie haben noch keinen Schmuck ausgewählt.",
   "app.trade.supply.message.select_inventory":
@@ -751,6 +752,7 @@ final Map<String, String> ge_DE = {
   "app.common.deselect_all": "Auswahl aufheben",
   "app.common.confirm": "Bestätigen",
   "app.common.cancel": "Abbrechen",
+  "app.common.close": "Close",
   "app.common.delete": "Löschen",
   "app.common.save": "Speichern",
   "app.common.copy": "Kopieren",

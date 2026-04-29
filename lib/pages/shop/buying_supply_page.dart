@@ -10,6 +10,7 @@ import 'package:tronskins_app/api/steam.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/user_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/steam_style_confirm_dialog.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
@@ -435,10 +436,9 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
         if (!mounted) {
           return;
         }
+        final buyerId = _resolveSupplyDeliveryBuyerId(datas);
         Navigator.of(context).pop(true);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          AppSnackbar.success('app.trade.supply.message.success'.tr);
-        });
+        _showSupplySuccessPrompt(buyerId);
         return;
       }
 
@@ -453,6 +453,98 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
         setState(() => _isSubmitting = false);
       }
     }
+  }
+
+  void _showSupplySuccessPrompt(String buyerId) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final dialogContext = Get.overlayContext ?? Get.context;
+      if (dialogContext == null) {
+        return;
+      }
+      final goDeliver = await showFigmaModal<bool>(
+        context: dialogContext,
+        child: FigmaConfirmationDialog(
+          icon: Icons.local_shipping_outlined,
+          iconColor: _SupplyPalette.blue,
+          iconBackgroundColor: const Color.fromRGBO(37, 99, 235, 0.10),
+          accentColor: _SupplyPalette.blue,
+          title: 'app.system.tips.title'.tr,
+          message: 'app.trade.supply.message.confirm'.tr,
+          primaryLabel: 'app.trade.deliver.now'.tr,
+          secondaryLabel: _supplyCloseLabel(),
+          onPrimary: () => popModalRoute(dialogContext, true),
+          onSecondary: () => popModalRoute(dialogContext, false),
+        ),
+      );
+      if (goDeliver != true) {
+        return;
+      }
+      await Get.toNamed(
+        Routers.SHOP_DELIVER_GOODS,
+        arguments: {'buyerId': buyerId},
+      );
+    });
+  }
+
+  String _resolveSupplyDeliveryBuyerId(dynamic data) {
+    final fromData = _extractSupplyBuyerId(data);
+    if (fromData.isNotEmpty) {
+      return fromData;
+    }
+    final fromRequest = _extractSupplyBuyerId(_request.raw);
+    if (fromRequest.isNotEmpty) {
+      return fromRequest;
+    }
+    return _request.userId?.toString() ?? '';
+  }
+
+  String _extractSupplyBuyerId(dynamic raw) {
+    if (raw is List) {
+      for (final item in raw) {
+        final value = _extractSupplyBuyerId(item);
+        if (value.isNotEmpty) {
+          return value;
+        }
+      }
+      return '';
+    }
+    if (raw is! Map) {
+      return '';
+    }
+    const directKeys = [
+      'buyer',
+      'buyer_id',
+      'buyerId',
+      'userId',
+      'user_id',
+      'steamId',
+      'steam_id',
+    ];
+    for (final key in directKeys) {
+      final value = raw[key];
+      if (value != null && value is! Map && value is! List) {
+        final text = value.toString().trim();
+        if (text.isNotEmpty) {
+          return text;
+        }
+      }
+    }
+    const nestedKeys = ['order', 'send', 'record', 'user', 'buyerInfo'];
+    for (final key in nestedKeys) {
+      final value = _extractSupplyBuyerId(raw[key]);
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+    return '';
+  }
+
+  String _supplyCloseLabel() {
+    final language = (Get.locale?.languageCode ?? '').toLowerCase();
+    if (language.startsWith('zh')) {
+      return Get.locale?.countryCode?.toUpperCase() == 'TW' ? '關閉' : '关闭';
+    }
+    return 'Close';
   }
 
   ShopSchemaInfo? _lookupSchema(InventoryItem item) {

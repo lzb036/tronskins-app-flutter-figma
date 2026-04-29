@@ -576,6 +576,7 @@ final Map<String, String> th_TH = {
   "app.trade.purchase.message.remaining_tips":
       "คุณได้ตีพิมพ์ {0} คำขอ คุณสามารถตีพิมพ์ {1}",
   "app.trade.deliver.go": "ไปจัดส่ง",
+  "app.trade.deliver.now": "Deliver Now",
   "app.trade.deliver.num": "จำนวนการจัดส่ง",
   "app.trade.deliver.combined": "การจัดส่งรวม",
   "app.trade.deliver.message.creating": "การสร้างใบเสนอราคา ..",
@@ -595,7 +596,7 @@ final Map<String, String> th_TH = {
   "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "รายได้จริง",
   "app.trade.supply.message.confirm":
-      "หลังจากยืนยันการจัดหา ต้องเริ่มต้นการเสนอราคาภายใน 30 นาที (อนุญาตให้ลองใหม่) หากการจัดหาล้มเหลว การซื้อไม่สามารถดำเนินการได้ภายใน 3 วัน",
+      "You need to create a trade offer within 30 minutes. Go to delivery now?",
   "app.trade.supply.message.not_selected":
       "ปัจจุบันคุณยังไม่ได้เลือกเครื่องประดับใด ๆ",
   "app.trade.supply.message.select_inventory":
@@ -707,6 +708,7 @@ final Map<String, String> th_TH = {
   "app.common.deselect_all": "ยกเลิกการเลือกทั้งหมด",
   "app.common.confirm": "ยืนยัน",
   "app.common.cancel": "ยกเลิก",
+  "app.common.close": "Close",
   "app.common.delete": "ลบ",
   "app.common.save": "บันทึก",
   "app.common.copy": "คัดลอก",

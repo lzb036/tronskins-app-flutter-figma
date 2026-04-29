@@ -613,6 +613,7 @@ final Map<String, String> po_PT = {
   "app.trade.purchase.message.remaining_tips":
       "Você publicou {0} solicitações, você pode publicar {1}",
   "app.trade.deliver.go": "Ir Entrega",
+  "app.trade.deliver.now": "Deliver Now",
   "app.trade.deliver.num": "Quantidade de envio",
   "app.trade.deliver.combined": "Entrega combinada",
   "app.trade.deliver.message.creating": "Criação da citação. ..",
@@ -633,7 +634,7 @@ final Map<String, String> po_PT = {
   "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Rendimento real",
   "app.trade.supply.message.confirm":
-      "Após a confirmação do fornecimento, uma cotação deve ser iniciada dentro de 30 minutos (tentativas repetidas permitidas). Se o fornecimento falhar, a compra não pode ser cumprida dentro de 3 dias.",
+      "You need to create a trade offer within 30 minutes. Go to delivery now?",
   "app.trade.supply.message.not_selected":
       "Você não selecionou nenhuma jóia no momento.",
   "app.trade.supply.message.select_inventory":
@@ -747,6 +748,7 @@ final Map<String, String> po_PT = {
   "app.common.deselect_all": "Desmarcar tudo",
   "app.common.confirm": "Confirmação",
   "app.common.cancel": "Cancelar",
+  "app.common.close": "Close",
   "app.common.delete": "Apagar",
   "app.common.save": "Salvar",
   "app.common.copy": "Copiar",

@@ -624,6 +624,7 @@ final Map<String, String> la_LAT = {
   "app.trade.purchase.message.remaining_tips":
       "Ha publicado {0} solicitudes, puede publicar {1}",
   "app.trade.deliver.go": "Ir Entrega",
+  "app.trade.deliver.now": "Deliver Now",
   "app.trade.deliver.num": "Cantidad de envío",
   "app.trade.deliver.combined": "Entrega combinada",
   "app.trade.deliver.message.creating": "Crear la cotización. ..",
@@ -643,7 +644,7 @@ final Map<String, String> la_LAT = {
   "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "Ingresos reales",
   "app.trade.supply.message.confirm":
-      "Después de confirmar el suministro, una cotización debe iniciarse en un plazo de 30 minutos (se permiten repetidos intentos). Si el suministro falla, la compra no puede cumplirse dentro de 3 días.",
+      "You need to create a trade offer within 30 minutes. Go to delivery now?",
   "app.trade.supply.message.not_selected":
       "No has seleccionado ninguna joyería en este momento.",
   "app.trade.supply.message.select_inventory":
@@ -758,6 +759,7 @@ final Map<String, String> la_LAT = {
   "app.common.deselect_all": "Deseleccionar todo",
   "app.common.confirm": "Confirmar",
   "app.common.cancel": "Cancelar",
+  "app.common.close": "Close",
   "app.common.delete": "Eliminar",
   "app.common.save": "Guardar",
   "app.common.copy": "Copiar",

@@ -529,6 +529,7 @@ final Map<String, String> ko_KR = {
   "app.trade.purchase.message.remaining_tips":
       " {0} 개의 요청을 게시했습니다. {1} 개를 게시할 수 있습니다.",
   "app.trade.deliver.go": "Go 배달",
+  "app.trade.deliver.now": "Deliver Now",
   "app.trade.deliver.num": "선적 양",
   "app.trade.deliver.combined": "결합 배달",
   "app.trade.deliver.message.creating": "Quote 만들기...",
@@ -547,7 +548,7 @@ final Map<String, String> ko_KR = {
   "app.trade.supply.loading": "Loading...",
   "app.trade.supply.actual_income": "실제 소득",
   "app.trade.supply.message.confirm":
-      "공급을 확인한 후 30 분 이내에 견적을 시작해야합니다 (재시도가 허용됩니다).공급이 실패하면 구매는 3일 이내에 이루어질 수 없습니다.",
+      "You need to create a trade offer within 30 minutes. Go to delivery now?",
   "app.trade.supply.message.not_selected": "현재 보석을 선택하지 않았습니다.",
   "app.trade.supply.message.select_inventory": "Steam 인벤토리에서 액세서리를 선택하십시오.",
   "app.trade.supply.message.more_than_needed": "최대 한계를 초과합니다!",
@@ -650,6 +651,7 @@ final Map<String, String> ko_KR = {
   "app.common.deselect_all": "전체 선택 해제",
   "app.common.confirm": "확인",
   "app.common.cancel": "취소",
+  "app.common.close": "Close",
   "app.common.delete": "삭제",
   "app.common.save": "저장",
   "app.common.copy": "복사하기",
