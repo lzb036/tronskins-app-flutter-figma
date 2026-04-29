@@ -771,7 +771,7 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
     final account = item.account?.trim() ?? '';
     final title = name.isNotEmpty ? name : _shortAddress(account);
     final subtitle = account.isNotEmpty ? _shortAddress(account) : '';
-    final canDelete = !isSelected && (item.id ?? '').isNotEmpty;
+    final canDelete = (item.id ?? '').isNotEmpty;
 
     return Material(
       color: Colors.transparent,
@@ -839,8 +839,9 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
               if (canDelete)
                 IconButton(
                   onPressed: () => _confirmDeleteAddress(item.id),
-                  icon: const Icon(Icons.close_rounded, size: 18),
-                  color: const Color(0xFF94A3B8),
+                  tooltip: 'app.common.delete'.tr,
+                  icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                  color: const Color(0xFFE11D48),
                   splashRadius: 18,
                   constraints: const BoxConstraints.tightFor(
                     width: 32,
