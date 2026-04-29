@@ -443,7 +443,9 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
         : _items.isNotEmpty && _selectedIds.length >= _items.length;
     final showInitialSkeleton =
         _items.isEmpty && (_isLoading || !_hasLoadedOnce);
-    final showLoadMoreSkeleton = _isLoading && _items.isNotEmpty;
+    final showSkeletonGrid = _isRefreshing || showInitialSkeleton;
+    final showLoadMoreSkeleton =
+        _isLoading && _items.isNotEmpty && !_isRefreshing;
     return Scaffold(
       backgroundColor: _SupplyPalette.galleryWall,
       appBar: SettingsStyleAppBar(title: Text('app.trade.supply.inventory'.tr)),
@@ -477,7 +479,7 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
                       controller: _scrollController,
                       physics: const AlwaysScrollableScrollPhysics(),
                       slivers: [
-                        if (showInitialSkeleton)
+                        if (showSkeletonGrid)
                           SliverPadding(
                             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                             sliver: SliverGrid.builder(
@@ -572,9 +574,7 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
 
   Widget _buildLoadMoreFooter() {
     if (_isLoading) {
-      return _items.isEmpty
-          ? const SizedBox(height: 16)
-          : const _SupplyLoadingMoreFooter();
+      return const SizedBox(height: 16);
     }
     if (!_hasMore && _items.isNotEmpty) {
       return const ListEndTip(padding: EdgeInsets.fromLTRB(8, 6, 8, 12));
@@ -1128,54 +1128,6 @@ class _SupplySkeletonShimmerState extends State<_SupplySkeletonShimmer>
           );
         },
         child: widget.child,
-      ),
-    );
-  }
-}
-
-class _SupplyLoadingMoreFooter extends StatelessWidget {
-  const _SupplyLoadingMoreFooter();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
-      child: Center(
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: _SupplyPalette.assetCase,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: _SupplyPalette.ghostBorder),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      _SupplyPalette.blue,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'app.trade.supply.loading'.tr,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: _SupplyPalette.muted,
-                    fontSize: 11,
-                    height: 16 / 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
