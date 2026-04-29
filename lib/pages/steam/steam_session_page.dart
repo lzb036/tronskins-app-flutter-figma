@@ -35,6 +35,7 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
   bool _isSavingToken = false;
   bool _observerInjected = false;
   bool _hasHandledToken = false;
+  bool _hasReturnedFailure = false;
   bool _hasPendingTokenPayload = false;
   bool _isReadingTitle = false;
   bool _hasTriedFreshStart = false;
@@ -216,6 +217,7 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
       setState(() {
         _observerInjected = false;
         _hasHandledToken = false;
+        _hasReturnedFailure = false;
         _hasPendingTokenPayload = false;
         _hasTriedFreshStart = false;
         _isSavingToken = false;
@@ -351,7 +353,7 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
 
     if (_boundSteamId.isEmpty) {
       _hasPendingTokenPayload = false;
-      _showError('app.steam.message.unbind'.tr);
+      _returnFailure('app.steam.message.unbind'.tr);
       return;
     }
 
@@ -388,7 +390,7 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
       if (!result.success) {
         _hasHandledToken = false;
         _hasPendingTokenPayload = false;
-        _showError(_resolveTokenFreshFailureMessage(result));
+        _returnFailure(_resolveTokenFreshFailureMessage(result));
         return;
       }
 
@@ -415,7 +417,7 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
     } catch (_) {
       _hasHandledToken = false;
       _hasPendingTokenPayload = false;
-      _showError('app.steam.message.verify_failed'.tr);
+      _returnFailure('app.steam.message.verify_failed'.tr);
     } finally {
       if (mounted) {
         setState(() => _isSavingToken = false);
@@ -455,8 +457,23 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
     );
   }
 
-  void _showError(String message) {
-    AppSnackbar.error(message);
+  void _returnFailure(String message) {
+    if (_hasReturnedFailure || !mounted) {
+      return;
+    }
+
+    _hasReturnedFailure = true;
+    _hasHandledToken = true;
+    _hasPendingTokenPayload = false;
+    _titlePoller?.cancel();
+    _titlePoller = null;
+
+    final resolvedMessage = message.trim().isNotEmpty
+        ? message
+        : 'app.steam.message.verify_failed'.tr;
+    Navigator.of(
+      context,
+    ).pop({'verificationFailed': true, 'message': resolvedMessage});
   }
 
   @override
@@ -471,13 +488,6 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
             const LinearProgressIndicator(
               minHeight: 2,
               color: Color(0xFF74BCFF),
-            ),
-          if (_isSavingToken)
-            Container(
-              color: Colors.black12,
-              child: const Center(
-                child: CircularProgressIndicator(color: Color(0xFF171A21)),
-              ),
             ),
         ],
       ),

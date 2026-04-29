@@ -125,6 +125,20 @@ class _SteamSettingPageState extends State<SteamSettingPage> {
         _showSteamIdMismatchDialog();
         return;
       }
+
+      if (resultMap['verificationFailed'] == true) {
+        await controller.loadSteamConfig();
+        if (!mounted) {
+          return;
+        }
+        final message = resultMap['message']?.toString().trim();
+        AppSnackbar.error(
+          message?.isNotEmpty == true
+              ? message!
+              : 'app.steam.message.verify_failed'.tr,
+        );
+        return;
+      }
     }
 
     if (result == true) {
@@ -1347,92 +1361,102 @@ class _SteamPrivacySelector extends StatelessWidget {
         ? const Color(0xFFECFDF5)
         : const Color(0xFFFFF7ED);
 
-    return PopupMenuButton<bool>(
-      enabled: enabled,
-      initialValue: isPublic,
-      onSelected: onSelected,
-      color: Colors.white,
-      elevation: 8,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      itemBuilder: (context) => [
-        PopupMenuItem<bool>(
-          value: true,
-          child: _SteamPrivacyMenuItem(label: publicLabel, selected: isPublic),
-        ),
-        PopupMenuItem<bool>(
-          value: false,
-          child: _SteamPrivacyMenuItem(
-            label: privateLabel,
-            selected: !isPublic,
-          ),
-        ),
-      ],
-      child: Opacity(
-        opacity: enabled ? 1 : 0.55,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 3,
-                ),
-                decoration: BoxDecoration(
-                  color: chipBackground,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: dotColor,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      label,
-                      style: TextStyle(
-                        color: statusColor,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        height: 18 / 13,
-                      ),
-                    ),
-                  ],
-                ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return PopupMenuButton<bool>(
+          enabled: enabled,
+          initialValue: isPublic,
+          onSelected: onSelected,
+          color: Colors.white,
+          elevation: 8,
+          menuPadding: EdgeInsets.zero,
+          constraints: BoxConstraints.tightFor(width: constraints.maxWidth),
+          position: PopupMenuPosition.under,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          itemBuilder: (context) => [
+            PopupMenuItem<bool>(
+              value: true,
+              child: _SteamPrivacyMenuItem(
+                label: publicLabel,
+                selected: isPublic,
               ),
-              const Spacer(),
-              if (isSaving)
-                const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      _SteamSettingPageState._linkColor,
+            ),
+            PopupMenuItem<bool>(
+              value: false,
+              child: _SteamPrivacyMenuItem(
+                label: privateLabel,
+                selected: !isPublic,
+              ),
+            ),
+          ],
+          child: Opacity(
+            opacity: enabled ? 1 : 0.55,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: chipBackground,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: dotColor,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          label,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            height: 18 / 13,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                )
-              else
-                const Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  size: 20,
-                  color: _SteamSettingPageState._mutedColor,
-                ),
-            ],
+                  const Spacer(),
+                  if (isSaving)
+                    const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _SteamSettingPageState._linkColor,
+                        ),
+                      ),
+                    )
+                  else
+                    const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 20,
+                      color: _SteamSettingPageState._mutedColor,
+                    ),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
