@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:tronskins_app/api/model/wallet/wallet_models.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/controllers/wallet/gift_card_controller.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
@@ -33,6 +34,7 @@ class _GiftCardCreatePageState extends State<GiftCardCreatePage> {
 
   WalletGiftCardAmountOption? _selectedAmount;
   int _quantity = 1;
+  bool _isSubmittingFromConfirmDialog = false;
 
   @override
   void initState() {
@@ -90,15 +92,51 @@ class _GiftCardCreatePageState extends State<GiftCardCreatePage> {
       return;
     }
 
+    await showFigmaModal<void>(
+      context: context,
+      barrierDismissible: false,
+      child: FigmaAsyncConfirmationDialog(
+        title: 'app.user.gift_card.create_title'.tr,
+        primaryLabel: 'app.common.confirm'.tr,
+        secondaryLabel: 'app.common.cancel'.tr,
+        icon: Icons.card_giftcard_rounded,
+        iconColor: _brandBlue,
+        iconBackgroundColor: const Color.fromRGBO(0, 40, 142, 0.10),
+        accentColor: _brandBlue,
+        content: _GenerateGiftCardConfirmContent(
+          amount: amount,
+          quantity: _quantity,
+        ),
+        onSecondary: () => popModalRoute(context),
+        onConfirm: (dialogContext) => _generateConfirmed(
+          amount: amount,
+          quantity: _quantity,
+          dialogContext: dialogContext,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _generateConfirmed({
+    required WalletGiftCardAmountOption amount,
+    required int quantity,
+    required BuildContext dialogContext,
+  }) async {
+    if (mounted) {
+      setState(() => _isSubmittingFromConfirmDialog = true);
+    }
     try {
       final success = await controller.generateCard(
         amount: amount,
-        quantity: _quantity,
+        quantity: quantity,
       );
       if (!mounted) {
         return;
       }
       if (success) {
+        if (dialogContext.mounted) {
+          popModalRoute(dialogContext);
+        }
         AppSnackbar.success('app.user.gift_card.generate_success'.tr);
         if (Navigator.of(context).canPop()) {
           Get.back(result: true);
@@ -111,6 +149,10 @@ class _GiftCardCreatePageState extends State<GiftCardCreatePage> {
     } catch (_) {
       if (mounted) {
         AppSnackbar.error('app.user.gift_card.generate_failed'.tr);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmittingFromConfirmDialog = false);
       }
     }
   }
@@ -125,8 +167,10 @@ class _GiftCardCreatePageState extends State<GiftCardCreatePage> {
       final currentAmount = _currentAmount(options);
       final isLoadingOptions = controller.isLoadingAmountOptions.value;
       final isGenerating = controller.isGenerating.value;
+      final isActionBarGenerating =
+          isGenerating && !_isSubmittingFromConfirmDialog;
       final submitEnabled =
-          !isLoadingOptions && !isGenerating && currentAmount != null;
+          !isLoadingOptions && !isActionBarGenerating && currentAmount != null;
 
       return Scaffold(
         backgroundColor: _pageBackground,
@@ -178,7 +222,7 @@ class _GiftCardCreatePageState extends State<GiftCardCreatePage> {
             _CreateGiftCardActionBar(
               quantity: _quantity,
               enabled: submitEnabled,
-              isLoading: isGenerating,
+              isLoading: isActionBarGenerating,
               onSubmit: () => _submit(options),
             ),
           ],
@@ -247,11 +291,6 @@ class _CreateGiftCardTopBar extends StatelessWidget {
                           height: 28 / 18,
                         ),
                       ),
-                    ),
-                    const Icon(
-                      Icons.card_giftcard_rounded,
-                      color: Color(0xFF1E3A8A),
-                      size: 22,
                     ),
                   ],
                 ),
@@ -339,36 +378,6 @@ class _GiftCardHero extends StatelessWidget {
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 42,
-                fontWeight: FontWeight.w900,
-                height: 1,
-              ),
-            ),
-          ),
-          Positioned(
-            left: 18,
-            bottom: 42,
-            child: Text(
-              'app.user.gift_card.hero_edition'.tr.toUpperCase(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-                height: 16 / 10,
-                letterSpacing: 1.2,
-              ),
-            ),
-          ),
-          Positioned(
-            left: 18,
-            right: 18,
-            bottom: 18,
-            child: Text(
-              'app.user.gift_card.hero_title'.tr,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 28,
                 fontWeight: FontWeight.w900,
                 height: 1,
               ),
@@ -641,20 +650,31 @@ class _QuantitySelector extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  'app.user.gift_card.quantity_hint'.trArgs(['$maxQuantity']),
-                  style: const TextStyle(
-                    color: _GiftCardCreatePageState._bodyColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                    height: 20 / 14,
+                SizedBox(
+                  width: double.infinity,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'app.user.gift_card.quantity_hint'.trArgs([
+                        '$maxQuantity',
+                      ]),
+                      maxLines: 1,
+                      softWrap: false,
+                      style: const TextStyle(
+                        color: _GiftCardCreatePageState._bodyColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        height: 20 / 14,
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
             decoration: BoxDecoration(
               color: _GiftCardCreatePageState._surfaceLowest,
               borderRadius: BorderRadius.circular(8),
@@ -675,7 +695,7 @@ class _QuantitySelector extends StatelessWidget {
                   enabled: quantity > 1,
                 ),
                 SizedBox(
-                  width: 48,
+                  width: 36,
                   child: Text(
                     '$quantity',
                     textAlign: TextAlign.center,
@@ -721,11 +741,11 @@ class _QuantityButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
         onTap: enabled ? onTap : null,
         child: SizedBox(
-          width: 40,
-          height: 40,
+          width: 34,
+          height: 36,
           child: Icon(
             icon,
-            size: 20,
+            size: 19,
             color: enabled
                 ? _GiftCardCreatePageState._brandBlue
                 : const Color(0xFFCBD5E1),
@@ -763,15 +783,6 @@ class _OrderSummary extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          Positioned(
-            right: -4,
-            top: -56,
-            child: Icon(
-              Icons.receipt_long_rounded,
-              size: 72,
-              color: const Color(0xFFECEEF0).withValues(alpha: 0.8),
-            ),
-          ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -839,6 +850,108 @@ class _OrderSummary extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _GenerateGiftCardConfirmContent extends StatelessWidget {
+  const _GenerateGiftCardConfirmContent({
+    required this.amount,
+    required this.quantity,
+  });
+
+  final WalletGiftCardAmountOption amount;
+  final int quantity;
+
+  @override
+  Widget build(BuildContext context) {
+    final amountValue = amount.amount;
+    final total = amountValue * quantity;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _GiftCardCreatePageState._surfaceContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ConfirmSummaryRow(
+            label: 'app.user.gift_card.selected_amount'.tr,
+            value: _GiftCardCreatePageState.formatMoney(amountValue),
+          ),
+          const SizedBox(height: 10),
+          _ConfirmSummaryRow(
+            label: 'app.user.gift_card.quantity'.tr,
+            value: '$quantity',
+          ),
+          const SizedBox(height: 10),
+          Container(height: 1, color: const Color(0xFFE2E8F0)),
+          const SizedBox(height: 10),
+          _ConfirmSummaryRow(
+            label: 'app.user.gift_card.total'.tr,
+            value: _GiftCardCreatePageState.formatMoney(total),
+            valueColor: _GiftCardCreatePageState._brandBlue,
+            strong: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ConfirmSummaryRow extends StatelessWidget {
+  const _ConfirmSummaryRow({
+    required this.label,
+    required this.value,
+    this.valueColor = _GiftCardCreatePageState._titleColor,
+    this.strong = false,
+  });
+
+  final String label;
+  final String value;
+  final Color valueColor;
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            textAlign: TextAlign.left,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: _GiftCardCreatePageState._bodyColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              height: 18 / 13,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: valueColor,
+                fontSize: strong ? 16 : 14,
+                fontWeight: strong ? FontWeight.w800 : FontWeight.w700,
+                height: strong ? 22 / 16 : 20 / 14,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

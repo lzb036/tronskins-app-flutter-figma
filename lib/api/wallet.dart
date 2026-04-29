@@ -211,8 +211,8 @@ class ApiWalletServer {
     String twoFa = '',
   }) async {
     final response = await http.get(
-      'api/app/charge/card/get.do',
-      queryParameters: {'id': id, 'twoFa': twoFa},
+      'api/app/charge/card/$id',
+      queryParameters: twoFa.isEmpty ? null : {'twoFa': twoFa},
       rawAuthorization: true,
       skipAppHeaders: true,
     );
@@ -224,11 +224,9 @@ class ApiWalletServer {
 
   Future<BaseHttpResponse<List<WalletGiftCardAmountOption>>>
   giftCardAmountOptions() async {
-    final response = await http.post(
-      'api/pub/dict/module/dictcode2.do',
-      data: {'parentId': 0, 'type': 'card_value_type'},
+    final response = await http.get(
+      'api/public/dict/get/card_value_type',
       rawAuthorization: true,
-      skipAppHeaders: true,
     );
     return BaseHttpResponse.fromJson(response.data as Map<String, dynamic>, (
       json,
@@ -248,7 +246,7 @@ class ApiWalletServer {
     required String value,
   }) async {
     final response = await http.post(
-      'api/app/charge/card/add.do',
+      'api/app/charge/card/add',
       data: {'number': number, 'value': value},
       rawAuthorization: true,
       skipAppHeaders: true,

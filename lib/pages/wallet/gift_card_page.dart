@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import 'package:tronskins_app/api/model/wallet/wallet_models.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
+import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/controllers/wallet/gift_card_controller.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
@@ -51,8 +53,17 @@ class _GiftCardPageState extends State<GiftCardPage> {
     if (!_scrollController.hasClients) {
       return;
     }
-    if (_scrollController.position.pixels >
-        _scrollController.position.maxScrollExtent - 240) {
+    if (controller.isLoadingCards.value ||
+        controller.isLoadingMoreCards.value ||
+        !controller.hasMoreCards ||
+        controller.cards.isEmpty) {
+      return;
+    }
+    final position = _scrollController.position;
+    if (position.maxScrollExtent <= 0 || position.pixels <= 0) {
+      return;
+    }
+    if (position.pixels > position.maxScrollExtent - 240) {
       controller.loadCards();
     }
   }
@@ -73,34 +84,29 @@ class _GiftCardPageState extends State<GiftCardPage> {
       backgroundColor: _pageBackground,
       body: Stack(
         children: [
-          RefreshIndicator(
-            color: _brandBlue,
-            backgroundColor: Colors.white,
-            onRefresh: () => controller.loadCards(reset: true),
-            child: ListView(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(
-                parent: ClampingScrollPhysics(),
-              ),
-              padding: EdgeInsets.fromLTRB(24, topPadding, 24, bottomPadding),
-              children: [
-                Align(
-                  alignment: Alignment.topCenter,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 672),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _GiftCardSummary(controller: controller),
-                        const SizedBox(height: 32),
-                        _GiftCardFilters(controller: controller),
-                        const SizedBox(height: 24),
-                        _GiftCardList(controller: controller),
-                      ],
+          Padding(
+            padding: EdgeInsets.fromLTRB(24, topPadding, 24, 0),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 672),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _GiftCardSummary(controller: controller),
+                    const SizedBox(height: 32),
+                    _GiftCardFilters(controller: controller),
+                    const SizedBox(height: 24),
+                    Expanded(
+                      child: _GiftCardList(
+                        controller: controller,
+                        scrollController: _scrollController,
+                        bottomPadding: bottomPadding,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
           _GiftCardTopBar(
@@ -122,6 +128,18 @@ class _GiftCardPageState extends State<GiftCardPage> {
     return item.isUsed
         ? 'app.user.gift_card.status_used'.tr.toUpperCase()
         : 'app.user.gift_card.status_available'.tr.toUpperCase();
+  }
+
+  static bool shouldShowChargeUser(String? value) {
+    final text = value?.trim();
+    if (text == null || text.isEmpty) {
+      return false;
+    }
+    final normalized = text.toLowerCase();
+    return normalized != '无' &&
+        normalized != 'none' &&
+        normalized != 'null' &&
+        normalized != '-';
   }
 
   static String formatDate(int? timestamp) {
@@ -245,37 +263,58 @@ class _GiftCardSummary extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          Wrap(
-            spacing: 16,
-            runSpacing: 10,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(
-                _GiftCardPageState.formatMoney(controller.totalBalance),
-                style: const TextStyle(
-                  color: _GiftCardPageState._titleColor,
-                  fontSize: 36,
-                  fontWeight: FontWeight.w900,
-                  height: 40 / 36,
+          if (controller.isLoadingCards.value && controller.cards.isEmpty)
+            const _GiftCardSummarySkeleton()
+          else
+            Wrap(
+              spacing: 16,
+              runSpacing: 10,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  _GiftCardPageState.formatMoney(controller.totalBalance),
+                  style: const TextStyle(
+                    color: _GiftCardPageState._titleColor,
+                    fontSize: 36,
+                    fontWeight: FontWeight.w900,
+                    height: 40 / 36,
+                  ),
                 ),
-              ),
-              _SummaryPill(
-                color: const Color(0xFF22C55E),
-                label: 'app.user.gift_card.available_count'.trArgs([
-                  '${controller.availableCount}',
-                ]),
-              ),
-              _SummaryPill(
-                color: const Color(0xFFCBD5E1),
-                label: 'app.user.gift_card.used_count'.trArgs([
-                  '${controller.usedCount}',
-                ]),
-              ),
-            ],
-          ),
+                _SummaryPill(
+                  color: const Color(0xFF22C55E),
+                  label: 'app.user.gift_card.available_count'.trArgs([
+                    '${controller.availableCount}',
+                  ]),
+                ),
+                _SummaryPill(
+                  color: const Color(0xFFCBD5E1),
+                  label: 'app.user.gift_card.used_count'.trArgs([
+                    '${controller.usedCount}',
+                  ]),
+                ),
+              ],
+            ),
         ],
       );
     });
+  }
+}
+
+class _GiftCardSummarySkeleton extends StatelessWidget {
+  const _GiftCardSummarySkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Wrap(
+      spacing: 16,
+      runSpacing: 10,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        _SkeletonBox(width: 154, height: 40, radius: 6),
+        _SkeletonBox(width: 58, height: 16, radius: 4),
+        _SkeletonBox(width: 72, height: 16, radius: 4),
+      ],
+    );
   }
 }
 
@@ -382,54 +421,140 @@ class _FilterChipButton extends StatelessWidget {
 }
 
 class _GiftCardList extends StatelessWidget {
-  const _GiftCardList({required this.controller});
+  const _GiftCardList({
+    required this.controller,
+    required this.scrollController,
+    required this.bottomPadding,
+  });
 
   final GiftCardController controller;
+  final ScrollController scrollController;
+  final double bottomPadding;
 
-  Future<void> _copyPassword(WalletGiftCardItem item) async {
+  Future<void> _showPasswordDialog(
+    BuildContext context,
+    WalletGiftCardItem item,
+  ) async {
     final password = await controller.loadPassword(item);
     if (password == null || password.isEmpty) {
       AppSnackbar.error('app.user.gift_card.password_load_failed'.tr);
       return;
     }
-    await Clipboard.setData(ClipboardData(text: password));
-    AppSnackbar.success('app.system.message.copy_success'.tr);
+    if (!context.mounted) {
+      return;
+    }
+    await showFigmaModal<void>(
+      context: context,
+      child: FigmaConfirmationDialog(
+        title: 'app.user.gift_card.password_title'.tr,
+        primaryLabel: 'app.common.copy'.tr,
+        secondaryLabel: 'app.common.cancel'.tr,
+        icon: Icons.visibility_rounded,
+        iconColor: _GiftCardPageState._brandBlue,
+        iconBackgroundColor: const Color.fromRGBO(0, 40, 142, 0.10),
+        content: _GiftCardPasswordContent(password: password),
+        onPrimary: () {
+          Clipboard.setData(ClipboardData(text: password));
+          popModalRoute(context);
+          showCopySuccessNoticeDialog(context);
+        },
+        onSecondary: () => popModalRoute(context),
+      ),
+    );
+  }
+
+  Future<void> _copyCardNumber(
+    BuildContext context,
+    WalletGiftCardItem item,
+  ) async {
+    final cardNumber = item.cardNumber.trim();
+    if (cardNumber.isEmpty || cardNumber == '-') {
+      return;
+    }
+    await Clipboard.setData(ClipboardData(text: cardNumber));
+    if (!context.mounted) {
+      return;
+    }
+    await showCopySuccessNoticeDialog(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      final cards = controller.cards.toList(growable: false);
-      final loading = controller.isLoadingCards.value;
-      if (loading && cards.isEmpty) {
-        return const _GiftCardSkeletonList();
-      }
-      if (cards.isEmpty) {
-        return const _GiftCardEmptyState();
-      }
+    return RefreshIndicator(
+      color: _GiftCardPageState._brandBlue,
+      backgroundColor: Colors.white,
+      onRefresh: () => controller.loadCards(reset: true),
+      child: Obx(() {
+        final cards = controller.cards.toList(growable: false);
+        final loading = controller.isLoadingCards.value;
+        if (loading && cards.isEmpty) {
+          return _GiftCardListView(
+            scrollController: scrollController,
+            bottomPadding: bottomPadding,
+            child: const _GiftCardSkeletonList(),
+          );
+        }
+        if (cards.isEmpty) {
+          return _GiftCardListView(
+            scrollController: scrollController,
+            bottomPadding: bottomPadding,
+            child: const _GiftCardEmptyState(),
+          );
+        }
 
-      return Column(
-        children: [
-          for (var index = 0; index < cards.length; index += 1) ...[
-            if (index > 0) const SizedBox(height: 16),
-            _GiftCardTile(
-              item: cards[index],
-              onCopyPassword: () => _copyPassword(cards[index]),
-            ),
-          ],
-          if (controller.isLoadingMoreCards.value) ...[
-            const SizedBox(height: 18),
-            const Center(
-              child: SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-          ],
-        ],
-      );
-    });
+        return _GiftCardListView(
+          scrollController: scrollController,
+          bottomPadding: bottomPadding,
+          child: Column(
+            children: [
+              for (var index = 0; index < cards.length; index += 1) ...[
+                if (index > 0) const SizedBox(height: 16),
+                _GiftCardTile(
+                  item: cards[index],
+                  onTap: () => _showPasswordDialog(context, cards[index]),
+                  onCopyCardNumber: () =>
+                      _copyCardNumber(context, cards[index]),
+                ),
+              ],
+              if (controller.isLoadingMoreCards.value) ...[
+                const SizedBox(height: 18),
+                const Center(
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class _GiftCardListView extends StatelessWidget {
+  const _GiftCardListView({
+    required this.scrollController,
+    required this.bottomPadding,
+    required this.child,
+  });
+
+  final ScrollController scrollController;
+  final double bottomPadding;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      controller: scrollController,
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: ClampingScrollPhysics(),
+      ),
+      padding: EdgeInsets.only(bottom: bottomPadding),
+      children: [child],
+    );
   }
 }
 
@@ -476,10 +601,15 @@ class _GiftCardEmptyState extends StatelessWidget {
 }
 
 class _GiftCardTile extends StatelessWidget {
-  const _GiftCardTile({required this.item, required this.onCopyPassword});
+  const _GiftCardTile({
+    required this.item,
+    required this.onTap,
+    required this.onCopyCardNumber,
+  });
 
   final WalletGiftCardItem item;
-  final VoidCallback onCopyPassword;
+  final VoidCallback onTap;
+  final VoidCallback onCopyCardNumber;
 
   Color get _statusColor {
     return item.isAvailable
@@ -503,130 +633,219 @@ class _GiftCardTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final muted = item.isUsed;
     final chargeUser = item.chargeUser?.trim();
-    final userLabel = chargeUser == null || chargeUser.isEmpty
-        ? 'app.common.none'.tr
-        : chargeUser;
+    final showUserLabel = _GiftCardPageState.shouldShowChargeUser(chargeUser);
+    final statusLabel = _GiftCardPageState.statusLabel(item);
     final usedDate = _GiftCardPageState.formatDate(item.chargeTime);
-    return Container(
-      padding: const EdgeInsets.all(21),
-      decoration: BoxDecoration(
-        color: _GiftCardPageState._surfaceLowest.withValues(
-          alpha: muted ? 0.76 : 1,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(21),
+        decoration: BoxDecoration(
+          color: _GiftCardPageState._surfaceLowest.withValues(
+            alpha: muted ? 0.76 : 1,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(
+              color: Color.fromRGBO(15, 23, 42, 0.05),
+              blurRadius: 16,
+              offset: Offset(0, 4),
+            ),
+          ],
         ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(15, 23, 42, 0.05),
-            blurRadius: 16,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: _iconBackground,
-                  borderRadius: BorderRadius.circular(12),
+        child: Column(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: _iconBackground,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.card_giftcard_rounded,
+                    size: 22,
+                    color: _iconColor,
+                  ),
                 ),
-                child: Icon(
-                  Icons.card_giftcard_rounded,
-                  size: 22,
-                  color: _iconColor,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      height: 24,
-                      child: _SingleLineFitText(
-                        text: userLabel,
-                        style: TextStyle(
-                          color: muted
-                              ? _GiftCardPageState._bodyColor
-                              : _GiftCardPageState._titleColor,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          height: 24 / 16,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (showUserLabel) ...[
+                        SizedBox(
+                          height: 24,
+                          child: _SingleLineFitText(
+                            text: chargeUser!,
+                            style: TextStyle(
+                              color: muted
+                                  ? _GiftCardPageState._bodyColor
+                                  : _GiftCardPageState._titleColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              height: 24 / 16,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          statusLabel,
+                          style: TextStyle(
+                            color: _statusColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                            height: 15 / 10,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ] else
+                        SizedBox(
+                          height: 24,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              statusLabel,
+                              maxLines: 1,
+                              softWrap: false,
+                              style: TextStyle(
+                                color: _statusColor,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                height: 20 / 14,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 4),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          _GiftCardPageState.formatMoney(item.value),
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            color: muted
+                                ? const Color(0xFFCBD5E1)
+                                : _GiftCardPageState._titleColor,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            height: 32 / 24,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _GiftCardPageState.statusLabel(item),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _ViewPasswordButton(onTap: onTap),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 16,
+                    child: _SingleLineFitText(
+                      text: item.cardNumber,
                       style: TextStyle(
-                        color: _statusColor,
-                        fontSize: 10,
+                        color: muted
+                            ? const Color(0xFFCBD5E1)
+                            : _GiftCardPageState._mutedColor,
+                        fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        height: 15 / 10,
-                        letterSpacing: 1,
+                        height: 16 / 12,
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        _GiftCardPageState.formatMoney(item.value),
-                        textAlign: TextAlign.right,
-                        style: TextStyle(
-                          color: muted
-                              ? const Color(0xFFCBD5E1)
-                              : _GiftCardPageState._titleColor,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          height: 32 / 24,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 16,
-                  child: _SingleLineFitText(
-                    text: item.cardNumber,
-                    style: TextStyle(
-                      color: muted
-                          ? const Color(0xFFCBD5E1)
-                          : _GiftCardPageState._mutedColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      height: 16 / 12,
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              if (item.isAvailable)
-                _CopyButton(onTap: onCopyPassword)
-              else
-                Text(
-                  usedDate,
-                  style: const TextStyle(
-                    color: _GiftCardPageState._mutedColor,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    height: 15 / 10,
-                    letterSpacing: 1,
+                const SizedBox(width: 16),
+                if (item.isAvailable)
+                  _CopyButton(onTap: onCopyCardNumber)
+                else
+                  Text(
+                    usedDate,
+                    style: const TextStyle(
+                      color: _GiftCardPageState._mutedColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      height: 15 / 10,
+                      letterSpacing: 1,
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ViewPasswordButton extends StatelessWidget {
+  const _ViewPasswordButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'app.user.gift_card.password_title'.tr,
+      child: SizedBox(
+        width: 18,
+        height: 18,
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(999),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(999),
+            splashColor: _GiftCardPageState._mutedColor.withValues(alpha: 0.12),
+            highlightColor: _GiftCardPageState._mutedColor.withValues(
+              alpha: 0.08,
+            ),
+            onTap: onTap,
+            child: const Center(
+              child: Icon(
+                Icons.visibility_outlined,
+                size: 13,
+                color: _GiftCardPageState._mutedColor,
+              ),
+            ),
           ),
-        ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GiftCardPasswordContent extends StatelessWidget {
+  const _GiftCardPasswordContent({required this.password});
+
+  final String password;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: _GiftCardPageState._pageBackground,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: SelectableText(
+        password,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: _GiftCardPageState._titleColor,
+          fontSize: 14,
+          fontWeight: FontWeight.w800,
+          height: 20 / 14,
+        ),
       ),
     );
   }

@@ -527,10 +527,10 @@ class WalletGiftCardAmountOption {
   factory WalletGiftCardAmountOption.fromJson(Map<String, dynamic> json) {
     return WalletGiftCardAmountOption(
       raw: json,
-      id: json['id']?.toString() ?? '',
+      id: json['id']?.toString() ?? json['code']?.toString() ?? '',
       label: json['label']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
-      value: _asDouble(json['value']),
+      value: _asDouble(json['value'] ?? json['label']),
     );
   }
 
