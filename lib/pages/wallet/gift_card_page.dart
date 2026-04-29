@@ -545,19 +545,21 @@ class _GiftCardTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      userLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: muted
-                            ? _GiftCardPageState._bodyColor
-                            : _GiftCardPageState._titleColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        height: 24 / 16,
+                    SizedBox(
+                      height: 24,
+                      child: _SingleLineFitText(
+                        text: userLabel,
+                        style: TextStyle(
+                          color: muted
+                              ? _GiftCardPageState._bodyColor
+                              : _GiftCardPageState._titleColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          height: 24 / 16,
+                        ),
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       _GiftCardPageState.statusLabel(item),
                       style: TextStyle(
@@ -568,50 +570,52 @@ class _GiftCardTile extends StatelessWidget {
                         letterSpacing: 1,
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        _GiftCardPageState.formatMoney(item.value),
+                        textAlign: TextAlign.right,
+                        style: TextStyle(
+                          color: muted
+                              ? const Color(0xFFCBD5E1)
+                              : _GiftCardPageState._titleColor,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          height: 32 / 24,
+                        ),
+                      ),
+                    ),
                   ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                _GiftCardPageState.formatMoney(item.value),
-                textAlign: TextAlign.right,
-                style: TextStyle(
-                  color: muted
-                      ? const Color(0xFFCBD5E1)
-                      : _GiftCardPageState._titleColor,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  height: 32 / 24,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 18),
           Row(
             children: [
               Expanded(
-                child: Text(
-                  item.maskedCardNumber,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: muted
-                        ? const Color(0xFFCBD5E1)
-                        : _GiftCardPageState._mutedColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    height: 16 / 12,
-                    letterSpacing: 1.2,
+                child: SizedBox(
+                  height: 16,
+                  child: _SingleLineFitText(
+                    text: item.cardNumber,
+                    style: TextStyle(
+                      color: muted
+                          ? const Color(0xFFCBD5E1)
+                          : _GiftCardPageState._mutedColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      height: 16 / 12,
+                    ),
                   ),
                 ),
               ),
+              const SizedBox(width: 16),
               if (item.isAvailable)
                 _CopyButton(onTap: onCopyPassword)
               else
                 Text(
-                  usedDate.isEmpty
-                      ? 'app.user.gift_card.status_used'.tr.toUpperCase()
-                      : 'app.user.gift_card.redeemed_at'.trArgs([usedDate]),
+                  usedDate,
                   style: const TextStyle(
                     color: _GiftCardPageState._mutedColor,
                     fontSize: 10,
@@ -623,6 +627,29 @@ class _GiftCardTile extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SingleLineFitText extends StatelessWidget {
+  const _SingleLineFitText({required this.text, required this.style});
+
+  final String text;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Text(
+        text,
+        maxLines: 1,
+        softWrap: false,
+        overflow: TextOverflow.visible,
+        textAlign: TextAlign.left,
+        style: style,
       ),
     );
   }

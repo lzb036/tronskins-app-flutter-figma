@@ -496,14 +496,7 @@ class WalletGiftCardItem {
   bool get isUsed => status == 1;
   bool get isAvailable => !isUsed;
 
-  String get maskedCardNumber {
-    final clean = id.replaceAll(RegExp(r'\s+'), '');
-    if (clean.isEmpty) {
-      return '.... .... ....';
-    }
-    final last = clean.length <= 4 ? clean : clean.substring(clean.length - 4);
-    return '.... .... .... $last';
-  }
+  String get cardNumber => id.trim().isEmpty ? '-' : id.trim();
 }
 
 class WalletGiftCardPassword {
