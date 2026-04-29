@@ -10,7 +10,7 @@ import 'package:tronskins_app/api/steam.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/user_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
-import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
+import 'package:tronskins_app/common/widgets/steam_style_confirm_dialog.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/game_item/game_item_utils.dart';
@@ -308,15 +308,40 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
       AppSnackbar.info('app.trade.supply.message.more_than_needed'.tr);
       return;
     }
-    final confirmed = await showFigmaModal<bool>(
-      context: context,
-      barrierDismissible: false,
-      child: _SupplyConfirmDialog(
-        count: _selectedIds.length,
-        total: _totalAmount(),
-        fee: _feeAmount(),
-        income: _incomeAmount(),
-      ),
+    final currency = Get.find<CurrencyController>();
+    final total = _totalAmount();
+    final fee = _feeAmount();
+    final income = _incomeAmount();
+    final points = (total * 100).floor() / 100;
+    final confirmed = await showSteamStyleAmountConfirmDialog(
+      context,
+      title: 'app.trade.supply.text'.tr,
+      amount: currency.format(income),
+      amountLabel: 'app.trade.supply.actual_income'.tr,
+      summaryItems: [
+        SteamStyleConfirmSummaryItem(
+          label: 'app.inventory.count'.tr,
+          value: '${_selectedIds.length} ${'app.market.unit_qty'.tr}',
+        ),
+        SteamStyleConfirmSummaryItem(
+          label: 'app.inventory.upshop.expected_income'.tr,
+          value: currency.format(total),
+        ),
+        SteamStyleConfirmSummaryItem(
+          label: 'app.inventory.upshop.handling_charge'.tr,
+          value: currency.format(fee),
+        ),
+        SteamStyleConfirmSummaryItem(
+          label: 'app.user.integral.award'.tr,
+          value: '${points.toStringAsFixed(2)} ${'app.user.integral.unit'.tr}',
+          valueColor: _SupplyPalette.blue,
+          emphasized: true,
+        ),
+      ],
+      cancelText: 'app.common.cancel'.tr,
+      confirmText: 'app.trade.supply.text'.tr,
+      accentColor: _SupplyPalette.blue,
+      requireAgreement: false,
     );
     if (confirmed == true) {
       await _submitSupply();
@@ -1616,125 +1641,4 @@ String? _formatSupplyWear(double? wear) {
     return null;
   }
   return wear.toString();
-}
-
-class _SupplyConfirmDialog extends StatelessWidget {
-  const _SupplyConfirmDialog({
-    required this.count,
-    required this.total,
-    required this.fee,
-    required this.income,
-  });
-
-  final int count;
-  final double total;
-  final double fee;
-  final double income;
-
-  @override
-  Widget build(BuildContext context) {
-    final currency = Get.find<CurrencyController>();
-    final points = (total * 100).floor() / 100;
-    return FigmaConfirmationDialog(
-      icon: Icons.inventory_2_rounded,
-      iconColor: _SupplyPalette.blue,
-      iconBackgroundColor: const Color.fromRGBO(37, 99, 235, 0.10),
-      accentColor: _SupplyPalette.blue,
-      title: 'app.trade.supply.text'.tr,
-      primaryLabel: 'app.trade.supply.text'.tr,
-      secondaryLabel: 'app.common.cancel'.tr,
-      onPrimary: () => popModalRoute(context, true),
-      onSecondary: () => popModalRoute(context, false),
-      content: SizedBox(
-        width: double.infinity,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildRow(
-                context,
-                label: 'app.inventory.count'.tr,
-                value: '$count ${'app.market.unit_qty'.tr}',
-              ),
-              Obx(
-                () => _buildRow(
-                  context,
-                  label: 'app.inventory.upshop.expected_income'.tr,
-                  value: currency.format(total),
-                ),
-              ),
-              Obx(
-                () => _buildRow(
-                  context,
-                  label: 'app.inventory.upshop.handling_charge'.tr,
-                  value: currency.format(fee),
-                ),
-              ),
-              Obx(
-                () => _buildRow(
-                  context,
-                  label: 'app.trade.supply.actual_income'.tr,
-                  value: currency.format(income),
-                  highlight: true,
-                ),
-              ),
-              _buildRow(
-                context,
-                label: 'app.user.integral.award'.tr,
-                value:
-                    '${points.toStringAsFixed(2)} '
-                    '${'app.user.integral.unit'.tr}',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRow(
-    BuildContext context, {
-    required String label,
-    required String value,
-    bool highlight = false,
-  }) {
-    final labelStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-      color: _SupplyPalette.muted,
-      fontSize: 13,
-      height: 18 / 13,
-      fontWeight: FontWeight.w500,
-    );
-    final valueStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-      color: highlight ? _SupplyPalette.blue : _SupplyPalette.ink,
-      fontSize: 13,
-      height: 18 / 13,
-      fontWeight: highlight ? FontWeight.w800 : FontWeight.w700,
-    );
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: labelStyle,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Flexible(
-            child: Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.right,
-              style: valueStyle,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

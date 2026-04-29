@@ -26,6 +26,7 @@ Future<bool?> showSteamStyleAmountConfirmDialog(
   String? cancelText,
   String? confirmText,
   Color? accentColor,
+  bool requireAgreement = true,
 }) {
   return showGeneralDialog<bool>(
     context: context,
@@ -43,6 +44,7 @@ Future<bool?> showSteamStyleAmountConfirmDialog(
         cancelText: cancelText ?? 'app.common.cancel'.tr,
         confirmText: confirmText ?? 'app.common.confirm'.tr,
         accentColor: accentColor,
+        requireAgreement: requireAgreement,
       );
     },
     transitionBuilder: (dialogContext, animation, secondaryAnimation, child) {
@@ -70,6 +72,7 @@ class _SteamStyleAmountConfirmDialog extends StatefulWidget {
     required this.amountLabel,
     required this.cancelText,
     required this.confirmText,
+    required this.requireAgreement,
     this.noticeText,
     this.accentColor,
   });
@@ -80,6 +83,7 @@ class _SteamStyleAmountConfirmDialog extends StatefulWidget {
   final String amountLabel;
   final String cancelText;
   final String confirmText;
+  final bool requireAgreement;
   final String? noticeText;
   final Color? accentColor;
 
@@ -103,7 +107,7 @@ class _SteamStyleAmountConfirmDialogState
   }
 
   void _handleConfirmTap() {
-    if (!_agreed) {
+    if (widget.requireAgreement && !_agreed) {
       HapticFeedback.lightImpact();
       setState(() => _showAgreementHint = true);
       return;
@@ -314,61 +318,66 @@ class _SteamStyleAmountConfirmDialogState
                     ),
                   ),
                 ],
-                const SizedBox(height: 14),
-                _buildCenteredInfoRow(
-                  onTap: _toggleAgreement,
-                  leading: _buildAgreementCheckbox(
-                    borderColor: borderColor,
-                    accent: accent,
-                  ),
-                  text: RichText(
-                    text: TextSpan(
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: bodyColor,
-                        height: 1.35,
+                if (widget.requireAgreement) ...[
+                  const SizedBox(height: 14),
+                  _buildCenteredInfoRow(
+                    onTap: _toggleAgreement,
+                    leading: _buildAgreementCheckbox(
+                      borderColor: borderColor,
+                      accent: accent,
+                    ),
+                    text: RichText(
+                      text: TextSpan(
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: bodyColor,
+                          height: 1.35,
+                        ),
+                        children: [
+                          TextSpan(text: 'app.trade.buy.agree_prefix'.tr),
+                          TextSpan(
+                            text: 'app.trade.buy.purchase_agreement'.tr,
+                            style: TextStyle(
+                              color: accent,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          TextSpan(text: 'app.trade.buy.agree_and'.tr),
+                          TextSpan(
+                            text: 'app.trade.buy.user_terms'.tr,
+                            style: TextStyle(
+                              color: accent,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
-                      children: [
-                        TextSpan(text: 'app.trade.buy.agree_prefix'.tr),
-                        TextSpan(
-                          text: 'app.trade.buy.purchase_agreement'.tr,
-                          style: TextStyle(
-                            color: accent,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        TextSpan(text: 'app.trade.buy.agree_and'.tr),
-                        TextSpan(
-                          text: 'app.trade.buy.user_terms'.tr,
-                          style: TextStyle(
-                            color: accent,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
                     ),
                   ),
-                ),
-                AnimatedSize(
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOut,
-                  child: _showAgreementHint
-                      ? Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 280),
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 6, left: 30),
-                              child: Text(
-                                'app.trade.buy.agreement_required'.tr,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: const Color(0xFFD92D20),
-                                  fontSize: 12,
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOut,
+                    child: _showAgreementHint
+                        ? Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 280),
+                              child: Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 6,
+                                  left: 30,
+                                ),
+                                child: Text(
+                                  'app.trade.buy.agreement_required'.tr,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: const Color(0xFFD92D20),
+                                    fontSize: 12,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        )
-                      : const SizedBox.shrink(),
-                ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ],
                 const SizedBox(height: 24),
                 Row(
                   children: [
