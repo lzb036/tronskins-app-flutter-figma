@@ -231,6 +231,8 @@ final Map<String, String> ko_KR = {
   "app.user.withdraw.enter_address": "지갑 주소를 입력하십시오.",
   "app.user.withdraw.message.delete_address": "이 인출 주소를 삭제하시겠습니까?",
   "app.user.withdraw.message.success": "인출 신청은 성공적으로 처리되었습니다.",
+  "app.user.withdraw.message.add_address_success": "출금 주소가 추가되었습니다.",
+  "app.user.withdraw.message.delete_address_success": "출금 주소가 삭제되었습니다.",
   "app.user.withdraw.message.pay": "지불 시간은 여전히 {0} 분이 있습니다.",
   "app.user.withdraw.message.cancel": "이 인출을 취소하시겠습니까?",
   "app.user.withdraw.message.enter_amount": "인출하려는 금액을 입력하십시오.",

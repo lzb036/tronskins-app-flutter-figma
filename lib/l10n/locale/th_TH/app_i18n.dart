@@ -248,6 +248,8 @@ final Map<String, String> th_TH = {
       "คุณแน่ใจหรือไม่ว่าคุณต้องการลบที่อยู่การถอนเงินนี้",
   "app.user.withdraw.message.success":
       "การขอถอนได้รับการประมวลผลอย่างประสบความสำเร็จ",
+  "app.user.withdraw.message.add_address_success": "เพิ่มที่อยู่ถอนสำเร็จ",
+  "app.user.withdraw.message.delete_address_success": "ลบที่อยู่ถอนสำเร็จ",
   "app.user.withdraw.message.pay": "คุณยังมีเวลา {0} นาทีในการชำระเงิน",
   "app.user.withdraw.message.cancel":
       "คุณแน่ใจหรือไม่ว่าคุณต้องการยกเลิกการถอนเงินนี้",

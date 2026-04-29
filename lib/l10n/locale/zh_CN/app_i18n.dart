@@ -211,6 +211,8 @@ final Map<String, String> zh_CN = {
   "app.user.withdraw.enter_address": "请输入您的钱包地址",
   "app.user.withdraw.message.delete_address": "确认删除该提现地址吗？",
   "app.user.withdraw.message.success": "已成功申请提现",
+  "app.user.withdraw.message.add_address_success": "提现地址添加成功",
+  "app.user.withdraw.message.delete_address_success": "提现地址删除成功",
   "app.user.withdraw.message.pay": "您还有 {0} 分钟的时间付款",
   "app.user.withdraw.message.cancel": "确定取消本次提现吗？",
   "app.user.withdraw.message.enter_amount": "请输入您的提现金额",

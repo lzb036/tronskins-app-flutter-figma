@@ -7,6 +7,7 @@ import 'package:tronskins_app/api/model/wallet/wallet_models.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/twofa_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/controllers/wallet/wallet_controller.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
@@ -550,28 +551,32 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
     if (id == null) {
       return;
     }
-    final confirm = await Get.dialog<bool>(
-      AlertDialog(
-        title: Text('app.system.tips.title'.tr),
-        content: Text('app.user.withdraw.message.delete_address'.tr),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(result: false),
-            child: Text('app.common.cancel'.tr),
-          ),
-          TextButton(
-            onPressed: () => Get.back(result: true),
-            child: Text('app.common.confirm'.tr),
-          ),
-        ],
+    await showFigmaModal<void>(
+      context: context,
+      barrierDismissible: false,
+      child: FigmaAsyncConfirmationDialog(
+        icon: Icons.delete_outline_rounded,
+        iconColor: const Color(0xFFE11D48),
+        iconBackgroundColor: const Color.fromRGBO(225, 29, 72, 0.10),
+        accentColor: const Color(0xFFE11D48),
+        title: 'app.system.tips.title'.tr,
+        message: 'app.user.withdraw.message.delete_address'.tr,
+        primaryLabel: 'app.common.delete'.tr,
+        secondaryLabel: 'app.common.cancel'.tr,
+        onSecondary: () => popModalRoute(context),
+        onConfirm: (dialogContext) async {
+          final ok = await controller.removeWithdrawAddress(id);
+          if (ok) {
+            AppSnackbar.success(
+              'app.user.withdraw.message.delete_address_success'.tr,
+            );
+          }
+          if (dialogContext.mounted) {
+            popModalRoute(dialogContext);
+          }
+        },
       ),
     );
-    if (confirm == true) {
-      final ok = await controller.removeWithdrawAddress(id);
-      if (ok) {
-        AppSnackbar.success('app.system.message.success'.tr);
-      }
-    }
   }
 
   void _showAddAddressSheet() {
@@ -666,7 +671,8 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
                               Navigator.of(sheetContext).pop();
                               WidgetsBinding.instance.addPostFrameCallback((_) {
                                 AppSnackbar.success(
-                                  'app.system.message.success'.tr,
+                                  'app.user.withdraw.message.add_address_success'
+                                      .tr,
                                 );
                               });
                             }

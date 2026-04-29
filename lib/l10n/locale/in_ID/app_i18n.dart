@@ -259,6 +259,10 @@ final Map<String, String> in_ID = {
       "Apakah Anda yakin ingin menghapus alamat penarikan ini?",
   "app.user.withdraw.message.success":
       "Aplikasi penarikan telah berhasil diproses.",
+  "app.user.withdraw.message.add_address_success":
+      "Alamat penarikan berhasil ditambahkan.",
+  "app.user.withdraw.message.delete_address_success":
+      "Alamat penarikan berhasil dihapus.",
   "app.user.withdraw.message.pay":
       "Anda masih memiliki {0} menit untuk melakukan pembayaran.",
   "app.user.withdraw.message.cancel":

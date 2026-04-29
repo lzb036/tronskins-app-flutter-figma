@@ -261,6 +261,10 @@ final Map<String, String> po_PL = {
       "Czy na pewno chcesz usunąć ten adres wypłaty?",
   "app.user.withdraw.message.success":
       "Wniosek o wypłatę został pomyślnie przetworzony.",
+  "app.user.withdraw.message.add_address_success":
+      "Adres wypłaty został dodany.",
+  "app.user.withdraw.message.delete_address_success":
+      "Adres wypłaty został usunięty.",
   "app.user.withdraw.message.pay":
       "Masz jeszcze {0} minut na dokonanie płatności.",
   "app.user.withdraw.message.cancel": "Na pewno chcesz anulować tę wypłatę?",

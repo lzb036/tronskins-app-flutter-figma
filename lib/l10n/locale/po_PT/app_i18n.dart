@@ -264,6 +264,10 @@ final Map<String, String> po_PT = {
       "Tem certeza de que deseja excluir este endereço de retirada?",
   "app.user.withdraw.message.success":
       "O pedido de retirada foi processado com sucesso.",
+  "app.user.withdraw.message.add_address_success":
+      "Endereço de retirada adicionado com sucesso.",
+  "app.user.withdraw.message.delete_address_success":
+      "Endereço de retirada removido com sucesso.",
   "app.user.withdraw.message.pay":
       "Você ainda tem {0} minutos para fazer o pagamento.",
   "app.user.withdraw.message.cancel":

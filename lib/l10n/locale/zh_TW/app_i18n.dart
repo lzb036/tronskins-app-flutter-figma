@@ -211,6 +211,8 @@ final Map<String, String> zh_TW = {
   "app.user.withdraw.enter_address": "請輸入您的錢包地址。",
   "app.user.withdraw.message.delete_address": "您確定要删除此提款地址嗎？",
   "app.user.withdraw.message.success": "提款申請已成功處理。",
+  "app.user.withdraw.message.add_address_success": "提款地址新增成功",
+  "app.user.withdraw.message.delete_address_success": "提款地址刪除成功",
   "app.user.withdraw.message.pay": "您還有｛0｝分鐘的時間付款。",
   "app.user.withdraw.message.cancel": "您確定要取消此提款嗎？",
   "app.user.withdraw.message.enter_amount": "請輸入您要選取的金額。",

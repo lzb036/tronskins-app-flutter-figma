@@ -267,6 +267,10 @@ final Map<String, String> ru_RU = {
       "Вы уверены, что хотите удалить этот адрес?",
   "app.user.withdraw.message.success":
       "Заявление на снятие было успешно обработано.",
+  "app.user.withdraw.message.add_address_success":
+      "Адрес вывода успешно добавлен.",
+  "app.user.withdraw.message.delete_address_success":
+      "Адрес вывода успешно удалён.",
   "app.user.withdraw.message.pay": "У вас остается {0} минут для оплаты.",
   "app.user.withdraw.message.cancel":
       "Вы уверены, что хотите отменить этот вывод?",

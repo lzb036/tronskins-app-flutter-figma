@@ -252,6 +252,10 @@ final Map<String, String> vi_VN = {
       "Bạn có chắc chắn rằng bạn muốn xóa địa chỉ rút tiền này không?",
   "app.user.withdraw.message.success":
       "Yêu cầu rút tiền đã được xử lý thành công.",
+  "app.user.withdraw.message.add_address_success":
+      "Đã thêm địa chỉ rút tiền thành công.",
+  "app.user.withdraw.message.delete_address_success":
+      "Đã xóa địa chỉ rút tiền thành công.",
   "app.user.withdraw.message.pay": "Bạn vẫn còn {0} phút để thanh toán.",
   "app.user.withdraw.message.cancel":
       "Bạn có chắc chắn rằng bạn muốn hủy bỏ việc rút tiền này không?",

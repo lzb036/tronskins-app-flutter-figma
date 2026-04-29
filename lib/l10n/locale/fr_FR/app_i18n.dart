@@ -271,6 +271,10 @@ final Map<String, String> fr_FR = {
       "Êtes-vous sûr de vouloir supprimer cette adresse de retrait ?",
   "app.user.withdraw.message.success":
       "La demande de retrait a été traitée avec succès.",
+  "app.user.withdraw.message.add_address_success":
+      "Adresse de retrait ajoutée avec succès.",
+  "app.user.withdraw.message.delete_address_success":
+      "Adresse de retrait supprimée avec succès.",
   "app.user.withdraw.message.pay":
       "Vous avez encore {0} minutes pour effectuer le paiement.",
   "app.user.withdraw.message.cancel":

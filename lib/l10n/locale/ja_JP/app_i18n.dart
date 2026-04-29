@@ -226,6 +226,8 @@ final Map<String, String> ja_JP = {
   "app.user.withdraw.enter_address": "財布のアドレスを入力してください。",
   "app.user.withdraw.message.delete_address": "この引き出しアドレスを削除したいのですか？",
   "app.user.withdraw.message.success": "引き出し申請が成功しました。",
+  "app.user.withdraw.message.add_address_success": "出金アドレスを追加しました。",
+  "app.user.withdraw.message.delete_address_success": "出金アドレスを削除しました。",
   "app.user.withdraw.message.pay": "お支払いの時間はまだ1分です。",
   "app.user.withdraw.message.cancel": "この引き出しをキャンセルしたいのですか？",
   "app.user.withdraw.message.enter_amount": "引き出したい金額を入力してください。",

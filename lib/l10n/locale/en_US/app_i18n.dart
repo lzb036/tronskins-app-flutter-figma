@@ -256,6 +256,10 @@ final Map<String, String> en_US = {
       "Are you sure you want to delete this withdrawal address?",
   "app.user.withdraw.message.success":
       "Withdrawal application has been successfully processed.",
+  "app.user.withdraw.message.add_address_success":
+      "Withdrawal address added successfully.",
+  "app.user.withdraw.message.delete_address_success":
+      "Withdrawal address deleted successfully.",
   "app.user.withdraw.message.pay":
       "You still have {0} minutes to make the payment.",
   "app.user.withdraw.message.cancel":

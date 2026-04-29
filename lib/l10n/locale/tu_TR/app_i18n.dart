@@ -252,6 +252,10 @@ final Map<String, String> tu_TR = {
       "Bu para çekme adresini silmek istediğinizden emin misiniz?",
   "app.user.withdraw.message.success":
       "Geri çekme başvurusu başarıyla işlendi.",
+  "app.user.withdraw.message.add_address_success":
+      "Para çekme adresi başarıyla eklendi.",
+  "app.user.withdraw.message.delete_address_success":
+      "Para çekme adresi başarıyla silindi.",
   "app.user.withdraw.message.pay":
       "Ödemeyi yapmak için hala {0} dakikanız var.",
   "app.user.withdraw.message.cancel":

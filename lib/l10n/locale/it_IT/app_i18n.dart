@@ -262,6 +262,10 @@ final Map<String, String> it_IT = {
       "Sei sicuro di voler cancellare questo indirizzo di ritiro?",
   "app.user.withdraw.message.success":
       "La richiesta di ritiro è stata elaborata con successo.",
+  "app.user.withdraw.message.add_address_success":
+      "Indirizzo di prelievo aggiunto con successo.",
+  "app.user.withdraw.message.delete_address_success":
+      "Indirizzo di prelievo eliminato con successo.",
   "app.user.withdraw.message.pay":
       "Hai ancora {0} minuti per effettuare il pagamento.",
   "app.user.withdraw.message.cancel":

@@ -265,6 +265,10 @@ final Map<String, String> ge_DE = {
       "Sind Sie sicher, dass Sie diese Widerrufsadresse löschen möchten?",
   "app.user.withdraw.message.success":
       "Der Widerrufsantrag wurde erfolgreich bearbeitet.",
+  "app.user.withdraw.message.add_address_success":
+      "Auszahlungsadresse erfolgreich hinzugefügt.",
+  "app.user.withdraw.message.delete_address_success":
+      "Auszahlungsadresse erfolgreich gelöscht.",
   "app.user.withdraw.message.pay": "Sie haben noch {0} Minuten zur Zahlung.",
   "app.user.withdraw.message.cancel":
       "Sind Sie sicher, dass Sie diesen Rückzug stornieren möchten?",
