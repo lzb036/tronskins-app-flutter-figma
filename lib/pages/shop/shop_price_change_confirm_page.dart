@@ -39,7 +39,9 @@ class ShopPriceChangeConfirmPage extends StatelessWidget {
     final bottomInset = MediaQuery.of(context).padding.bottom;
     return Scaffold(
       backgroundColor: _pageBackground,
-      appBar: SettingsStyleAppBar(title: const Text('Confirm Price Change')),
+      appBar: SettingsStyleAppBar(
+        title: Text('app.shop.price_change.confirm.title'.tr),
+      ),
       body: Stack(
         children: [
           const Positioned(
@@ -187,6 +189,10 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final itemUnit = totalCount == 1
+        ? 'app.shop.price_change.confirm.item_unit.one'.tr
+        : 'app.shop.price_change.confirm.item_unit.other'.tr;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -218,10 +224,10 @@ class _SummaryCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Price Change List',
-                        style: TextStyle(
+                        'app.shop.price_change.confirm.list_title'.tr,
+                        style: const TextStyle(
                           color: ShopPriceChangeConfirmPage._textPrimary,
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -253,7 +259,7 @@ class _SummaryCard extends StatelessWidget {
                     child: Align(
                       alignment: Alignment.bottomRight,
                       child: Text(
-                        'items',
+                        itemUnit,
                         softWrap: false,
                         style: const TextStyle(
                           color: ShopPriceChangeConfirmPage._textSecondary,
@@ -285,7 +291,7 @@ class _SummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _SummaryRow(
-            label: 'Points',
+            label: 'app.user.integral.unit'.tr,
             value: rewardPointsText,
             valueColor: ShopPriceChangeConfirmPage._textPrimary,
           ),
@@ -561,7 +567,7 @@ class _BottomActionBar extends StatelessWidget {
                 Expanded(
                   flex: 9,
                   child: _ActionButton(
-                    label: 'Confirm Change',
+                    label: 'app.shop.price_change.confirm.action'.tr,
                     amountText: confirmAmountText,
                     labelColor: Colors.white,
                     gradient: const LinearGradient(

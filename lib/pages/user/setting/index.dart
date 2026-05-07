@@ -51,7 +51,9 @@ class UserSetting extends StatelessWidget {
                       children: [
                         Obx(() => _buildProfileCard(context, userCtrl)),
                         const SizedBox(height: 32),
-                        const _SectionLabel('Security & Account'),
+                        _SectionLabel(
+                          'app.user.setting.section.security_account'.tr,
+                        ),
                         const SizedBox(height: 12),
                         _buildGroupedCard([
                           _buildActionTile(
@@ -84,7 +86,9 @@ class UserSetting extends StatelessWidget {
                           ),
                         ]),
                         const SizedBox(height: 24),
-                        const _SectionLabel('Preferences'),
+                        _SectionLabel(
+                          'app.user.setting.section.preferences'.tr,
+                        ),
                         const SizedBox(height: 12),
                         _buildGroupedCard([
                           _buildActionTile(
@@ -134,7 +138,7 @@ class UserSetting extends StatelessWidget {
                           ),
                         ]),
                         const SizedBox(height: 24),
-                        const _SectionLabel('Support'),
+                        _SectionLabel('app.user.setting.section.support'.tr),
                         const SizedBox(height: 12),
                         _buildGroupedCard([
                           _buildActionTile(
@@ -154,7 +158,7 @@ class UserSetting extends StatelessWidget {
                           ),
                           _buildActionTile(
                             icon: Icons.bug_report_outlined,
-                            title: '认证测试中心',
+                            title: 'app.user.setting.auth_test_center'.tr,
                             onTap: () => Get.toNamed(Routers.USER_AUTH_TEST),
                           ),
                         ]),
@@ -692,15 +696,9 @@ class UserSetting extends StatelessWidget {
   }
 
   String _twoFaStatusLabel(bool active) {
-    final locale = Get.locale;
-    final lang = locale?.languageCode.toLowerCase();
-    final country = (locale?.countryCode ?? '').toUpperCase();
-    if (lang == 'zh') {
-      return active
-          ? (country == 'TW' ? '已綁定' : '已绑定')
-          : (country == 'TW' ? '未綁定' : '未绑定');
-    }
-    return (active ? 'Active' : 'Inactive').toUpperCase();
+    return active
+        ? 'app.user.setting.twofa.active'.tr
+        : 'app.user.setting.twofa.inactive'.tr;
   }
 
   Widget _buildVersionCaption() {
