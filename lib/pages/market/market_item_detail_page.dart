@@ -11,6 +11,7 @@ import 'package:tronskins_app/api/shop_product.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/user_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/utils/shop_online_status.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/common/widgets/steam_style_confirm_dialog.dart';
@@ -986,11 +987,14 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
       _extractText(shopInfo, <String>['avatar']) ?? _user?.avatar,
     );
     final canOpenStore = (_resolveSellerUuid()?.isNotEmpty ?? false);
+    final isOnline = resolveShopOnlineStatus(shopInfo);
 
     return ShopStoreInfoCard(
       title: shopName,
       avatarUrl: avatar,
+      isOnline: isOnline,
       onTap: canOpenStore ? _openSellerStore : null,
+      showChevron: canOpenStore,
       badges: [
         ShopStoreInfoBadge(
           label: _shopDeliverLabel(),

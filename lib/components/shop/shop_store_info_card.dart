@@ -37,6 +37,7 @@ class ShopStoreInfoCard extends StatelessWidget {
     this.onTap,
     this.fallbackIcon = Icons.storefront_outlined,
     this.showOnline = false,
+    this.isOnline,
     this.showChevron = false,
     this.trailing,
   });
@@ -48,6 +49,7 @@ class ShopStoreInfoCard extends StatelessWidget {
   final VoidCallback? onTap;
   final IconData fallbackIcon;
   final bool showOnline;
+  final bool? isOnline;
   final bool showChevron;
   final Widget? trailing;
 
@@ -58,9 +60,11 @@ class ShopStoreInfoCard extends StatelessWidget {
   static const Color _dividerColor = Color(0xFFE9EDF3);
   static const Color _avatarSurface = Color(0xFFF2F4F7);
   static const Color _successGreen = Color(0xFF22C55E);
+  static const Color _offlineGray = Color(0xFF94A3B8);
 
   @override
   Widget build(BuildContext context) {
+    final avatarOnline = isOnline ?? (showOnline ? true : null);
     final content = Ink(
       padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
       decoration: BoxDecoration(
@@ -79,7 +83,7 @@ class ShopStoreInfoCard extends StatelessWidget {
           _ShopStoreAvatar(
             avatarUrl: avatarUrl,
             fallbackIcon: fallbackIcon,
-            showOnline: showOnline,
+            online: avatarOnline,
           ),
           const SizedBox(width: 12),
           Expanded(child: _buildIdentity()),
@@ -236,17 +240,18 @@ class _ShopStoreAvatar extends StatelessWidget {
   const _ShopStoreAvatar({
     required this.avatarUrl,
     required this.fallbackIcon,
-    required this.showOnline,
+    required this.online,
   });
 
   final String avatarUrl;
   final IconData fallbackIcon;
-  final bool showOnline;
+  final bool? online;
 
   static const double _size = 64;
 
   @override
   Widget build(BuildContext context) {
+    final currentOnline = online;
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -279,16 +284,25 @@ class _ShopStoreAvatar extends StatelessWidget {
                   ),
                 ),
         ),
-        if (showOnline)
+        if (currentOnline != null)
           Positioned(
-            right: 2,
-            bottom: 2,
+            right: 0,
+            bottom: 0,
             child: Container(
-              width: 11,
-              height: 11,
+              width: 15,
+              height: 15,
+              padding: const EdgeInsets.all(2),
               decoration: const BoxDecoration(
-                color: ShopStoreInfoCard._successGreen,
+                color: Colors.white,
                 shape: BoxShape.circle,
+              ),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: currentOnline
+                      ? ShopStoreInfoCard._successGreen
+                      : ShopStoreInfoCard._offlineGray,
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
           ),

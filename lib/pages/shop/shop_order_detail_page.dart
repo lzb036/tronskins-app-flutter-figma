@@ -13,6 +13,7 @@ import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/game_storage.dart';
 import 'package:tronskins_app/common/theme/order_detail_status_style.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/utils/shop_online_status.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
@@ -1534,18 +1535,11 @@ class ShopOrderDetailPage extends StatelessWidget {
       title: party.nickname ?? '-',
       avatarUrl: avatarUrl,
       fallbackIcon: Icons.person_rounded,
+      isOnline: resolveShopOnlineStatus(party.raw),
       onTap: canOpenShop ? () => _openPartyShop(party, order) : null,
+      showChevron: canOpenShop,
       trailing: trailing,
-      badges: [
-        ShopStoreInfoBadge(label: party.roleLabel),
-        if (canOpenShop)
-          ShopStoreInfoBadge(
-            label: _text(zh: '进入店铺', en: 'View Shop'),
-            onTap: () => _openPartyShop(party, order),
-            backgroundColor: const Color(0xFFF1F5F9),
-            foregroundColor: _brandColor,
-          ),
-      ],
+      badges: [ShopStoreInfoBadge(label: party.roleLabel)],
       metrics: _partyMetrics(party),
     );
   }
@@ -2135,6 +2129,7 @@ class ShopOrderDetailPage extends StatelessWidget {
     if (uuid == null || uuid.isEmpty) {
       return;
     }
+    final isOnline = extractShopOnlineStatus(party.raw);
     Get.toNamed(
       Routers.MARKET_SELLER_SHOP,
       arguments: {
@@ -2144,6 +2139,7 @@ class ShopOrderDetailPage extends StatelessWidget {
           'uuid': uuid,
           if ((party.nickname ?? '').isNotEmpty) 'name': party.nickname,
           if ((party.avatar ?? '').isNotEmpty) 'avatar': party.avatar,
+          if (isOnline != null) 'isOnline': isOnline,
         },
       },
     );
