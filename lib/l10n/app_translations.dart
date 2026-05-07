@@ -848,7 +848,7 @@ const Map<String, Map<String, String>> _deliverBacklogMessages = {
         'STEAM MOBILE CONFIRMATION REQUIRED\nAPI KEY VERIFIED SECURE',
     'app.market.item.wear': 'Wear',
     'app.trade.supply.message.confirm':
-        'After confirming the supply, you must initiate a quotation within 30 minutes. Do you want to proceed to delivery?',
+        'After confirming the supply, you must initiate a quotation within 30 minutes. Do you want to proceed to dispatch?',
   },
   'zh_CN': {
     'app.trade.deliver.drawer_title': '发货详情',
@@ -987,7 +987,7 @@ const Map<String, Map<String, String>> _inlineBacklogMessages = {
 
 const Map<String, Map<String, String>> _excelBacklogMessages = {
   'en_US': {
-    'app.tabbar.market': 'Accessories Market',
+    'app.tabbar.market': 'Market',
     'app.market.empty.title': 'No items found',
     'app.market.empty.subtitle':
         'Try pulling down to refresh or adjust your search and filters.',
@@ -1048,6 +1048,7 @@ const Map<String, Map<String, String>> _excelBacklogMessages = {
     'app.inline.buying.terminate_prefix':
         'Are you sure you want to terminate this purchase request for ',
     'app.inline.buying.terminate_suffix': '?',
+    'app.trade.purchase.terminate': 'Terminate',
     'app.inline.order.deliver_now': 'Deliver Now',
     'app.trade.notice.ready_to_deliver': 'Ready to Deliver',
     'app.trade.notice.deliver_now': 'Deliver Now',

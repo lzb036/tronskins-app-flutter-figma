@@ -99,6 +99,7 @@ class FigmaConfirmationDialog extends StatelessWidget {
     this.secondaryLabel,
     this.onSecondary,
     this.secondaryLoading = false,
+    this.primaryFirst = true,
     this.highlightText,
     this.content,
     this.icon = Icons.warning_amber_rounded,
@@ -115,6 +116,7 @@ class FigmaConfirmationDialog extends StatelessWidget {
   final String? secondaryLabel;
   final VoidCallback? onSecondary;
   final bool secondaryLoading;
+  final bool primaryFirst;
   final String? highlightText;
   final Widget? content;
   final IconData icon;
@@ -124,6 +126,48 @@ class FigmaConfirmationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primaryButton = _FigmaDialogActionButton(
+      label: primaryLabel,
+      height: 52,
+      backgroundColor: accentColor,
+      foregroundColor: Colors.white,
+      onTap: onPrimary,
+      loading: primaryLoading,
+      boxShadow: [
+        BoxShadow(
+          color: accentColor.withValues(alpha: 0.20),
+          blurRadius: 15,
+          spreadRadius: -3,
+          offset: const Offset(0, 10),
+        ),
+        BoxShadow(
+          color: accentColor.withValues(alpha: 0.20),
+          blurRadius: 6,
+          spreadRadius: -4,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    );
+    final secondaryButton = secondaryLabel == null || onSecondary == null
+        ? null
+        : _FigmaDialogActionButton(
+            label: secondaryLabel!,
+            height: 52,
+            backgroundColor: Colors.white,
+            foregroundColor: const Color(0xFF334155),
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 2),
+            onTap: onSecondary,
+            loading: secondaryLoading,
+          );
+    final actionButtons = <Widget>[
+      if (primaryFirst || secondaryButton == null) primaryButton,
+      if (secondaryButton != null) ...[
+        if (!primaryFirst) secondaryButton else const SizedBox(height: 12),
+        if (!primaryFirst) const SizedBox(height: 12) else secondaryButton,
+      ],
+      if (!primaryFirst && secondaryButton != null) primaryButton,
+    ];
+
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 300),
       child: Container(
@@ -205,40 +249,7 @@ class FigmaConfirmationDialog extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 24),
-            _FigmaDialogActionButton(
-              label: primaryLabel,
-              height: 52,
-              backgroundColor: accentColor,
-              foregroundColor: Colors.white,
-              onTap: onPrimary,
-              loading: primaryLoading,
-              boxShadow: [
-                BoxShadow(
-                  color: accentColor.withValues(alpha: 0.20),
-                  blurRadius: 15,
-                  spreadRadius: -3,
-                  offset: const Offset(0, 10),
-                ),
-                BoxShadow(
-                  color: accentColor.withValues(alpha: 0.20),
-                  blurRadius: 6,
-                  spreadRadius: -4,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            if (secondaryLabel != null && onSecondary != null) ...[
-              const SizedBox(height: 12),
-              _FigmaDialogActionButton(
-                label: secondaryLabel!,
-                height: 52,
-                backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFF334155),
-                border: Border.all(color: const Color(0xFFE2E8F0), width: 2),
-                onTap: onSecondary,
-                loading: secondaryLoading,
-              ),
-            ],
+            ...actionButtons,
           ],
         ),
       ),

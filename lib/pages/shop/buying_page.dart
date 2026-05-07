@@ -1713,7 +1713,7 @@ class _BuyingPageState extends State<BuyingPage>
       return OutlinedButton(
         onPressed: () => _confirmTerminateBuying(item),
         style: _buildDangerActionButtonStyle(),
-        child: _buildCompactActionLabel(_text(zh: '终止求购', en: 'Termination')),
+        child: _buildCompactActionLabel(_text(zh: '终止求购', en: 'Terminate')),
       );
     }
 

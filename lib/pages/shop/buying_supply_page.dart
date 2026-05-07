@@ -472,6 +472,7 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
           message: 'app.trade.supply.message.confirm'.tr,
           primaryLabel: 'app.common.yes'.tr,
           secondaryLabel: 'app.common.no'.tr,
+          primaryFirst: false,
           onPrimary: () => popModalRoute(dialogContext, true),
           onSecondary: () => popModalRoute(dialogContext, false),
         ),
