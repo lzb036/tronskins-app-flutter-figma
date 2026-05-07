@@ -207,12 +207,12 @@ class _MarketPageState extends State<MarketPage> {
                         onTap: _openFilterSheet,
                       ),
                       const SizedBox(width: 12),
-                      const Flexible(
+                      Flexible(
                         child: Text(
-                          'Market',
+                          'app.tabbar.market'.tr,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Color(0xFF191C1E),
                             fontSize: 20,
                             height: 28 / 20,

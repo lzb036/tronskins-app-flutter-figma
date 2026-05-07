@@ -530,9 +530,9 @@ class _ShopPageState extends State<ShopPage>
           }
 
           return FigmaConfirmationDialog(
-            title: _isEnglishLocale ? 'Delist Listing' : '确认下架',
+            title: 'app.shop.delist.title'.tr,
             message: 'app.inventory.message.confirm_delist'.tr,
-            primaryLabel: _isEnglishLocale ? 'Confirm Delist' : '确认下架',
+            primaryLabel: 'app.shop.delist.confirm_action'.tr,
             primaryLoading: submitting,
             secondaryLabel: 'app.common.cancel'.tr,
             onPrimary: submitting
@@ -966,7 +966,7 @@ class _ShopPageState extends State<ShopPage>
     final statusText = status == 3
         ? 'app.steam.message.confirm_quote'.tr
         : (order.statusName ?? '').trim().isEmpty
-        ? (status == 2 ? (_isEnglishLocale ? 'Awaiting Delivery' : '待发货') : '-')
+        ? (status == 2 ? 'app.shop.tab.awaiting_delivery'.tr : '-')
         : (order.statusName ?? '').trim();
     final statusColor = status == 3
         ? Theme.of(context).colorScheme.tertiary
@@ -1060,10 +1060,10 @@ class _ShopPageState extends State<ShopPage>
 
   String? _sellRecordStatusOverride(ShopOrderItem record) {
     if (_isSellRecordFailed(record)) {
-      return _isEnglishLocale ? 'Sale Failed' : '出售失败';
+      return 'app.trade.sale.failed'.tr;
     }
     if (_isSellRecordSuccess(record)) {
-      return _isEnglishLocale ? 'Sale Success' : '出售成功';
+      return 'app.trade.sale.success'.tr;
     }
     return null;
   }
@@ -1298,17 +1298,10 @@ class _ShopPageState extends State<ShopPage>
   }
 
   String _shopTabLabel(_ShopTabFilter filter) {
-    if (_isEnglishLocale) {
-      return switch (filter) {
-        _ShopTabFilter.onSale => 'On Sale',
-        _ShopTabFilter.pending => 'Awaiting Delivery',
-        _ShopTabFilter.saleRecord => 'Sold',
-      };
-    }
     return switch (filter) {
-      _ShopTabFilter.onSale => 'app.trade.onSale.text'.tr,
-      _ShopTabFilter.pending => 'app.market.product.wait_for_sending'.tr,
-      _ShopTabFilter.saleRecord => 'app.user.menu.sale'.tr,
+      _ShopTabFilter.onSale => 'app.shop.tab.on_sale'.tr,
+      _ShopTabFilter.pending => 'app.shop.tab.awaiting_delivery'.tr,
+      _ShopTabFilter.saleRecord => 'app.shop.tab.sold'.tr,
     };
   }
 
@@ -2082,25 +2075,13 @@ class _ShopPageState extends State<ShopPage>
     }
   }
 
-  bool get _isEnglishLocale =>
-      Get.locale?.languageCode.toLowerCase().startsWith('en') ?? false;
-
-  String get _shopEmptySubtitle => _isEnglishLocale
-      ? 'Adjust your search or filters, then check back again.'
-      : '调整搜索或筛选条件后，再回来看看。';
+  String get _shopEmptySubtitle => 'app.shop.empty.subtitle'.tr;
 
   String _shopEmptyTitle(_ShopTabFilter filter) {
-    if (_isEnglishLocale) {
-      return switch (filter) {
-        _ShopTabFilter.onSale => 'No items on sale',
-        _ShopTabFilter.pending => 'No pending shipments',
-        _ShopTabFilter.saleRecord => 'No sale records',
-      };
-    }
     return switch (filter) {
-      _ShopTabFilter.onSale => '暂无在售饰品',
-      _ShopTabFilter.pending => '暂无待发货订单',
-      _ShopTabFilter.saleRecord => '暂无出售记录',
+      _ShopTabFilter.onSale => 'app.shop.empty.on_sale'.tr,
+      _ShopTabFilter.pending => 'app.shop.empty.pending'.tr,
+      _ShopTabFilter.saleRecord => 'app.shop.empty.sale_record'.tr,
     };
   }
 

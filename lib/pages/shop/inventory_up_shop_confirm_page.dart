@@ -39,7 +39,9 @@ class InventoryUpShopConfirmPage extends StatelessWidget {
     final bottomInset = MediaQuery.of(context).padding.bottom;
     return Scaffold(
       backgroundColor: _pageBackground,
-      appBar: SettingsStyleAppBar(title: const Text('Confirmation Shelf')),
+      appBar: SettingsStyleAppBar(
+        title: Text('app.inventory.upshop.confirm.title'.tr),
+      ),
       body: Stack(
         children: [
           const Positioned(
@@ -187,6 +189,10 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final itemUnit = totalCount == 1
+        ? 'app.inventory.upshop.confirm.item_unit.one'.tr
+        : 'app.inventory.upshop.confirm.item_unit.other'.tr;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -220,7 +226,7 @@ class _SummaryCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Sell List',
+                        'app.inventory.upshop.confirm.list_title'.tr,
                         style: const TextStyle(
                           color: InventoryUpShopConfirmPage._textPrimary,
                           fontSize: 18,
@@ -253,7 +259,7 @@ class _SummaryCard extends StatelessWidget {
                     child: Align(
                       alignment: Alignment.bottomRight,
                       child: Text(
-                        'items',
+                        itemUnit,
                         softWrap: false,
                         style: const TextStyle(
                           color: InventoryUpShopConfirmPage._textSecondary,
@@ -285,7 +291,7 @@ class _SummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _SummaryRow(
-            label: 'Points',
+            label: 'app.user.integral.unit'.tr,
             value: rewardPointsText,
             valueColor: InventoryUpShopConfirmPage._textPrimary,
           ),

@@ -80,27 +80,23 @@ class _TwoFaTokenPageState extends State<TwoFaTokenPage> {
   }
 
   String _otherTokensTitle() {
-    return 'Other User Tokens';
+    return 'app.user.guard.other_tokens'.tr;
   }
 
   String _manageLabel() {
-    return 'Manage';
+    return 'app.common.manage'.tr;
   }
 
   String _doneLabel() {
-    return 'Done';
+    return 'app.common.done'.tr;
   }
-
-  bool get _isChineseLocale =>
-      (Get.locale?.languageCode ?? '').toLowerCase().startsWith('zh');
 
   String _vaultTitle() {
     return '2FA';
   }
 
   String _footerTip() {
-    return 'Tokens refresh every 30 seconds. Please ensure\n'
-        'device time is synced for accurate generation.';
+    return 'app.user.guard.token_refresh_tip'.tr;
   }
 
   Iterable<String> _currentUserEmails(UserInfoEntity? currentUser) sync* {
@@ -276,10 +272,8 @@ class _TwoFaTokenPageState extends State<TwoFaTokenPage> {
         iconColor: const Color(0xFFE11D48),
         iconBackgroundColor: const Color.fromRGBO(225, 29, 72, 0.10),
         accentColor: const Color(0xFFE11D48),
-        title: _isChineseLocale ? '删除 2FA 条目' : 'Delete 2FA Token',
-        message: _isChineseLocale
-            ? '删除后，此设备将无法继续生成该条目的验证码。'
-            : 'After deletion, this device can no longer generate codes for this token.',
+        title: 'app.user.guard.delete_token_title'.tr,
+        message: 'app.user.guard.delete_token_message'.tr,
         highlightText:
             '${_tokenDisplayEmail(token)}\n($appLabel) · $serverLabel',
         primaryLabel: 'app.common.delete'.tr,
@@ -697,19 +691,15 @@ class _TwoFaBindDialogState extends State<_TwoFaBindDialog> {
     return error == null;
   }
 
-  bool get _isZhLocale =>
-      (Get.locale?.languageCode ?? '').toLowerCase().startsWith('zh');
-
   String get _dialogTitle => 'app.user.guard.text'.tr;
 
-  String get _sectionLabel => _isZhLocale ? '验证码' : 'VERIFICATION CODE';
+  String get _sectionLabel => 'app.user.guard.verification_code'.tr;
 
-  String get _codeHintText =>
-      _isZhLocale ? '请输入验证码' : 'Enter verification code';
+  String get _codeHintText => 'app.user.guard.enter_verification_code'.tr;
 
-  String get _sendIdleLabel => _isZhLocale ? '发送' : 'Send';
+  String get _sendIdleLabel => 'app.common.send'.tr;
 
-  String get _syncNowLabel => _isZhLocale ? '立即同步' : 'Sync Now';
+  String get _syncNowLabel => 'app.user.guard.sync_now'.tr;
 
   @override
   Widget build(BuildContext context) {

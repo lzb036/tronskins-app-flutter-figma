@@ -267,7 +267,7 @@ class MarketShowcaseCard extends StatelessWidget {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        '${_isEnglishLocale ? 'Wear' : '磨损度'}: '
+                                        '${'app.market.csgo.abradability'.tr}: '
                                         '$wearDisplay',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -354,9 +354,6 @@ class MarketShowcaseCard extends StatelessWidget {
       ),
     );
   }
-
-  bool get _isEnglishLocale =>
-      Get.locale?.languageCode.toLowerCase().startsWith('en') ?? false;
 
   Widget _buildBadge({
     required String label,

@@ -795,37 +795,35 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     return 'app.market.product.details'.tr;
   }
 
-  String get _currentPriceLabel => _isEnglishLocale ? 'Current' : '现价';
+  String get _currentPriceLabel => 'app.market.item.current_price'.tr;
 
   String get _referencePriceLabel => 'app.market.detail.steam_price'.tr;
 
-  String get _itemAttributesTitle =>
-      _isEnglishLocale ? 'Item Attributes' : '物品属性';
+  String get _itemAttributesTitle => 'app.market.item.attributes'.tr;
 
-  String get _floatValueLabel => _isEnglishLocale ? 'Wear' : '磨损值';
+  String get _floatValueLabel => 'app.market.item.float_value'.tr;
 
-  String get _rarityLabel => _isEnglishLocale ? 'Rarity' : '稀有度';
+  String get _rarityLabel => 'app.market.item.rarity'.tr;
 
-  String get _typeLabel => _isEnglishLocale ? 'Type' : '类型';
+  String get _typeLabel => 'app.market.csgo.type'.tr;
 
-  String get _exteriorLabel => _isEnglishLocale ? 'Exterior' : '外观';
+  String get _exteriorLabel => 'app.market.item.exterior'.tr;
 
-  String get _qualityLabel => _isEnglishLocale ? 'Quality' : '品质';
+  String get _qualityLabel => 'app.market.item.quality'.tr;
 
-  String get _collectionLabel => _isEnglishLocale ? 'Collection' : '收藏系列';
+  String get _collectionLabel => 'app.market.item.collection'.tr;
 
-  String get _wishlistLabel => _isEnglishLocale ? 'Wishlist' : '收藏';
+  String get _wishlistLabel => 'app.market.item.wishlist'.tr;
 
-  String get _buyNowLabel => _isEnglishLocale ? 'Buy Now' : '立即购买';
+  String get _buyNowLabel => 'app.market.item.buy_now'.tr;
 
-  String get _patternTemplateLabel =>
-      _isEnglishLocale ? 'Pattern Template' : '图案模板';
+  String get _patternTemplateLabel => 'app.market.item.pattern_template'.tr;
 
-  String get _skinNumberLabel => _isEnglishLocale ? 'Skin Number' : '皮肤编号';
+  String get _skinNumberLabel => 'app.market.item.skin_number'.tr;
 
-  String get _avgShipLabel => _isEnglishLocale ? 'Avg. Delivery' : '平均发货';
+  String get _avgShipLabel => 'app.market.item.avg_delivery'.tr;
 
-  String get _rateLabel => _isEnglishLocale ? 'Fill Rate' : '发货率';
+  String get _rateLabel => 'app.market.item.fill_rate'.tr;
 
   String _shopDeliverLabel() {
     return 'app.user.shop.deliver'.tr;

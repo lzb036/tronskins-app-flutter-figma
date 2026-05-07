@@ -947,23 +947,18 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   String get _figmaAttributePrefixLabel =>
       '${'app.market.detail.attribute'.tr}$_figmaMetaLabelColon';
 
-  String get _figmaListedLabel =>
-      _isEnglishLocale ? 'LISTED' : 'app.trade.onSale.text'.tr;
+  String get _figmaListedLabel => 'app.market.detail.listed'.tr;
 
-  String get _figmaBuyOrdersLabel =>
-      _isEnglishLocale ? 'BUY ORDERS' : 'app.trade.purchase.text'.tr;
+  String get _figmaBuyOrdersLabel => 'app.market.detail.buy_orders_caps'.tr;
 
-  String get _figmaBuyOrderButtonLabel =>
-      _isEnglishLocale ? 'Buy Order' : 'app.market.detail.release_purchase'.tr;
+  String get _figmaBuyOrderButtonLabel => 'app.market.detail.buy_order'.tr;
 
   String get _figmaBulkBuyButtonLabel =>
       _isEnglishLocale ? 'Bulk Buy' : 'app.market.detail.bulk_buying.title'.tr;
 
-  String get _figmaListingsTabLabel =>
-      _isEnglishLocale ? 'Listings' : 'app.trade.onSale.text'.tr;
+  String get _figmaListingsTabLabel => 'app.market.detail.listings'.tr;
 
-  String get _figmaTabBuyOrdersLabel =>
-      _isEnglishLocale ? 'Buy Orders' : 'app.trade.purchase.text'.tr;
+  String get _figmaTabBuyOrdersLabel => 'app.market.detail.buy_orders'.tr;
 
   String get _figmaHistoryTabLabel =>
       _isEnglishLocale ? 'History' : 'app.market.detail.trade_record'.tr;
@@ -3048,6 +3043,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     }
 
     Widget buildWearPanel() {
+      final wearLabel = 'app.market.csgo.abradability'.tr;
       return Padding(
         padding: const EdgeInsets.fromLTRB(1, 1, 4, 1),
         child: Column(
@@ -3055,7 +3051,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              hasWear ? 'Wear: $paintWearText' : 'Wear',
+              hasWear ? '$wearLabel: $paintWearText' : wearLabel,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(

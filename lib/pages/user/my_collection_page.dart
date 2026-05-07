@@ -21,11 +21,11 @@ import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 import 'package:tronskins_app/components/layout/list_end_tip.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
+import 'package:tronskins_app/l10n/inline_i18n.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
 String _collectionText({required String zh, required String en}) {
-  final languageCode = Get.locale?.languageCode.toLowerCase();
-  return languageCode == 'zh' ? zh : en;
+  return InlineI18n.text(zh: zh, en: en);
 }
 
 String _collectionTitle(String? marketHashName, String? marketName) {

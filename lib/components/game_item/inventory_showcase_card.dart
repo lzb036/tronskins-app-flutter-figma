@@ -344,9 +344,8 @@ class InventoryShowcaseCard extends StatelessWidget {
                                       ),
                                     if (wearDisplay != null)
                                       GameItemWearOverlay(
-                                        label: _isEnglishLocale
-                                            ? 'Wear'
-                                            : '磨损度',
+                                        label:
+                                            'app.market.csgo.abradability'.tr,
                                         text: wearDisplay,
                                         value: wearValue,
                                         accentColor: exteriorAccentColor,
@@ -440,9 +439,6 @@ class InventoryShowcaseCard extends StatelessWidget {
       ),
     );
   }
-
-  bool get _isEnglishLocale =>
-      Get.locale?.languageCode.toLowerCase().startsWith('en') ?? false;
 
   Widget _buildBadge({
     required String label,

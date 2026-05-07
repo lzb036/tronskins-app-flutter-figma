@@ -41,16 +41,17 @@ class ThemeSettingsPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 40),
-                      const _InfoCard(
-                        title: 'Eye Comfort',
+                      _InfoCard(
+                        title: 'app.user.setting.theme.eye_comfort.title'.tr,
                         description:
-                            'System-wide dark mode can reduce eye strain in low-light environments and save battery on OLED displays.',
+                            'app.user.setting.theme.eye_comfort.desc'.tr,
                       ),
                       const SizedBox(height: 18),
-                      const _InfoCard(
-                        title: 'Custom Scheduling',
+                      _InfoCard(
+                        title:
+                            'app.user.setting.theme.custom_schedule.title'.tr,
                         description:
-                            'Enable automatic scheduling in System Settings to transition between themes based on local sunrise and sunset.',
+                            'app.user.setting.theme.custom_schedule.desc'.tr,
                       ),
                       const SizedBox(height: 56),
                       const _FooterHint(),
@@ -100,21 +101,21 @@ class _ThemeOptionCard extends StatelessWidget {
         children: [
           _ThemeTile(
             icon: Icons.settings_suggest_outlined,
-            title: 'Follow System',
+            title: 'app.user.setting.theme_system'.tr,
             selected: currentMode == ThemeMode.system,
             onTap: () => onChanged(ThemeMode.system),
           ),
           const Divider(height: 1, color: ThemeSettingsPage._cardBorder),
           _ThemeTile(
             icon: Icons.wb_sunny_outlined,
-            title: 'Light Mode',
+            title: 'app.user.setting.theme_light'.tr,
             selected: currentMode == ThemeMode.light,
             onTap: () => onChanged(ThemeMode.light),
           ),
           const Divider(height: 1, color: ThemeSettingsPage._cardBorder),
           _ThemeTile(
             icon: Icons.dark_mode_outlined,
-            title: 'Dark Mode',
+            title: 'app.user.setting.theme_dark'.tr,
             selected: currentMode == ThemeMode.dark,
             onTap: () => onChanged(ThemeMode.dark),
           ),
@@ -240,10 +241,10 @@ class _FooterHint extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
-          'Theme changes will take effect immediately',
+        Text(
+          'app.user.setting.theme.apply_notice'.tr,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             color: ThemeSettingsPage._footerTextColor,
             fontSize: 13,
             fontWeight: FontWeight.w500,

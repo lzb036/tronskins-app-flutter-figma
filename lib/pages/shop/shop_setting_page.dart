@@ -710,9 +710,9 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'OFFICIAL VENDOR',
-                      style: TextStyle(
+                    Text(
+                      'app.shop.setting.official_vendor'.tr,
+                      style: const TextStyle(
                         color: _brandColor,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,

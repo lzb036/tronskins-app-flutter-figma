@@ -98,9 +98,10 @@ class _ExchangeRatePageState extends State<ExchangeRatePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'SUPPORTED CURRENCIES',
-                          style: TextStyle(
+                        Text(
+                          'app.user.setting.exchange_rate.supported_currencies'
+                              .tr,
+                          style: const TextStyle(
                             color: _sectionColor,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -211,8 +212,10 @@ class _ExchangeRatePageState extends State<ExchangeRatePage> {
                     _singleLineFittedText(
                       isCurrent
                           ? (code == 'USD'
-                                ? 'Default Currency'
-                                : 'Selected Currency')
+                                ? 'app.user.setting.exchange_rate.default_currency'
+                                      .tr
+                                : 'app.user.setting.exchange_rate.selected_currency'
+                                      .tr)
                           : _usdPreview(code, rate),
                       height: 21,
                       style: const TextStyle(
@@ -236,20 +239,20 @@ class _ExchangeRatePageState extends State<ExchangeRatePage> {
                     color: const Color(0xFFF0FDFA),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Selected',
-                        style: TextStyle(
+                        'app.user.setting.exchange_rate.selected'.tr,
+                        style: const TextStyle(
                           color: Color(0xFF0F766E),
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           height: 18 / 12,
                         ),
                       ),
-                      SizedBox(width: 6),
-                      Icon(
+                      const SizedBox(width: 6),
+                      const Icon(
                         Icons.check_circle_rounded,
                         color: Color(0xFF14B8A6),
                         size: 16,
@@ -267,20 +270,20 @@ class _ExchangeRatePageState extends State<ExchangeRatePage> {
   Widget _buildFooter() {
     return Column(
       children: [
-        const Row(
+        Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.info_outline_rounded,
               size: 14,
               color: Color.fromRGBO(68, 70, 83, 0.5),
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Flexible(
               child: Text(
-                'Rates are updated hourly for reference only',
+                'app.user.setting.exchange_rate.update_hint'.tr,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Color.fromRGBO(68, 70, 83, 0.5),
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -292,7 +295,7 @@ class _ExchangeRatePageState extends State<ExchangeRatePage> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Last updated: ${_formatTimestamp(_lastUpdatedAt)}',
+          '${'app.user.setting.exchange_rate.last_updated'.tr}: ${_formatTimestamp(_lastUpdatedAt)}',
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: Color.fromRGBO(68, 70, 83, 0.4),

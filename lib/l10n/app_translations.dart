@@ -74,8 +74,26 @@ Map<String, String> _missingMessagesFor(String locale) {
     ...?_missingMessages[normalized],
     ...?_settingsOverviewMessages[normalized],
     ...?_priceChangeConfirmMessages[normalized],
+    ..._messagesWithEnglishFallback(
+      _inventoryUpShopConfirmMessages,
+      normalized,
+    ),
+    ..._messagesWithEnglishFallback(_themeSettingsMessages, normalized),
+    ..._messagesWithEnglishFallback(_exchangeRateMessages, normalized),
+    ..._messagesWithEnglishFallback(_marketBacklogMessages, normalized),
+    ..._messagesWithEnglishFallback(_twoFaTokenMessages, normalized),
+    ..._messagesWithEnglishFallback(_shopBacklogMessages, normalized),
+    ..._messagesWithEnglishFallback(_deliverBacklogMessages, normalized),
+    ..._messagesWithEnglishFallback(_inlineBacklogMessages, normalized),
     ...?_rechargeSecurityMessages[normalized],
   };
+}
+
+Map<String, String> _messagesWithEnglishFallback(
+  Map<String, Map<String, String>> messages,
+  String locale,
+) {
+  return {...?messages['en_US'], ...?messages[locale]};
 }
 
 const Map<String, Map<String, String>> _missingMessages = {
@@ -587,6 +605,382 @@ const Map<String, Map<String, String>> _priceChangeConfirmMessages = {
     'app.shop.price_change.confirm.item_unit.one': '件',
     'app.shop.price_change.confirm.item_unit.other': '件',
     'app.shop.price_change.confirm.action': '確認改價',
+  },
+};
+
+const Map<String, Map<String, String>> _inventoryUpShopConfirmMessages = {
+  'en_US': {
+    'app.inventory.upshop.confirm.title': 'Confirmation Listing',
+    'app.inventory.upshop.confirm.list_title': 'Sell List',
+    'app.inventory.upshop.confirm.item_unit.one': 'item',
+    'app.inventory.upshop.confirm.item_unit.other': 'items',
+  },
+  'zh_CN': {
+    'app.inventory.upshop.confirm.title': '确认上架',
+    'app.inventory.upshop.confirm.list_title': '销售清单',
+    'app.inventory.upshop.confirm.item_unit.one': '件',
+    'app.inventory.upshop.confirm.item_unit.other': '件',
+  },
+  'zh_TW': {
+    'app.inventory.upshop.confirm.title': '確認上架',
+    'app.inventory.upshop.confirm.list_title': '銷售清單',
+    'app.inventory.upshop.confirm.item_unit.one': '件',
+    'app.inventory.upshop.confirm.item_unit.other': '件',
+  },
+};
+
+const Map<String, Map<String, String>> _themeSettingsMessages = {
+  'en_US': {
+    'app.user.setting.theme.eye_comfort.title': 'Eye Comfort',
+    'app.user.setting.theme.eye_comfort.desc':
+        'System-wide dark mode can reduce eye strain in low-light environments and save battery on OLED displays.',
+    'app.user.setting.theme.custom_schedule.title': 'Custom Scheduling',
+    'app.user.setting.theme.custom_schedule.desc':
+        'Enable automatic scheduling in System Settings to transition between themes based on local sunrise and sunset.',
+    'app.user.setting.theme.apply_notice':
+        'Theme changes will take effect immediately',
+  },
+  'zh_CN': {
+    'app.user.setting.theme.eye_comfort.title': '护眼优势',
+    'app.user.setting.theme.eye_comfort.desc':
+        '系统级深色模式可在低光环境下缓解视疲劳，并为 OLED 设备节省电量。',
+    'app.user.setting.theme.custom_schedule.title': '定时切换',
+    'app.user.setting.theme.custom_schedule.desc':
+        '可在系统设置中开启自动定时，根据当地日出日落时间自动切换主题。',
+    'app.user.setting.theme.apply_notice': '主题修改将立即生效',
+  },
+  'zh_TW': {
+    'app.user.setting.theme.eye_comfort.title': '護眼優勢',
+    'app.user.setting.theme.eye_comfort.desc':
+        '系統級深色模式可在低光環境下緩解視疲勞，並為 OLED 裝置節省電量。',
+    'app.user.setting.theme.custom_schedule.title': '定時切換',
+    'app.user.setting.theme.custom_schedule.desc':
+        '可在系統設定中開啟自動定時，根據當地日出日落時間自動切換主題。',
+    'app.user.setting.theme.apply_notice': '主題修改將立即生效',
+  },
+};
+
+const Map<String, Map<String, String>> _exchangeRateMessages = {
+  'en_US': {
+    'app.user.setting.exchange_rate.supported_currencies':
+        'SUPPORTED CURRENCIES',
+    'app.user.setting.exchange_rate.default_currency': 'Default Currency',
+    'app.user.setting.exchange_rate.selected_currency': 'Selected Currency',
+    'app.user.setting.exchange_rate.selected': 'Selected',
+    'app.user.setting.exchange_rate.update_hint':
+        'Rates are updated hourly for reference only',
+    'app.user.setting.exchange_rate.last_updated': 'Last updated',
+  },
+  'zh_CN': {
+    'app.user.setting.exchange_rate.supported_currencies': '支持币种',
+    'app.user.setting.exchange_rate.default_currency': '默认货币',
+    'app.user.setting.exchange_rate.selected_currency': '已选择货币',
+    'app.user.setting.exchange_rate.selected': '已选择',
+    'app.user.setting.exchange_rate.update_hint': '汇率每小时更新，仅供参考',
+    'app.user.setting.exchange_rate.last_updated': '最后更新',
+  },
+  'zh_TW': {
+    'app.user.setting.exchange_rate.supported_currencies': '支援幣種',
+    'app.user.setting.exchange_rate.default_currency': '預設貨幣',
+    'app.user.setting.exchange_rate.selected_currency': '已選擇貨幣',
+    'app.user.setting.exchange_rate.selected': '已選擇',
+    'app.user.setting.exchange_rate.update_hint': '匯率每小時更新，僅供參考',
+    'app.user.setting.exchange_rate.last_updated': '最後更新',
+  },
+};
+
+const Map<String, Map<String, String>> _twoFaTokenMessages = {
+  'en_US': {
+    'app.common.done': 'Done',
+    'app.common.manage': 'Manage',
+    'app.common.send': 'Send',
+    'app.user.guard.other_tokens': 'Other User Tokens',
+    'app.user.guard.token_refresh_tip':
+        'Tokens refresh every 30 seconds. Please ensure device time is synced for accurate generation.',
+    'app.user.guard.delete_token_title': 'Delete 2FA Token',
+    'app.user.guard.delete_token_message':
+        'After deletion, this device can no longer generate codes for this token.',
+    'app.user.guard.verification_code': 'Verification Code',
+    'app.user.guard.enter_verification_code': 'Enter verification code',
+    'app.user.guard.sync_now': 'Sync Now',
+  },
+  'zh_CN': {
+    'app.common.done': '完成',
+    'app.common.manage': '管理',
+    'app.common.send': '发送',
+    'app.user.guard.other_tokens': '其他用户令牌',
+    'app.user.guard.token_refresh_tip': '令牌每30秒刷新一次。请确保设备时间已同步，以便准确生成。',
+    'app.user.guard.delete_token_title': '删除 2FA 条目',
+    'app.user.guard.delete_token_message': '删除后，此设备将无法继续生成该条目的验证码。',
+    'app.user.guard.verification_code': '验证码',
+    'app.user.guard.enter_verification_code': '请输入验证码',
+    'app.user.guard.sync_now': '立即同步',
+  },
+  'zh_TW': {
+    'app.common.done': '完成',
+    'app.common.manage': '管理',
+    'app.common.send': '傳送',
+    'app.user.guard.other_tokens': '其他使用者權杖',
+    'app.user.guard.token_refresh_tip': '權杖每30秒刷新一次。請確保裝置時間已同步，以便準確生成。',
+    'app.user.guard.delete_token_title': '刪除 2FA 條目',
+    'app.user.guard.delete_token_message': '刪除後，此裝置將無法繼續生成該條目的驗證碼。',
+    'app.user.guard.verification_code': '驗證碼',
+    'app.user.guard.enter_verification_code': '請輸入驗證碼',
+    'app.user.guard.sync_now': '立即同步',
+  },
+};
+
+const Map<String, Map<String, String>> _marketBacklogMessages = {
+  'en_US': {
+    'app.market.detail.listed': 'LISTED',
+    'app.market.detail.buy_orders_caps': 'BUY ORDERS',
+    'app.market.detail.buy_order': 'Buy Order',
+    'app.market.detail.listings': 'Listings',
+    'app.market.detail.buy_orders': 'Buy Orders',
+    'app.market.item.current_price': 'Current',
+    'app.market.item.attributes': 'Item Attributes',
+    'app.market.item.float_value': 'Wear',
+    'app.market.item.rarity': 'Rarity',
+    'app.market.item.exterior': 'Exterior',
+    'app.market.item.quality': 'Quality',
+    'app.market.item.collection': 'Collection',
+    'app.market.item.wishlist': 'Wishlist',
+    'app.market.item.buy_now': 'Buy Now',
+    'app.market.item.pattern_template': 'Pattern Template',
+    'app.market.item.skin_number': 'Skin Number',
+    'app.market.item.avg_delivery': 'Avg. Delivery',
+    'app.market.item.fill_rate': 'Fill Rate',
+  },
+  'zh_CN': {
+    'app.market.detail.listed': '在售',
+    'app.market.detail.buy_orders_caps': '求购',
+    'app.market.detail.buy_order': '求购',
+    'app.market.detail.listings': '在售',
+    'app.market.detail.buy_orders': '求购',
+    'app.market.item.current_price': '现价',
+    'app.market.item.attributes': '物品属性',
+    'app.market.item.float_value': '磨损值',
+    'app.market.item.rarity': '稀有度',
+    'app.market.item.exterior': '外观',
+    'app.market.item.quality': '品质',
+    'app.market.item.collection': '收藏系列',
+    'app.market.item.wishlist': '收藏',
+    'app.market.item.buy_now': '立即购买',
+    'app.market.item.pattern_template': '图案模板',
+    'app.market.item.skin_number': '皮肤编号',
+    'app.market.item.avg_delivery': '平均发货',
+    'app.market.item.fill_rate': '发货率',
+  },
+  'zh_TW': {
+    'app.market.detail.listed': '在售',
+    'app.market.detail.buy_orders_caps': '求購',
+    'app.market.detail.buy_order': '求購',
+    'app.market.detail.listings': '在售',
+    'app.market.detail.buy_orders': '求購',
+    'app.market.item.current_price': '現價',
+    'app.market.item.attributes': '物品屬性',
+    'app.market.item.float_value': '磨損值',
+    'app.market.item.rarity': '稀有度',
+    'app.market.item.exterior': '外觀',
+    'app.market.item.quality': '品質',
+    'app.market.item.collection': '收藏系列',
+    'app.market.item.wishlist': '收藏',
+    'app.market.item.buy_now': '立即購買',
+    'app.market.item.pattern_template': '圖案模板',
+    'app.market.item.skin_number': '皮膚編號',
+    'app.market.item.avg_delivery': '平均發貨',
+    'app.market.item.fill_rate': '發貨率',
+  },
+};
+
+const Map<String, Map<String, String>> _shopBacklogMessages = {
+  'en_US': {
+    'app.trade.sale.failed': 'Sale Failed',
+    'app.shop.tab.on_sale': 'On Sale',
+    'app.shop.tab.awaiting_delivery': 'Awaiting Delivery',
+    'app.shop.tab.sold': 'My Sales',
+    'app.shop.empty.subtitle':
+        'Adjust your search or filters, then check back again.',
+    'app.shop.empty.on_sale': 'No items on sale',
+    'app.shop.empty.pending': 'No pending deliveries',
+    'app.shop.empty.sale_record': 'No sales records',
+    'app.shop.delist.title': 'Confirm Delisting',
+    'app.shop.delist.confirm_action': 'Confirm Delisting',
+    'app.shop.setting.official_vendor': 'Official Vendor',
+  },
+  'zh_CN': {
+    'app.trade.sale.failed': '出售失败',
+    'app.shop.tab.on_sale': '在售',
+    'app.shop.tab.awaiting_delivery': '待发货',
+    'app.shop.tab.sold': '出售记录',
+    'app.shop.empty.subtitle': '调整搜索或筛选条件后，再回来看看。',
+    'app.shop.empty.on_sale': '暂无在售饰品',
+    'app.shop.empty.pending': '暂无待发货订单',
+    'app.shop.empty.sale_record': '暂无出售记录',
+    'app.shop.delist.title': '确认下架',
+    'app.shop.delist.confirm_action': '确认下架',
+    'app.shop.setting.official_vendor': '官方认证卖家',
+  },
+  'zh_TW': {
+    'app.trade.sale.failed': '出售失敗',
+    'app.shop.tab.on_sale': '在售',
+    'app.shop.tab.awaiting_delivery': '待發貨',
+    'app.shop.tab.sold': '出售記錄',
+    'app.shop.empty.subtitle': '調整搜尋或篩選條件後，再回來看看。',
+    'app.shop.empty.on_sale': '暫無在售飾品',
+    'app.shop.empty.pending': '暫無待發貨訂單',
+    'app.shop.empty.sale_record': '暫無出售記錄',
+    'app.shop.delist.title': '確認下架',
+    'app.shop.delist.confirm_action': '確認下架',
+    'app.shop.setting.official_vendor': '官方認證賣家',
+  },
+};
+
+const Map<String, Map<String, String>> _deliverBacklogMessages = {
+  'en_US': {
+    'app.trade.deliver.drawer_title': 'Delivery Goods',
+    'app.trade.deliver.steam_guard_tip':
+        'When confirming in Steam Guard, carefully verify the buyer Steam account and item information.',
+    'app.trade.deliver.steam_buyer': 'Steam Buyer',
+    'app.trade.deliver.list_summary': 'LIST SUMMARY',
+    'app.trade.deliver.mobile_confirm_notice':
+        'STEAM MOBILE CONFIRMATION REQUIRED\nAPI KEY VERIFIED SECURE',
+    'app.market.item.wear': 'Wear',
+    'app.trade.supply.message.confirm':
+        'After confirming the supply, you must initiate a quotation within 30 minutes. Do you want to proceed to delivery?',
+  },
+  'zh_CN': {
+    'app.trade.deliver.drawer_title': '发货详情',
+    'app.trade.deliver.steam_guard_tip':
+        '在 Steam 令牌确认时，请仔细核对买家的 Steam 账号与商品信息。',
+    'app.trade.deliver.steam_buyer': 'Steam 买家',
+    'app.trade.deliver.list_summary': '清单摘要',
+    'app.trade.deliver.mobile_confirm_notice':
+        '需要前往 STEAM 手机端确认\nAPI KEY 已安全验证',
+    'app.market.item.wear': '磨损度',
+    'app.trade.supply.message.confirm': '确认供应后，需在30分钟内发起报价，是否前往发货？',
+  },
+  'zh_TW': {
+    'app.trade.deliver.drawer_title': '發貨詳情',
+    'app.trade.deliver.steam_guard_tip':
+        '在 Steam 權杖確認時，請仔細核對買家的 Steam 帳號與商品資訊。',
+    'app.trade.deliver.steam_buyer': 'Steam 買家',
+    'app.trade.deliver.list_summary': '清單摘要',
+    'app.trade.deliver.mobile_confirm_notice':
+        '需要前往 STEAM 手機端確認\nAPI KEY 已安全驗證',
+    'app.market.item.wear': '磨損度',
+    'app.trade.supply.message.confirm': '確認供應後，需在30分鐘內發起報價，是否前往發貨？',
+  },
+};
+
+const Map<String, Map<String, String>> _inlineBacklogMessages = {
+  'en_US': {
+    'app.inline.shop_setting.saved': 'Shop settings saved',
+    'app.inline.shop_setting.synced': 'Shop information synced',
+    'app.inline.shop_setting.online': 'Online',
+    'app.inline.shop_setting.offline': 'Offline',
+    'app.inline.shop_setting.current': 'Current: ',
+    'app.inline.shop_setting.custom': 'Custom',
+    'app.inline.shop_setting.business_status': 'Business status',
+    'app.inline.shop_setting.last_update': 'LAST UPDATE',
+    'app.inline.shop_setting.unset': 'Unset',
+    'app.inline.shop_setting.stop_after_inactivity':
+        'Stop selling after inactivity',
+    'app.inline.shop_setting.expected_offline': 'EXPECTED OFFLINE',
+    'app.inline.shop_setting.idle_time': 'IDLE TIME',
+    'app.inline.shop_setting.important_notice': 'Important notice',
+    'app.inline.shop_setting.offline_notice':
+        'When your shop is offline, all listed items will be hidden from the market automatically. Enable auto offline to protect your trading activity.',
+    'app.inline.shop_setting.save_settings': 'Save Settings',
+    'app.inline.shop_setting.auto_offline': 'Auto offline',
+    'app.inline.shop_setting.custom_idle_duration': 'Custom idle duration',
+    'app.inline.shop_setting.hours': 'Hours',
+    'app.inline.shop_setting.hour_unit': 'h',
+    'app.inline.shop_setting.minutes': 'Minutes',
+    'app.inline.shop_setting.minute_unit': 'min',
+    'app.inline.shop_setting.duration_hint':
+        'Used to stop selling after inactivity. After applying, we return to shop settings and keep this duration in the current draft.',
+    'app.inline.shop_setting.apply_duration': 'Apply duration',
+    'app.inline.buying.terminate_title': 'Terminate Buy Request',
+    'app.inline.buying.terminate_action': 'Confirm Termination',
+    'app.inline.buying.terminate_prefix':
+        'Are you sure you want to terminate the buy request for ',
+    'app.inline.buying.terminate_suffix':
+        '? The funds will be unfrozen upon termination.',
+    'app.inline.order.deliver_now': 'Deliver Now',
+    'app.inline.order.order_type': 'Order Type',
+    'app.inline.wallet.highest_buy_order': 'Highest Buy Order',
+    'app.inline.collection.default': 'Default',
+  },
+  'zh_CN': {
+    'app.inline.shop_setting.saved': '店铺设置已保存',
+    'app.inline.shop_setting.synced': '店铺信息已同步',
+    'app.inline.shop_setting.online': '在线',
+    'app.inline.shop_setting.offline': '离线',
+    'app.inline.shop_setting.current': '目前状态: ',
+    'app.inline.shop_setting.custom': '自定义',
+    'app.inline.shop_setting.business_status': '营业状态',
+    'app.inline.shop_setting.last_update': '同步时间',
+    'app.inline.shop_setting.unset': '未设置',
+    'app.inline.shop_setting.stop_after_inactivity': '无操作后自动停止营业',
+    'app.inline.shop_setting.expected_offline': '预计离线',
+    'app.inline.shop_setting.idle_time': '无操作时长',
+    'app.inline.shop_setting.important_notice': '重要通知',
+    'app.inline.shop_setting.offline_notice':
+        '当您的店铺处于离线状态时，所有已上架的商品将自动在市场中隐藏。建议开启自动离线功能以保护您的交易活跃度。',
+    'app.inline.shop_setting.save_settings': '保存设置',
+    'app.inline.shop_setting.auto_offline': '自动离线',
+    'app.inline.shop_setting.custom_idle_duration': '自定义离线时长',
+    'app.inline.shop_setting.hours': '小时',
+    'app.inline.shop_setting.hour_unit': '时',
+    'app.inline.shop_setting.minutes': '分钟',
+    'app.inline.shop_setting.minute_unit': '分',
+    'app.inline.shop_setting.duration_hint':
+        '用于无操作后自动停止营业。确认后会回到店铺设置页，并把这里选中的时长写入当前草稿。',
+    'app.inline.shop_setting.apply_duration': '确认选择',
+    'app.inline.buying.terminate_title': '终止求购',
+    'app.inline.buying.terminate_action': '确认终止',
+    'app.inline.buying.terminate_prefix': '你确定要终止对 ',
+    'app.inline.buying.terminate_suffix': ' 吗？终止后资金将解除冻结。',
+    'app.inline.order.deliver_now': '立即发货',
+    'app.inline.order.order_type': '订单类型',
+    'app.inline.wallet.highest_buy_order': '求购最高价',
+    'app.inline.collection.default': '默认排序',
+  },
+  'zh_TW': {
+    'app.inline.shop_setting.saved': '店鋪設定已保存',
+    'app.inline.shop_setting.synced': '店鋪資訊已同步',
+    'app.inline.shop_setting.online': '在線',
+    'app.inline.shop_setting.offline': '離線',
+    'app.inline.shop_setting.current': '目前狀態: ',
+    'app.inline.shop_setting.custom': '自訂',
+    'app.inline.shop_setting.business_status': '營業狀態',
+    'app.inline.shop_setting.last_update': '同步時間',
+    'app.inline.shop_setting.unset': '未設定',
+    'app.inline.shop_setting.stop_after_inactivity': '無操作後自動停止營業',
+    'app.inline.shop_setting.expected_offline': '預計離線',
+    'app.inline.shop_setting.idle_time': '無操作時長',
+    'app.inline.shop_setting.important_notice': '重要通知',
+    'app.inline.shop_setting.offline_notice':
+        '當您的店鋪處於離線狀態時，所有已上架的商品將自動在市場中隱藏。建議開啟自動離線功能以保護您的交易活躍度。',
+    'app.inline.shop_setting.save_settings': '保存設定',
+    'app.inline.shop_setting.auto_offline': '自動離線',
+    'app.inline.shop_setting.custom_idle_duration': '自訂離線時長',
+    'app.inline.shop_setting.hours': '小時',
+    'app.inline.shop_setting.hour_unit': '時',
+    'app.inline.shop_setting.minutes': '分鐘',
+    'app.inline.shop_setting.minute_unit': '分',
+    'app.inline.shop_setting.duration_hint':
+        '用於無操作後自動停止營業。確認後會回到店鋪設定頁，並把這裡選中的時長寫入目前草稿。',
+    'app.inline.shop_setting.apply_duration': '確認選擇',
+    'app.inline.buying.terminate_title': '終止求購',
+    'app.inline.buying.terminate_action': '確認終止',
+    'app.inline.buying.terminate_prefix': '你確定要終止對 ',
+    'app.inline.buying.terminate_suffix': ' 嗎？終止後資金將解除凍結。',
+    'app.inline.order.deliver_now': '立即發貨',
+    'app.inline.order.order_type': '訂單類型',
+    'app.inline.wallet.highest_buy_order': '求購最高價',
+    'app.inline.collection.default': '預設排序',
   },
 };
 

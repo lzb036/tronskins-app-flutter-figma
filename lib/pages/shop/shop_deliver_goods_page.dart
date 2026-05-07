@@ -172,7 +172,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
             ),
           ),
           SettingsStyleTopNavigation(
-            title: _isEnglishLocale ? 'Delivery Goods' : '发货详情',
+            title: 'app.trade.deliver.drawer_title'.tr,
           ),
           if (!_loading && _orders.isNotEmpty)
             _buildBottomActionBar(bottomInset, _resolvedStatus),
@@ -365,10 +365,10 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
 
   String _orderDetailStatusText(ShopOrderItem order) {
     if (order.status == -1 || order.status == -2) {
-      return _isEnglishLocale ? 'Sale Failed' : '出售失败';
+      return 'app.trade.sale.failed'.tr;
     }
     if (order.status == 6) {
-      return _isEnglishLocale ? 'Sale Success' : '出售成功';
+      return 'app.trade.sale.success'.tr;
     }
     final statusName = order.statusName?.trim();
     if (statusName != null && statusName.isNotEmpty) {
@@ -505,9 +505,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              _isEnglishLocale
-                  ? 'When confirming in Steam Guard, carefully verify the buyer Steam account and item information.'
-                  : '在 Steam 令牌确认时，请仔细核对买家的 Steam 账号与商品信息。',
+              'app.trade.deliver.steam_guard_tip'.tr,
               style: const TextStyle(
                 color: Color(0xFF7C4A03),
                 fontSize: 12,
@@ -525,7 +523,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     final buyer = _buyerInfo();
     final displayName = buyer?.nickname?.trim().isNotEmpty == true
         ? buyer!.nickname!
-        : (_isEnglishLocale ? 'Steam Buyer' : 'Steam 买家');
+        : 'app.trade.deliver.steam_buyer'.tr;
     final level = buyer?.level;
     final yearsLevel = buyer?.yearsLevel;
 
@@ -727,7 +725,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
       children: [
         Expanded(
           child: Text(
-            '${_isEnglishLocale ? 'Shipment Count' : '发货数量'} (${_totalItems()})',
+            '${'app.trade.deliver.num'.tr} (${_totalItems()})',
             style: const TextStyle(
               color: _titleColor,
               fontSize: 15,
@@ -737,7 +735,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
           ),
         ),
         Text(
-          _isEnglishLocale ? 'LIST SUMMARY' : '清单摘要',
+          'app.trade.deliver.list_summary'.tr,
           style: const TextStyle(
             color: Color(0xFF94A3B8),
             fontSize: 9,
@@ -932,7 +930,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
 
   Widget _buildDetailImageWearOverlay(_DetailWearInfo wearInfo) {
     return GameItemWearOverlay(
-      label: _isEnglishLocale ? 'Wear' : '磨损度',
+      label: 'app.market.item.wear'.tr,
       text: wearInfo.text,
       value: wearInfo.value,
       accentColor: wearInfo.accentColor,
@@ -999,9 +997,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _isEnglishLocale
-                          ? 'STEAM MOBILE CONFIRMATION REQUIRED\nAPI KEY VERIFIED SECURE'
-                          : '需要前往 STEAM 手机端确认\nAPI KEY 已安全验证',
+                      'app.trade.deliver.mobile_confirm_notice'.tr,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Color(0xFF94A3B8),
