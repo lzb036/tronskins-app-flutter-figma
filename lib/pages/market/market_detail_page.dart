@@ -905,15 +905,6 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   bool get _isEnglishLocale =>
       (Get.locale?.languageCode.toLowerCase() ?? '') == 'en';
 
-  bool get _isChineseLocale =>
-      (Get.locale?.languageCode.toLowerCase() ?? '') == 'zh';
-
-  bool get _isTraditionalChineseLocale {
-    final countryCode = (Get.locale?.countryCode ?? '').toUpperCase();
-    return _isChineseLocale &&
-        (countryCode == 'TW' || countryCode == 'HK' || countryCode == 'MO');
-  }
-
   bool get _usesWideColon {
     final languageCode = (Get.locale?.languageCode ?? '').toLowerCase();
     return languageCode == 'zh' || languageCode == 'ja';
@@ -929,16 +920,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   );
 
   String get _figmaPageTitle {
-    if (_isEnglishLocale) {
-      return 'Market Details';
-    }
-    if (_isTraditionalChineseLocale) {
-      return '市場詳情';
-    }
-    if (_isChineseLocale) {
-      return '市场详情';
-    }
-    return 'app.market.product.details'.tr;
+    return 'app.market.detail.page_title'.tr;
   }
 
   String get _figmaReferencePriceLabel =>
@@ -966,8 +948,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   String get _figmaTrendTabLabel =>
       _isEnglishLocale ? 'Trend' : 'app.market.detail.price_trend.title'.tr;
 
-  String get _figmaToolbarFloatLabel =>
-      _isEnglishLocale ? 'Wear' : 'app.market.filter.csgo.wear_interval'.tr;
+  String get _figmaToolbarFloatLabel => 'app.market.item.wear'.tr;
 
   String get _figmaToolbarPhaseLabel =>
       _isEnglishLocale ? 'Phase' : 'app.market.filter.selection_phase'.tr;
@@ -975,15 +956,14 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   String get _figmaQuantityTitle =>
       _isEnglishLocale ? 'Quantity' : 'app.inventory.count'.tr;
 
-  String get _figmaWearTitle => _isEnglishLocale ? 'Wear' : '磨损';
+  String get _figmaWearTitle => 'app.market.item.wear'.tr;
 
   String get _figmaAcceptedPatternsTitle =>
-      _isEnglishLocale ? 'Accepted Patterns' : '接受图案';
+      'app.market.detail.accepted_patterns'.tr;
 
-  String get _figmaNoRequirementTitle =>
-      _isEnglishLocale ? 'No requirement' : '无要求';
+  String get _figmaNoRequirementTitle => 'app.market.detail.no_requirement'.tr;
 
-  String get _figmaBuyerFallbackName => _isEnglishLocale ? 'Buyer' : '买家';
+  String get _figmaBuyerFallbackName => 'app.market.buyer'.tr;
 
   Widget _buildTopNavButton({
     required Widget child,
@@ -3482,9 +3462,9 @@ class _MarketDetailPageState extends State<MarketDetailPage>
           }
 
           return FigmaConfirmationDialog(
-            title: _isEnglishLocale ? 'Delist Listing' : '确认下架',
-            message: 'app.inventory.message.confirm_delist'.tr,
-            primaryLabel: _isEnglishLocale ? 'Confirm Delist' : '确认下架',
+            title: 'app.shop.delist.title'.tr,
+            message: 'app.shop.delist.message'.tr,
+            primaryLabel: 'app.shop.delist.confirm_action'.tr,
             primaryLoading: submitting,
             secondaryLabel: 'app.common.cancel'.tr,
             onPrimary: submitting
@@ -5102,7 +5082,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     if (nickname == null) {
       return null;
     }
-    final label = _isEnglishLocale ? 'Buyer' : '买家';
+    final label = 'app.market.buyer'.tr;
     return '$label: ${_maskTransactionUserName(nickname)}';
   }
 

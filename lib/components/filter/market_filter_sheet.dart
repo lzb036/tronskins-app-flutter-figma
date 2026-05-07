@@ -408,7 +408,6 @@ class MarketFilterSheet extends StatefulWidget {
 
 class _MarketFilterSheetState extends State<MarketFilterSheet> {
   static const String _weaponTypeDefaultName = 'unlimited';
-  static const String _weaponTypeDefaultLabel = 'Default';
 
   late String _sortField;
   late bool _sortAsc;
@@ -1597,14 +1596,15 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
   List<_AttributeOption> _weaponTypeOptionsWithDefault(
     List<_AttributeOption> options,
   ) {
-    const defaultOption = _AttributeOption(
+    final defaultLabel = 'app.market.filter.default'.tr;
+    final defaultOption = _AttributeOption(
       name: _weaponTypeDefaultName,
-      label: _weaponTypeDefaultLabel,
+      label: defaultLabel,
       isUnlimited: true,
       subOptions: [
         _AttributeOption(
           name: _weaponTypeDefaultName,
-          label: _weaponTypeDefaultLabel,
+          label: defaultLabel,
           isUnlimited: true,
         ),
       ],
@@ -4065,7 +4065,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
     if (widget.appId != 730) {
       return group.label.tr;
     }
-    return 'Type';
+    return 'app.market.csgo.type'.tr;
   }
 
   Widget _buildMarketGroupSection(_AttributeGroup group) {
@@ -4739,7 +4739,7 @@ List<_AttributeGroup> _buildGroupsStatic(int appId, Map<String, dynamic> raw) {
       }
     }
   } else {
-    final preferred = ['type', 'exterior', 'quality', 'rarity', 'itemSet'];
+    final preferred = ['type', 'exterior', 'rarity', 'quality', 'itemSet'];
     final used = <String>{};
     const skipKeys = {'weapon'};
     for (final key in preferred) {

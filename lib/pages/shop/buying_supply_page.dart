@@ -470,8 +470,8 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
           accentColor: _SupplyPalette.blue,
           title: 'app.system.tips.title'.tr,
           message: 'app.trade.supply.message.confirm'.tr,
-          primaryLabel: 'app.trade.deliver.now'.tr,
-          secondaryLabel: _supplyCloseLabel(),
+          primaryLabel: 'app.common.yes'.tr,
+          secondaryLabel: 'app.common.no'.tr,
           onPrimary: () => popModalRoute(dialogContext, true),
           onSecondary: () => popModalRoute(dialogContext, false),
         ),
@@ -537,14 +537,6 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
       }
     }
     return '';
-  }
-
-  String _supplyCloseLabel() {
-    final language = (Get.locale?.languageCode ?? '').toLowerCase();
-    if (language.startsWith('zh')) {
-      return Get.locale?.countryCode?.toUpperCase() == 'TW' ? '關閉' : '关闭';
-    }
-    return 'Close';
   }
 
   ShopSchemaInfo? _lookupSchema(InventoryItem item) {

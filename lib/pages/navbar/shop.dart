@@ -531,7 +531,7 @@ class _ShopPageState extends State<ShopPage>
 
           return FigmaConfirmationDialog(
             title: 'app.shop.delist.title'.tr,
-            message: 'app.inventory.message.confirm_delist'.tr,
+            message: 'app.shop.delist.message'.tr,
             primaryLabel: 'app.shop.delist.confirm_action'.tr,
             primaryLoading: submitting,
             secondaryLabel: 'app.common.cancel'.tr,
@@ -1517,7 +1517,7 @@ class _ShopPageState extends State<ShopPage>
                       const SizedBox(width: 12),
                       Flexible(
                         child: Text(
-                          'app.user.menu.shop'.tr,
+                          'app.shop.title'.tr,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(

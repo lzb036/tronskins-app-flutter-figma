@@ -305,15 +305,6 @@ class _MarketPageState extends State<MarketPage> {
     };
   }
 
-  bool get _isEnglishLocale =>
-      Get.locale?.languageCode.toLowerCase().startsWith('en') ?? false;
-
-  String get _emptyTitle => _isEnglishLocale ? 'No items found' : '暂无饰品数据';
-
-  String get _emptySubtitle => _isEnglishLocale
-      ? 'Try pulling down to refresh or adjust your search and filters.'
-      : '可以尝试下拉刷新，或调整搜索与筛选条件。';
-
   Widget _buildRefreshScrollView({
     required String storageKey,
     required Future<void> Function() onRefresh,
@@ -400,8 +391,8 @@ class _MarketPageState extends State<MarketPage> {
               sliver: SliverFillRemaining(
                 hasScrollBody: false,
                 child: MarketEmptyState(
-                  title: _emptyTitle,
-                  subtitle: _emptySubtitle,
+                  title: 'app.market.empty.title'.tr,
+                  subtitle: 'app.market.empty.subtitle'.tr,
                 ),
               ),
             )

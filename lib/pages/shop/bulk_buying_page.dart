@@ -1099,7 +1099,7 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        '${_matchedItems.length} ${'app.market.detail.bulk_buying.match'.tr}',
+        _matchStatusLabel(),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(
@@ -1110,6 +1110,14 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
         ),
       ),
     );
+  }
+
+  String _matchStatusLabel() {
+    final count = _matchedItems.length;
+    final unitKey = count == 1
+        ? 'app.market.detail.bulk_buying.match.one'
+        : 'app.market.detail.bulk_buying.match.other';
+    return '$count ${unitKey.tr}';
   }
 
   Widget _buildTotalAmountCard({
@@ -1461,7 +1469,7 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'app.trade.purchase.num'.tr.toUpperCase(),
+                        'app.trade.buy.quantity'.tr.toUpperCase(),
                         style: const TextStyle(
                           color: _bodyColor,
                           fontSize: 12,

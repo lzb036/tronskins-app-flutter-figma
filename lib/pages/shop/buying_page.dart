@@ -316,8 +316,8 @@ class _BuyingPageState extends State<BuyingPage>
           }
 
           return FigmaConfirmationDialog(
-            title: _text(zh: '终止求购', en: 'Terminate Buy Request'),
-            primaryLabel: _text(zh: '确认终止', en: 'Confirm Termination'),
+            title: 'app.inline.buying.terminate_title'.tr,
+            primaryLabel: 'app.inline.buying.terminate_action'.tr,
             primaryLoading: submitting,
             secondaryLabel: 'app.common.cancel'.tr,
             onPrimary: submitting
@@ -329,14 +329,7 @@ class _BuyingPageState extends State<BuyingPage>
             content: Text.rich(
               TextSpan(
                 children: [
-                  TextSpan(
-                    text: _text(
-                      zh: '你确定要终止对 ',
-                      en:
-                          'Are you sure you want to terminate the buy request '
-                          'for ',
-                    ),
-                  ),
+                  TextSpan(text: 'app.inline.buying.terminate_prefix'.tr),
                   TextSpan(
                     text: '[$title]',
                     style: const TextStyle(
@@ -344,12 +337,7 @@ class _BuyingPageState extends State<BuyingPage>
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  TextSpan(
-                    text: _text(
-                      zh: ' 吗？终止后资金将解除冻结。',
-                      en: '? The funds will be unfrozen upon termination.',
-                    ),
-                  ),
+                  TextSpan(text: 'app.inline.buying.terminate_suffix'.tr),
                 ],
               ),
               textAlign: TextAlign.center,
@@ -1120,15 +1108,34 @@ class _BuyingPageState extends State<BuyingPage>
       'canceled',
       'closed',
       'terminate',
+      'off shelf',
+      'offshelf',
+      'delist',
       '已取消',
       '取消',
       '已关闭',
       '终止',
+      '下架',
     ]);
   }
 
+  String? _localizedRecordStatusName(String? statusName) {
+    final text = statusName?.trim();
+    if (text == null || text.isEmpty) {
+      return null;
+    }
+    final normalized = text.toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+    if (normalized.contains('off shelf') ||
+        normalized.contains('offshelf') ||
+        normalized.contains('delist') ||
+        normalized.contains('下架')) {
+      return 'app.shop.status.delisted'.tr;
+    }
+    return text;
+  }
+
   String _recordStatusLabel(BuyRequestItem item) {
-    final text = item.statusName?.trim();
+    final text = _localizedRecordStatusName(item.statusName);
     if (text != null && text.isNotEmpty) {
       return text;
     }
@@ -1576,7 +1583,7 @@ class _BuyingPageState extends State<BuyingPage>
   }
 
   String _myBuyingStatusLabel(BuyRequestItem item) {
-    final status = item.statusName?.trim();
+    final status = _localizedRecordStatusName(item.statusName);
     if (status != null && status.isNotEmpty) {
       return status;
     }
@@ -2552,8 +2559,8 @@ class _PurchasePriceChangeDialogState
     final wearText = wearMin != null && wearMax != null
         ? '${'app.market.filter.csgo.wear_interval'.tr}: $wearMin - $wearMax'
         : null;
-    final lowestLabel = _textForLocale(zh: '最低在售价', en: 'Lowest On Sale');
-    final highestLabel = _textForLocale(zh: '当前最高价', en: 'Current Highest');
+    final lowestLabel = 'app.market.detail.sale_lowest'.tr;
+    final highestLabel = 'app.market.detail.purchase_highest'.tr;
     final lowestSaleText = currency.format(_sellMin());
     final highestText = currency.format(_buyMax());
 
@@ -2820,9 +2827,9 @@ class _PurchasePriceChangeDialogState
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       visualDensity: VisualDensity.compact,
                     ),
-                    child: const Text(
-                      'Reference Pricing',
-                      style: TextStyle(
+                    child: Text(
+                      'app.inventory.pricing_reference'.tr,
+                      style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         height: 16 / 12,

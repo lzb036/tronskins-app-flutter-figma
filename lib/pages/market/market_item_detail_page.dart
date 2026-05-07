@@ -770,30 +770,12 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
   bool get _isChineseLocale =>
       (Get.locale?.languageCode ?? '').toLowerCase().startsWith('zh');
 
-  bool get _isTraditionalChineseLocale {
-    final countryCode = (Get.locale?.countryCode ?? '').toUpperCase();
-    return _isChineseLocale &&
-        (countryCode == 'TW' || countryCode == 'HK' || countryCode == 'MO');
-  }
-
-  String _stickerSectionTitle() =>
-      _isChineseLocale ? '包含印花' : 'Containing Stickers';
+  String _stickerSectionTitle() => 'app.market.item.stickers'.tr;
 
   String _stickerFallbackName(int index) =>
-      _isChineseLocale ? '印花 ${index + 1}' : 'Sticker ${index + 1}';
+      '${'app.market.item.sticker'.tr} ${index + 1}';
 
-  String get _pageTitle {
-    if (_isEnglishLocale) {
-      return 'Skin Details';
-    }
-    if (_isTraditionalChineseLocale) {
-      return '飾品詳情';
-    }
-    if (_isChineseLocale) {
-      return '饰品详情';
-    }
-    return 'app.market.product.details'.tr;
-  }
+  String get _pageTitle => 'app.market.product.details'.tr;
 
   String get _currentPriceLabel => 'app.market.item.current_price'.tr;
 
@@ -968,13 +950,13 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
 
   String _formatAverageShip(double? value) {
     if (value == null || value <= 0) {
-      return _isEnglishLocale ? '0 mins' : '0 分钟';
+      return 'app.market.item.minutes.zero'.tr;
     }
     if (value < 2) {
-      return _isEnglishLocale ? '< 2 mins' : '< 2 分钟';
+      return 'app.market.item.minutes.less_than_two'.tr;
     }
     final text = value.toStringAsFixed(value >= 10 ? 0 : 1);
-    return _isEnglishLocale ? '$text mins' : '$text 分钟';
+    return '$text${'app.market.item.minutes.suffix'.tr}';
   }
 
   String _last7DaysRate(Map<String, dynamic>? shopInfo) {
@@ -1137,11 +1119,8 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
       lines.add(tags.join(' · '));
     }
     if (exterior?.label?.trim().isNotEmpty == true) {
-      lines.add(
-        _isEnglishLocale
-            ? 'Exterior: ${exterior!.label!.trim()}'
-            : '外观：${exterior!.label!.trim()}',
-      );
+      final separator = _isChineseLocale ? '：' : ': ';
+      lines.add('$_exteriorLabel$separator${exterior!.label!.trim()}');
     }
     if (itemSet?.label?.trim().isNotEmpty == true) {
       lines.add(itemSet!.label!.trim());
@@ -1314,14 +1293,14 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
       _addInfoField(
         fields,
         seen,
-        label: _isEnglishLocale ? 'Hero' : '英雄',
+        label: 'app.market.dota2.hero'.tr,
         value: heroValue,
         identity: 'hero',
       );
       _addInfoField(
         fields,
         seen,
-        label: _isEnglishLocale ? 'Slot' : '槽位',
+        label: 'app.market.dota2.slot'.tr,
         value: slotValue,
         identity: 'slot',
       );
@@ -1366,16 +1345,18 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
           }
           final descName = entry['name']?.toString().trim();
           final normalizedDescName = descName?.toLowerCase();
+          final identity = switch (normalizedDescName) {
+            'category' => 'rarity',
+            'exterior_wear' => 'exterior',
+            _ =>
+              descName != null && descName.isNotEmpty ? descName : parsed.key,
+          };
           _addInfoField(
             fields,
             seen,
             label: parsed.key,
             value: parsed.value,
-            identity: normalizedDescName == 'exterior_wear'
-                ? 'exterior'
-                : (descName != null && descName.isNotEmpty
-                      ? descName
-                      : parsed.key),
+            identity: identity,
           );
         }
       }
@@ -1446,6 +1427,9 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     if (lower == 'rarity') {
       return _rarityLabel;
     }
+    if (lower == 'category') {
+      return _rarityLabel;
+    }
     if (lower == 'type') {
       return _typeLabel;
     }
@@ -1463,6 +1447,9 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     }
     if (lower == 'exterior_wear') {
       return _exteriorLabel;
+    }
+    if (lower == 'category') {
+      return _rarityLabel;
     }
     return normalized
         .split(RegExp(r'[_\s-]+'))
@@ -2418,9 +2405,7 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
                                               const SizedBox(width: 12),
                                               Expanded(
                                                 child: Text(
-                                                  _isEnglishLocale
-                                                      ? 'Gem ${index + 1}'
-                                                      : '宝石 ${index + 1}',
+                                                  '${'app.market.item.gem'.tr} ${index + 1}',
                                                   style: const TextStyle(
                                                     color: _textPrimary,
                                                     fontSize: 13,
@@ -2453,7 +2438,7 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  _isEnglishLocale ? 'Keychains' : '挂件',
+                                  'app.market.item.keychains'.tr,
                                   style: const TextStyle(
                                     color: _textSecondary,
                                     fontSize: 11,

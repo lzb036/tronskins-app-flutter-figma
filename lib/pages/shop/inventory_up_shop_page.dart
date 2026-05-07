@@ -813,35 +813,13 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
   }
 
   String _pricingPresetLabel(_PricingPreset preset) {
-    final language = Get.locale?.languageCode.toLowerCase();
     switch (preset) {
       case _PricingPreset.min:
-        if (language == 'zh' || language == 'ja') {
-          return '最低';
-        }
-        if (language == 'ko') {
-          return '최저';
-        }
-        return 'Min';
+        return 'app.inventory.pricing_preset.min'.tr;
       case _PricingPreset.pricing:
-        if (language == 'zh' || language == 'ja') {
-          return '定价';
-        }
-        if (language == 'ko') {
-          return '가격';
-        }
-        if (language == 'fr') {
-          return 'Prix';
-        }
-        return 'Price';
+        return 'app.inventory.pricing_preset.pricing'.tr;
       case _PricingPreset.max:
-        if (language == 'zh' || language == 'ja') {
-          return '最高';
-        }
-        if (language == 'ko') {
-          return '최고';
-        }
-        return 'Max';
+        return 'app.inventory.pricing_preset.max'.tr;
     }
   }
 

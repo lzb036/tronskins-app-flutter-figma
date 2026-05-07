@@ -524,9 +524,9 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
   }
 
   String _statusLabel(bool value) =>
-      _text(value ? '在线' : '离线', value ? 'Online' : 'Offline');
+      (value ? 'app.shop.status.online' : 'app.shop.status.offline').tr;
 
-  String _statusPrefix() => _text('目前状态: ', 'Current: ');
+  String _statusPrefix() => 'app.shop.status.current_prefix'.tr;
 
   String _formatClock(DateTime time) {
     final hour = time.hour.toString().padLeft(2, '0');
@@ -841,7 +841,7 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _text('营业状态', 'Business status'),
+                      'app.inline.shop_setting.business_status'.tr,
                       style: const TextStyle(
                         color: _titleColor,
                         fontSize: 18,
@@ -1034,7 +1034,7 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: _MetaValueBlock(
-                    label: _text('IDLE TIME', 'IDLE TIME'),
+                    label: 'app.inline.shop_setting.idle_time'.tr,
                     value: idleLimit,
                     highlight: _hasDurationSet(),
                     alignEnd: true,
@@ -1084,10 +1084,7 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _text(
-                    '当您的店铺处于离线状态时，所有已上架的商品将自动在市场中隐藏。建议开启自动离线功能以保护您的交易活跃度。',
-                    'When your shop is offline, all listed items will be hidden from the market automatically. Enable auto offline to protect your trading activity.',
-                  ),
+                  'app.inline.shop_setting.offline_notice'.tr,
                   style: const TextStyle(
                     color: _warningBodyText,
                     fontSize: 12,
@@ -1286,7 +1283,9 @@ class _FigmaStatusToggle extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      isOnline ? '在线' : '离线',
+                      isOnline
+                          ? 'app.shop.status.online'.tr
+                          : 'app.shop.status.offline'.tr,
                       style: const TextStyle(
                         color: _ShopSettingPageState._textColor,
                         fontSize: 16,

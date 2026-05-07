@@ -94,7 +94,7 @@ class _TradeNoticeDetailPageState extends State<TradeNoticeDetailPage> {
       return _text(zh: '卖家已发货', en: 'Seller Shipped');
     }
     if (plainMessage.contains('deliver') || plainMessage.contains('发货')) {
-      return _text(zh: '准备发货', en: 'Ready to Deliver');
+      return 'app.trade.notice.ready_to_deliver'.tr;
     }
     if (plainMessage.contains('receive') || plainMessage.contains('收货')) {
       return _text(zh: '待确认收货', en: 'Ready to Receive');
@@ -110,7 +110,7 @@ class _TradeNoticeDetailPageState extends State<TradeNoticeDetailPage> {
   }
 
   String _deliverNowLabel() {
-    return _text(zh: '立即发货', en: 'Ship Now');
+    return 'app.trade.notice.deliver_now'.tr;
   }
 
   /// type 1（出售待发货）和 type 4（求购待发货）需要立即发货
@@ -141,7 +141,7 @@ class _TradeNoticeDetailPageState extends State<TradeNoticeDetailPage> {
   Widget _buildMessage(BuildContext context, TradeNotifyItem item) {
     const bodyColor = Color(0xFF444653);
     const emphasisColor = Color(0xFF191C1E);
-    final message = item.message ?? '';
+    final message = _normalizedMessageHtml(item.message);
     if (message.isEmpty) {
       return Text(
         'app.common.no_data'.tr,
@@ -170,6 +170,27 @@ class _TradeNoticeDetailPageState extends State<TradeNoticeDetailPage> {
         'b': Style(color: emphasisColor, fontWeight: FontWeight.w600),
       },
     );
+  }
+
+  String _normalizedMessageHtml(String? value) {
+    if (value == null || value.isEmpty) {
+      return '';
+    }
+    return value
+        .replaceAllMapped(
+          RegExp('pleasedeliver', caseSensitive: false),
+          (match) => match.group(0) == 'PLEASEDELIVER'
+              ? 'PLEASE DELIVER'
+              : 'please deliver',
+        )
+        .replaceAll(
+          RegExp('Failure to ship', caseSensitive: false),
+          'Failure to deliver',
+        )
+        .replaceAll(
+          RegExp('ship in a timely manner', caseSensitive: false),
+          'deliver in a timely manner',
+        );
   }
 
   Widget _buildViewOrderButton(BuildContext context) {
