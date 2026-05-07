@@ -70,7 +70,10 @@ Map<String, String> _missingMessagesFor(String locale) {
     _ => locale,
   };
 
-  return _missingMessages[normalized] ?? const <String, String>{};
+  return {
+    ...?_missingMessages[normalized],
+    ...?_rechargeSecurityMessages[normalized],
+  };
 }
 
 const Map<String, Map<String, String>> _missingMessages = {
@@ -321,5 +324,134 @@ const Map<String, Map<String, String>> _missingMessages = {
     'app.market.seller_shop.title': '賣家店鋪',
     'app.user.setting.language.description': '選擇您偏好的畫廊體驗語言',
     'app.user.setting.language.apply_notice': '變更會立即生效。',
+  },
+};
+
+const Map<String, Map<String, String>> _rechargeSecurityMessages = {
+  'en_US': {
+    'app.user.recharge.security.payment': 'Secure Payment',
+    'app.user.recharge.security.encrypted.title': 'Encrypted',
+    'app.user.recharge.security.encrypted.desc': 'SSL 256-bit encryption',
+    'app.user.recharge.security.fast_arrival.title': 'Fast arrival',
+    'app.user.recharge.security.fast_arrival.desc':
+        'Arrives after confirmation',
+  },
+  'zh_CN': {
+    'app.user.recharge.security.payment': '安全支付',
+    'app.user.recharge.security.encrypted.title': '加密',
+    'app.user.recharge.security.encrypted.desc': 'SSL 256 位加密',
+    'app.user.recharge.security.fast_arrival.title': '快速到账',
+    'app.user.recharge.security.fast_arrival.desc': '确认后到账',
+  },
+  'fr_FR': {
+    'app.user.recharge.security.payment': 'Paiement sécurisé',
+    'app.user.recharge.security.encrypted.title': 'Chiffré',
+    'app.user.recharge.security.encrypted.desc': 'Chiffrement SSL 256 bits',
+    'app.user.recharge.security.fast_arrival.title': 'Arrivée rapide',
+    'app.user.recharge.security.fast_arrival.desc':
+        'Crédité après confirmation',
+  },
+  'ge_DE': {
+    'app.user.recharge.security.payment': 'Sichere Zahlung',
+    'app.user.recharge.security.encrypted.title': 'Verschlüsselt',
+    'app.user.recharge.security.encrypted.desc': 'SSL-256-Bit-Verschlüsselung',
+    'app.user.recharge.security.fast_arrival.title': 'Schnelle Gutschrift',
+    'app.user.recharge.security.fast_arrival.desc':
+        'Nach Bestätigung gutgeschrieben',
+  },
+  'in_ID': {
+    'app.user.recharge.security.payment': 'Pembayaran aman',
+    'app.user.recharge.security.encrypted.title': 'Terenkripsi',
+    'app.user.recharge.security.encrypted.desc': 'Enkripsi SSL 256-bit',
+    'app.user.recharge.security.fast_arrival.title': 'Cepat masuk',
+    'app.user.recharge.security.fast_arrival.desc': 'Masuk setelah konfirmasi',
+  },
+  'it_IT': {
+    'app.user.recharge.security.payment': 'Pagamento sicuro',
+    'app.user.recharge.security.encrypted.title': 'Crittografato',
+    'app.user.recharge.security.encrypted.desc': 'Crittografia SSL a 256 bit',
+    'app.user.recharge.security.fast_arrival.title': 'Accredito rapido',
+    'app.user.recharge.security.fast_arrival.desc':
+        'Accredito dopo la conferma',
+  },
+  'ja_JP': {
+    'app.user.recharge.security.payment': '安全な決済',
+    'app.user.recharge.security.encrypted.title': '暗号化',
+    'app.user.recharge.security.encrypted.desc': 'SSL 256ビット暗号化',
+    'app.user.recharge.security.fast_arrival.title': 'すばやく反映',
+    'app.user.recharge.security.fast_arrival.desc': '確認後に反映',
+  },
+  'ko_KR': {
+    'app.user.recharge.security.payment': '안전 결제',
+    'app.user.recharge.security.encrypted.title': '암호화됨',
+    'app.user.recharge.security.encrypted.desc': 'SSL 256비트 암호화',
+    'app.user.recharge.security.fast_arrival.title': '빠른 입금',
+    'app.user.recharge.security.fast_arrival.desc': '확인 후 입금',
+  },
+  'la_LAT': {
+    'app.user.recharge.security.payment': 'Solutio tuta',
+    'app.user.recharge.security.encrypted.title': 'Encryptum',
+    'app.user.recharge.security.encrypted.desc': 'SSL 256-bit encryptio',
+    'app.user.recharge.security.fast_arrival.title': 'Adventus celer',
+    'app.user.recharge.security.fast_arrival.desc':
+        'Post confirmationem pervenit',
+  },
+  'po_PL': {
+    'app.user.recharge.security.payment': 'Bezpieczna płatność',
+    'app.user.recharge.security.encrypted.title': 'Szyfrowane',
+    'app.user.recharge.security.encrypted.desc': 'Szyfrowanie SSL 256-bit',
+    'app.user.recharge.security.fast_arrival.title': 'Szybkie księgowanie',
+    'app.user.recharge.security.fast_arrival.desc':
+        'Księgowane po potwierdzeniu',
+  },
+  'po_PT': {
+    'app.user.recharge.security.payment': 'Pagamento seguro',
+    'app.user.recharge.security.encrypted.title': 'Encriptado',
+    'app.user.recharge.security.encrypted.desc': 'Encriptação SSL de 256 bits',
+    'app.user.recharge.security.fast_arrival.title': 'Chegada rápida',
+    'app.user.recharge.security.fast_arrival.desc': 'Entra após confirmação',
+  },
+  'ru_RU': {
+    'app.user.recharge.security.payment': 'Безопасный платеж',
+    'app.user.recharge.security.encrypted.title': 'Зашифровано',
+    'app.user.recharge.security.encrypted.desc': 'SSL-шифрование 256 бит',
+    'app.user.recharge.security.fast_arrival.title': 'Быстрое зачисление',
+    'app.user.recharge.security.fast_arrival.desc': 'После подтверждения',
+  },
+  'sp_ES': {
+    'app.user.recharge.security.payment': 'Pago seguro',
+    'app.user.recharge.security.encrypted.title': 'Cifrado',
+    'app.user.recharge.security.encrypted.desc': 'Cifrado SSL de 256 bits',
+    'app.user.recharge.security.fast_arrival.title': 'Llegada rápida',
+    'app.user.recharge.security.fast_arrival.desc':
+        'Llega tras la confirmación',
+  },
+  'th_TH': {
+    'app.user.recharge.security.payment': 'ชำระเงินปลอดภัย',
+    'app.user.recharge.security.encrypted.title': 'เข้ารหัส',
+    'app.user.recharge.security.encrypted.desc': 'การเข้ารหัส SSL 256 บิต',
+    'app.user.recharge.security.fast_arrival.title': 'เข้าบัญชีเร็ว',
+    'app.user.recharge.security.fast_arrival.desc': 'เข้าหลังยืนยัน',
+  },
+  'tu_TR': {
+    'app.user.recharge.security.payment': 'Güvenli ödeme',
+    'app.user.recharge.security.encrypted.title': 'Şifreli',
+    'app.user.recharge.security.encrypted.desc': 'SSL 256 bit şifreleme',
+    'app.user.recharge.security.fast_arrival.title': 'Hızlı aktarım',
+    'app.user.recharge.security.fast_arrival.desc': 'Onaydan sonra aktarılır',
+  },
+  'vi_VN': {
+    'app.user.recharge.security.payment': 'Thanh toán an toàn',
+    'app.user.recharge.security.encrypted.title': 'Đã mã hóa',
+    'app.user.recharge.security.encrypted.desc': 'Mã hóa SSL 256 bit',
+    'app.user.recharge.security.fast_arrival.title': 'Nhận nhanh',
+    'app.user.recharge.security.fast_arrival.desc': 'Nhận sau khi xác nhận',
+  },
+  'zh_TW': {
+    'app.user.recharge.security.payment': '安全支付',
+    'app.user.recharge.security.encrypted.title': '加密',
+    'app.user.recharge.security.encrypted.desc': 'SSL 256 位加密',
+    'app.user.recharge.security.fast_arrival.title': '快速到帳',
+    'app.user.recharge.security.fast_arrival.desc': '確認後到帳',
   },
 };

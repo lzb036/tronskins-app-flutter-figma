@@ -201,17 +201,21 @@ class _WalletRechargePageState extends State<WalletRechargePage>
 
   String _accountStatusLabel() => 'app.steam.account.status_success'.tr;
 
-  String _securePaymentLabel() => 'Secure Payment';
+  String _securePaymentLabel() => 'app.user.recharge.security.payment'.tr;
 
   String _safetyLabel() => 'app.system.tips.title'.tr;
 
-  String _encryptedTransferLabel() => 'Encrypted';
+  String _encryptedTransferLabel() =>
+      'app.user.recharge.security.encrypted.title'.tr;
 
-  String _encryptedTransferDesc() => 'SSL 256-bit encryption';
+  String _encryptedTransferDesc() =>
+      'app.user.recharge.security.encrypted.desc'.tr;
 
-  String _fastArrivalLabel() => 'Fast arrival';
+  String _fastArrivalLabel() =>
+      'app.user.recharge.security.fast_arrival.title'.tr;
 
-  String _fastArrivalDesc() => 'Arrives after confirmation';
+  String _fastArrivalDesc() =>
+      'app.user.recharge.security.fast_arrival.desc'.tr;
 
   String _usdtSafetyNote() => 'app.user.recharge.tips_2'.tr;
 
