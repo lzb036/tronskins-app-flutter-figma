@@ -12,6 +12,7 @@ import 'package:tronskins_app/common/theme/order_detail_status_style.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
+import 'package:tronskins_app/l10n/inline_i18n.dart';
 import 'package:tronskins_app/pages/wallet/widgets/wallet_order_asset_card.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
@@ -88,11 +89,8 @@ class WalletSettlementDetailPage extends StatelessWidget {
     );
   }
 
-  bool get _isChineseLocale =>
-      (Get.locale?.languageCode ?? '').toLowerCase().startsWith('zh');
-
   String _text({required String zh, required String en}) {
-    return _isChineseLocale ? zh : en;
+    return InlineI18n.text(zh: zh, en: en);
   }
 
   String _pageTitle() {

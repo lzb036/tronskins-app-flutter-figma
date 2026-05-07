@@ -16,36 +16,39 @@ class UserSetting extends StatelessWidget {
     final locale = Locale(languageCode, countryCode);
     Get.updateLocale(locale);
     currentLocale.value = locale;
-    AppSnackbar.info('witched to ${locale.toString()}');
+    AppSnackbar.info('${'app.user.setting.multilingual'.tr}: $locale');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('welcome'.tr)),
+      appBar: AppBar(title: Text('app.user.setting.title'.tr)),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text('app.tabbar.home'.tr, style: TextStyle(fontSize: 20)),
             SizedBox(height: 20),
-            Text('Current Language: ${currentLocale.value.toString()}'),
+            Text(
+              '${'app.user.setting.multilingual'.tr}: ${currentLocale.value}',
+            ),
             SizedBox(height: 30),
             ElevatedButton.icon(
               icon: Icon(Icons.language),
-              label: Text('切换语言'.tr),
+              label: Text('app.user.setting.multilingual'.tr),
               onPressed: () => useLocale.toggleLanguage(),
             ),
             SizedBox(height: 20),
             Obx(
               () => Text(
-                '当前主题: ${useTheme.themeMode == ThemeMode.dark ? "暗色" : "亮色"}',
+                '${'app.user.setting.theme'.tr}: '
+                '${useTheme.themeMode == ThemeMode.dark ? 'app.user.setting.theme_dark'.tr : 'app.user.setting.theme_light'.tr}',
               ),
             ),
             SizedBox(height: 20),
             ElevatedButton.icon(
               icon: Icon(Icons.brightness_6),
-              label: Text('切换主题'.tr),
+              label: Text('app.user.setting.theme'.tr),
               onPressed: () => {useTheme.toggleTheme()},
             ),
           ],

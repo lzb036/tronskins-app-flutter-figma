@@ -17,6 +17,7 @@ import 'package:tronskins_app/controllers/wallet/wallet_controller.dart';
 import 'package:tronskins_app/api/model/wallet/wallet_models.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/notify/notify_trade_deliver_sheet.dart';
+import 'package:tronskins_app/l10n/inline_i18n.dart';
 import 'package:tronskins_app/pages/wallet/widgets/wallet_order_asset_card.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
@@ -124,13 +125,8 @@ class _WalletLockedDetailPageState extends State<WalletLockedDetailPage> {
     return userId == sellerId;
   }
 
-  bool get _isChineseLocale {
-    final languageCode = Get.locale?.languageCode.toLowerCase();
-    return languageCode != null && languageCode.startsWith('zh');
-  }
-
   String _text({required String zh, required String en}) {
-    return _isChineseLocale ? zh : en;
+    return InlineI18n.text(zh: zh, en: en);
   }
 
   String _formatTimestamp(int? timestamp) {

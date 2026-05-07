@@ -7,6 +7,7 @@ import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 import 'package:tronskins_app/components/game_item/game_item_wear_overlay.dart';
+import 'package:tronskins_app/l10n/inline_i18n.dart';
 
 class WalletOrderAssetCard extends StatelessWidget {
   const WalletOrderAssetCard({
@@ -49,11 +50,8 @@ class WalletOrderAssetCard extends StatelessWidget {
   final double? paintWear;
   final String? wearText;
 
-  bool get _isChineseLocale =>
-      (Get.locale?.languageCode ?? '').toLowerCase().startsWith('zh');
-
   String _text({required String zh, required String en}) {
-    return _isChineseLocale ? zh : en;
+    return InlineI18n.text(zh: zh, en: en);
   }
 
   @override

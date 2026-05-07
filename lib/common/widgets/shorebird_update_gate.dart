@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:shorebird_code_push/shorebird_code_push.dart';
 import 'package:tronskins_app/common/logging/app_logger.dart';
 import 'package:tronskins_app/common/theme/app_colors.dart';
@@ -191,7 +192,8 @@ class _ShorebirdUpdateGateState extends State<ShorebirdUpdateGate>
   }
 
   _UpdateCopy _copyForLocale() {
-    final locale = WidgetsBinding.instance.platformDispatcher.locale;
+    final locale =
+        Get.locale ?? WidgetsBinding.instance.platformDispatcher.locale;
     final isChinese = locale.languageCode.toLowerCase().startsWith('zh');
     return isChinese ? _UpdateCopy.zh() : _UpdateCopy.en();
   }

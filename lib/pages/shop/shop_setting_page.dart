@@ -11,6 +11,7 @@ import 'package:tronskins_app/common/widgets/login_required_prompt.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/controllers/shop/shop_controller.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
+import 'package:tronskins_app/l10n/inline_i18n.dart';
 
 class ShopSettingPage extends StatefulWidget {
   const ShopSettingPage({super.key});
@@ -86,7 +87,7 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     super.dispose();
   }
 
-  String _text(String zh, String en) => _isZh ? zh : en;
+  String _text(String zh, String en) => InlineI18n.text(zh: zh, en: en);
 
   String _shopIdentity(UserShopEntity shop) =>
       '${shop.id ?? ''}|${shop.uuid ?? ''}';
@@ -1576,7 +1577,7 @@ class _CustomDurationPickerPageState extends State<_CustomDurationPickerPage> {
     super.dispose();
   }
 
-  String _text(String zh, String en) => widget.isZh ? zh : en;
+  String _text(String zh, String en) => InlineI18n.text(zh: zh, en: en);
 
   Duration get _currentDuration =>
       Duration(hours: _selectedHour, minutes: _selectedMinute);

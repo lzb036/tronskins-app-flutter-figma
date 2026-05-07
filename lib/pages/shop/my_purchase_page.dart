@@ -24,6 +24,7 @@ import 'package:tronskins_app/components/layout/header_filter_button.dart';
 import 'package:tronskins_app/components/layout/list_end_tip.dart';
 import 'package:tronskins_app/controllers/shop/shop_order_controller.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
+import 'package:tronskins_app/l10n/inline_i18n.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
 class MyPurchasePage extends StatefulWidget {
@@ -84,7 +85,7 @@ class _MyPurchasePageState extends State<MyPurchasePage>
       (Get.locale?.languageCode ?? '').toLowerCase().startsWith('zh');
 
   String _text({required String zh, required String en}) =>
-      _isChineseLocale ? zh : en;
+      InlineI18n.text(zh: zh, en: en);
 
   static const String _defaultOrderSortField = 'time';
   static const bool _defaultOrderSortAsc = false;

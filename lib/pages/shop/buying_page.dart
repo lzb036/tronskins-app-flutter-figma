@@ -24,6 +24,7 @@ import 'package:tronskins_app/components/layout/header_filter_button.dart';
 import 'package:tronskins_app/components/layout/list_end_tip.dart';
 import 'package:tronskins_app/controllers/shop/buy_request_controller.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
+import 'package:tronskins_app/l10n/inline_i18n.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
 class BuyingPage extends StatefulWidget {
@@ -671,7 +672,7 @@ class _BuyingPageState extends State<BuyingPage>
   }
 
   String _text({required String zh, required String en}) {
-    return _isChineseLocale ? zh : en;
+    return InlineI18n.text(zh: zh, en: en);
   }
 
   TagInfo? _schemaTag(ShopSchemaInfo? schema, String key) {

@@ -8,6 +8,7 @@ import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/theme/order_detail_status_style.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/controllers/wallet/wallet_controller.dart';
+import 'package:tronskins_app/l10n/inline_i18n.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
 class WalletLockedPage extends StatefulWidget {
@@ -127,13 +128,8 @@ class _WalletLockedPageState extends State<WalletLockedPage> {
     return DateFormat('HH:mm:ss').format(value);
   }
 
-  bool get _isChineseLocale {
-    final languageCode = Get.locale?.languageCode.toLowerCase();
-    return languageCode != null && languageCode.startsWith('zh');
-  }
-
   String _text({required String zh, required String en}) {
-    return _isChineseLocale ? zh : en;
+    return InlineI18n.text(zh: zh, en: en);
   }
 
   String _lockedStatusText(WalletLockedItem item) {

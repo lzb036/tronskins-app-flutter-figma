@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
@@ -49,6 +50,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localeController = Get.find<UseLocale>();
+
     return GetMaterialApp(
       builder: (context, child) {
         final media = MediaQuery.of(context);
@@ -68,12 +71,18 @@ class MyApp extends StatelessWidget {
       getPages: RoutersConfig.list,
       translations: AppTranslations(),
       fallbackLocale: const Locale('en', 'US'),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: localeController.supportedLocales,
 
       // 动态监听主题和语言变化
       theme: lightTheme(),
       darkTheme: darkTheme(),
       themeMode: Get.find<UseTheme>().themeMode,
-      locale: Get.find<UseLocale>().currentLocale,
+      locale: localeController.currentLocale,
     );
   }
 }

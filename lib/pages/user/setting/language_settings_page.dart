@@ -49,10 +49,10 @@ class _LanguageSettingsPageState extends State<LanguageSettingsPage> {
                       const SizedBox(height: 28),
                       _buildLanguageCard(),
                       const SizedBox(height: 24),
-                      const Text(
-                        'Changes will take effect immediately.',
+                      Text(
+                        'app.user.setting.language.apply_notice'.tr,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: _hintColor,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
@@ -74,8 +74,8 @@ class _LanguageSettingsPageState extends State<LanguageSettingsPage> {
 
   Widget _buildHero() {
     return Column(
-      children: const [
-        DecoratedBox(
+      children: [
+        const DecoratedBox(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.all(Radius.circular(16)),
@@ -97,11 +97,11 @@ class _LanguageSettingsPageState extends State<LanguageSettingsPage> {
             ),
           ),
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         Text(
-          'Select your preferred language for the gallery experience',
+          'app.user.setting.language.description'.tr,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             color: _descriptionColor,
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -152,8 +152,8 @@ class _LanguageSettingsPageState extends State<LanguageSettingsPage> {
     final country = lang['country'] ?? 'US';
     final isSelected = code == _selectedCode && country == _selectedCountry;
     final nativeName = _useLocale.getLocalizedLanguageName(lang);
-    final label =
-        lang['name'] ?? _useLocale.getLanguageName(Locale(code, country));
+    final label = _useLocale.getLanguageName(Locale(code, country));
+    final localeLabel = '${code}_$country';
 
     return Material(
       color: Colors.transparent,
@@ -200,7 +200,7 @@ class _LanguageSettingsPageState extends State<LanguageSettingsPage> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        nativeName,
+                        nativeName == label ? localeLabel : nativeName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -235,7 +235,7 @@ class _LanguageSettingsPageState extends State<LanguageSettingsPage> {
     if (code == 'zh' && country == 'CN') {
       return '中';
     }
-    if (code == 'zh' && country == 'HK') {
+    if (code == 'zh' && country == 'TW') {
       return '繁';
     }
     return code.toUpperCase();

@@ -26,6 +26,7 @@ Map<String, String> giftCardMessagesFor(String locale) {
     'pt_PT' => 'po_PT',
     'es_ES' => 'sp_ES',
     'tr_TR' => 'tu_TR',
+    'zh_HK' => 'zh_TW',
     _ => locale,
   };
   return giftCardI18n[normalized] ?? giftCardI18n['en_US']!;

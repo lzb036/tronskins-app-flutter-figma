@@ -25,6 +25,7 @@ import 'package:tronskins_app/components/shop/shop_store_info_card.dart';
 import 'package:tronskins_app/controllers/shop/shop_order_controller.dart';
 import 'package:tronskins_app/controllers/shop/shop_shipping_notice_controller.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
+import 'package:tronskins_app/l10n/inline_i18n.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
 class ShopOrderDetailPage extends StatelessWidget {
@@ -2931,11 +2932,7 @@ class ShopOrderDetailPage extends StatelessWidget {
   }
 
   String _text({required String zh, required String en}) {
-    final locale = Get.locale ?? Get.deviceLocale;
-    if ((locale?.languageCode ?? '').toLowerCase().startsWith('zh')) {
-      return zh;
-    }
-    return en;
+    return InlineI18n.text(zh: zh, en: en);
   }
 
   String? _findTextValue(dynamic data, List<String> keys) {

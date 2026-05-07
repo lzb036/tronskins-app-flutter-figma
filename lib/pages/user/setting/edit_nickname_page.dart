@@ -9,6 +9,7 @@ import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/login_required_prompt.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/controllers/user/user_controller.dart';
+import 'package:tronskins_app/l10n/inline_i18n.dart';
 
 class EditNicknamePage extends StatefulWidget {
   const EditNicknamePage({super.key});
@@ -174,8 +175,7 @@ class _EditNicknamePageState extends State<EditNicknamePage> {
   }
 
   String _localizedText({required String zh, required String en}) {
-    final languageCode = Get.locale?.languageCode.toLowerCase();
-    return languageCode == 'zh' ? zh : en;
+    return InlineI18n.text(zh: zh, en: en);
   }
 
   String get _labelText => _localizedText(zh: '当前昵称', en: 'Current Nickname');

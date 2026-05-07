@@ -6,6 +6,7 @@ import 'package:tronskins_app/api/model/notify/notify_models.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/controllers/navbar/nav_controller.dart';
 import 'package:tronskins_app/controllers/user/notify_controller.dart';
+import 'package:tronskins_app/l10n/inline_i18n.dart';
 
 class TradeNoticeDetailPage extends StatefulWidget {
   const TradeNoticeDetailPage({super.key});
@@ -58,13 +59,8 @@ class _TradeNoticeDetailPageState extends State<TradeNoticeDetailPage> {
     }
   }
 
-  bool get _isChineseLocale {
-    final languageCode = Get.locale?.languageCode.toLowerCase();
-    return languageCode != null && languageCode.startsWith('zh');
-  }
-
   String _text({required String zh, required String en}) {
-    return _isChineseLocale ? zh : en;
+    return InlineI18n.text(zh: zh, en: en);
   }
 
   String _formatTime(int? value) {
@@ -125,15 +121,15 @@ class _TradeNoticeDetailPageState extends State<TradeNoticeDetailPage> {
     if (type == null) return false;
     // 管理员操作类：无订单
     const adminTypes = {
-      8,    // ADMIN_REJECT_USER_WITHDRAW
-      210,  // DISABLE_USER_SHOP_BY_ADMIN
-      211,  // DISABLE_USER_SHOP
-      220,  // ENABLE_USER_SHOP_BY_ADMIN
-      230,  // FREEZE_USER_FUND_BY_ADMIN
-      240,  // THAW_USER_FUND_BY_ADMIN
-      250,  // DISABLE_USER_BY_ADMIN
+      8, // ADMIN_REJECT_USER_WITHDRAW
+      210, // DISABLE_USER_SHOP_BY_ADMIN
+      211, // DISABLE_USER_SHOP
+      220, // ENABLE_USER_SHOP_BY_ADMIN
+      230, // FREEZE_USER_FUND_BY_ADMIN
+      240, // THAW_USER_FUND_BY_ADMIN
+      250, // DISABLE_USER_BY_ADMIN
       2501, // DISABLE_USER_BY_MODIFIED_TRADE
-      260,  // ENABLE_USER_BY_ADMIN
+      260, // ENABLE_USER_BY_ADMIN
     };
     if (adminTypes.contains(type)) return false;
     // 管理员取消交易段 290~320：有订单
