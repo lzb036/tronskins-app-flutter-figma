@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:tronskins_app/api/model/market/market_models.dart';
 
@@ -69,6 +71,85 @@ List<GameItemSticker> parseStickerList(
     stickers.add(GameItemSticker(_normalizeStickerUrl(url)));
   }
   return stickers;
+}
+
+/// Normalizes sticker-like or keychain-like raw data into a list shape.
+List<dynamic> normalizeGameItemAccessoryEntries(dynamic raw) {
+  if (raw is List) {
+    return raw;
+  }
+  if (raw is Iterable) {
+    return raw.toList(growable: false);
+  }
+  if (raw is Map) {
+    if (raw.containsKey('image_url') ||
+        raw.containsKey('imageUrl') ||
+        raw.containsKey('image') ||
+        raw.containsKey('id') ||
+        raw.containsKey('sticker_id') ||
+        raw.containsKey('stickerId') ||
+        raw.containsKey('schema_id') ||
+        raw.containsKey('schemaId')) {
+      return <dynamic>[raw];
+    }
+    return raw.values.toList(growable: false);
+  }
+  if (raw is String) {
+    final value = raw.trim();
+    if (value.isEmpty || value == 'null') {
+      return const [];
+    }
+    if (value.startsWith('[') && value.endsWith(']')) {
+      try {
+        final decoded = jsonDecode(value);
+        if (decoded is List) {
+          return decoded;
+        }
+      } catch (_) {}
+    }
+    if (value.contains(',')) {
+      return value
+          .split(',')
+          .map((entry) => entry.trim())
+          .where((entry) => entry.isNotEmpty)
+          .toList(growable: false);
+    }
+    return <dynamic>[value];
+  }
+  if (raw == null) {
+    return const [];
+  }
+  return <dynamic>[raw];
+}
+
+/// Parses the first non-empty accessory candidate into sticker preview data.
+List<GameItemSticker> parseFirstAccessoryStickerList(
+  Iterable<dynamic> candidates, {
+  Map<dynamic, dynamic>? schemaMap,
+  Map<dynamic, dynamic>? stickerMap,
+}) {
+  for (final candidate in candidates) {
+    final parsed = parseStickerList(
+      normalizeGameItemAccessoryEntries(candidate),
+      schemaMap: schemaMap,
+      stickerMap: stickerMap,
+    );
+    if (parsed.isNotEmpty) {
+      return parsed;
+    }
+  }
+  return const [];
+}
+
+/// Builds preview accessories with up to five stickers plus one keychain.
+List<GameItemSticker> buildAccessoryPreviewStickers({
+  List<GameItemSticker> stickers = const [],
+  List<GameItemSticker> keychains = const [],
+}) {
+  if (stickers.isEmpty && keychains.isEmpty) {
+    return const [];
+  }
+  return <GameItemSticker>[...stickers.take(5), ...keychains.take(1)];
 }
 
 List<GameItemGem> parseGemList(dynamic raw) {

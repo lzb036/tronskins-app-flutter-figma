@@ -1870,7 +1870,7 @@ class _CollectionAccessoryPreviewRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visibleItems = items.take(4).toList(growable: false);
+    final visibleItems = items.take(6).toList(growable: false);
     final overflow = items.length - visibleItems.length;
     return Row(
       mainAxisSize: MainAxisSize.min,

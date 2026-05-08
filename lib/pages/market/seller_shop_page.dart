@@ -1690,6 +1690,11 @@ class _SellerShopPageState extends State<SellerShopPage>
           _extractText(item.raw, const ['percentage']),
     );
     final stickers = _parseStickersForItem(item, asset);
+    final keychains = _parseKeychainsForItem(item, asset);
+    final previewStickers = buildAccessoryPreviewStickers(
+      stickers: stickers,
+      keychains: keychains,
+    );
     final gems = _parseGemsForItem(item, asset).take(4).toList();
     return MarketShowcaseCard(
       appId: item.appId ?? _appId,
@@ -1702,7 +1707,7 @@ class _SellerShopPageState extends State<SellerShopPage>
       patternLabel: patternLabel,
       phaseLabel: phaseLabel,
       percentageLabel: percentageLabel,
-      stickers: stickers,
+      stickers: previewStickers,
       gems: gems,
       wearDisplay: wearDisplay,
       wearValue: wearValue,
@@ -1886,6 +1891,38 @@ class _SellerShopPageState extends State<SellerShopPage>
     return const [];
   }
 
+  List<GameItemSticker> _parseKeychainsForItem(
+    ShopItemAsset item,
+    Map<String, dynamic>? asset,
+  ) {
+    final rawAsset = _asMap(item.raw['asset']) ?? _asMap(item.raw['itemAsset']);
+    final rawCsgoAsset =
+        _asMap(item.raw['csgoAsset']) ?? _asMap(item.raw['csgo_asset']);
+    final rawTf2Asset =
+        _asMap(item.raw['tf2Asset']) ?? _asMap(item.raw['tf2_asset']);
+    final rawDotaAsset =
+        _asMap(item.raw['dota2Asset']) ?? _asMap(item.raw['dota2_asset']);
+
+    return parseFirstAccessoryStickerList(
+      <dynamic>[
+        asset?['keychains'],
+        asset?['keychain'],
+        rawAsset?['keychains'],
+        rawAsset?['keychain'],
+        rawCsgoAsset?['keychains'],
+        rawCsgoAsset?['keychain'],
+        rawTf2Asset?['keychains'],
+        rawTf2Asset?['keychain'],
+        rawDotaAsset?['keychains'],
+        rawDotaAsset?['keychain'],
+        item.raw['keychains'],
+        item.raw['keychain'],
+      ],
+      schemaMap: _schemas,
+      stickerMap: _stickers,
+    );
+  }
+
   List<dynamic> _stickerCandidatesForItem(
     ShopItemAsset item,
     Map<String, dynamic>? asset,
@@ -1985,40 +2022,7 @@ class _SellerShopPageState extends State<SellerShopPage>
   }
 
   List<dynamic> _normalizeStickerEntries(dynamic raw) {
-    if (raw is List) {
-      return raw;
-    }
-    if (raw is Iterable) {
-      return raw.toList(growable: false);
-    }
-    if (raw is Map) {
-      if (raw.containsKey('image_url') ||
-          raw.containsKey('imageUrl') ||
-          raw.containsKey('image') ||
-          raw.containsKey('id') ||
-          raw.containsKey('sticker_id') ||
-          raw.containsKey('stickerId') ||
-          raw.containsKey('schema_id') ||
-          raw.containsKey('schemaId')) {
-        return <dynamic>[raw];
-      }
-      return raw.values.toList(growable: false);
-    }
-    if (raw is String) {
-      final value = raw.trim();
-      if (value.isEmpty || value == 'null') {
-        return const [];
-      }
-      if (value.contains(',')) {
-        return value
-            .split(',')
-            .map((entry) => entry.trim())
-            .where((entry) => entry.isNotEmpty)
-            .toList(growable: false);
-      }
-      return <dynamic>[value];
-    }
-    return const [];
+    return normalizeGameItemAccessoryEntries(raw);
   }
 
   List<dynamic> _normalizeGemEntries(dynamic raw) {

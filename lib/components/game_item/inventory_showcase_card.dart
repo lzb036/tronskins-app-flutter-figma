@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -90,6 +89,16 @@ class InventoryShowcaseCard extends StatelessWidget {
       schemaMap: schemaMap,
       stickerMap: stickerMap,
     );
+    final keychains = _parseItemKeychains(
+      asset: asset,
+      raw: item.raw,
+      schemaMap: schemaMap,
+      stickerMap: stickerMap,
+    );
+    final previewStickers = buildAccessoryPreviewStickers(
+      stickers: stickers,
+      keychains: keychains,
+    );
     final gems = parseGemList(
       asset?['gemList'] ??
           asset?['gems'] ??
@@ -102,7 +111,7 @@ class InventoryShowcaseCard extends StatelessWidget {
       isTf2: isTf2,
     );
     final hasAccessoryDetails =
-        stickers.isNotEmpty || gems.isNotEmpty || wearDisplay != null;
+        previewStickers.isNotEmpty || gems.isNotEmpty || wearDisplay != null;
     final conditionLabel = exterior?.label?.trim();
     final exteriorAccentColor =
         parseHexColor(exterior?.color) ??
@@ -315,7 +324,8 @@ class InventoryShowcaseCard extends StatelessWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    if (stickers.isNotEmpty || gems.isNotEmpty)
+                                    if (previewStickers.isNotEmpty ||
+                                        gems.isNotEmpty)
                                       Padding(
                                         padding: const EdgeInsets.fromLTRB(
                                           6,
@@ -328,9 +338,9 @@ class InventoryShowcaseCard extends StatelessWidget {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            if (stickers.isNotEmpty) ...[
+                                            if (previewStickers.isNotEmpty) ...[
                                               StickerRow(
-                                                stickers: stickers,
+                                                stickers: previewStickers,
                                                 size: 18,
                                               ),
                                               if (gems.isNotEmpty)
@@ -819,67 +829,42 @@ List<GameItemSticker> _parseItemStickers({
     raw['stickerInfos'],
     raw['sticker_info'],
   ];
-  for (final candidate in candidates) {
-    final parsed = parseStickerList(
-      _normalizeStickerRaw(candidate),
-      schemaMap: schemaMap,
-      stickerMap: stickerMap,
-    );
-    if (parsed.isNotEmpty) {
-      return parsed;
-    }
-  }
-  return const [];
+  return parseFirstAccessoryStickerList(
+    candidates,
+    schemaMap: schemaMap,
+    stickerMap: stickerMap,
+  );
 }
 
-dynamic _normalizeStickerRaw(dynamic raw) {
-  if (raw is List) {
-    return raw;
-  }
-  if (raw is Map) {
-    if (raw.containsKey('image_url') ||
-        raw.containsKey('imageUrl') ||
-        raw.containsKey('image') ||
-        raw.containsKey('id') ||
-        raw.containsKey('sticker_id') ||
-        raw.containsKey('stickerId') ||
-        raw.containsKey('schema_id') ||
-        raw.containsKey('schemaId')) {
-      return <dynamic>[raw];
-    }
-    final values = raw.values.toList(growable: false);
-    if (values.isNotEmpty) {
-      return values;
-    }
-  }
-  if (raw is String) {
-    final value = raw.trim();
-    if (value.isEmpty || value == 'null') {
-      return const <dynamic>[];
-    }
-    if (value.startsWith('[') && value.endsWith(']')) {
-      try {
-        final decoded = jsonDecode(value);
-        if (decoded is List) {
-          return decoded;
-        }
-      } catch (_) {}
-    }
-    if (value.contains(',')) {
-      final values = value
-          .split(',')
-          .map((entry) => entry.trim())
-          .where((entry) => entry.isNotEmpty)
-          .toList(growable: false);
-      if (values.isNotEmpty) {
-        return values;
-      }
-    }
-  }
-  if (raw is Iterable) {
-    return raw.toList(growable: false);
-  }
-  return raw;
+List<GameItemSticker> _parseItemKeychains({
+  required Map<String, dynamic>? asset,
+  required Map<String, dynamic> raw,
+  required Map<dynamic, dynamic>? schemaMap,
+  required Map<dynamic, dynamic>? stickerMap,
+}) {
+  final rawAsset = _asMap(raw['asset']) ?? _asMap(raw['itemAsset']);
+  final rawCsgoAsset = _asMap(raw['csgoAsset']) ?? _asMap(raw['csgo_asset']);
+  final rawTf2Asset = _asMap(raw['tf2Asset']) ?? _asMap(raw['tf2_asset']);
+  final rawDotaAsset = _asMap(raw['dota2Asset']) ?? _asMap(raw['dota2_asset']);
+  final candidates = <dynamic>[
+    asset?['keychains'],
+    asset?['keychain'],
+    rawAsset?['keychains'],
+    rawAsset?['keychain'],
+    rawCsgoAsset?['keychains'],
+    rawCsgoAsset?['keychain'],
+    rawTf2Asset?['keychains'],
+    rawTf2Asset?['keychain'],
+    rawDotaAsset?['keychains'],
+    rawDotaAsset?['keychain'],
+    raw['keychains'],
+    raw['keychain'],
+  ];
+  return parseFirstAccessoryStickerList(
+    candidates,
+    schemaMap: schemaMap,
+    stickerMap: stickerMap,
+  );
 }
 
 Map<String, dynamic>? _asMap(dynamic value) {

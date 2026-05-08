@@ -1630,7 +1630,24 @@ class _SupplyItemVisualData {
           _extractSupplyText(asset, ['paint_seed', 'paintSeed']),
       phase: item.phase ?? _extractSupplyText(asset, ['phase']),
       percentage: _extractSupplyText(asset, ['percentage']),
-      stickers: parseStickerList(asset?['stickers'] ?? item.raw['stickers']),
+      stickers: buildAccessoryPreviewStickers(
+        stickers: parseFirstAccessoryStickerList([
+          asset?['stickers'],
+          asset?['stickerList'],
+          asset?['sticker_list'],
+          asset?['sticker'],
+          item.raw['stickers'],
+          item.raw['stickerList'],
+          item.raw['sticker_list'],
+          item.raw['sticker'],
+        ]),
+        keychains: parseFirstAccessoryStickerList([
+          asset?['keychains'],
+          asset?['keychain'],
+          item.raw['keychains'],
+          item.raw['keychain'],
+        ]),
+      ),
       gems: parseGemList(
         asset?['gemList'] ??
             asset?['gems'] ??

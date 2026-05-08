@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -4927,67 +4925,11 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       raw['stickerInfos'],
       raw['sticker_info'],
     ];
-    for (final candidate in candidates) {
-      final parsed = parseStickerList(
-        _normalizeStickerRaw(candidate),
-        schemaMap: schemas,
-        stickerMap: stickerMap,
-      );
-      if (parsed.isNotEmpty) {
-        return parsed;
-      }
-    }
-    return const [];
-  }
-
-  dynamic _normalizeStickerRaw(dynamic raw) {
-    if (raw is List) {
-      return raw;
-    }
-    if (raw is Map) {
-      if (raw.containsKey('image_url') ||
-          raw.containsKey('imageUrl') ||
-          raw.containsKey('image') ||
-          raw.containsKey('id') ||
-          raw.containsKey('sticker_id') ||
-          raw.containsKey('stickerId') ||
-          raw.containsKey('schema_id') ||
-          raw.containsKey('schemaId')) {
-        return <dynamic>[raw];
-      }
-      final values = raw.values.toList(growable: false);
-      if (values.isNotEmpty) {
-        return values;
-      }
-    }
-    if (raw is String) {
-      final value = raw.trim();
-      if (value.isEmpty || value == 'null') {
-        return const <dynamic>[];
-      }
-      if (value.startsWith('[') && value.endsWith(']')) {
-        try {
-          final decoded = jsonDecode(value);
-          if (decoded is List) {
-            return decoded;
-          }
-        } catch (_) {}
-      }
-      if (value.contains(',')) {
-        final values = value
-            .split(',')
-            .map((entry) => entry.trim())
-            .where((entry) => entry.isNotEmpty)
-            .toList(growable: false);
-        if (values.isNotEmpty) {
-          return values;
-        }
-      }
-    }
-    if (raw is Iterable) {
-      return raw.toList(growable: false);
-    }
-    return raw;
+    return parseFirstAccessoryStickerList(
+      candidates,
+      schemaMap: schemas,
+      stickerMap: stickerMap,
+    );
   }
 
   Map<String, dynamic>? _asMap(dynamic value) {

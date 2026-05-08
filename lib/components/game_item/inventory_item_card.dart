@@ -61,10 +61,39 @@ class InventoryItemCard extends StatelessWidget {
     final percentage = _extractText(asset, ['percentage']);
     final showQualityRibbon = appId != 570 && _shouldShowQualityRibbon(quality);
     final showOnSaleBadge = item.status == 1 || item.status == 2;
-    final stickers = parseStickerList(
-      asset?['stickers'] ?? item.raw['stickers'],
+    final stickers = parseFirstAccessoryStickerList(
+      [
+        asset?['stickers'],
+        asset?['stickerList'],
+        asset?['sticker_list'],
+        asset?['sticker'],
+        asset?['stickerInfo'],
+        asset?['stickerInfos'],
+        asset?['sticker_info'],
+        item.raw['stickers'],
+        item.raw['stickerList'],
+        item.raw['sticker_list'],
+        item.raw['sticker'],
+        item.raw['stickerInfo'],
+        item.raw['stickerInfos'],
+        item.raw['sticker_info'],
+      ],
       schemaMap: schemaMap,
       stickerMap: stickerMap,
+    );
+    final keychains = parseFirstAccessoryStickerList(
+      [
+        asset?['keychains'],
+        asset?['keychain'],
+        item.raw['keychains'],
+        item.raw['keychain'],
+      ],
+      schemaMap: schemaMap,
+      stickerMap: stickerMap,
+    );
+    final previewStickers = buildAccessoryPreviewStickers(
+      stickers: stickers,
+      keychains: keychains,
     );
     final gems = parseGemList(
       asset?['gemList'] ??
@@ -106,7 +135,7 @@ class InventoryItemCard extends StatelessWidget {
                       selected: false,
                       showOnSaleBadge: showOnSaleBadge,
                       disabledLabel: disabledLabel,
-                      stickers: stickers,
+                      stickers: previewStickers,
                       gems: gems,
                       stickerBottomOffset: stickerBottomOffset,
                       onSaleBottomOffset: onSaleBottomOffset,

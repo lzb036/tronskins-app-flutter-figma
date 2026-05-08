@@ -926,7 +926,7 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
       return const SizedBox.shrink();
     }
 
-    final previewItems = stickers.take(4).toList(growable: false);
+    final previewItems = stickers.take(6).toList(growable: false);
     return Wrap(
       spacing: 6,
       runSpacing: 6,
@@ -1067,9 +1067,23 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
     final quality = TagInfo.fromRaw(tags is Map ? tags['quality'] : null);
     final exterior = TagInfo.fromRaw(tags is Map ? tags['exterior'] : null);
     final asset = _resolveAsset(item);
-    final stickers = parseStickerList(
-      asset?['stickers'] ?? item.raw['stickers'],
-      schemaMap: _schemas,
+    final stickers = buildAccessoryPreviewStickers(
+      stickers: parseFirstAccessoryStickerList([
+        asset?['stickers'],
+        asset?['stickerList'],
+        asset?['sticker_list'],
+        asset?['sticker'],
+        item.raw['stickers'],
+        item.raw['stickerList'],
+        item.raw['sticker_list'],
+        item.raw['sticker'],
+      ], schemaMap: _schemas),
+      keychains: parseFirstAccessoryStickerList([
+        asset?['keychains'],
+        asset?['keychain'],
+        item.raw['keychains'],
+        item.raw['keychain'],
+      ], schemaMap: _schemas),
     );
     final gems = parseGemList(
       asset?['gemList'] ??

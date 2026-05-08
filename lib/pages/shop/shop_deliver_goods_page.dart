@@ -940,7 +940,7 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
   }
 
   Widget _buildStickerPreview(List<GameItemSticker> stickers) {
-    final visible = stickers.length > 4 ? stickers.take(4) : stickers;
+    final visible = stickers.length > 6 ? stickers.take(6) : stickers;
     return Wrap(
       spacing: 5,
       runSpacing: 4,
@@ -1205,17 +1205,20 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
   }
 
   List<GameItemSticker> _detailStickers(ShopOrderDetail detail) {
-    for (final candidate in _detailStickerCandidates(detail)) {
-      final stickers = parseStickerList(
-        _normalizeStickerEntries(candidate),
-        schemaMap: _schemas,
-        stickerMap: _stickers,
-      );
-      if (stickers.isNotEmpty) {
-        return stickers;
-      }
-    }
-    return const [];
+    final stickers = parseFirstAccessoryStickerList(
+      _detailStickerCandidates(detail),
+      schemaMap: _schemas,
+      stickerMap: _stickers,
+    );
+    final keychains = parseFirstAccessoryStickerList(
+      _detailKeychainCandidates(detail),
+      schemaMap: _schemas,
+      stickerMap: _stickers,
+    );
+    return buildAccessoryPreviewStickers(
+      stickers: stickers,
+      keychains: keychains,
+    );
   }
 
   List<dynamic> _detailStickerCandidates(ShopOrderDetail detail) {
@@ -1258,39 +1261,32 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
     ];
   }
 
-  List<dynamic> _normalizeStickerEntries(dynamic raw) {
-    if (raw is List) {
-      return raw;
-    }
-    if (raw is Iterable) {
-      return raw.toList(growable: false);
-    }
-    if (raw is Map) {
-      if (raw.containsKey('image_url') ||
-          raw.containsKey('imageUrl') ||
-          raw.containsKey('image') ||
-          raw.containsKey('id') ||
-          raw.containsKey('sticker_id') ||
-          raw.containsKey('schema_id')) {
-        return <dynamic>[raw];
-      }
-      return raw.values.toList(growable: false);
-    }
-    if (raw is String) {
-      final value = raw.trim();
-      if (value.isEmpty || value == 'null') {
-        return const [];
-      }
-      if (value.contains(',')) {
-        return value
-            .split(',')
-            .map((item) => item.trim())
-            .where((item) => item.isNotEmpty)
-            .toList(growable: false);
-      }
-      return <dynamic>[value];
-    }
-    return const [];
+  List<dynamic> _detailKeychainCandidates(ShopOrderDetail detail) {
+    final schema = _lookupSchema(detail);
+    final appId = _resolveDetailAppId(detail, schema);
+    final raw = detail.raw;
+    final schemaRaw = schema?.raw;
+    final rawAsset = _pickAssetRaw(raw, appId);
+    final rawCsgoAsset = _asMap(raw['csgoAsset']);
+    final schemaAsset = schemaRaw == null
+        ? null
+        : _pickAssetRaw(schemaRaw, appId);
+    final schemaCsgoAsset = _asMap(schemaRaw?['csgoAsset']);
+
+    return [
+      raw['keychains'],
+      raw['keychain'],
+      rawAsset?['keychains'],
+      rawAsset?['keychain'],
+      rawCsgoAsset?['keychains'],
+      rawCsgoAsset?['keychain'],
+      schemaRaw?['keychains'],
+      schemaRaw?['keychain'],
+      schemaAsset?['keychains'],
+      schemaAsset?['keychain'],
+      schemaCsgoAsset?['keychains'],
+      schemaCsgoAsset?['keychain'],
+    ];
   }
 
   Map<String, dynamic>? _pickAssetRaw(Map<String, dynamic> raw, int? appId) {
