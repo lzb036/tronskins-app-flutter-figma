@@ -856,6 +856,19 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
 
   String get _skinNumberLabel => 'app.market.item.skin_number'.tr;
 
+  String get _gradientLabel {
+    final languageCode = (Get.locale?.languageCode ?? '').toLowerCase();
+    if (languageCode == 'zh') {
+      return '渐变度';
+    }
+    if (_isEnglishLocale) {
+      return 'Gradient';
+    }
+    return 'app.market.csgo.gradient_range'.tr;
+  }
+
+  String get _phaseLabel => 'app.market.csgo.phase'.tr;
+
   String get _avgShipLabel => 'app.market.item.avg_delivery'.tr;
 
   String get _rateLabel => 'app.market.item.fill_rate'.tr;
@@ -1284,6 +1297,8 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
   List<MapEntry<String, String>> _buildNameSummaryFields({
     required String? paintSeedValue,
     required String? paintIndexValue,
+    required String? percentageValue,
+    required String? phaseValue,
   }) {
     final fields = <MapEntry<String, String>>[];
     final seen = <String>{};
@@ -1301,7 +1316,55 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
       value: paintIndexValue,
       identity: 'paint_index',
     );
+    _addInfoField(
+      fields,
+      seen,
+      label: _gradientLabel,
+      value: percentageValue,
+      identity: 'percentage',
+    );
+    _addInfoField(
+      fields,
+      seen,
+      label: _phaseLabel,
+      value: phaseValue,
+      identity: 'phase',
+    );
     return fields;
+  }
+
+  String? _normalizePercentageLabel(String? value) {
+    final text = _cleanFieldValue(value);
+    if (text == null) {
+      return null;
+    }
+    return text.contains('%') ? text : '$text%';
+  }
+
+  String? _resolveDetailPhaseLabel({
+    required Map<String, dynamic>? asset,
+    required Map<String, dynamic> raw,
+  }) {
+    return _cleanFieldValue(
+      _extractText(asset, const [
+            'phase',
+            'phase_name',
+            'phaseName',
+            'paint_phase',
+            'paintPhase',
+            'style',
+            'styleName',
+          ]) ??
+          _extractText(raw, const [
+            'phase',
+            'phase_name',
+            'phaseName',
+            'paint_phase',
+            'paintPhase',
+            'style',
+            'styleName',
+          ]),
+    );
   }
 
   List<MapEntry<String, String>> _buildAttributeDescriptionFields({
@@ -1963,6 +2026,35 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     final paintIndex =
         _extractText(asset, ['paint_index', 'paintIndex']) ??
         _extractText(_item.raw, ['paint_index', 'paintIndex']);
+    final percentageLabel = _normalizePercentageLabel(
+      _extractText(asset, const [
+            'percentage',
+            'paint_percentage',
+            'paintPercentage',
+            'paint_gradient',
+            'paintGradient',
+            'gradient',
+            'gradient_percent',
+            'gradientPercent',
+            'fade',
+            'fade_percentage',
+            'fadePercentage',
+          ]) ??
+          _extractText(_item.raw, const [
+            'percentage',
+            'paint_percentage',
+            'paintPercentage',
+            'paint_gradient',
+            'paintGradient',
+            'gradient',
+            'gradient_percent',
+            'gradientPercent',
+            'fade',
+            'fade_percentage',
+            'fadePercentage',
+          ]),
+    );
+    final phaseValue = _resolveDetailPhaseLabel(asset: asset, raw: _item.raw);
     final paintWearValue = _extractDouble(asset, ['paint_wear', 'paintWear']);
     final paintWearText =
         _extractText(asset, ['paint_wear', 'paintWear']) ??
@@ -2043,6 +2135,8 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     final overviewStats = _buildNameSummaryFields(
       paintSeedValue: paintSeed,
       paintIndexValue: paintIndex,
+      percentageValue: percentageLabel,
+      phaseValue: phaseValue,
     );
 
     final attributeFields = _buildAttributeDescriptionFields(
