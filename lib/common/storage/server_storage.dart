@@ -17,9 +17,6 @@ class ServerStorage {
 
   static const String defaultServer = 'https://www.etopmarket.com/';
   static const String defaultServerName = 'Official website';
-  static const Set<String> _legacyDefaultServers = {
-    'https://www.tronskins.com/',
-  };
   static const String _serverKey = 'es_server';
   static const String _serverListKey = 'es_server_list';
   static final GetStorage _box = GetStorage();
@@ -32,11 +29,7 @@ class ServerStorage {
     if (raw == null || raw.isEmpty) {
       return defaultServer;
     }
-    final normalized = _normalize(raw);
-    if (_legacyDefaultServers.contains(normalized)) {
-      return defaultServer;
-    }
-    return normalized;
+    return _normalize(raw);
   }
 
   static void setServer(String server) {
