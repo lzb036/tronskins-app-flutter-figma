@@ -1689,7 +1689,7 @@ class _SellerShopPageState extends State<SellerShopPage>
       _extractText(asset, const ['percentage']) ??
           _extractText(item.raw, const ['percentage']),
     );
-    final stickers = _parseStickersForItem(item, asset).take(4).toList();
+    final stickers = _parseStickersForItem(item, asset);
     final gems = _parseGemsForItem(item, asset).take(4).toList();
     return MarketShowcaseCard(
       appId: item.appId ?? _appId,
@@ -1819,13 +1819,17 @@ class _SellerShopPageState extends State<SellerShopPage>
 
   String? _formatWearText(String? rawText, double? rawValue) {
     final text = rawText?.trim();
-    if (text != null && text.isNotEmpty && !_isZeroLikeText(text)) {
+    if (text != null &&
+        text.isNotEmpty &&
+        !_isZeroLikeText(text) &&
+        !text.contains('...') &&
+        !text.contains('…')) {
       return text;
     }
-    if (rawValue == null || rawValue <= 0) {
-      return null;
+    if (rawValue != null && rawValue.isFinite && rawValue > 0) {
+      return rawValue.toString();
     }
-    return rawValue.toStringAsFixed(8);
+    return null;
   }
 
   String? _normalizeBadgeLabel(String? rawText) {
@@ -1899,26 +1903,44 @@ class _SellerShopPageState extends State<SellerShopPage>
       asset?['stickerList'],
       asset?['sticker_list'],
       asset?['sticker'],
+      asset?['stickerInfo'],
+      asset?['stickerInfos'],
+      asset?['sticker_info'],
       rawAsset?['stickers'],
       rawAsset?['stickerList'],
       rawAsset?['sticker_list'],
       rawAsset?['sticker'],
+      rawAsset?['stickerInfo'],
+      rawAsset?['stickerInfos'],
+      rawAsset?['sticker_info'],
       rawCsgoAsset?['stickers'],
       rawCsgoAsset?['stickerList'],
       rawCsgoAsset?['sticker_list'],
       rawCsgoAsset?['sticker'],
+      rawCsgoAsset?['stickerInfo'],
+      rawCsgoAsset?['stickerInfos'],
+      rawCsgoAsset?['sticker_info'],
       rawTf2Asset?['stickers'],
       rawTf2Asset?['stickerList'],
       rawTf2Asset?['sticker_list'],
       rawTf2Asset?['sticker'],
+      rawTf2Asset?['stickerInfo'],
+      rawTf2Asset?['stickerInfos'],
+      rawTf2Asset?['sticker_info'],
       rawDotaAsset?['stickers'],
       rawDotaAsset?['stickerList'],
       rawDotaAsset?['sticker_list'],
       rawDotaAsset?['sticker'],
+      rawDotaAsset?['stickerInfo'],
+      rawDotaAsset?['stickerInfos'],
+      rawDotaAsset?['sticker_info'],
       item.raw['stickers'],
       item.raw['stickerList'],
       item.raw['sticker_list'],
       item.raw['sticker'],
+      item.raw['stickerInfo'],
+      item.raw['stickerInfos'],
+      item.raw['sticker_info'],
     ];
   }
 
@@ -1975,7 +1997,9 @@ class _SellerShopPageState extends State<SellerShopPage>
           raw.containsKey('image') ||
           raw.containsKey('id') ||
           raw.containsKey('sticker_id') ||
-          raw.containsKey('schema_id')) {
+          raw.containsKey('stickerId') ||
+          raw.containsKey('schema_id') ||
+          raw.containsKey('schemaId')) {
         return <dynamic>[raw];
       }
       return raw.values.toList(growable: false);

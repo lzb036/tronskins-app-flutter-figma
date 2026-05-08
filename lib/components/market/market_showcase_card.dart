@@ -269,8 +269,8 @@ class MarketShowcaseCard extends StatelessWidget {
                                       Text(
                                         '${'app.market.csgo.abradability'.tr}: '
                                         '$wearDisplay',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.visible,
                                         style: const TextStyle(
                                           color: Color(0xE6FFFFFF),
                                           fontSize: 7,

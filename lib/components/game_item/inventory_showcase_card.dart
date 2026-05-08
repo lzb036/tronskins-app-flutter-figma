@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -83,11 +84,12 @@ class InventoryShowcaseCard extends StatelessWidget {
       _extractText(asset, const ['percentage']) ??
           _extractText(item.raw, const ['percentage']),
     );
-    final stickers = parseStickerList(
-      asset?['stickers'] ?? item.raw['stickers'],
+    final stickers = _parseItemStickers(
+      asset: asset,
+      raw: item.raw,
       schemaMap: schemaMap,
       stickerMap: stickerMap,
-    ).take(4).toList();
+    );
     final gems = parseGemList(
       asset?['gemList'] ??
           asset?['gems'] ??
@@ -759,6 +761,137 @@ double? _extractDouble(dynamic raw, List<String> keys) {
         return parsed;
       }
     }
+  }
+  return null;
+}
+
+List<GameItemSticker> _parseItemStickers({
+  required Map<String, dynamic>? asset,
+  required Map<String, dynamic> raw,
+  required Map<dynamic, dynamic>? schemaMap,
+  required Map<dynamic, dynamic>? stickerMap,
+}) {
+  final rawAsset = _asMap(raw['asset']) ?? _asMap(raw['itemAsset']);
+  final rawCsgoAsset = _asMap(raw['csgoAsset']) ?? _asMap(raw['csgo_asset']);
+  final rawTf2Asset = _asMap(raw['tf2Asset']) ?? _asMap(raw['tf2_asset']);
+  final rawDotaAsset = _asMap(raw['dota2Asset']) ?? _asMap(raw['dota2_asset']);
+  final candidates = <dynamic>[
+    asset?['stickers'],
+    asset?['stickerList'],
+    asset?['sticker_list'],
+    asset?['sticker'],
+    asset?['stickerInfo'],
+    asset?['stickerInfos'],
+    asset?['sticker_info'],
+    rawAsset?['stickers'],
+    rawAsset?['stickerList'],
+    rawAsset?['sticker_list'],
+    rawAsset?['sticker'],
+    rawAsset?['stickerInfo'],
+    rawAsset?['stickerInfos'],
+    rawAsset?['sticker_info'],
+    rawCsgoAsset?['stickers'],
+    rawCsgoAsset?['stickerList'],
+    rawCsgoAsset?['sticker_list'],
+    rawCsgoAsset?['sticker'],
+    rawCsgoAsset?['stickerInfo'],
+    rawCsgoAsset?['stickerInfos'],
+    rawCsgoAsset?['sticker_info'],
+    rawTf2Asset?['stickers'],
+    rawTf2Asset?['stickerList'],
+    rawTf2Asset?['sticker_list'],
+    rawTf2Asset?['sticker'],
+    rawTf2Asset?['stickerInfo'],
+    rawTf2Asset?['stickerInfos'],
+    rawTf2Asset?['sticker_info'],
+    rawDotaAsset?['stickers'],
+    rawDotaAsset?['stickerList'],
+    rawDotaAsset?['sticker_list'],
+    rawDotaAsset?['sticker'],
+    rawDotaAsset?['stickerInfo'],
+    rawDotaAsset?['stickerInfos'],
+    rawDotaAsset?['sticker_info'],
+    raw['stickers'],
+    raw['stickerList'],
+    raw['sticker_list'],
+    raw['sticker'],
+    raw['stickerInfo'],
+    raw['stickerInfos'],
+    raw['sticker_info'],
+  ];
+  for (final candidate in candidates) {
+    final parsed = parseStickerList(
+      _normalizeStickerRaw(candidate),
+      schemaMap: schemaMap,
+      stickerMap: stickerMap,
+    );
+    if (parsed.isNotEmpty) {
+      return parsed;
+    }
+  }
+  return const [];
+}
+
+dynamic _normalizeStickerRaw(dynamic raw) {
+  if (raw is List) {
+    return raw;
+  }
+  if (raw is Map) {
+    if (raw.containsKey('image_url') ||
+        raw.containsKey('imageUrl') ||
+        raw.containsKey('image') ||
+        raw.containsKey('id') ||
+        raw.containsKey('sticker_id') ||
+        raw.containsKey('stickerId') ||
+        raw.containsKey('schema_id') ||
+        raw.containsKey('schemaId')) {
+      return <dynamic>[raw];
+    }
+    final values = raw.values.toList(growable: false);
+    if (values.isNotEmpty) {
+      return values;
+    }
+  }
+  if (raw is String) {
+    final value = raw.trim();
+    if (value.isEmpty || value == 'null') {
+      return const <dynamic>[];
+    }
+    if (value.startsWith('[') && value.endsWith(']')) {
+      try {
+        final decoded = jsonDecode(value);
+        if (decoded is List) {
+          return decoded;
+        }
+      } catch (_) {}
+    }
+    if (value.contains(',')) {
+      final values = value
+          .split(',')
+          .map((entry) => entry.trim())
+          .where((entry) => entry.isNotEmpty)
+          .toList(growable: false);
+      if (values.isNotEmpty) {
+        return values;
+      }
+    }
+  }
+  if (raw is Iterable) {
+    return raw.toList(growable: false);
+  }
+  return raw;
+}
+
+Map<String, dynamic>? _asMap(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return value;
+  }
+  if (value is Map) {
+    final mapped = <String, dynamic>{};
+    value.forEach((key, mapValue) {
+      mapped[key.toString()] = mapValue;
+    });
+    return mapped;
   }
   return null;
 }

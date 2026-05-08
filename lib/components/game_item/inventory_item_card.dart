@@ -45,10 +45,11 @@ class InventoryItemCard extends StatelessWidget {
     final asset = _resolveAsset(item);
     final paintWearValue =
         item.paintWear ?? _extractDouble(asset, ['paint_wear', 'paintWear']);
-    final paintWearText =
-        _extractText(asset, ['paint_wear', 'paintWear']) ??
-        _extractText(item.raw, ['paint_wear', 'paintWear']) ??
-        _formatWear(paintWearValue);
+    final paintWearText = _formatWear(
+      _extractText(asset, ['paint_wear', 'paintWear']) ??
+          _extractText(item.raw, ['paint_wear', 'paintWear']),
+      paintWearValue,
+    );
     final stickerBottomOffset =
         paintWearText != null && paintWearText.isNotEmpty ? 16.0 : 0.0;
     final onSaleBottomOffset = paintWearText != null && paintWearText.isNotEmpty
@@ -188,8 +189,19 @@ bool _shouldShowQualityRibbon(TagInfo? quality) {
   return quality.hasLabel;
 }
 
-String? _formatWear(double? wear) {
-  if (wear == null) {
+String? _formatWear(String? rawText, double? wear) {
+  final text = rawText?.trim();
+  if (text != null &&
+      text.isNotEmpty &&
+      text != 'null' &&
+      !text.contains('...') &&
+      !text.contains('…')) {
+    final numeric = double.tryParse(text);
+    if (numeric == null || numeric > 0) {
+      return text;
+    }
+  }
+  if (wear == null || !wear.isFinite || wear <= 0) {
     return null;
   }
   return wear.toString();

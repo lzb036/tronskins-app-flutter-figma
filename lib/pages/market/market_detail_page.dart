@@ -958,6 +958,17 @@ class _MarketDetailPageState extends State<MarketDetailPage>
 
   String get _figmaWearTitle => 'app.market.item.wear'.tr;
 
+  String get _onSaleGradientLabel {
+    final languageCode = (Get.locale?.languageCode ?? '').toLowerCase();
+    if (languageCode == 'zh') {
+      return '渐变度';
+    }
+    if (_isEnglishLocale) {
+      return 'Gradient';
+    }
+    return 'app.market.csgo.gradient_range'.tr;
+  }
+
   String get _figmaAcceptedPatternsTitle =>
       'app.market.detail.accepted_patterns'.tr;
 
@@ -2838,10 +2849,44 @@ class _MarketDetailPageState extends State<MarketDetailPage>
         schema?.imageUrl ?? item.raw['image_url']?.toString() ?? '';
     final asset = _resolveAsset(item);
     final paintWearValue = _extractDouble(asset, ['paint_wear', 'paintWear']);
-    final paintWearText =
-        _extractText(asset, ['paint_wear', 'paintWear']) ??
-        _extractText(item.raw, ['paint_wear', 'paintWear']) ??
-        paintWearValue?.toString();
+    final paintWearText = _formatOnSaleWearText(
+      _extractText(asset, ['paint_wear', 'paintWear']) ??
+          _extractText(item.raw, ['paint_wear', 'paintWear']),
+      paintWearValue,
+    );
+    final paintSeed = _resolveOnSaleText(asset, item.raw, const [
+      'paint_seed',
+      'paintSeed',
+      'paintseed',
+      'pattern',
+      'patternId',
+    ]);
+    final paintIndex = _resolveOnSaleText(asset, item.raw, const [
+      'paint_index',
+      'paintIndex',
+      'paint_kit',
+      'paintKit',
+    ]);
+    final percentageLabel = _normalizeOnSalePercentageLabel(
+      _resolveOnSaleText(asset, item.raw, const [
+        'percentage',
+        'paint_percentage',
+        'paintPercentage',
+        'paint_gradient',
+        'paintGradient',
+        'gradient',
+        'gradient_percent',
+        'gradientPercent',
+        'fade',
+        'fade_percentage',
+        'fadePercentage',
+      ]),
+    );
+    final phaseValue = _resolveOnSalePhaseLabel(
+      asset: asset,
+      raw: item.raw,
+      paintIndex: paintIndex,
+    );
     final stickers = _parseStickers(
       asset: asset,
       raw: item.raw,
@@ -2866,17 +2911,25 @@ class _MarketDetailPageState extends State<MarketDetailPage>
         purchaseKey != null && _onSalePurchasingIds.contains(purchaseKey);
     final isOwn = _isOwnOnSaleItem(item);
     final nickname = user?.nickname ?? '';
-    final phaseLabel =
-        _cleanText(item.raw['phase']?.toString()) ??
-        _cleanText(schemaTags?.exterior?.localizedName);
+    final exteriorLabel = _cleanText(schemaTags?.exterior?.localizedName);
     final metaLabels = <String>[
       if (_cleanText(schemaTags?.quality?.localizedName) case final quality?)
         quality,
       if (_cleanText(schemaTags?.type?.localizedName) case final type?) type,
-      if (phaseLabel case final phase?) phase,
+      if (exteriorLabel case final exterior?) exterior,
     ];
     final hasWear =
         appId == 730 && paintWearValue != null && paintWearText != null;
+    final detailFacts = <_OnSaleListingFact>[
+      if (percentageLabel != null)
+        _OnSaleListingFact(_onSaleGradientLabel, percentageLabel),
+      if (phaseValue != null)
+        _OnSaleListingFact('app.market.csgo.phase'.tr, phaseValue),
+      if (paintSeed != null)
+        _OnSaleListingFact('app.market.item.pattern_template'.tr, paintSeed),
+      if (paintIndex != null)
+        _OnSaleListingFact('app.market.item.skin_number'.tr, paintIndex),
+    ];
     final hasDecorations =
         stickers.isNotEmpty || gems.isNotEmpty || keychains.isNotEmpty;
     const imageBoxWidth = _onSaleListingImageBoxWidth;
@@ -3025,24 +3078,24 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     Widget buildWearPanel() {
       final wearLabel = 'app.market.csgo.abradability'.tr;
       return Padding(
-        padding: const EdgeInsets.fromLTRB(1, 1, 4, 1),
+        padding: const EdgeInsets.fromLTRB(1, 0, 1, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               hasWear ? '$wearLabel: $paintWearText' : wearLabel,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              overflow: TextOverflow.visible,
               style: const TextStyle(
                 color: _figmaSlate500,
-                fontSize: 8.5,
-                height: 10 / 8.5,
-                fontWeight: FontWeight.w500,
+                fontSize: 10,
+                height: 13 / 10,
+                fontWeight: FontWeight.w600,
               ),
             ),
             if (hasWear) ...[
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               WearProgressBar(
                 paintWear: paintWearValue,
                 height: 5,
@@ -3054,28 +3107,104 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       );
     }
 
-    Widget buildDecorationsPanel() {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(1, 0, 0, 0),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                if (stickers.isNotEmpty)
-                  StickerRow(stickers: stickers, size: 22),
-                if (stickers.isNotEmpty && gems.isNotEmpty)
-                  const SizedBox(width: 4),
-                if (gems.isNotEmpty) GemRow(gems: gems, size: 22),
-                if ((stickers.isNotEmpty || gems.isNotEmpty) &&
-                    keychains.isNotEmpty)
-                  const SizedBox(width: 4),
-                if (keychains.isNotEmpty)
-                  StickerRow(stickers: keychains, size: 22),
-              ],
+    Widget buildDetailFactChip(_OnSaleListingFact fact) {
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+          child: Text(
+            '${fact.label}: ${fact.value}',
+            softWrap: true,
+            style: const TextStyle(
+              color: _figmaSlate800,
+              fontSize: 9.5,
+              height: 12.5 / 9.5,
+              fontWeight: FontWeight.w600,
             ),
           ),
+        ),
+      );
+    }
+
+    Widget buildDetailFactWrap() {
+      if (detailFacts.isEmpty) {
+        return const SizedBox.shrink();
+      }
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          return Wrap(
+            spacing: 5,
+            runSpacing: 5,
+            children: [
+              for (final fact in detailFacts)
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+                  child: buildDetailFactChip(fact),
+                ),
+            ],
+          );
+        },
+      );
+    }
+
+    Widget buildDecorationsPanel() {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(1, 0, 1, 0),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (stickers.isNotEmpty)
+                _buildOnSaleDecorationGroup(
+                  child: StickerRow(stickers: stickers, size: 22),
+                ),
+              if (gems.isNotEmpty)
+                _buildOnSaleDecorationGroup(
+                  label: 'app.market.item.gem'.tr,
+                  child: GemRow(gems: gems, size: 22),
+                ),
+              if (keychains.isNotEmpty)
+                _buildOnSaleDecorationGroup(
+                  label: 'app.market.item.keychains'.tr,
+                  child: StickerRow(stickers: keychains, size: 22),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    Widget buildDetailPanel() {
+      final showFacts = detailFacts.isNotEmpty;
+      if (!hasWear && !showFacts && !hasDecorations) {
+        return const SizedBox.shrink();
+      }
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(8, 7, 8, 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (hasWear) buildWearPanel(),
+            if (showFacts) ...[
+              if (hasWear) const SizedBox(height: 7),
+              buildDetailFactWrap(),
+            ],
+            if (hasDecorations) ...[
+              if (hasWear || showFacts) const SizedBox(height: 7),
+              buildDecorationsPanel(),
+            ],
+          ],
         ),
       );
     }
@@ -3318,18 +3447,9 @@ class _MarketDetailPageState extends State<MarketDetailPage>
                   ),
                 ],
               ),
-              if (hasWear || hasDecorations) ...[
+              if (hasWear || detailFacts.isNotEmpty || hasDecorations) ...[
                 const SizedBox(height: 4),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (hasWear)
-                      SizedBox(width: imageBoxWidth, child: buildWearPanel()),
-                    if (hasWear && hasDecorations) const SizedBox(width: 6),
-                    if (hasDecorations)
-                      Expanded(child: buildDecorationsPanel()),
-                  ],
-                ),
+                buildDetailPanel(),
               ],
             ],
           ),
@@ -4610,6 +4730,102 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     return null;
   }
 
+  String? _formatOnSaleWearText(String? rawText, double? value) {
+    final text = _cleanText(rawText);
+    if (text != null && !text.contains('...') && !text.contains('…')) {
+      final numeric = double.tryParse(text);
+      if (numeric == null || numeric > 0) {
+        return text;
+      }
+    }
+    if (value == null || !value.isFinite || value <= 0) {
+      return null;
+    }
+    return value.toString();
+  }
+
+  String? _resolveOnSaleText(
+    Map<String, dynamic>? asset,
+    Map<String, dynamic> raw,
+    List<String> keys,
+  ) {
+    return _cleanText(_extractText(asset, keys) ?? _extractText(raw, keys));
+  }
+
+  String? _normalizeOnSalePercentageLabel(String? value) {
+    final text = _cleanText(value);
+    if (text == null) {
+      return null;
+    }
+    return text.contains('%') ? text : '$text%';
+  }
+
+  String? _resolveOnSalePhaseLabel({
+    required Map<String, dynamic>? asset,
+    required Map<String, dynamic> raw,
+    required String? paintIndex,
+  }) {
+    final direct = _resolveOnSaleText(asset, raw, const [
+      'phase',
+      'phase_name',
+      'phaseName',
+      'paint_phase',
+      'paintPhase',
+      'style',
+      'styleName',
+    ]);
+    if (direct != null) {
+      return direct;
+    }
+
+    final normalizedIndex = _cleanText(paintIndex)?.replaceFirst('#', '');
+    final paintKitId = _asInt(normalizedIndex);
+    if (paintKitId == null) {
+      return null;
+    }
+    final paintKits = _templateDetail?.paintKits;
+    if (paintKits == null || paintKits.isEmpty) {
+      return null;
+    }
+    for (final rawKit in paintKits) {
+      if (rawKit is! Map) {
+        continue;
+      }
+      final map = Map<String, dynamic>.from(rawKit);
+      if (_asInt(map['id']) != paintKitId) {
+        continue;
+      }
+      return _cleanText(map['phase']?.toString()) ??
+          _cleanText(map['name']?.toString()) ??
+          _cleanText(map['label']?.toString());
+    }
+    return null;
+  }
+
+  Widget _buildOnSaleDecorationGroup({required Widget child, String? label}) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (label != null && label.isNotEmpty) ...[
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: _figmaSlate500,
+              fontSize: 9,
+              height: 11 / 9,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+        ],
+        child,
+      ],
+    );
+  }
+
   List<GameItemSticker> _parseKeychains(
     dynamic raw,
     Map<String, MarketSchemaInfo> schemas,
@@ -4672,22 +4888,44 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       asset?['stickerList'],
       asset?['sticker_list'],
       asset?['sticker'],
+      asset?['stickerInfo'],
+      asset?['stickerInfos'],
+      asset?['sticker_info'],
       rawAsset?['stickers'],
       rawAsset?['stickerList'],
       rawAsset?['sticker_list'],
+      rawAsset?['sticker'],
+      rawAsset?['stickerInfo'],
+      rawAsset?['stickerInfos'],
+      rawAsset?['sticker_info'],
       rawCsgoAsset?['stickers'],
       rawCsgoAsset?['stickerList'],
       rawCsgoAsset?['sticker_list'],
+      rawCsgoAsset?['sticker'],
+      rawCsgoAsset?['stickerInfo'],
+      rawCsgoAsset?['stickerInfos'],
+      rawCsgoAsset?['sticker_info'],
       rawTf2Asset?['stickers'],
       rawTf2Asset?['stickerList'],
       rawTf2Asset?['sticker_list'],
+      rawTf2Asset?['sticker'],
+      rawTf2Asset?['stickerInfo'],
+      rawTf2Asset?['stickerInfos'],
+      rawTf2Asset?['sticker_info'],
       rawDotaAsset?['stickers'],
       rawDotaAsset?['stickerList'],
       rawDotaAsset?['sticker_list'],
+      rawDotaAsset?['sticker'],
+      rawDotaAsset?['stickerInfo'],
+      rawDotaAsset?['stickerInfos'],
+      rawDotaAsset?['sticker_info'],
       raw['stickers'],
       raw['stickerList'],
       raw['sticker_list'],
       raw['sticker'],
+      raw['stickerInfo'],
+      raw['stickerInfos'],
+      raw['sticker_info'],
     ];
     for (final candidate in candidates) {
       final parsed = parseStickerList(
@@ -4712,7 +4950,9 @@ class _MarketDetailPageState extends State<MarketDetailPage>
           raw.containsKey('image') ||
           raw.containsKey('id') ||
           raw.containsKey('sticker_id') ||
-          raw.containsKey('schema_id')) {
+          raw.containsKey('stickerId') ||
+          raw.containsKey('schema_id') ||
+          raw.containsKey('schemaId')) {
         return <dynamic>[raw];
       }
       final values = raw.values.toList(growable: false);
@@ -5828,6 +6068,13 @@ class _WearOption {
   final int id;
   final String label;
   final dynamic price;
+}
+
+class _OnSaleListingFact {
+  const _OnSaleListingFact(this.label, this.value);
+
+  final String label;
+  final String value;
 }
 
 class _OnSaleSortOption {

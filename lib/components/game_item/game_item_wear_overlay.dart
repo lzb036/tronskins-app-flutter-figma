@@ -38,8 +38,8 @@ class GameItemWearOverlay extends StatelessWidget {
             children: [
               Text(
                 showLabel ? '$label: $text' : text,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+                overflow: TextOverflow.visible,
                 style: const TextStyle(
                   color: Color(0xE6FFFFFF),
                   fontSize: 7,
@@ -66,13 +66,16 @@ class GameItemWearOverlay extends StatelessWidget {
 /// Returns the canonical inventory wear text, hiding empty and zero values.
 String? formatGameItemWearText(String? rawText, double? rawValue) {
   final text = rawText?.trim();
-  if (text != null && text.isNotEmpty && !_isZeroLikeText(text)) {
+  if (text != null &&
+      text.isNotEmpty &&
+      !_isZeroLikeText(text) &&
+      !_containsEllipsis(text)) {
     return text;
   }
-  if (rawValue == null) {
-    return null;
+  if (rawValue != null && rawValue.isFinite && rawValue > 0) {
+    return rawValue.toString();
   }
-  return rawValue.toStringAsFixed(8);
+  return null;
 }
 
 /// Normalizes wear values for inventory display.
@@ -191,4 +194,8 @@ bool _isZeroLikeText(String text) {
   }
   final parsed = double.tryParse(normalized);
   return parsed != null && parsed <= 0;
+}
+
+bool _containsEllipsis(String text) {
+  return text.contains('...') || text.contains('…');
 }
