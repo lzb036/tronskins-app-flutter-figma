@@ -225,28 +225,36 @@ String? _resolveStickerImageFromMap(
   if (map == null || map.isEmpty) {
     return null;
   }
-  dynamic value;
-  if (map.containsKey(stickerId)) {
-    value = map[stickerId];
-  }
-  if (value == null) {
-    final intKey = int.tryParse(stickerId);
-    if (intKey != null && map.containsKey(intKey)) {
-      value = map[intKey];
-    }
-  }
-  if (value == null) {
-    for (final entry in map.entries) {
-      if (entry.key.toString() == stickerId) {
-        value = entry.value;
-        break;
-      }
-    }
-  }
+  final value = _resolveAccessoryValueFromMap(stickerId, map);
   if (value == null) {
     return null;
   }
   return _extractStickerImageUrl(value);
+}
+
+dynamic _resolveAccessoryValueFromMap(
+  String stickerId,
+  Map<dynamic, dynamic>? map,
+) {
+  if (map == null || map.isEmpty) {
+    return null;
+  }
+  if (map.containsKey(stickerId)) {
+    return map[stickerId];
+  }
+  final intKey = int.tryParse(stickerId);
+  if (intKey != null && map.containsKey(intKey)) {
+    return map[intKey];
+  }
+  for (final entry in map.entries) {
+    if (entry.key.toString() == stickerId) {
+      return entry.value;
+    }
+    if (_extractAccessoryBaseId(entry.value) == stickerId) {
+      return entry.value;
+    }
+  }
+  return null;
 }
 
 String? _extractMapImageUrl(Map item) {
@@ -273,8 +281,23 @@ bool _isLikelyStickerId(String value) {
   if (value.isEmpty) {
     return false;
   }
-  final pattern = RegExp(r'^\d+$');
+  final pattern = RegExp(r'^\d+(?:-\d+)?$');
   return pattern.hasMatch(value);
+}
+
+String? _extractAccessoryBaseId(dynamic item) {
+  if (item is MarketSchemaInfo) {
+    return item.raw['baseId']?.toString() ?? item.raw['base_id']?.toString();
+  }
+  if (item is Map) {
+    return item['baseId']?.toString() ?? item['base_id']?.toString();
+  }
+  try {
+    final dynamic dynamicValue = item;
+    return dynamicValue.baseId?.toString() ?? dynamicValue.base_id?.toString();
+  } catch (_) {
+    return null;
+  }
 }
 
 String _normalizeStickerUrl(String url) {

@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
@@ -16,7 +14,6 @@ import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/common/widgets/steam_style_confirm_dialog.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
-import 'package:tronskins_app/components/game_item/sticker_row.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 import 'package:tronskins_app/components/shop/shop_store_info_card.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
@@ -212,8 +209,8 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
   }
 
   List<GameItemSticker> _parseKeychains(dynamic raw) {
-    final fromRaw = parseStickerList(
-      raw,
+    final fromRaw = parseFirstAccessoryStickerList(
+      [raw],
       schemaMap: _schemas,
       stickerMap: _stickers,
     );
@@ -253,24 +250,51 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     return list;
   }
 
+  List<GameItemSticker> _parseSchemaKeychains() {
+    return parseFirstAccessoryStickerList(
+      [_schema?.raw['keychains'], _schema?.raw['keychain']],
+      schemaMap: _schemas,
+      stickerMap: _stickers,
+    );
+  }
+
   List<GameItemSticker> _parseStickers(Map<String, dynamic>? asset) {
-    for (final candidate in _stickerCandidates(asset)) {
-      final parsed = parseStickerList(
-        _normalizeStickerEntries(candidate),
-        schemaMap: _schemas,
-        stickerMap: _stickers,
-      );
-      if (parsed.isNotEmpty) {
-        return parsed;
-      }
-    }
-    return const [];
+    return parseFirstAccessoryStickerList(
+      _stickerCandidates(asset),
+      schemaMap: _schemas,
+      stickerMap: _stickers,
+    );
   }
 
   List<_StickerDetailData> _resolveStickerDetailsFromItem(
     Map<String, dynamic>? asset,
   ) {
     for (final candidate in _stickerCandidates(asset)) {
+      final details = _resolveStickerDetails(candidate);
+      if (details.isNotEmpty) {
+        return details;
+      }
+    }
+    return const [];
+  }
+
+  List<_StickerDetailData> _resolveKeychainDetailsFromItem(
+    Map<String, dynamic>? asset,
+  ) {
+    for (final candidate in _keychainCandidates(asset)) {
+      final details = _resolveStickerDetails(candidate);
+      if (details.isNotEmpty) {
+        return details;
+      }
+    }
+    return const [];
+  }
+
+  List<_StickerDetailData> _resolveSchemaKeychainDetails() {
+    for (final candidate in <dynamic>[
+      _schema?.raw['keychains'],
+      _schema?.raw['keychain'],
+    ]) {
       final details = _resolveStickerDetails(candidate);
       if (details.isNotEmpty) {
         return details;
@@ -294,26 +318,70 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
       asset?['stickerList'],
       asset?['sticker_list'],
       asset?['sticker'],
+      asset?['stickerInfo'],
+      asset?['stickerInfos'],
+      asset?['sticker_info'],
       rawAsset?['stickers'],
       rawAsset?['stickerList'],
       rawAsset?['sticker_list'],
       rawAsset?['sticker'],
+      rawAsset?['stickerInfo'],
+      rawAsset?['stickerInfos'],
+      rawAsset?['sticker_info'],
       rawCsgoAsset?['stickers'],
       rawCsgoAsset?['stickerList'],
       rawCsgoAsset?['sticker_list'],
       rawCsgoAsset?['sticker'],
+      rawCsgoAsset?['stickerInfo'],
+      rawCsgoAsset?['stickerInfos'],
+      rawCsgoAsset?['sticker_info'],
       rawTf2Asset?['stickers'],
       rawTf2Asset?['stickerList'],
       rawTf2Asset?['sticker_list'],
       rawTf2Asset?['sticker'],
+      rawTf2Asset?['stickerInfo'],
+      rawTf2Asset?['stickerInfos'],
+      rawTf2Asset?['sticker_info'],
       rawDotaAsset?['stickers'],
       rawDotaAsset?['stickerList'],
       rawDotaAsset?['sticker_list'],
       rawDotaAsset?['sticker'],
+      rawDotaAsset?['stickerInfo'],
+      rawDotaAsset?['stickerInfos'],
+      rawDotaAsset?['sticker_info'],
       _item.raw['stickers'],
       _item.raw['stickerList'],
       _item.raw['sticker_list'],
       _item.raw['sticker'],
+      _item.raw['stickerInfo'],
+      _item.raw['stickerInfos'],
+      _item.raw['sticker_info'],
+    ];
+  }
+
+  List<dynamic> _keychainCandidates(Map<String, dynamic>? asset) {
+    final rawAsset =
+        _asMap(_item.raw['asset']) ?? _asMap(_item.raw['itemAsset']);
+    final rawCsgoAsset =
+        _asMap(_item.raw['csgoAsset']) ?? _asMap(_item.raw['csgo_asset']);
+    final rawTf2Asset =
+        _asMap(_item.raw['tf2Asset']) ?? _asMap(_item.raw['tf2_asset']);
+    final rawDotaAsset =
+        _asMap(_item.raw['dota2Asset']) ?? _asMap(_item.raw['dota2_asset']);
+
+    return <dynamic>[
+      asset?['keychains'],
+      asset?['keychain'],
+      rawAsset?['keychains'],
+      rawAsset?['keychain'],
+      rawCsgoAsset?['keychains'],
+      rawCsgoAsset?['keychain'],
+      rawTf2Asset?['keychains'],
+      rawTf2Asset?['keychain'],
+      rawDotaAsset?['keychains'],
+      rawDotaAsset?['keychain'],
+      _item.raw['keychains'],
+      _item.raw['keychain'],
     ];
   }
 
@@ -330,49 +398,7 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
   }
 
   List<dynamic> _normalizeStickerEntries(dynamic raw) {
-    if (raw is List) {
-      return raw;
-    }
-    if (raw is Iterable) {
-      return raw.toList(growable: false);
-    }
-    if (raw is Map) {
-      if (raw.containsKey('image_url') ||
-          raw.containsKey('imageUrl') ||
-          raw.containsKey('image') ||
-          raw.containsKey('id') ||
-          raw.containsKey('sticker_id') ||
-          raw.containsKey('schema_id')) {
-        return <dynamic>[raw];
-      }
-      return raw.values.toList(growable: false);
-    }
-    if (raw is String) {
-      final value = raw.trim();
-      if (value.isEmpty || value == 'null') {
-        return const [];
-      }
-      if (value.startsWith('[') && value.endsWith(']')) {
-        try {
-          final decoded = jsonDecode(value);
-          if (decoded is List) {
-            return decoded;
-          }
-        } catch (_) {}
-      }
-      if (value.contains(',')) {
-        final values = value
-            .split(',')
-            .map((entry) => entry.trim())
-            .where((entry) => entry.isNotEmpty)
-            .toList(growable: false);
-        if (values.isNotEmpty) {
-          return values;
-        }
-      }
-      return <dynamic>[value];
-    }
-    return const [];
+    return normalizeGameItemAccessoryEntries(raw);
   }
 
   Map<String, dynamic>? _asMap(dynamic value) {
@@ -415,7 +441,7 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
       if (value.isEmpty) {
         return null;
       }
-      if (RegExp(r'^\d+$').hasMatch(value)) {
+      if (RegExp(r'^\d+(?:-\d+)?$').hasMatch(value)) {
         stickerId = value;
       } else {
         imageUrl = value;
@@ -460,18 +486,7 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
   }
 
   Map<String, dynamic>? _resolveStickerMeta(String stickerId) {
-    dynamic value;
-    if (_stickers.containsKey(stickerId)) {
-      value = _stickers[stickerId];
-    }
-    if (value == null) {
-      for (final entry in _stickers.entries) {
-        if (entry.key.toString() == stickerId) {
-          value = entry.value;
-          break;
-        }
-      }
-    }
+    dynamic value = _resolveAccessoryMetaFromMap(stickerId, _stickers);
     if (value is MarketSchemaInfo) {
       return value.raw;
     }
@@ -480,6 +495,38 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     }
     if (value is Map) {
       return Map<String, dynamic>.from(value);
+    }
+    return null;
+  }
+
+  dynamic _resolveAccessoryMetaFromMap(
+    String stickerId,
+    Map<String, dynamic> source,
+  ) {
+    if (source.containsKey(stickerId)) {
+      return source[stickerId];
+    }
+    for (final entry in source.entries) {
+      if (entry.key.toString() == stickerId) {
+        return entry.value;
+      }
+      if (_extractAccessoryBaseId(entry.value) == stickerId) {
+        return entry.value;
+      }
+    }
+    return null;
+  }
+
+  String? _extractAccessoryBaseId(dynamic value) {
+    if (value is MarketSchemaInfo) {
+      return value.raw['baseId']?.toString() ??
+          value.raw['base_id']?.toString();
+    }
+    if (value is Map<String, dynamic>) {
+      return value['baseId']?.toString() ?? value['base_id']?.toString();
+    }
+    if (value is Map) {
+      return value['baseId']?.toString() ?? value['base_id']?.toString();
     }
     return null;
   }
@@ -773,8 +820,13 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
 
   String _stickerSectionTitle() => 'app.market.item.stickers'.tr;
 
+  String _keychainSectionTitle() => 'app.market.item.keychains_contains'.tr;
+
   String _stickerFallbackName(int index) =>
       '${'app.market.item.sticker'.tr} ${index + 1}';
+
+  String _keychainFallbackName(int index) =>
+      '${'app.market.item.keychains'.tr} ${index + 1}';
 
   String get _pageTitle => 'app.market.product.details'.tr;
 
@@ -1680,7 +1732,11 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     );
   }
 
-  Widget _buildStickerInfoCard({required List<_StickerDetailData> stickers}) {
+  Widget _buildStickerInfoCard({
+    required List<_StickerDetailData> stickers,
+    required String title,
+    required String Function(int index) fallbackNameBuilder,
+  }) {
     final currency = Get.find<CurrencyController>();
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
@@ -1693,7 +1749,7 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _stickerSectionTitle(),
+            title,
             style: const TextStyle(
               color: _textSecondary,
               fontSize: 11,
@@ -1713,6 +1769,7 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
                     sticker: stickers[index],
                     index: index,
                     currency: currency,
+                    fallbackNameBuilder: fallbackNameBuilder,
                   ),
                 ],
               );
@@ -1727,6 +1784,7 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     required _StickerDetailData sticker,
     required int index,
     required CurrencyController currency,
+    required String Function(int index) fallbackNameBuilder,
   }) {
     final title = sticker.name?.trim();
     final hasPrice = sticker.price != null && sticker.price! > 0;
@@ -1764,7 +1822,7 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
                 Text(
                   (title != null && title.isNotEmpty)
                       ? title
-                      : _stickerFallbackName(index),
+                      : fallbackNameBuilder(index),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -1918,15 +1976,32 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
         : stickers
               .map((sticker) => _StickerDetailData(imageUrl: sticker.imageUrl))
               .toList(growable: false);
+    final keychainDetails = _resolveKeychainDetailsFromItem(asset);
+    final schemaKeychainDetails = _resolveSchemaKeychainDetails();
     final gems = parseGemList(
       asset?['gemList'] ??
           asset?['gems'] ??
           _item.raw['gemList'] ??
           _item.raw['gems'],
     );
+    final schemaKeychains = _parseSchemaKeychains();
     final keychains = _parseKeychains(
-      asset?['keychains'] ?? _item.raw['keychains'],
+      _firstNonEmptyValue([
+        _schema?.raw['keychains'],
+        _schema?.raw['keychain'],
+        ..._keychainCandidates(asset),
+      ]),
     );
+    final displayKeychainDetails = keychainDetails.isNotEmpty
+        ? keychainDetails
+        : schemaKeychainDetails.isNotEmpty
+        ? schemaKeychainDetails
+        : keychains
+              .map((sticker) => _StickerDetailData(imageUrl: sticker.imageUrl))
+              .toList(growable: false);
+    final effectiveKeychains = keychains.isNotEmpty
+        ? keychains
+        : schemaKeychains;
     final isOwnOnSale = _isOwnOnSaleItem();
     final displayName =
         _schema?.marketName ??
@@ -2429,40 +2504,33 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
                             ),
                           ),
                         ],
-                        if (keychains.isNotEmpty) ...[
-                          const SizedBox(height: 20),
-                          Container(
-                            decoration: const BoxDecoration(
-                              border: Border(
-                                top: BorderSide(color: Color(0x0DC4C5D5)),
-                              ),
-                            ),
-                            padding: const EdgeInsets.only(top: 16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'app.market.item.keychains'.tr,
-                                  style: const TextStyle(
-                                    color: _textSecondary,
-                                    fontSize: 11,
-                                    height: 16.5 / 11,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 1.1,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                StickerRow(stickers: keychains, size: 24),
-                              ],
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ),
                   if (displayStickerDetails.isNotEmpty) ...[
                     const SizedBox(height: 16),
-                    _buildStickerInfoCard(stickers: displayStickerDetails),
+                    _buildStickerInfoCard(
+                      stickers: displayStickerDetails,
+                      title: _stickerSectionTitle(),
+                      fallbackNameBuilder: _stickerFallbackName,
+                    ),
+                  ],
+                  if (displayKeychainDetails.isNotEmpty ||
+                      effectiveKeychains.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _buildStickerInfoCard(
+                      stickers: displayKeychainDetails.isNotEmpty
+                          ? displayKeychainDetails
+                          : effectiveKeychains
+                                .map(
+                                  (sticker) => _StickerDetailData(
+                                    imageUrl: sticker.imageUrl,
+                                  ),
+                                )
+                                .toList(growable: false),
+                      title: _keychainSectionTitle(),
+                      fallbackNameBuilder: _keychainFallbackName,
+                    ),
                   ],
                   if (hasSellerSection) ...[
                     const SizedBox(height: 16),
@@ -2529,6 +2597,26 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
               ),
       ),
     );
+  }
+
+  dynamic _firstNonEmptyValue(List<dynamic> candidates) {
+    for (final candidate in candidates) {
+      if (candidate == null) {
+        continue;
+      }
+      if (candidate is String) {
+        final text = candidate.trim();
+        if (text.isEmpty || text == 'null') {
+          continue;
+        }
+        return candidate;
+      }
+      final normalized = normalizeGameItemAccessoryEntries(candidate);
+      if (normalized.isNotEmpty) {
+        return candidate;
+      }
+    }
+    return null;
   }
 }
 

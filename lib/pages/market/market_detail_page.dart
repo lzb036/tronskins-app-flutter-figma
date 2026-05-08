@@ -2898,9 +2898,20 @@ class _MarketDetailPageState extends State<MarketDetailPage>
           item.raw['gems'],
     );
     final keychains = _parseKeychains(
-      asset?['keychains'] ?? item.raw['keychains'],
+      [
+        schema?.raw['keychains'],
+        schema?.raw['keychain'],
+        asset?['keychains'],
+        asset?['keychain'],
+        item.raw['keychains'],
+        item.raw['keychain'],
+      ],
       controller.schemas,
       controller.stickers,
+    );
+    final previewStickers = buildAccessoryPreviewStickers(
+      stickers: stickers,
+      keychains: keychains,
     );
     final avatar = _resolveAvatar(user?.avatar);
     final canBuy = item.id != null && item.price != null;
@@ -2928,8 +2939,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       if (paintIndex != null)
         _OnSaleListingFact('app.market.item.skin_number'.tr, paintIndex),
     ];
-    final hasDecorations =
-        stickers.isNotEmpty || gems.isNotEmpty || keychains.isNotEmpty;
+    final hasDecorations = previewStickers.isNotEmpty || gems.isNotEmpty;
     const imageBoxWidth = _onSaleListingImageBoxWidth;
     const imageBoxHeight = _onSaleListingImageBoxHeight;
     const listingBuyButtonBlue = Color(0xFF2D4EA2);
@@ -3158,19 +3168,14 @@ class _MarketDetailPageState extends State<MarketDetailPage>
             runSpacing: 6,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              if (stickers.isNotEmpty)
+              if (previewStickers.isNotEmpty)
                 _buildOnSaleDecorationGroup(
-                  child: StickerRow(stickers: stickers, size: 22),
+                  child: StickerRow(stickers: previewStickers, size: 22),
                 ),
               if (gems.isNotEmpty)
                 _buildOnSaleDecorationGroup(
                   label: 'app.market.item.gem'.tr,
                   child: GemRow(gems: gems, size: 22),
-                ),
-              if (keychains.isNotEmpty)
-                _buildOnSaleDecorationGroup(
-                  label: 'app.market.item.keychains'.tr,
-                  child: StickerRow(stickers: keychains, size: 22),
                 ),
             ],
           ),
@@ -4825,49 +4830,56 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   }
 
   List<GameItemSticker> _parseKeychains(
-    dynamic raw,
+    Iterable<dynamic> candidates,
     Map<String, MarketSchemaInfo> schemas,
     Map<String, dynamic> stickerMap,
   ) {
-    final fromRaw = parseStickerList(
-      raw,
+    final fromRaw = parseFirstAccessoryStickerList(
+      candidates,
       schemaMap: schemas,
       stickerMap: stickerMap,
     );
     if (fromRaw.isNotEmpty) {
       return fromRaw;
     }
-    if (raw is! List) {
-      return const [];
-    }
-    final list = <GameItemSticker>[];
-    for (final entry in raw) {
-      if (entry is Map) {
-        final image =
-            entry['image_url']?.toString() ??
-            entry['imageUrl']?.toString() ??
-            entry['image']?.toString();
-        if (image != null && image.isNotEmpty) {
-          list.add(GameItemSticker(image));
-          continue;
-        }
-        final schemaId = entry['schema_id'] ?? entry['schemaId'] ?? entry['id'];
-        if (schemaId != null) {
-          final schema = schemas[schemaId.toString()];
+    for (final candidate in candidates) {
+      final entries = normalizeGameItemAccessoryEntries(candidate);
+      if (entries.isEmpty) {
+        continue;
+      }
+      final list = <GameItemSticker>[];
+      for (final entry in entries) {
+        if (entry is Map) {
+          final image =
+              entry['image_url']?.toString() ??
+              entry['imageUrl']?.toString() ??
+              entry['image']?.toString();
+          if (image != null && image.isNotEmpty) {
+            list.add(GameItemSticker(image));
+            continue;
+          }
+          final schemaId =
+              entry['schema_id'] ?? entry['schemaId'] ?? entry['id'];
+          if (schemaId != null) {
+            final schema = schemas[schemaId.toString()];
+            final url = schema?.imageUrl;
+            if (url != null && url.isNotEmpty) {
+              list.add(GameItemSticker(url));
+            }
+          }
+        } else if (entry is num || entry is String) {
+          final schema = schemas[entry.toString()];
           final url = schema?.imageUrl;
           if (url != null && url.isNotEmpty) {
             list.add(GameItemSticker(url));
           }
         }
-      } else if (entry is num || entry is String) {
-        final schema = schemas[entry.toString()];
-        final url = schema?.imageUrl;
-        if (url != null && url.isNotEmpty) {
-          list.add(GameItemSticker(url));
-        }
+      }
+      if (list.isNotEmpty) {
+        return list;
       }
     }
-    return list;
+    return const [];
   }
 
   List<GameItemSticker> _parseStickers({
