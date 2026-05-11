@@ -9,16 +9,17 @@ import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 
 const Color _trendSlate300 = Color(0xFFCBD5E1);
 const Color _trendSlate900 = Color(0xFF0F172A);
-const Color _trendWebLine = Color(0xFF00B4CC);
-const Color _trendWebAxis = Color(0xFFB0B0B0);
-const Color _trendWebSplitLine = Color(0xFF2A3B4D);
-const Color _trendLabel = Color(0xFF64748B);
-const Color _trendTooltip = Color(0xFFFFFFFF);
-const Color _trendTooltipBorder = Color(0xFFE2E8F0);
+const Color _trendBuffBlue = Color(0xFF4A6FD4);
+const Color _trendBuffGrid = Color(0xFFE6E8EE);
+const Color _trendBuffAxis = Color(0xFFDADDE5);
+const Color _trendBuffText = Color(0xFF8A8F99);
+const Color _trendBuffTooltip = Color(0xFFF5F7FC);
+const Color _trendBuffTooltipBorder = Color(0xFFD6DCE8);
 const double _trendChartTopPadding = 14;
 const double _trendBottomTitlesReservedHeight = 34;
 const double _trendMinLeftAxisWidth = 28;
 const double _trendMaxLeftAxisWidth = 44;
+const int _trendMaxVisibleDotCount = 7;
 
 class _TrendYAxisMetrics {
   const _TrendYAxisMetrics({
@@ -83,39 +84,47 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
       times.add(_toDateTime(sorted[i].time));
     }
 
-    final yAxisMetrics = _calculateYAxisMetrics(convertedPrices);
+    final yAxisMetrics = _calculateYAxisMetrics(
+      convertedPrices,
+      currencyCode: currency.code,
+    );
     final displayMin = yAxisMetrics.min;
     final displayMax = yAxisMetrics.max;
     final leftInterval = yAxisMetrics.interval;
     final axisDateFormat = DateFormat('yyyy-MM-dd');
-    final subtitleColor = isDark ? _trendSlate300 : _trendLabel;
+    final subtitleColor = isDark ? _trendSlate300 : _trendBuffText;
     final int? selectedSpotIndex =
         _selectedSpotIndex != null && _selectedSpotIndex! < spots.length
         ? _selectedSpotIndex
         : null;
+    final visibleDotIndices = _buildVisibleDotIndices(spots);
     final lineBarData = LineChartBarData(
       spots: spots,
       showingIndicators: selectedSpotIndex == null
           ? const <int>[]
           : <int>[selectedSpotIndex],
-      color: _trendWebLine,
-      barWidth: 2.6,
+      color: _trendBuffBlue,
+      barWidth: 2.8,
       isCurved: spots.length > 2,
-      curveSmoothness: 0.2,
+      curveSmoothness: 0.22,
       preventCurveOverShooting: true,
       isStrokeCapRound: true,
       isStrokeJoinRound: true,
       dotData: FlDotData(
         show: true,
-        checkToShowDot: (spot, barData) => true,
+        checkToShowDot: (spot, barData) {
+          final index = spot.x.round();
+          return visibleDotIndices.contains(index) ||
+              index == selectedSpotIndex;
+        },
         getDotPainter: (spot, percent, barData, index) {
           final isSelected = spot.x.round() == selectedSpotIndex;
-          final dotRadius = isSelected ? 4.8 : 3.2;
+          final dotRadius = isSelected ? 5.4 : 4.2;
           return FlDotCirclePainter(
             radius: dotRadius,
-            color: _trendWebLine,
+            color: _trendBuffBlue,
             strokeColor: isDark ? _trendSlate900 : Colors.white,
-            strokeWidth: isSelected ? 2.4 : 1.8,
+            strokeWidth: isSelected ? 2.8 : 2.2,
           );
         },
       ),
@@ -145,7 +154,8 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
           context,
           values: yAxisValues,
           style: axisLabelStyle,
-          labelBuilder: (value) => _formatAxisPrice(value, currency),
+          labelBuilder: (value) =>
+              _formatAxisPrice(value, currency, interval: leftInterval),
         );
         final plotViewportWidth = math.max(
           0.0,
@@ -179,8 +189,11 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
                                 values: yAxisValues,
                                 minY: displayMin,
                                 maxY: displayMax,
-                                labelBuilder: (value) =>
-                                    _formatAxisPrice(value, currency),
+                                labelBuilder: (value) => _formatAxisPrice(
+                                  value,
+                                  currency,
+                                  interval: leftInterval,
+                                ),
                                 subtitleColor: subtitleColor,
                                 textStyle: axisLabelStyle,
                               ),
@@ -223,7 +236,7 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
                                     getDrawingHorizontalLine: (value) => FlLine(
                                       color: isDark
                                           ? Colors.white.withValues(alpha: 0.08)
-                                          : _trendWebSplitLine,
+                                          : _trendBuffGrid,
                                       strokeWidth: 1,
                                     ),
                                   ),
@@ -235,7 +248,7 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
                                             ? Colors.white.withValues(
                                                 alpha: 0.14,
                                               )
-                                            : _trendWebAxis,
+                                            : _trendBuffAxis,
                                         width: 1,
                                       ),
                                       bottom: BorderSide(
@@ -243,7 +256,7 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
                                             ? Colors.white.withValues(
                                                 alpha: 0.14,
                                               )
-                                            : _trendWebAxis,
+                                            : _trendBuffAxis,
                                         width: 1,
                                       ),
                                     ),
@@ -312,18 +325,20 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
                                       fitInsideVertically: true,
                                       tooltipBgColor: isDark
                                           ? _trendSlate900
-                                          : _trendTooltip,
+                                          : _trendBuffTooltip.withValues(
+                                              alpha: 0.94,
+                                            ),
                                       tooltipBorder: BorderSide(
                                         color: isDark
                                             ? Colors.white.withValues(
                                                 alpha: 0.08,
                                               )
-                                            : _trendTooltipBorder,
+                                            : _trendBuffTooltipBorder,
                                       ),
                                       getTooltipItems: (items) {
                                         return items.map((item) {
                                           final date = DateFormat(
-                                            'yyyy-MM-dd HH:mm:ss',
+                                            'yyyy-MM-dd',
                                           ).format(times[item.spotIndex]);
                                           return LineTooltipItem(
                                             '',
@@ -339,7 +354,7 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
                                               const TextSpan(
                                                 text: '● ',
                                                 style: TextStyle(
-                                                  color: _trendWebLine,
+                                                  color: _trendBuffBlue,
                                                   fontSize: 13,
                                                   fontWeight: FontWeight.w700,
                                                 ),
@@ -377,7 +392,7 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
                                                     ? Colors.white.withValues(
                                                         alpha: 0.18,
                                                       )
-                                                    : _trendWebAxis,
+                                                    : _trendBuffAxis,
                                                 strokeWidth: 1,
                                               ),
                                               FlDotData(
@@ -390,12 +405,12 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
                                                       spotIndex,
                                                     ) {
                                                       return FlDotCirclePainter(
-                                                        radius: 4.8,
-                                                        color: _trendWebLine,
+                                                        radius: 5.4,
+                                                        color: _trendBuffBlue,
                                                         strokeColor: isDark
                                                             ? _trendSlate900
                                                             : Colors.white,
-                                                        strokeWidth: 2.4,
+                                                        strokeWidth: 2.8,
                                                       );
                                                     },
                                               ),
@@ -501,6 +516,41 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
     return 0;
   }
 
+  Set<int> _buildVisibleDotIndices(List<FlSpot> spots) {
+    if (spots.length <= _trendMaxVisibleDotCount) {
+      return List<int>.generate(spots.length, (index) => index).toSet();
+    }
+
+    final indices = <int>{0, spots.length - 1};
+    indices.add(_resolveExtremeSpotIndex(spots, findMax: false));
+    indices.add(_resolveExtremeSpotIndex(spots, findMax: true));
+
+    for (
+      var slot = 1;
+      slot < _trendMaxVisibleDotCount - 1 &&
+          indices.length < _trendMaxVisibleDotCount;
+      slot += 1
+    ) {
+      final index = (slot * (spots.length - 1) / (_trendMaxVisibleDotCount - 1))
+          .round();
+      indices.add(index);
+    }
+
+    return indices;
+  }
+
+  int _resolveExtremeSpotIndex(List<FlSpot> spots, {required bool findMax}) {
+    var result = 0;
+    for (var index = 1; index < spots.length; index += 1) {
+      final current = spots[index].y;
+      final target = spots[result].y;
+      if (findMax ? current > target : current < target) {
+        result = index;
+      }
+    }
+    return result;
+  }
+
   double _measureLeftAxisWidth(
     BuildContext context, {
     required List<double> values,
@@ -530,29 +580,57 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
         .toDouble();
   }
 
-  _TrendYAxisMetrics _calculateYAxisMetrics(List<double> values) {
+  _TrendYAxisMetrics _calculateYAxisMetrics(
+    List<double> values, {
+    required String currencyCode,
+  }) {
+    final minimumStep = _minimumYAxisStepForCode(currencyCode);
     if (values.isEmpty) {
-      return const _TrendYAxisMetrics(min: 0, max: 1, interval: 1);
+      return _TrendYAxisMetrics(
+        min: 0,
+        max: minimumStep * 4,
+        interval: minimumStep,
+      );
     }
 
     final minValue = values.reduce(math.min);
     final maxValue = values.reduce(math.max);
-    final priceRange = maxValue - minValue;
+    final delta = maxValue - minValue;
 
-    if (priceRange.abs() < 1e-9) {
+    if (delta.abs() < 1e-9) {
+      final center = maxValue;
+      final interval = center == 0
+          ? minimumStep
+          : math.max(
+              minimumStep,
+              _niceNumber(center.abs() * 0.15, round: true),
+            );
+      final min = center <= 0 ? 0.0 : math.max(0.0, center - interval * 2);
+      final max = math.max(interval * 4, center + interval * 2);
       return _TrendYAxisMetrics(
-        min: _normalizeAxisValue(minValue - 1),
-        max: _normalizeAxisValue(maxValue + 1),
-        interval: 1,
+        min: _normalizeAxisValue(min),
+        max: _normalizeAxisValue(max),
+        interval: _normalizeAxisValue(interval),
       );
     }
 
-    final rangeWithPadding = priceRange * 1.2;
-    final padding = (rangeWithPadding - priceRange) / 2;
-    final min = math.max(0.0, minValue - padding);
-    final max = maxValue + padding;
-    final interval = _calculateWebNiceInterval(rangeWithPadding / 5);
-
+    final padding = math.max(delta * 0.15, minimumStep * 0.5);
+    final rawMin = math.max(0.0, minValue - padding);
+    final rawMax = maxValue + padding;
+    final interval = math.max(
+      minimumStep,
+      _niceNumber((rawMax - rawMin) / 4, round: true),
+    );
+    final min = rawMin <= 0
+        ? 0.0
+        : (rawMin / interval).floorToDouble() * interval;
+    var max = (rawMax / interval).ceilToDouble() * interval;
+    if (max <= min) {
+      max = min + interval * 4;
+    }
+    if ((max - min) / interval < 3) {
+      max = min + interval * 4;
+    }
     return _TrendYAxisMetrics(
       min: _normalizeAxisValue(min),
       max: _normalizeAxisValue(max),
@@ -560,26 +638,48 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
     );
   }
 
-  double _calculateWebNiceInterval(double rawInterval) {
-    if (!rawInterval.isFinite || rawInterval <= 0) {
+  double _minimumYAxisStepForCode(String currencyCode) {
+    const zeroDecimalCurrencies = <String>{'JPY', 'KRW', 'VND', 'IDR'};
+    if (zeroDecimalCurrencies.contains(currencyCode)) {
+      return 1;
+    }
+    return 0.01;
+  }
+
+  double _niceNumber(double value, {required bool round}) {
+    if (!value.isFinite || value <= 0) {
       return 1;
     }
 
-    final magnitude = math
-        .pow(10, (math.log(rawInterval) / math.ln10).floor())
+    final exponent = math
+        .pow(10, (math.log(value) / math.ln10).floor())
         .toDouble();
-    final normalized = rawInterval / magnitude;
+    final fraction = value / exponent;
 
-    if (normalized < 1.5) {
-      return 1 * magnitude;
+    late final double niceFraction;
+    if (round) {
+      if (fraction < 1.5) {
+        niceFraction = 1;
+      } else if (fraction < 3) {
+        niceFraction = 2;
+      } else if (fraction < 7) {
+        niceFraction = 5;
+      } else {
+        niceFraction = 10;
+      }
+    } else {
+      if (fraction <= 1) {
+        niceFraction = 1;
+      } else if (fraction <= 2) {
+        niceFraction = 2;
+      } else if (fraction <= 5) {
+        niceFraction = 5;
+      } else {
+        niceFraction = 10;
+      }
     }
-    if (normalized < 3) {
-      return 2 * magnitude;
-    }
-    if (normalized < 7) {
-      return 5 * magnitude;
-    }
-    return 10 * magnitude;
+
+    return niceFraction * exponent;
   }
 
   List<double> _buildYAxisValues({
@@ -610,12 +710,63 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
     return usdAmount * currency.currentRate;
   }
 
-  String _formatAxisPrice(double value, CurrencyController currency) {
-    return '${currency.symbol}${value.toStringAsFixed(2)}';
+  String _formatAxisPrice(
+    double value,
+    CurrencyController currency, {
+    required double interval,
+  }) {
+    final digits = _axisFractionDigitsForInterval(interval, currency.code);
+    return '${currency.symbol}${value.toStringAsFixed(digits)}';
   }
 
   String _formatConvertedPrice(double amount, CurrencyController currency) {
-    return '${currency.symbol}${amount.toStringAsFixed(2)}';
+    final digits = _fractionDigitsForValue(
+      amount,
+      currencyCode: currency.code,
+      compact: true,
+    );
+    return '${currency.symbol}${amount.toStringAsFixed(digits)}';
+  }
+
+  int _axisFractionDigitsForInterval(double interval, String currencyCode) {
+    const zeroDecimalCurrencies = <String>{'JPY', 'KRW', 'VND', 'IDR'};
+    if (zeroDecimalCurrencies.contains(currencyCode)) {
+      return 0;
+    }
+
+    if (!interval.isFinite || interval <= 0) {
+      return 2;
+    }
+
+    if (interval >= 1) {
+      return 2;
+    }
+
+    final digits = (-math.log(interval) / math.ln10).ceil();
+    return digits.clamp(2, 4);
+  }
+
+  int _fractionDigitsForValue(
+    double value, {
+    required String currencyCode,
+    required bool compact,
+  }) {
+    const zeroDecimalCurrencies = <String>{'JPY', 'KRW', 'VND', 'IDR'};
+    if (zeroDecimalCurrencies.contains(currencyCode)) {
+      return 0;
+    }
+
+    final absValue = value.abs();
+    if (absValue >= 1) {
+      return 2;
+    }
+    if (absValue >= 0.1) {
+      return compact ? 2 : 3;
+    }
+    if (absValue >= 0.01) {
+      return compact ? 3 : 4;
+    }
+    return compact ? 4 : 5;
   }
 }
 
