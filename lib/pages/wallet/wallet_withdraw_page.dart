@@ -1,10 +1,14 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/api/model/entity/user/user_info_entity.dart';
 import 'package:tronskins_app/api/model/wallet/wallet_models.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
+import 'package:tronskins_app/common/http/http_helper.dart';
+import 'package:tronskins_app/common/http/model/base_response.dart';
+import 'package:tronskins_app/common/storage/server_storage.dart';
 import 'package:tronskins_app/common/storage/twofa_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
@@ -39,13 +43,21 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
   final TextEditingController _addressNameController = TextEditingController();
   final TextEditingController _addressAccountController =
       TextEditingController();
+  bool _isSubmittingWithdraw = false;
+  bool _isCheckingWithdrawStatus = false;
+  bool? _isWithdrawEnabled;
 
   @override
   void initState() {
     super.initState();
-    controller.refreshUser();
-    controller.loadWithdrawAddresses();
-    controller.loadWithdrawFee();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      controller.loadWithdrawAddresses();
+      controller.loadWithdrawFee();
+      _checkWithdrawEnable();
+    });
   }
 
   @override
@@ -126,10 +138,63 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
     return _isChineseLocale ? '实际到账' : 'Actual Received';
   }
 
-  String _confirmWithdrawWarningText() {
+  String _withdrawGuardUnboundMessage() {
     return _isChineseLocale
-        ? '提现申请提交后不可撤销'
-        : 'Withdrawal requests cannot be revoked after submission';
+        ? '您的账号还未绑定 2FA 验证器，请先前往 Web 端完成绑定后再提现。'
+        : 'Your account has not enabled 2FA yet. Please bind it on the web first before withdrawing.';
+  }
+
+  String _withdrawTwoFaInputTitle() {
+    return _isChineseLocale ? '输入 2FA 验证码' : 'Enter 2FA Code';
+  }
+
+  String _withdrawTwoFaInputMessage() {
+    return _isChineseLocale
+        ? '检测到本地未同步 2FA 令牌，请输入当前账号的验证码完成提现。'
+        : 'No synced 2FA token was found on this device. Enter your current account code to continue.';
+  }
+
+  String _withdrawTwoFaInputHint() {
+    return _isChineseLocale ? '请输入 6 位验证码' : 'Enter 6-digit code';
+  }
+
+  String _submittingWithdrawLabel() {
+    return _isChineseLocale ? '提交中...' : 'Submitting...';
+  }
+
+  String _checkingWithdrawStatusLabel() {
+    return _isChineseLocale ? '检测中...' : 'Checking...';
+  }
+
+  bool get _isWithdrawActionLoading =>
+      _isCheckingWithdrawStatus || _isSubmittingWithdraw;
+
+  String _withdrawSubmitErrorMessage(BaseHttpResponse<dynamic> result) {
+    final dataText = result.datas?.toString().trim();
+    if (dataText != null && dataText.isNotEmpty) {
+      return dataText;
+    }
+    final message = result.message.trim();
+    return message.isNotEmpty ? message : 'app.trade.filter.failed'.tr;
+  }
+
+  String _pendingWithdrawMessage() {
+    return _isChineseLocale
+        ? '存在未完成的提现，请等待其完成后再提交新的提现'
+        : 'There are unprocessed withdrawal requests and no withdrawal is allowed';
+  }
+
+  Future<void> _checkWithdrawEnable() async {
+    final allow = await controller.checkWithdrawEnable();
+    if (!mounted) {
+      return;
+    }
+    if (allow == false) {
+      setState(() => _isWithdrawEnabled = false);
+      AppSnackbar.info('app.user.withdraw.disable'.tr);
+    } else if (allow == true) {
+      setState(() => _isWithdrawEnabled = true);
+    }
   }
 
   String _formatRuleAmount(double value) {
@@ -246,6 +311,13 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
   }
 
   Future<void> _submitWithdraw() async {
+    if (_isWithdrawActionLoading) {
+      return;
+    }
+    if (_isWithdrawEnabled == false) {
+      AppSnackbar.info('app.user.withdraw.disable'.tr);
+      return;
+    }
     final amountText = _amountController.text.trim();
     final amount = double.tryParse(amountText) ?? 0;
     if (amount <= 0) {
@@ -271,6 +343,23 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
       AppSnackbar.error('app.user.withdraw.enter_address'.tr);
       return;
     }
+    setState(() => _isCheckingWithdrawStatus = true);
+    final BaseHttpResponse<bool> pendingResult;
+    try {
+      pendingResult = await controller.hasPendingWithdraw();
+    } finally {
+      if (mounted) {
+        setState(() => _isCheckingWithdrawStatus = false);
+      }
+    }
+    if (!pendingResult.success) {
+      AppSnackbar.error(_withdrawSubmitErrorMessage(pendingResult));
+      return;
+    }
+    if (pendingResult.datas == true) {
+      AppSnackbar.error(_pendingWithdrawMessage());
+      return;
+    }
     final currency = Get.find<CurrencyController>();
     final confirm = await _showWithdrawConfirmDialog(
       currency: currency,
@@ -280,28 +369,48 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
     if (confirm != true) {
       return;
     }
+    await controller.refreshUser(showLoading: true);
     final user = controller.userInfo.value;
     final token = await _findCurrentUserToken(user);
-    if (user?.need2FA != true ||
-        user?.safeTokenStatus != true ||
-        token == null ||
-        token.secret.isEmpty) {
-      await _promptGuardSetup();
+    if (user?.safeTokenStatus != true) {
+      await _showGuardUnboundDialog();
       return;
     }
-    final twoFa = TwoFactorHelper.generateCode(token.secret);
+
+    var twoFa = '';
+    if (token != null && token.secret.isNotEmpty) {
+      twoFa = TwoFactorHelper.generateCode(token.secret);
+    }
     if (twoFa.isEmpty) {
-      await _promptGuardSetup();
-      return;
+      final manualCode = await _showTwoFaInputDialog();
+      if (manualCode == null || manualCode.isEmpty) {
+        return;
+      }
+      twoFa = manualCode;
+      await Future<void>.delayed(const Duration(milliseconds: 240));
     }
-    final success = await controller.submitWithdraw(
-      amount: amount,
-      account: address.account ?? '',
-      twoFa: twoFa,
-    );
-    if (success) {
-      _amountController.clear();
-      AppSnackbar.success('app.user.withdraw.message.success'.tr);
+
+    setState(() => _isSubmittingWithdraw = true);
+    try {
+      final result = await controller.submitWithdraw(
+        amount: amount,
+        account: address.account ?? '',
+        twoFa: twoFa,
+      );
+      if (result.success) {
+        _amountController.clear();
+        AppSnackbar.success('app.user.withdraw.message.success'.tr);
+      } else {
+        AppSnackbar.error(_withdrawSubmitErrorMessage(result));
+      }
+    } on HttpException catch (error) {
+      AppSnackbar.error(error.message);
+    } catch (_) {
+      AppSnackbar.error('app.trade.filter.failed'.tr);
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmittingWithdraw = false);
+      }
     }
   }
 
@@ -326,7 +435,6 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
           amountLabel: _confirmWithdrawAmountLabel(),
           feeLabel: _confirmWithdrawFeeLabel(),
           actualLabel: _confirmWithdrawActualLabel(),
-          warningText: _confirmWithdrawWarningText(),
           address: address,
           amountText: currency.formatUsd(amount),
           feeText: currency.formatUsd(fee),
@@ -358,56 +466,40 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
     if (user == null) {
       return null;
     }
-    final userId = user.id ?? '';
-    final appUse = user.appUse ?? '';
-    if (userId.isEmpty) {
-      return null;
-    }
-
-    final tokens = await TwoFactorStorage.getList();
-
-    if (appUse.isNotEmpty) {
-      final exactMatch = tokens.firstWhereOrNull(
-        (token) =>
-            token.userId == userId &&
-            token.appUse == appUse &&
-            token.secret.isNotEmpty,
-      );
-      if (exactMatch != null) {
-        return exactMatch;
-      }
-    }
-
-    final sameUserTokens = tokens
-        .where((token) => token.userId == userId && token.secret.isNotEmpty)
-        .toList();
-    if (sameUserTokens.length == 1) {
-      return sameUserTokens.first;
-    }
-
-    return null;
+    return TwoFactorStorage.findStoredTokenForLogin(
+      server: ServerStorage.getServer(),
+      appUse: user.appUse ?? '',
+      userId: user.id ?? '',
+      showEmail: user.safeTokenName ?? user.showEmail ?? '',
+      loginAccount: user.account ?? '',
+    );
   }
 
-  Future<void> _promptGuardSetup() async {
-    final confirm = await Get.dialog<bool>(
-      AlertDialog(
-        title: Text('app.system.tips.title'.tr),
-        content: Text('app.user.guard.set_tips'.tr),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(result: false),
-            child: Text('app.common.cancel'.tr),
-          ),
-          TextButton(
-            onPressed: () => Get.back(result: true),
-            child: Text('app.common.confirm'.tr),
-          ),
-        ],
+  Future<void> _showGuardUnboundDialog() async {
+    await showFigmaModal<void>(
+      context: context,
+      child: FigmaConfirmationDialog(
+        title: 'app.system.tips.title'.tr,
+        message: _withdrawGuardUnboundMessage(),
+        icon: Icons.shield_outlined,
+        iconColor: const Color(0xFF1E40AF),
+        iconBackgroundColor: const Color.fromRGBO(30, 64, 175, 0.10),
+        primaryLabel: 'app.common.confirm'.tr,
+        onPrimary: () => popModalRoute(context),
       ),
     );
-    if (confirm == true) {
-      Get.toNamed(Routers.USER_GUARD);
-    }
+  }
+
+  Future<String?> _showTwoFaInputDialog() async {
+    return showFigmaModal<String>(
+      context: context,
+      barrierDismissible: true,
+      child: _WithdrawTwoFaDialog(
+        title: _withdrawTwoFaInputTitle(),
+        message: _withdrawTwoFaInputMessage(),
+        hintText: _withdrawTwoFaInputHint(),
+      ),
+    );
   }
 
   void _showAddressSheet() {
@@ -962,7 +1054,9 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
   Widget _buildPrimaryActionButton({
     required String label,
     required VoidCallback onTap,
+    bool loading = false,
   }) {
+    final isEnabled = !loading;
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -982,21 +1076,47 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
+          onTap: isEnabled ? onTap : null,
           borderRadius: BorderRadius.circular(8),
           child: SizedBox(
             height: 56,
             width: double.infinity,
             child: Center(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  height: 24 / 16,
-                ),
-              ),
+              child: loading
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          label,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            height: 24 / 16,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Text(
+                      label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        height: 24 / 16,
+                      ),
+                    ),
             ),
           ),
         ),
@@ -1324,7 +1444,12 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 672),
                 child: _buildPrimaryActionButton(
-                  label: 'app.user.withdraw.title'.tr,
+                  label: _isCheckingWithdrawStatus
+                      ? _checkingWithdrawStatusLabel()
+                      : (_isSubmittingWithdraw
+                            ? _submittingWithdrawLabel()
+                            : 'app.user.withdraw.title'.tr),
+                  loading: _isWithdrawActionLoading,
                   onTap: () {
                     FocusScope.of(context).unfocus();
                     _normalizeAmountOnBlur();
@@ -1387,6 +1512,124 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
   }
 }
 
+class _WithdrawTwoFaDialog extends StatefulWidget {
+  const _WithdrawTwoFaDialog({
+    required this.title,
+    required this.message,
+    required this.hintText,
+  });
+
+  final String title;
+  final String message;
+  final String hintText;
+
+  @override
+  State<_WithdrawTwoFaDialog> createState() => _WithdrawTwoFaDialogState();
+}
+
+class _WithdrawTwoFaDialogState extends State<_WithdrawTwoFaDialog> {
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final code = _controller.text.trim();
+    if (code.length < 6) {
+      AppSnackbar.error('app.user.login.enter_2fa_captcha'.tr);
+      return;
+    }
+    popModalRoute(context, code);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FigmaConfirmationDialog(
+      title: widget.title,
+      message: widget.message,
+      icon: Icons.password_rounded,
+      iconColor: const Color(0xFF1E40AF),
+      iconBackgroundColor: const Color.fromRGBO(30, 64, 175, 0.10),
+      primaryLabel: 'app.common.confirm'.tr,
+      secondaryLabel: 'app.common.cancel'.tr,
+      onPrimary: _submit,
+      onSecondary: () => popModalRoute(context),
+      content: _WithdrawTwoFaInputField(
+        controller: _controller,
+        hintText: widget.hintText,
+        onSubmitted: _submit,
+      ),
+    );
+  }
+}
+
+class _WithdrawTwoFaInputField extends StatelessWidget {
+  const _WithdrawTwoFaInputField({
+    required this.controller,
+    required this.hintText,
+    required this.onSubmitted,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final VoidCallback onSubmitted;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      autofocus: true,
+      keyboardType: TextInputType.number,
+      textInputAction: TextInputAction.done,
+      onSubmitted: (_) => onSubmitted(),
+      textAlign: TextAlign.center,
+      maxLength: 6,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(6),
+      ],
+      style: const TextStyle(
+        color: Color(0xFF0F172A),
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 3,
+        height: 1.3,
+      ),
+      decoration: InputDecoration(
+        counterText: '',
+        hintText: hintText,
+        hintStyle: const TextStyle(
+          color: Color(0xFF94A3B8),
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0,
+        ),
+        filled: true,
+        fillColor: const Color(0xFFF8FAFC),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 14,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF1E40AF), width: 2),
+        ),
+      ),
+    );
+  }
+}
+
 class _WithdrawConfirmDialog extends StatelessWidget {
   const _WithdrawConfirmDialog({
     required this.title,
@@ -1394,7 +1637,6 @@ class _WithdrawConfirmDialog extends StatelessWidget {
     required this.amountLabel,
     required this.feeLabel,
     required this.actualLabel,
-    required this.warningText,
     required this.address,
     required this.amountText,
     required this.feeText,
@@ -1410,7 +1652,6 @@ class _WithdrawConfirmDialog extends StatelessWidget {
   final String amountLabel;
   final String feeLabel;
   final String actualLabel;
-  final String warningText;
   final String address;
   final String amountText;
   final String feeText;
@@ -1519,38 +1760,6 @@ class _WithdrawConfirmDialog extends StatelessWidget {
                           value: actualText,
                           emphasized: true,
                           valueFontSize: 20,
-                        ),
-                        const SizedBox(height: 32),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF2F4F6),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.info_outline_rounded,
-                                size: 14,
-                                color: _WalletWithdrawPageState._bodyColor,
-                              ),
-                              const SizedBox(width: 6),
-                              Flexible(
-                                child: Text(
-                                  warningText,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    color: _WalletWithdrawPageState._bodyColor,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    height: 19.5 / 12,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
                         const SizedBox(height: 32),
                         _WithdrawConfirmPrimaryButton(

@@ -111,9 +111,10 @@ class WalletController extends GetxController {
             (serverUserInfo.appUse == null || serverUserInfo.appUse!.isEmpty)) {
           final tokens = await TwoFactorStorage.getList();
           final sameUserTokens = tokens
-              .where((token) =>
-                  token.userId == currentUserId &&
-                  token.secret.isNotEmpty)
+              .where(
+                (token) =>
+                    token.userId == currentUserId && token.secret.isNotEmpty,
+              )
               .toList();
           if (sameUserTokens.length == 1) {
             derivedAppUse = sameUserTokens.first.appUse;
@@ -124,12 +125,10 @@ class WalletController extends GetxController {
         final finalAppUse = serverUserInfo.appUse?.isNotEmpty == true
             ? serverUserInfo.appUse
             : (cachedUserInfo?.appUse?.isNotEmpty == true
-                ? cachedUserInfo?.appUse
-                : derivedAppUse);
+                  ? cachedUserInfo?.appUse
+                  : derivedAppUse);
 
-        final mergedUserInfo = serverUserInfo.copyWith(
-          appUse: finalAppUse,
-        );
+        final mergedUserInfo = serverUserInfo.copyWith(appUse: finalAppUse);
 
         userInfo.value = mergedUserInfo;
         UserStorage.setUserInfo(mergedUserInfo);
@@ -334,6 +333,28 @@ class WalletController extends GetxController {
     }
   }
 
+  Future<BaseHttpResponse<bool>> hasPendingWithdraw() async {
+    final res = await _api.withdrawRecords(page: 1, pageSize: 10);
+    if (!res.success) {
+      return BaseHttpResponse<bool>(
+        code: res.code,
+        message: res.message,
+        datas: false,
+      );
+    }
+    final hasPending =
+        res.datas?.list.any(_isUnfinishedWithdrawRecord) ?? false;
+    return BaseHttpResponse<bool>(
+      code: res.code,
+      message: res.message,
+      datas: hasPending,
+    );
+  }
+
+  bool _isUnfinishedWithdrawRecord(WalletWithdrawRecord item) {
+    return item.status == 0 || item.status == 1;
+  }
+
   Future<void> loadIntegralRecords({bool reset = false}) async {
     const pageSize = 20;
     if (isLoadingIntegralRecords.value) {
@@ -490,7 +511,7 @@ class WalletController extends GetxController {
     return false;
   }
 
-  Future<bool> submitWithdraw({
+  Future<BaseHttpResponse<dynamic>> submitWithdraw({
     required double amount,
     required String account,
     String? twoFa,
@@ -502,9 +523,8 @@ class WalletController extends GetxController {
     );
     if (res.success) {
       await refreshUser();
-      return true;
     }
-    return false;
+    return res;
   }
 
   Future<bool> cancelWithdraw(String id) async {

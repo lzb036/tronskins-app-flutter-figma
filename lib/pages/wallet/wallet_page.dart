@@ -52,11 +52,6 @@ class _WalletPageState extends State<WalletPage> {
   }
 
   Future<void> _navigateWithdraw() async {
-    final allow = await controller.checkWithdrawEnable();
-    if (allow == false) {
-      AppSnackbar.info('app.user.withdraw.disable'.tr);
-      return;
-    }
     Get.toNamed(Routers.WALLET_WITHDRAW);
   }
 
