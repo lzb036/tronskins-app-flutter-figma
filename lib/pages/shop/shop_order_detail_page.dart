@@ -65,6 +65,9 @@ class ShopOrderDetailPage extends StatelessWidget {
     final feeAmount = isPendingFlow || showDealAmountOnly
         ? null
         : _extractFeeAmount(order);
+    final pointsAmount = isPendingFlow || showDealAmountOnly
+        ? null
+        : _extractPointsAmount(order);
     final incomeAmount = isPendingFlow || showDealAmountOnly
         ? null
         : _extractIncomeAmount(
@@ -150,6 +153,7 @@ class ShopOrderDetailPage extends StatelessWidget {
                             totalPrice: totalPrice,
                             totalItemCount: totalItemCount,
                             feeAmount: feeAmount,
+                            pointsAmount: pointsAmount,
                             incomeAmount: incomeAmount,
                           ),
                           if (primaryParty != null) ...[
@@ -510,6 +514,7 @@ class ShopOrderDetailPage extends StatelessWidget {
     required double totalPrice,
     required int totalItemCount,
     required double? feeAmount,
+    required double? pointsAmount,
     required double? incomeAmount,
   }) {
     return _buildCard(
@@ -541,6 +546,13 @@ class ShopOrderDetailPage extends StatelessWidget {
               _text(zh: '服务费', en: 'Service Fee'),
               '-${_formatPrice(currency, feeAmount.abs())}',
               valueColor: const Color(0xFFBA1A1A),
+            ),
+          ],
+          if (_hasPoints(pointsAmount)) ...[
+            const SizedBox(height: 12),
+            _buildPriceRow(
+              _text(zh: '积分', en: 'Points'),
+              _formatPointsText(pointsAmount!),
             ),
           ],
           if (incomeAmount != null) ...[
@@ -2162,6 +2174,26 @@ class ShopOrderDetailPage extends StatelessWidget {
     ]);
   }
 
+  double? _extractPointsAmount(ShopOrderItem order) {
+    const keys = [
+      'score',
+      'points',
+      'point',
+      'integral',
+      'reward_points',
+      'rewardPoints',
+      'reward_score',
+      'rewardScore',
+      'integral_amount',
+      'integralAmount',
+    ];
+    final direct = _findDirectNumericValue(order.raw, keys);
+    if (direct != null) {
+      return direct;
+    }
+    return _sumDetailNumericValues(order.details, keys);
+  }
+
   double? _extractIncomeAmount({
     required ShopOrderItem order,
     required double totalPrice,
@@ -2898,6 +2930,18 @@ class ShopOrderDetailPage extends StatelessWidget {
     return '¥${value.toStringAsFixed(2)}';
   }
 
+  bool _hasPoints(double? value) {
+    return value != null && value.abs() > 0.0001;
+  }
+
+  String _formatPointsText(double value) {
+    var text = value.toStringAsFixed(value == value.roundToDouble() ? 0 : 2);
+    if (text.contains('.')) {
+      text = text.replaceFirst(RegExp(r'\.?0+$'), '');
+    }
+    return '$text ${_text(zh: '积分', en: 'Points')}';
+  }
+
   String _formatTime(int? timestamp) {
     if (timestamp == null) {
       return '-';
@@ -2948,6 +2992,37 @@ class ShopOrderDetailPage extends StatelessWidget {
       keys.map((item) => item.toLowerCase()).toSet(),
     );
     return _asDouble(value);
+  }
+
+  double? _findDirectNumericValue(Map<String, dynamic> raw, List<String> keys) {
+    final normalizedKeys = keys.map((item) => item.toLowerCase()).toSet();
+    for (final entry in raw.entries) {
+      final key = entry.key.toString().toLowerCase();
+      if (normalizedKeys.contains(key) && entry.value != null) {
+        return _asDouble(entry.value);
+      }
+    }
+    return null;
+  }
+
+  double? _sumDetailNumericValues(
+    List<ShopOrderDetail> details,
+    List<String> keys,
+  ) {
+    var hasValue = false;
+    double total = 0;
+    for (final detail in details) {
+      final value = _findDirectNumericValue(detail.raw, keys);
+      if (value == null) {
+        continue;
+      }
+      final count = detail.count == null || detail.count! < 1
+          ? 1
+          : detail.count!;
+      hasValue = true;
+      total += value * count;
+    }
+    return hasValue ? total : null;
   }
 
   dynamic _findValue(

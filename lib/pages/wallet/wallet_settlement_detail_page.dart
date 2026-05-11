@@ -332,6 +332,7 @@ class WalletSettlementDetailPage extends StatelessWidget {
       listedAmount: listedAmount,
       receivedAmount: receivedAmount,
     );
+    final pointsAmount = _resolveRecordPointsAmount();
 
     return _buildCard(
       child: Column(
@@ -354,6 +355,13 @@ class WalletSettlementDetailPage extends StatelessWidget {
               _text(zh: '服务费', en: 'Service Fee'),
               '-${_formatPrice(currency, feeAmount)}',
               valueColor: const Color(0xFFBA1A1A),
+            ),
+          ],
+          if (_hasPoints(pointsAmount)) ...[
+            const SizedBox(height: 12),
+            _buildPriceRow(
+              _text(zh: '积分', en: 'Points'),
+              _formatPointsText(pointsAmount!),
             ),
           ],
           const SizedBox(height: 12),
@@ -698,6 +706,22 @@ class WalletSettlementDetailPage extends StatelessWidget {
     return _asDouble(_pickRawValue(source, keys));
   }
 
+  double? _sumDetailNumericValues(
+    double? Function(WalletSettlementDetail detail) mapper,
+  ) {
+    var hasValue = false;
+    double total = 0;
+    for (final detail in record.details) {
+      final value = mapper(detail);
+      if (value == null) {
+        continue;
+      }
+      hasValue = true;
+      total += value * _detailCount(detail);
+    }
+    return hasValue ? total : null;
+  }
+
   int? _asInt(dynamic value) {
     if (value == null) {
       return null;
@@ -1005,6 +1029,28 @@ class WalletSettlementDetailPage extends StatelessWidget {
     return listed;
   }
 
+  double? _resolveRecordPointsAmount() {
+    const keys = [
+      'score',
+      'points',
+      'point',
+      'integral',
+      'reward_points',
+      'rewardPoints',
+      'reward_score',
+      'rewardScore',
+      'integral_amount',
+      'integralAmount',
+    ];
+    final direct = _pickRawDouble(record.raw, keys);
+    if (direct != null) {
+      return direct;
+    }
+    return _sumDetailNumericValues(
+      (detail) => _pickRawDouble(detail.raw, keys),
+    );
+  }
+
   double? _resolveRecordFeeAmount({
     required double listedAmount,
     required double receivedAmount,
@@ -1108,6 +1154,18 @@ class WalletSettlementDetailPage extends StatelessWidget {
       return currency.formatUsd(value);
     }
     return '\$ ${value.toStringAsFixed(2)}';
+  }
+
+  bool _hasPoints(double? value) {
+    return value != null && value.abs() > 0.0001;
+  }
+
+  String _formatPointsText(double value) {
+    var text = value.toStringAsFixed(value == value.roundToDouble() ? 0 : 2);
+    if (text.contains('.')) {
+      text = text.replaceFirst(RegExp(r'\.?0+$'), '');
+    }
+    return '$text ${_text(zh: '积分', en: 'Points')}';
   }
 
   Future<void> _copy(BuildContext context, String text) async {
