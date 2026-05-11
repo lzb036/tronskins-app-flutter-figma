@@ -1109,8 +1109,215 @@ class _CollectionFavoriteTabState
     }
   }
 
-  void _openDetail(CollectionFavoriteItem item) {
-    Get.toNamed(Routers.MARKET_DETAIL, arguments: item.toMarketItemEntity());
+  Future<void> _openDetail(CollectionFavoriteItem item) async {
+    if (_shouldOpenListingDetail(item) || item.itemId == null) {
+      _openListingDetail(item);
+      return;
+    }
+    final schema = _buildFavoriteSchemaInfo(item);
+    final schemaMap = <String, MarketSchemaInfo>{};
+    final schemaId = schema.schemaId?.toString();
+    final marketHashName = schema.marketHashName?.trim();
+    if (schemaId != null && schemaId.isNotEmpty) {
+      schemaMap[schemaId] = schema;
+    }
+    if (marketHashName != null && marketHashName.isNotEmpty) {
+      schemaMap[marketHashName] = schema;
+    }
+    final result = await Get.toNamed(
+      Routers.MARKET_ITEM_DETAIL,
+      arguments: {
+        'item': _buildFavoriteMarketItem(item),
+        'schema': schema,
+        'user': _buildFavoriteUser(item),
+        'schemas': schemaMap,
+        'stickers': const <String, dynamic>{},
+      },
+    );
+    if (result == true) {
+      AppSnackbar.success('app.trade.buy.message.success'.tr);
+      await loadData(refresh: true);
+    }
+  }
+
+  bool _shouldOpenListingDetail(CollectionFavoriteItem item) {
+    return item.hasStatusTag && (item.statusName?.trim().isNotEmpty ?? false);
+  }
+
+  void _openListingDetail(CollectionFavoriteItem item) {
+    final detailItem = item.toMarketItemEntity();
+    if (detailItem.schemaId == null && detailItem.id == null) {
+      AppSnackbar.error('app.trade.filter.failed'.tr);
+      return;
+    }
+    Get.toNamed(Routers.MARKET_DETAIL, arguments: detailItem);
+  }
+
+  MarketListItem _buildFavoriteMarketItem(CollectionFavoriteItem item) {
+    final raw = <String, dynamic>{...item.raw};
+    void put(String key, dynamic value) {
+      if (value != null) {
+        raw[key] = value;
+      }
+    }
+
+    put('id', item.itemId);
+    put('app_id', item.appId);
+    put('schema_id', item.schemaId);
+    put('price', item.price);
+    put('market_name', item.marketName);
+    put('market_hash_name', item.marketHashName);
+    put('image_url', item.imageUrl);
+    put('favorited', item.favorited);
+    put('own', item.own);
+    put('paint_seed', item.paintSeed);
+    put('paint_wear', item.paintWear);
+    put('paint_index', item.paintIndex);
+    put('percentage', item.percentage);
+    put('phase', item.phase);
+    put(
+      'user_id',
+      _pickInt(item.raw, const ['user_id', 'userId', 'seller_id', 'sellerId']),
+    );
+    final tags = _favoriteRawTags(item);
+    if (tags != null) {
+      raw['tags'] = tags;
+    }
+    final asset = item.asset;
+    if (asset != null) {
+      raw[_favoriteAssetKey(item.appId)] = asset;
+    }
+    return MarketListItem.fromJson(raw);
+  }
+
+  MarketSchemaInfo _buildFavoriteSchemaInfo(CollectionFavoriteItem item) {
+    final rawSchema = _asMap(item.raw['schema']) ?? const <String, dynamic>{};
+    final raw = <String, dynamic>{...rawSchema};
+    void put(String key, dynamic value) {
+      if (value != null) {
+        raw[key] = value;
+      }
+    }
+
+    put('app_id', item.appId);
+    put('schema_id', item.schemaId);
+    put('id', item.schemaId);
+    put('market_name', item.marketName);
+    put('market_hash_name', item.marketHashName);
+    put('image_url', item.imageUrl);
+    put('price', item.price);
+    final tags = _favoriteRawTags(item);
+    if (tags != null) {
+      raw['tags'] = tags;
+    }
+    return MarketSchemaInfo.fromJson(raw);
+  }
+
+  MarketUserInfo? _buildFavoriteUser(CollectionFavoriteItem item) {
+    final rawUser =
+        _asMap(item.raw['user']) ??
+        _asMap(item.raw['seller']) ??
+        _asMap(item.raw['shop']) ??
+        _asMap(item.raw['shopInfo']);
+    final avatar =
+        _pickText(rawUser, const ['avatar', 'avatar_url', 'avatarUrl']) ??
+        _pickText(item.raw, const ['avatar', 'seller_avatar', 'sellerAvatar']);
+    final nickname =
+        _pickText(rawUser, const [
+          'nickname',
+          'name',
+          'shop_name',
+          'shopName',
+        ]) ??
+        _pickText(item.raw, const [
+          'nickname',
+          'seller_name',
+          'sellerName',
+          'shop_name',
+          'shopName',
+        ]);
+    final uuid =
+        _pickText(rawUser, const ['uuid', 'user_uuid', 'userUuid']) ??
+        _pickText(item.raw, const [
+          'uuid',
+          'seller_uuid',
+          'sellerUuid',
+          'shop_uuid',
+          'shopUuid',
+        ]);
+    if ((avatar == null || avatar.isEmpty) &&
+        (nickname == null || nickname.isEmpty) &&
+        (uuid == null || uuid.isEmpty)) {
+      return null;
+    }
+    return MarketUserInfo.fromJson({
+      'avatar': avatar,
+      'nickname': nickname,
+      'uuid': uuid,
+    });
+  }
+
+  Map<String, dynamic>? _favoriteRawTags(CollectionFavoriteItem item) {
+    final rawTags = item.raw['tags'] ?? item.asset?['tags'];
+    return _asMap(rawTags);
+  }
+
+  Map<String, dynamic>? _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
+    return null;
+  }
+
+  String? _pickText(Map<String, dynamic>? raw, List<String> keys) {
+    if (raw == null) {
+      return null;
+    }
+    for (final key in keys) {
+      final value = raw[key];
+      if (value != null) {
+        final text = value.toString().trim();
+        if (text.isNotEmpty) {
+          return text;
+        }
+      }
+    }
+    return null;
+  }
+
+  int? _pickInt(Map<String, dynamic> raw, List<String> keys) {
+    for (final key in keys) {
+      final value = raw[key];
+      if (value == null) {
+        continue;
+      }
+      if (value is int) {
+        return value;
+      }
+      if (value is num) {
+        return value.toInt();
+      }
+      final parsed = int.tryParse(value.toString());
+      if (parsed != null) {
+        return parsed;
+      }
+    }
+    return null;
+  }
+
+  String _favoriteAssetKey(int? appId) {
+    switch (appId) {
+      case 440:
+        return 'tf2Asset';
+      case 570:
+        return 'dota2Asset';
+      case 730:
+      default:
+        return 'csgoAsset';
+    }
   }
 
   Future<void> _cancelFavorite(CollectionFavoriteItem item) async {
