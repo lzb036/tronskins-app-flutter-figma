@@ -16,7 +16,7 @@ const Color _trendBuffText = Color(0xFF8A8F99);
 const Color _trendBuffTooltip = Color(0xFFF5F7FC);
 const Color _trendBuffTooltipBorder = Color(0xFFD6DCE8);
 const double _trendChartTopPadding = 14;
-const double _trendBottomTitlesReservedHeight = 34;
+const double _trendBottomTitlesReservedHeight = 42;
 const double _trendMinLeftAxisWidth = 28;
 const double _trendMaxLeftAxisWidth = 44;
 const double _trendMinHorizontalDomainPadding = 0.45;
@@ -883,7 +883,14 @@ class _FixedXAxisLabels extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final measuredLabels =
-            <({_TrendXAxisLabel label, double left, double width})>[];
+            <
+              ({
+                _TrendXAxisLabel label,
+                double centerX,
+                double left,
+                double width,
+              })
+            >[];
         for (final label in labels) {
           final painter = TextPainter(
             text: TextSpan(text: label.label, style: textStyle),
@@ -896,60 +903,75 @@ class _FixedXAxisLabels extends StatelessWidget {
           final left = (x - labelWidth / 2)
               .clamp(0.0, math.max(0.0, constraints.maxWidth - labelWidth))
               .toDouble();
-          measuredLabels.add((label: label, left: left, width: labelWidth));
+          measuredLabels.add((
+            label: label,
+            centerX: x,
+            left: left,
+            width: labelWidth,
+          ));
         }
 
-        final positionedLabels = _positionXAxisLabels(measuredLabels);
+        final shouldTilt = !_canFitOneLine(measuredLabels);
         return Stack(
           clipBehavior: Clip.none,
-          children: positionedLabels.map((item) {
-            return Positioned(
-              left: item.left,
-              top: item.top,
-              width: item.width,
-              child: Text(
-                item.label.label,
-                maxLines: 1,
-                overflow: TextOverflow.visible,
-                textAlign: TextAlign.center,
-                style: textStyle,
-              ),
-            );
-          }).toList(),
+          children: shouldTilt
+              ? measuredLabels.map((item) {
+                  const slotWidth = 48.0;
+                  final left = (item.centerX - slotWidth / 2)
+                      .clamp(
+                        0.0,
+                        math.max(0.0, constraints.maxWidth - slotWidth),
+                      )
+                      .toDouble();
+                  return Positioned(
+                    left: left,
+                    top: 4,
+                    width: slotWidth,
+                    child: Transform.rotate(
+                      angle: -math.pi / 4,
+                      alignment: Alignment.topCenter,
+                      child: Text(
+                        item.label.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.visible,
+                        textAlign: TextAlign.center,
+                        style: textStyle,
+                      ),
+                    ),
+                  );
+                }).toList()
+              : measuredLabels.map((item) {
+                  return Positioned(
+                    left: item.left,
+                    top: 8,
+                    width: item.width,
+                    child: Text(
+                      item.label.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.visible,
+                      textAlign: TextAlign.center,
+                      style: textStyle,
+                    ),
+                  );
+                }).toList(),
         );
       },
     );
   }
 
-  List<({_TrendXAxisLabel label, double left, double width, double top})>
-  _positionXAxisLabels(
-    List<({_TrendXAxisLabel label, double left, double width})> labels,
+  bool _canFitOneLine(
+    List<({_TrendXAxisLabel label, double centerX, double left, double width})>
+    labels,
   ) {
     const minGap = 4.0;
-    const rowTops = <double>[5, 18];
-    final rowRightEdges = <double>[-double.maxFinite, -double.maxFinite];
-    final positioned =
-        <({_TrendXAxisLabel label, double left, double width, double top})>[];
-
+    var rightEdge = -double.maxFinite;
     for (final item in labels) {
-      final left = item.left;
-      final row = left >= rowRightEdges[0] + minGap
-          ? 0
-          : left >= rowRightEdges[1] + minGap
-          ? 1
-          : rowRightEdges[0] <= rowRightEdges[1]
-          ? 0
-          : 1;
-      rowRightEdges[row] = left + item.width;
-      positioned.add((
-        label: item.label,
-        left: item.left,
-        width: item.width,
-        top: rowTops[row],
-      ));
+      if (item.left < rightEdge + minGap) {
+        return false;
+      }
+      rightEdge = item.left + item.width;
     }
-
-    return positioned..sort((a, b) => a.label.index.compareTo(b.label.index));
+    return true;
   }
 }
 
