@@ -1,24 +1,33 @@
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:tronskins_app/api/market.dart';
+import 'package:tronskins_app/api/system.dart';
 import 'package:tronskins_app/api/model/market/market_models.dart';
+import 'package:tronskins_app/api/model/systemModel.dart';
 import 'package:tronskins_app/common/http/http_helper.dart';
 import 'package:tronskins_app/common/hooks/game/global_game_controller.dart';
 import 'package:tronskins_app/common/logging/app_logger.dart';
+import 'package:tronskins_app/common/storage/server_storage.dart';
 
 class HomeController extends GetxController {
   final ApiMarketServer _api = ApiMarketServer();
+  final ApiSystemServer _systemApi = ApiSystemServer();
   final GlobalGameController _globalGameController =
       GlobalGameController.ensureInstance();
+  static const String _noticeCloseKey = 'app_notify_close';
   static const int _latestPageSize = 10;
   static const int _hotPageSize = 20;
 
   final RxInt appId = 730.obs;
   final RxList<MarketItemEntity> latestItems = <MarketItemEntity>[].obs;
   final RxList<MarketItemEntity> hotItems = <MarketItemEntity>[].obs;
+  final Rxn<SystemNoticeEntity> systemNotice = Rxn<SystemNoticeEntity>();
   final RxBool isLoadingLatest = false.obs;
   final RxBool isLoadingHot = false.obs;
+  final RxBool systemNoticeVisible = false.obs;
   Worker? _gameWorker;
+  Worker? _serverWorker;
 
   int _latestPage = 1;
   int _hotPage = 1;
@@ -39,12 +48,17 @@ class HomeController extends GetxController {
       appId.value = nextAppId;
       refreshAll();
     });
+    _serverWorker = ever<int>(ServerStorage.changeToken, (_) {
+      fetchSystemNotice();
+    });
+    fetchSystemNotice();
     refreshAll();
   }
 
   @override
   void onClose() {
     _gameWorker?.dispose();
+    _serverWorker?.dispose();
     super.onClose();
   }
 
@@ -54,6 +68,36 @@ class HomeController extends GetxController {
 
   Future<void> changeGame(int newAppId) async {
     await _globalGameController.switchGame(newAppId);
+  }
+
+  Future<void> fetchSystemNotice() async {
+    try {
+      final res = await _systemApi.getSystemNotice();
+      final notice = res.datas;
+      if (!res.success || notice == null || !_hasNoticeText(notice)) {
+        systemNotice.value = null;
+        systemNoticeVisible.value = false;
+        return;
+      }
+      systemNotice.value = notice;
+      systemNoticeVisible.value = _shouldShowNotice(notice);
+    } catch (error, stackTrace) {
+      AppLogger.errorLog(
+        'HOME',
+        'Failed to fetch system notice.',
+        scope: 'NOTICE',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Future<void> dismissSystemNotice() async {
+    systemNoticeVisible.value = false;
+    await GetStorage().write(
+      _noticeCloseKey,
+      DateTime.now().millisecondsSinceEpoch,
+    );
   }
 
   Future<void> fetchLatest({bool reset = false}) async {
@@ -169,5 +213,32 @@ class HomeController extends GetxController {
     return type == DioExceptionType.connectionError ||
         type == DioExceptionType.connectionTimeout ||
         type == DioExceptionType.receiveTimeout;
+  }
+
+  bool _hasNoticeText(SystemNoticeEntity notice) {
+    return notice.content?.trim().isNotEmpty ?? false;
+  }
+
+  bool _shouldShowNotice(SystemNoticeEntity notice) {
+    final lastClosedAt = _timestampMillis(GetStorage().read(_noticeCloseKey));
+    if (lastClosedAt <= 0) {
+      return true;
+    }
+    final createdAt = _timestampMillis(notice.createTime);
+    if (createdAt <= 0) {
+      return false;
+    }
+    return createdAt > lastClosedAt;
+  }
+
+  int _timestampMillis(dynamic value) {
+    if (value == null) {
+      return 0;
+    }
+    final raw = value is num ? value.toInt() : int.tryParse(value.toString());
+    if (raw == null || raw <= 0) {
+      return 0;
+    }
+    return raw < 1000000000000 ? raw * 1000 : raw;
   }
 }

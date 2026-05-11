@@ -1,4 +1,5 @@
 import 'package:tronskins_app/api/model/entity/system/currency/currency_info_entity.dart';
+import 'package:tronskins_app/api/model/systemModel.dart';
 import 'package:tronskins_app/common/http/http_helper.dart';
 import 'package:tronskins_app/common/http/model/base_response.dart';
 
@@ -23,6 +24,15 @@ class ApiSystemServer {
       }
       return <CurrencyInfoEntity>[];
     });
+  }
+
+  Future<BaseHttpResponse<SystemNoticeEntity>> getSystemNotice() async {
+    final response = await http.get('api/public/notice/get');
+
+    return BaseHttpResponse.fromJson(
+      response.data as Map<String, dynamic>,
+      (json) => SystemNoticeEntity.fromJson(json as Map<String, dynamic>),
+    );
   }
 }
 

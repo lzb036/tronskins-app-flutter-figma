@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:tronskins_app/api/model/notify/notify_models.dart';
+import 'package:tronskins_app/api/model/systemModel.dart';
 import 'package:tronskins_app/components/game/game_switch_menu.dart';
 import 'package:tronskins_app/components/filter/filter_models.dart';
 import 'package:tronskins_app/components/filter/market_filter_sheet.dart';
@@ -324,6 +326,36 @@ class _HomePageState extends State<HomePage>
               ],
             ),
           ),
+          Obx(() {
+            final notice = controller.systemNotice.value;
+            final visible =
+                controller.systemNoticeVisible.value && notice != null;
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                return SizeTransition(
+                  sizeFactor: animation,
+                  axisAlignment: -1,
+                  child: FadeTransition(opacity: animation, child: child),
+                );
+              },
+              child: visible
+                  ? Padding(
+                      key: ValueKey<String>(
+                        notice.id ?? notice.title ?? 'home-notice',
+                      ),
+                      padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
+                      child: _HomeNoticeBanner(
+                        content: _plainNoticeContent(notice.content),
+                        onTap: () => _openSystemNotice(notice),
+                        onClose: controller.dismissSystemNotice,
+                      ),
+                    )
+                  : const SizedBox.shrink(key: ValueKey('home-notice-empty')),
+            );
+          }),
           Align(alignment: Alignment.centerLeft, child: _buildHomeTabBar()),
         ],
       ),
@@ -380,6 +412,32 @@ class _HomePageState extends State<HomePage>
       hintText: 'app.market.filter.search'.tr,
       onTap: _openSearchPage,
     );
+  }
+
+  void _openSystemNotice(SystemNoticeEntity notice) {
+    Get.toNamed(
+      Routers.NOTICE_DETAIL,
+      arguments: NoticeMessageItem(
+        id: notice.id,
+        title: notice.title,
+        content: notice.content,
+        createName: notice.createName,
+        createTime: notice.createTime,
+        isRead: notice.isRead,
+      ),
+    );
+  }
+
+  String _plainNoticeContent(String? content) {
+    final source = content?.trim() ?? '';
+    if (source.isEmpty) {
+      return '';
+    }
+    return source
+        .replaceAll(RegExp(r'<[^>]+>'), ' ')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
   }
 
   Widget _buildGameSwitchTrigger() {
@@ -588,6 +646,278 @@ class _HomePageState extends State<HomePage>
         if (items.isNotEmpty && !isLoading && !hasMore)
           const SliverToBoxAdapter(child: ListEndTip()),
       ],
+    );
+  }
+}
+
+class _HomeNoticeBanner extends StatelessWidget {
+  const _HomeNoticeBanner({
+    required this.content,
+    required this.onTap,
+    required this.onClose,
+  });
+
+  final String content;
+  final VoidCallback onTap;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final noticeText = _noticeText;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(3),
+        gradient: const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [Color(0xFF36A3FF), Color(0xFF248AF0)],
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(3),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(3),
+          child: SizedBox(
+            height: 32,
+            child: Row(
+              children: [
+                const SizedBox(width: 9),
+                const Icon(
+                  Icons.volume_up_outlined,
+                  size: 17,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _NoticeTickerText(
+                    text: noticeText,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      height: 1.25,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                _NoticeIconButton(
+                  tooltip: 'app.common.close'.tr,
+                  onTap: onClose,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String get _noticeText {
+    return content;
+  }
+}
+
+class _NoticeTickerText extends StatefulWidget {
+  const _NoticeTickerText({required this.text, required this.style});
+
+  final String text;
+  final TextStyle style;
+
+  @override
+  State<_NoticeTickerText> createState() => _NoticeTickerTextState();
+}
+
+class _NoticeTickerTextState extends State<_NoticeTickerText>
+    with SingleTickerProviderStateMixin {
+  static const StrutStyle _strutStyle = StrutStyle(
+    fontSize: 13,
+    height: 1.25,
+    forceStrutHeight: true,
+  );
+
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this);
+  }
+
+  @override
+  void didUpdateWidget(covariant _NoticeTickerText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _controller
+        ..stop()
+        ..value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewportWidth = constraints.maxWidth;
+        final textWidth = _measureTextWidth(context);
+        if (!viewportWidth.isFinite || textWidth <= viewportWidth) {
+          _stopTicker();
+          return Text(
+            widget.text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            strutStyle: _strutStyle,
+            style: widget.style,
+          );
+        }
+
+        final loopGap = viewportWidth;
+        final loopDistance = textWidth + loopGap;
+        _startTicker(loopDistance);
+        return ShaderMask(
+          blendMode: BlendMode.dstIn,
+          shaderCallback: (bounds) {
+            return const LinearGradient(
+              colors: [
+                Colors.transparent,
+                Colors.white,
+                Colors.white,
+                Colors.transparent,
+              ],
+              stops: [0, 0.03, 0.95, 1],
+            ).createShader(bounds);
+          },
+          child: SizedBox(
+            height: 18,
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) {
+                return CustomPaint(
+                  size: Size(viewportWidth, 18),
+                  painter: _TickerTextPainter(
+                    text: widget.text,
+                    style: widget.style,
+                    strutStyle: _strutStyle,
+                    progress: _controller.value,
+                    loopDistance: loopDistance,
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _startTicker(double distance) {
+    final seconds = (distance / 18).clamp(5.0, 16.0);
+    final duration = Duration(milliseconds: (seconds * 1000).round());
+    if (_controller.duration != duration) {
+      _controller.duration = duration;
+    }
+    if (!_controller.isAnimating) {
+      _controller.repeat();
+    }
+  }
+
+  void _stopTicker() {
+    if (_controller.isAnimating || _controller.value != 0) {
+      _controller
+        ..stop()
+        ..value = 0;
+    }
+  }
+
+  double _measureTextWidth(BuildContext context) {
+    final painter = TextPainter(
+      text: TextSpan(text: widget.text, style: widget.style),
+      textDirection: Directionality.of(context),
+      maxLines: 1,
+      strutStyle: _strutStyle,
+    )..layout();
+    return painter.width;
+  }
+}
+
+class _TickerTextPainter extends CustomPainter {
+  const _TickerTextPainter({
+    required this.text,
+    required this.style,
+    required this.strutStyle,
+    required this.progress,
+    required this.loopDistance,
+  });
+
+  final String text;
+  final TextStyle style;
+  final StrutStyle strutStyle;
+  final double progress;
+  final double loopDistance;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+      strutStyle: strutStyle,
+    )..layout();
+    final offsetX = -loopDistance * progress;
+    final offsetY = (size.height - painter.height) / 2;
+
+    canvas.save();
+    canvas.clipRect(Offset.zero & size);
+    painter.paint(canvas, Offset(offsetX, offsetY));
+    painter.paint(canvas, Offset(offsetX + loopDistance, offsetY));
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _TickerTextPainter oldDelegate) {
+    return oldDelegate.text != text ||
+        oldDelegate.style != style ||
+        oldDelegate.progress != progress ||
+        oldDelegate.loopDistance != loopDistance;
+  }
+}
+
+class _NoticeIconButton extends StatelessWidget {
+  const _NoticeIconButton({required this.tooltip, required this.onTap});
+
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkResponse(
+          onTap: onTap,
+          radius: 15,
+          highlightShape: BoxShape.circle,
+          child: SizedBox(
+            width: 30,
+            height: 32,
+            child: Icon(
+              Icons.close_rounded,
+              size: 17,
+              color: Colors.white.withValues(alpha: 0.82),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
