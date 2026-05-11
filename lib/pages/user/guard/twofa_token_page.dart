@@ -587,16 +587,13 @@ class _TwoFaBindDialog extends StatefulWidget {
 class _TwoFaBindDialogState extends State<_TwoFaBindDialog> {
   static const Color _brandColor = Color(0xFF1E40AF);
   static const Color _brandDark = Color(0xFF3B82F6);
-  static const Color _footerAccentColor = Color(0xFF0058BE);
   static const Color _surfaceColor = Colors.white;
   static const Color _surfaceMuted = Color(0xFFF2F4F6);
   static const Color _surfaceStrong = Color(0xFFE6E8EA);
-  static const Color _footerTrackColor = Color(0xFFECEEF0);
-  static const Color _strokeColor = Color(0x33C4C5D5);
   static const Color _titleColor = Color(0xFF191C1E);
   static const Color _bodyColor = Color(0xFF444653);
   static const Color _labelColor = Color(0xFF757684);
-  static const Color _hintColor = Color(0x80757684);
+  static const Color _hintColor = Color(0xFFB6BBC2);
   static const Color _dangerColor = Color(0xFFE25555);
 
   final TextEditingController _codeController = TextEditingController();
@@ -691,7 +688,9 @@ class _TwoFaBindDialogState extends State<_TwoFaBindDialog> {
     return error == null;
   }
 
-  String get _dialogTitle => 'app.user.guard.text'.tr;
+  String get _dialogTitle => '2FA';
+
+  String get _emailLabel => 'app.user.guard.email_address'.tr;
 
   String get _sectionLabel => 'app.user.guard.verification_code'.tr;
 
@@ -761,251 +760,249 @@ class _TwoFaBindDialogState extends State<_TwoFaBindDialog> {
       }
     }
 
+    final showCodeError = _codeTouched && _codeError != null;
+
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 372),
+      constraints: const BoxConstraints(maxWidth: 292),
       child: Material(
         color: Colors.transparent,
         child: Container(
           decoration: BoxDecoration(
             color: _surfaceColor,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(18),
             boxShadow: const [
               BoxShadow(
-                color: Color.fromRGBO(0, 0, 0, 0.25),
-                blurRadius: 50,
-                offset: Offset(0, 25),
-                spreadRadius: -12,
+                color: Color.fromRGBO(15, 23, 42, 0.18),
+                blurRadius: 34,
+                offset: Offset(0, 18),
+                spreadRadius: -8,
               ),
             ],
           ),
           clipBehavior: Clip.antiAlias,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      _dialogTitle,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: _titleColor,
-                        fontSize: 24,
-                        height: 32 / 24,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      widget.email,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: _bodyColor,
-                        fontSize: 16,
-                        height: 26 / 16,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    Text(
-                      _sectionLabel,
-                      style: const TextStyle(
-                        color: _labelColor,
-                        fontSize: 14,
-                        height: 20 / 14,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      height: 58,
-                      decoration: BoxDecoration(
-                        color: _surfaceMuted,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: _strokeColor),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _codeController,
-                              onChanged: _onCodeChanged,
-                              keyboardType: TextInputType.number,
-                              textAlignVertical: TextAlignVertical.center,
-                              style: const TextStyle(
-                                color: _titleColor,
-                                fontSize: 14,
-                                height: 20 / 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: _codeHintText,
-                                hintStyle: const TextStyle(
-                                  color: _hintColor,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 18,
-                                ),
-                              ),
-                            ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 26),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  _dialogTitle,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: _titleColor,
+                    fontSize: 16,
+                    height: 24 / 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 30),
+                Text(
+                  _emailLabel,
+                  style: const TextStyle(
+                    color: _labelColor,
+                    fontSize: 10,
+                    height: 14 / 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 9),
+                Container(
+                  height: 48,
+                  padding: const EdgeInsets.only(left: 14, right: 6),
+                  decoration: BoxDecoration(
+                    color: _surfaceMuted,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.email,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _bodyColor,
+                            fontSize: 13,
+                            height: 18 / 13,
+                            fontWeight: FontWeight.w800,
                           ),
-                          SizedBox(
-                            width: 72,
-                            height: 58,
-                            child: FilledButton(
-                              onPressed: canSendCaptcha ? sendCaptcha : null,
-                              style: FilledButton.styleFrom(
-                                backgroundColor: _brandColor,
-                                disabledBackgroundColor: const Color(
-                                  0xFF8AA9F2,
-                                ),
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                padding: EdgeInsets.zero,
-                                minimumSize: Size.zero,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: Radius.circular(4),
-                                    bottomLeft: Radius.circular(4),
-                                    topRight: Radius.circular(8),
-                                    bottomRight: Radius.circular(8),
-                                  ),
-                                ),
-                              ),
-                              child: Text(
-                                sendLabel,
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  height: 16 / 15,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                    if (_codeTouched && _codeError != null) ...[
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.error_outline_rounded,
-                            size: 15,
-                            color: _dangerColor,
+                      const SizedBox(width: 8),
+                      TextButton(
+                        onPressed: canSendCaptcha ? sendCaptcha : null,
+                        style: TextButton.styleFrom(
+                          foregroundColor: _brandColor,
+                          disabledForegroundColor: _labelColor,
+                          minimumSize: const Size(46, 34),
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Text(
+                          sendLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            height: 16 / 12,
+                            fontWeight: FontWeight.w800,
                           ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              _codeError!,
-                              style: const TextStyle(
-                                color: _dangerColor,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                height: 16 / 12,
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ],
-                    const SizedBox(height: 32),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [_brandColor, _brandDark],
-                        ),
-                        borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  _sectionLabel,
+                  style: const TextStyle(
+                    color: _labelColor,
+                    fontSize: 10,
+                    height: 14 / 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 9),
+                Container(
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: _surfaceStrong,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: TextField(
+                    controller: _codeController,
+                    onChanged: _onCodeChanged,
+                    keyboardType: TextInputType.number,
+                    textAlignVertical: TextAlignVertical.center,
+                    style: const TextStyle(
+                      color: _titleColor,
+                      fontSize: 14,
+                      height: 20 / 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: _codeHintText,
+                      hintStyle: const TextStyle(
+                        color: _hintColor,
+                        fontSize: 13,
+                        height: 18 / 13,
+                        fontWeight: FontWeight.w600,
                       ),
-                      child: FilledButton(
-                        onPressed: _isSyncing ? null : confirmSync,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          disabledBackgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          foregroundColor: Colors.white,
-                          disabledForegroundColor: Colors.white,
-                          elevation: 0,
-                          minimumSize: const Size.fromHeight(48),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 15,
+                      ),
+                    ),
+                  ),
+                ),
+                if (showCodeError) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        size: 15,
+                        color: _dangerColor,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          _codeError!,
+                          style: const TextStyle(
+                            color: _dangerColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            height: 16 / 12,
                           ),
                         ),
-                        child: _isSyncing
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.4,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Text(
-                                _syncNowLabel,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  height: 24 / 16,
-                                ),
-                              ),
+                      ),
+                    ],
+                  ),
+                ],
+                SizedBox(height: showCodeError ? 20 : 26),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [_brandColor, _brandDark],
+                    ),
+                    borderRadius: BorderRadius.circular(6),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color.fromRGBO(37, 99, 235, 0.24),
+                        blurRadius: 16,
+                        offset: Offset(0, 8),
+                        spreadRadius: -6,
+                      ),
+                    ],
+                  ),
+                  child: FilledButton(
+                    onPressed: _isSyncing ? null : confirmSync,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      disabledBackgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      disabledForegroundColor: Colors.white,
+                      elevation: 0,
+                      minimumSize: const Size.fromHeight(45),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: _isSyncing
-                          ? null
-                          : () => Navigator.of(context).maybePop(),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: _surfaceStrong,
-                        foregroundColor: _bodyColor,
-                        minimumSize: const Size.fromHeight(48),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'app.common.cancel'.tr,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          height: 24 / 16,
-                        ),
-                      ),
-                    ),
-                  ],
+                    child: _isSyncing
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(
+                            _syncNowLabel,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              height: 20 / 15,
+                            ),
+                          ),
+                  ),
                 ),
-              ),
-              SizedBox(
-                height: 4,
-                child: Row(
-                  children: const [
-                    Expanded(child: ColoredBox(color: _footerAccentColor)),
-                    Expanded(
-                      flex: 3,
-                      child: ColoredBox(color: _footerTrackColor),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: _isSyncing
+                      ? null
+                      : () => Navigator.of(context).maybePop(),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _surfaceStrong,
+                    foregroundColor: _bodyColor,
+                    disabledBackgroundColor: _surfaceStrong,
+                    disabledForegroundColor: _labelColor,
+                    minimumSize: const Size.fromHeight(45),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                  ],
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'app.common.cancel'.tr,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      height: 20 / 15,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

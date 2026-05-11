@@ -786,6 +786,7 @@ const Map<String, Map<String, String>> _twoFaTokenMessages = {
     'app.user.guard.delete_token_title': 'Delete 2FA Token',
     'app.user.guard.delete_token_message':
         'After deletion, this device can no longer generate codes for this token.',
+    'app.user.guard.email_address': 'EMAIL ADDRESS',
     'app.user.guard.verification_code': 'Verification Code',
     'app.user.guard.enter_verification_code': 'Enter verification code',
     'app.user.guard.sync_now': 'Sync Now',
@@ -798,6 +799,7 @@ const Map<String, Map<String, String>> _twoFaTokenMessages = {
     'app.user.guard.token_refresh_tip': '令牌每30秒刷新一次。请确保设备时间已同步，以便准确生成。',
     'app.user.guard.delete_token_title': '删除 2FA 条目',
     'app.user.guard.delete_token_message': '删除后，此设备将无法继续生成该条目的验证码。',
+    'app.user.guard.email_address': '邮箱地址',
     'app.user.guard.verification_code': '验证码',
     'app.user.guard.enter_verification_code': '请输入验证码',
     'app.user.guard.sync_now': '立即同步',
@@ -810,6 +812,7 @@ const Map<String, Map<String, String>> _twoFaTokenMessages = {
     'app.user.guard.token_refresh_tip': '權杖每30秒刷新一次。請確保裝置時間已同步，以便準確生成。',
     'app.user.guard.delete_token_title': '刪除 2FA 條目',
     'app.user.guard.delete_token_message': '刪除後，此裝置將無法繼續生成該條目的驗證碼。',
+    'app.user.guard.email_address': '電子郵件地址',
     'app.user.guard.verification_code': '驗證碼',
     'app.user.guard.enter_verification_code': '請輸入驗證碼',
     'app.user.guard.sync_now': '立即同步',
