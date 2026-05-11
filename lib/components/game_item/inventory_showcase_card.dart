@@ -121,17 +121,26 @@ class InventoryShowcaseCard extends StatelessWidget {
     final rarityLabel = rarity?.label?.trim();
     final isNonTradable = item.tradable == false;
     final statusLabel = disabledLabel?.trim();
+    final shouldInlineOnSaleStatus =
+        item.status == 1 && statusLabel != null && statusLabel.isNotEmpty;
     final nonTradableRibbonLabel = isNonTradable
         ? (statusLabel != null && statusLabel.isNotEmpty
               ? statusLabel
               : 'app.trade.non_tradable'.tr)
         : null;
-    final topLeftStatusLabel = isNonTradable ? null : statusLabel;
+    final topLeftStatusLabel = isNonTradable || shouldInlineOnSaleStatus
+        ? null
+        : statusLabel;
     final hasNonTradableRibbon =
         nonTradableRibbonLabel != null && nonTradableRibbonLabel.isNotEmpty;
     final hasCornerRibbon =
         hasNonTradableRibbon || (showQualityRibbon && quality != null);
     final cooldownLabel = _resolveCooldownLabel(item, asset);
+    final trailingStatusLabel =
+        cooldownLabel ?? (shouldInlineOnSaleStatus ? statusLabel : null);
+    final trailingStatusColor = cooldownLabel != null
+        ? const Color(0xFF2563EB)
+        : _statusBadgeColor();
     final shouldShowOnSaleBadge =
         showOnSaleBadge && (item.status == 1 || item.status == 2);
     final price = _resolveDisplayPrice(
@@ -419,17 +428,17 @@ class InventoryShowcaseCard extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              if (cooldownLabel != null &&
-                                  cooldownLabel.isNotEmpty) ...[
+                              if (trailingStatusLabel != null &&
+                                  trailingStatusLabel.isNotEmpty) ...[
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
-                                    cooldownLabel,
+                                    trailingStatusLabel,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     textAlign: TextAlign.right,
-                                    style: const TextStyle(
-                                      color: Color(0xFF2563EB),
+                                    style: TextStyle(
+                                      color: trailingStatusColor,
                                       fontSize: 9,
                                       height: 12 / 9,
                                       fontWeight: FontWeight.w800,

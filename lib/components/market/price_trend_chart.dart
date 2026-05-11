@@ -7,13 +7,14 @@ import 'package:intl/intl.dart' show DateFormat;
 import 'package:tronskins_app/api/model/market/market_models.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 
-const Color _trendSlate100 = Color(0xFFF1F5F9);
-const Color _trendSlate200 = Color(0xFFE2E8F0);
 const Color _trendSlate300 = Color(0xFFCBD5E1);
-const Color _trendSlate500 = Color(0xFF64748B);
 const Color _trendSlate900 = Color(0xFF0F172A);
-const Color _trendBlue700 = Color(0xFF1E40AF);
-const Color _trendBlue500 = Color(0xFF3B82F6);
+const Color _trendWebLine = Color(0xFF00B4CC);
+const Color _trendWebAxis = Color(0xFFB0B0B0);
+const Color _trendWebSplitLine = Color(0xFF2A3B4D);
+const Color _trendLabel = Color(0xFF64748B);
+const Color _trendTooltip = Color(0xFFFFFFFF);
+const Color _trendTooltipBorder = Color(0xFFE2E8F0);
 const double _trendChartTopPadding = 14;
 const double _trendBottomTitlesReservedHeight = 34;
 const double _trendMinLeftAxisWidth = 28;
@@ -41,17 +42,13 @@ class PriceTrendChart extends StatefulWidget {
 }
 
 class _PriceTrendChartState extends State<PriceTrendChart> {
-  final ScrollController _scrollController = ScrollController();
   late String _pointSignature;
   int? _selectedSpotIndex;
-  bool _pendingResetScrollPosition = false;
-  bool _pendingScrollAnimated = false;
 
   @override
   void initState() {
     super.initState();
     _pointSignature = _buildPointSignature(widget.points);
-    _queueScrollToStart(animated: false);
   }
 
   @override
@@ -61,14 +58,7 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
     if (nextSignature != _pointSignature) {
       _pointSignature = nextSignature;
       _selectedSpotIndex = null;
-      _queueScrollToStart(animated: true);
     }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
   }
 
   @override
@@ -93,15 +83,12 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
       times.add(_toDateTime(sorted[i].time));
     }
 
-    final yAxisMetrics = _calculateYAxisMetrics(
-      convertedPrices,
-      currencyCode: currency.code,
-    );
+    final yAxisMetrics = _calculateYAxisMetrics(convertedPrices);
     final displayMin = yAxisMetrics.min;
     final displayMax = yAxisMetrics.max;
     final leftInterval = yAxisMetrics.interval;
     final axisDateFormat = DateFormat('yyyy-MM-dd');
-    final subtitleColor = isDark ? _trendSlate300 : _trendSlate500;
+    final subtitleColor = isDark ? _trendSlate300 : _trendLabel;
     final int? selectedSpotIndex =
         _selectedSpotIndex != null && _selectedSpotIndex! < spots.length
         ? _selectedSpotIndex
@@ -111,14 +98,10 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
       showingIndicators: selectedSpotIndex == null
           ? const <int>[]
           : <int>[selectedSpotIndex],
-      gradient: const LinearGradient(
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-        colors: <Color>[_trendBlue700, _trendBlue500],
-      ),
-      barWidth: 3,
+      color: _trendWebLine,
+      barWidth: 2.6,
       isCurved: spots.length > 2,
-      curveSmoothness: 0.24,
+      curveSmoothness: 0.2,
       preventCurveOverShooting: true,
       isStrokeCapRound: true,
       isStrokeJoinRound: true,
@@ -126,28 +109,17 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
         show: true,
         checkToShowDot: (spot, barData) => true,
         getDotPainter: (spot, percent, barData, index) {
-          final dotRadius = _resolveDotRadius(spots.length);
+          final isSelected = spot.x.round() == selectedSpotIndex;
+          final dotRadius = isSelected ? 4.8 : 3.2;
           return FlDotCirclePainter(
             radius: dotRadius,
-            color: _trendBlue500,
+            color: _trendWebLine,
             strokeColor: isDark ? _trendSlate900 : Colors.white,
-            strokeWidth: math.max(1.2, dotRadius * 0.55),
+            strokeWidth: isSelected ? 2.4 : 1.8,
           );
         },
       ),
-      belowBarData: BarAreaData(
-        show: true,
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            _trendBlue500.withValues(alpha: 0.22),
-            _trendBlue700.withValues(alpha: 0.10),
-            _trendBlue700.withValues(alpha: 0.00),
-          ],
-          stops: const <double>[0.0, 0.45, 1.0],
-        ),
-      ),
+      belowBarData: BarAreaData(show: false),
     );
     final showingTooltipIndicators = selectedSpotIndex == null
         ? const <ShowingTooltipIndicators>[]
@@ -173,217 +145,276 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
           context,
           values: yAxisValues,
           style: axisLabelStyle,
-          labelBuilder: (value) =>
-              _formatAxisPrice(value, currency, interval: leftInterval),
+          labelBuilder: (value) => _formatAxisPrice(value, currency),
         );
         final plotViewportWidth = math.max(
           0.0,
           constraints.maxWidth - leftAxisWidth,
         );
-        final chartWidth = _resolveChartWidth(
-          pointCount: spots.length,
-          viewportWidth: plotViewportWidth,
-        );
+        final chartWidth = plotViewportWidth;
         final labelIndices = _buildLabelIndices(
           length: times.length,
           chartWidth: chartWidth,
         );
         final bottomInterval = _resolveBottomInterval(labelIndices);
-        final shouldScroll = chartWidth > plotViewportWidth + 1;
 
-        if (_pendingResetScrollPosition) {
-          _pendingResetScrollPosition = false;
-          _scheduleScrollToOffset(0.0, animated: _pendingScrollAnimated);
-        }
-
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(
-              width: leftAxisWidth,
-              child: Padding(
-                padding: const EdgeInsets.only(top: _trendChartTopPadding),
-                child: Column(
+        return ColoredBox(
+          color: isDark ? _trendSlate900 : Colors.white,
+          child: Column(
+            children: [
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(
-                      child: _FixedYAxisLabels(
-                        values: yAxisValues,
-                        minY: displayMin,
-                        maxY: displayMax,
-                        labelBuilder: (value) => _formatAxisPrice(
-                          value,
-                          currency,
-                          interval: leftInterval,
+                    SizedBox(
+                      width: leftAxisWidth,
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          top: _trendChartTopPadding,
                         ),
-                        subtitleColor: subtitleColor,
-                        textStyle: axisLabelStyle,
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: _FixedYAxisLabels(
+                                values: yAxisValues,
+                                minY: displayMin,
+                                maxY: displayMax,
+                                labelBuilder: (value) =>
+                                    _formatAxisPrice(value, currency),
+                                subtitleColor: subtitleColor,
+                                textStyle: axisLabelStyle,
+                              ),
+                            ),
+                            const SizedBox(
+                              height: _trendBottomTitlesReservedHeight,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: _trendBottomTitlesReservedHeight),
+                    Expanded(
+                      child: SizedBox(
+                        width: chartWidth,
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            top: _trendChartTopPadding,
+                          ),
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              LineChart(
+                                LineChartData(
+                                  minX: 0,
+                                  maxX: spots.isEmpty ? 0 : spots.last.x,
+                                  minY: displayMin,
+                                  maxY: displayMax,
+                                  showingTooltipIndicators:
+                                      showingTooltipIndicators,
+                                  clipData: const FlClipData(
+                                    top: true,
+                                    bottom: true,
+                                    left: false,
+                                    right: false,
+                                  ),
+                                  gridData: FlGridData(
+                                    show: true,
+                                    drawVerticalLine: false,
+                                    horizontalInterval: leftInterval,
+                                    getDrawingHorizontalLine: (value) => FlLine(
+                                      color: isDark
+                                          ? Colors.white.withValues(alpha: 0.08)
+                                          : _trendWebSplitLine,
+                                      strokeWidth: 1,
+                                    ),
+                                  ),
+                                  borderData: FlBorderData(
+                                    show: true,
+                                    border: Border(
+                                      left: BorderSide(
+                                        color: isDark
+                                            ? Colors.white.withValues(
+                                                alpha: 0.14,
+                                              )
+                                            : _trendWebAxis,
+                                        width: 1,
+                                      ),
+                                      bottom: BorderSide(
+                                        color: isDark
+                                            ? Colors.white.withValues(
+                                                alpha: 0.14,
+                                              )
+                                            : _trendWebAxis,
+                                        width: 1,
+                                      ),
+                                    ),
+                                  ),
+                                  titlesData: FlTitlesData(
+                                    topTitles: const AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
+                                    rightTitles: const AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
+                                    leftTitles: const AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
+                                    bottomTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        reservedSize:
+                                            _trendBottomTitlesReservedHeight,
+                                        interval: bottomInterval,
+                                        getTitlesWidget: (value, meta) {
+                                          final index = value.round();
+                                          if (index < 0 ||
+                                              index >= times.length ||
+                                              !labelIndices.contains(index)) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          final label = axisDateFormat.format(
+                                            times[index],
+                                          );
+                                          final edgeOffset =
+                                              _resolveBottomLabelOffset(
+                                                index: index,
+                                                totalCount: times.length,
+                                              );
+                                          return SideTitleWidget(
+                                            axisSide: meta.axisSide,
+                                            space: 8,
+                                            child: Transform.translate(
+                                              offset: Offset(edgeOffset, 0),
+                                              child: Text(
+                                                label,
+                                                style: axisLabelStyle,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  lineBarsData: [lineBarData],
+                                  lineTouchData: LineTouchData(
+                                    handleBuiltInTouches: false,
+                                    touchSpotThreshold: 22,
+                                    touchCallback: _handleChartTap,
+                                    touchTooltipData: LineTouchTooltipData(
+                                      tooltipRoundedRadius: 2,
+                                      tooltipPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 10,
+                                          ),
+                                      tooltipMargin: 14,
+                                      maxContentWidth: 210,
+                                      fitInsideHorizontally: true,
+                                      fitInsideVertically: true,
+                                      tooltipBgColor: isDark
+                                          ? _trendSlate900
+                                          : _trendTooltip,
+                                      tooltipBorder: BorderSide(
+                                        color: isDark
+                                            ? Colors.white.withValues(
+                                                alpha: 0.08,
+                                              )
+                                            : _trendTooltipBorder,
+                                      ),
+                                      getTooltipItems: (items) {
+                                        return items.map((item) {
+                                          final date = DateFormat(
+                                            'yyyy-MM-dd HH:mm:ss',
+                                          ).format(times[item.spotIndex]);
+                                          return LineTooltipItem(
+                                            '',
+                                            TextStyle(
+                                              color: isDark
+                                                  ? Colors.white
+                                                  : _trendSlate900,
+                                              fontSize: 12,
+                                              height: 1.55,
+                                            ),
+                                            textAlign: TextAlign.left,
+                                            children: [
+                                              const TextSpan(
+                                                text: '● ',
+                                                style: TextStyle(
+                                                  color: _trendWebLine,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                              TextSpan(
+                                                text: _formatConvertedPrice(
+                                                  item.y,
+                                                  currency,
+                                                ),
+                                                style: TextStyle(
+                                                  color: isDark
+                                                      ? Colors.white
+                                                      : _trendSlate900,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                              TextSpan(
+                                                text: '\n$date',
+                                                style: TextStyle(
+                                                  color: subtitleColor,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        }).toList();
+                                      },
+                                    ),
+                                    getTouchedSpotIndicator:
+                                        (barData, spotIndexes) {
+                                          return spotIndexes.map((index) {
+                                            return TouchedSpotIndicatorData(
+                                              FlLine(
+                                                color: isDark
+                                                    ? Colors.white.withValues(
+                                                        alpha: 0.18,
+                                                      )
+                                                    : _trendWebAxis,
+                                                strokeWidth: 1,
+                                              ),
+                                              FlDotData(
+                                                show: true,
+                                                getDotPainter:
+                                                    (
+                                                      spot,
+                                                      percent,
+                                                      data,
+                                                      spotIndex,
+                                                    ) {
+                                                      return FlDotCirclePainter(
+                                                        radius: 4.8,
+                                                        color: _trendWebLine,
+                                                        strokeColor: isDark
+                                                            ? _trendSlate900
+                                                            : Colors.white,
+                                                        strokeWidth: 2.4,
+                                                      );
+                                                    },
+                                              ),
+                                            );
+                                          }).toList();
+                                        },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ),
-            Expanded(
-              child: Scrollbar(
-                controller: _scrollController,
-                thumbVisibility: shouldScroll,
-                interactive: shouldScroll,
-                notificationPredicate: (notification) =>
-                    notification.metrics.axis == Axis.horizontal,
-                child: SingleChildScrollView(
-                  controller: _scrollController,
-                  scrollDirection: Axis.horizontal,
-                  physics: shouldScroll
-                      ? const BouncingScrollPhysics()
-                      : const NeverScrollableScrollPhysics(),
-                  child: SizedBox(
-                    width: chartWidth,
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                        top: _trendChartTopPadding,
-                      ),
-                      child: LineChart(
-                        LineChartData(
-                          minX: 0,
-                          maxX: spots.isEmpty ? 0 : spots.last.x,
-                          minY: displayMin,
-                          maxY: displayMax,
-                          showingTooltipIndicators: showingTooltipIndicators,
-                          clipData: const FlClipData(
-                            top: true,
-                            bottom: true,
-                            left: false,
-                            right: false,
-                          ),
-                          gridData: FlGridData(
-                            show: true,
-                            drawVerticalLine: false,
-                            horizontalInterval: leftInterval,
-                            getDrawingHorizontalLine: (value) => FlLine(
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.08)
-                                  : _trendSlate100,
-                              strokeWidth: 1,
-                            ),
-                          ),
-                          borderData: FlBorderData(show: false),
-                          titlesData: FlTitlesData(
-                            topTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            rightTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            leftTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                reservedSize: _trendBottomTitlesReservedHeight,
-                                interval: bottomInterval,
-                                getTitlesWidget: (value, meta) {
-                                  final index = value.round();
-                                  if (index < 0 ||
-                                      index >= times.length ||
-                                      !labelIndices.contains(index)) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  final label = axisDateFormat.format(
-                                    times[index],
-                                  );
-                                  final edgeOffset = _resolveBottomLabelOffset(
-                                    index: index,
-                                    totalCount: times.length,
-                                  );
-                                  return SideTitleWidget(
-                                    axisSide: meta.axisSide,
-                                    space: 8,
-                                    child: Transform.translate(
-                                      offset: Offset(edgeOffset, 0),
-                                      child: Text(label, style: axisLabelStyle),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                          lineBarsData: [lineBarData],
-                          lineTouchData: LineTouchData(
-                            handleBuiltInTouches: false,
-                            touchSpotThreshold: 22,
-                            touchCallback: _handleChartTap,
-                            touchTooltipData: LineTouchTooltipData(
-                              tooltipRoundedRadius: 16,
-                              tooltipPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 10,
-                              ),
-                              tooltipMargin: 14,
-                              fitInsideHorizontally: true,
-                              fitInsideVertically: true,
-                              tooltipBgColor: isDark
-                                  ? _trendSlate900
-                                  : Colors.white,
-                              tooltipBorder: BorderSide(
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.08)
-                                    : _trendSlate200,
-                              ),
-                              getTooltipItems: (items) {
-                                return items.map((item) {
-                                  final date = DateFormat(
-                                    'yyyy-MM-dd',
-                                  ).format(times[item.spotIndex]);
-                                  return LineTooltipItem(
-                                    '$date\n${_formatConvertedPrice(item.y, currency)}',
-                                    TextStyle(
-                                      color: isDark
-                                          ? Colors.white
-                                          : _trendSlate900,
-                                      fontWeight: FontWeight.w700,
-                                      height: 1.5,
-                                    ),
-                                  );
-                                }).toList();
-                              },
-                            ),
-                            getTouchedSpotIndicator: (barData, spotIndexes) {
-                              return spotIndexes.map((index) {
-                                return TouchedSpotIndicatorData(
-                                  FlLine(
-                                    color: _trendBlue500.withValues(
-                                      alpha: 0.24,
-                                    ),
-                                    strokeWidth: 1.2,
-                                  ),
-                                  FlDotData(
-                                    show: true,
-                                    getDotPainter:
-                                        (spot, percent, data, spotIndex) {
-                                          return FlDotCirclePainter(
-                                            radius: 5.4,
-                                            color: _trendBlue500,
-                                            strokeColor: isDark
-                                                ? _trendSlate900
-                                                : Colors.white,
-                                            strokeWidth: 2.8,
-                                          );
-                                        },
-                                  ),
-                                );
-                              }).toList();
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -403,54 +434,6 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
 
     setState(() {
       _selectedSpotIndex = _selectedSpotIndex == spotIndex ? null : spotIndex;
-    });
-  }
-
-  void _queueScrollToStart({required bool animated}) {
-    _pendingResetScrollPosition = true;
-    _pendingScrollAnimated = animated;
-  }
-
-  void _scheduleScrollToOffset(
-    double targetOffset, {
-    required bool animated,
-    int retries = 6,
-  }) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-
-      if (!_scrollController.hasClients) {
-        if (retries > 0) {
-          _scheduleScrollToOffset(
-            targetOffset,
-            animated: animated,
-            retries: retries - 1,
-          );
-        }
-        return;
-      }
-
-      final position = _scrollController.position;
-      final target = targetOffset.clamp(
-        position.minScrollExtent,
-        position.maxScrollExtent,
-      );
-      if ((position.pixels - target).abs() < 1) {
-        return;
-      }
-
-      if (animated && position.haveDimensions) {
-        _scrollController.animateTo(
-          target,
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-        );
-        return;
-      }
-
-      _scrollController.jumpTo(target);
     });
   }
 
@@ -481,7 +464,7 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
     }
 
     final usableWidth = math.max(0.0, chartWidth - 32);
-    final desiredLabels = (usableWidth / 104).floor().clamp(2, length);
+    final desiredLabels = (usableWidth / 84).floor().clamp(2, length);
     if (desiredLabels >= length) {
       return List<int>.generate(length, (index) => index).toSet();
     }
@@ -489,7 +472,7 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
     final indices = <int>{0, length - 1};
     final step = math.max(
       1,
-      ((length - 1) / math.max(desiredLabels - 1, 1)).round(),
+      ((length - 1) / math.max(desiredLabels - 1, 1)).ceil(),
     );
     for (var index = step; index < length - 1; index += step) {
       indices.add(index);
@@ -510,44 +493,12 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
     required int totalCount,
   }) {
     if (index == 0) {
-      return 26;
+      return 14;
     }
     if (index == totalCount - 1) {
-      return -30;
+      return -16;
     }
     return 0;
-  }
-
-  double _resolveChartWidth({
-    required int pointCount,
-    required double viewportWidth,
-  }) {
-    if (pointCount <= 1) {
-      return viewportWidth;
-    }
-
-    final pointSpacing = math.max(
-      _resolvePointSpacing(pointCount),
-      _resolveLabelSpacing(pointCount),
-    );
-    final contentWidth = (pointCount - 1) * pointSpacing;
-    return math.max(viewportWidth, contentWidth);
-  }
-
-  List<double> _buildYAxisValues({
-    required double min,
-    required double max,
-    required double interval,
-  }) {
-    if (interval <= 0 || max <= min) {
-      return <double>[min, max];
-    }
-
-    final stepCount = ((max - min) / interval).round();
-    return List<double>.generate(
-      stepCount + 1,
-      (index) => _normalizeAxisValue(min + interval * index),
-    );
   }
 
   double _measureLeftAxisWidth(
@@ -579,105 +530,29 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
         .toDouble();
   }
 
-  double _resolvePointSpacing(int pointCount) {
-    if (pointCount <= 7) {
-      return 68;
-    }
-    if (pointCount <= 14) {
-      return 54;
-    }
-    if (pointCount <= 30) {
-      return 34;
-    }
-    if (pointCount <= 90) {
-      return 22;
-    }
-    if (pointCount <= 180) {
-      return 16;
-    }
-    return 12;
-  }
-
-  double _resolveLabelSpacing(int pointCount) {
-    if (pointCount <= 7) {
-      return 88;
-    }
-    if (pointCount <= 30) {
-      return 72;
-    }
-    if (pointCount <= 90) {
-      return 56;
-    }
-    if (pointCount <= 180) {
-      return 42;
-    }
-    return 32;
-  }
-
-  double _resolveDotRadius(int pointCount) {
-    if (pointCount <= 7) {
-      return 4.0;
-    }
-    if (pointCount <= 30) {
-      return 3.2;
-    }
-    if (pointCount <= 90) {
-      return 2.4;
-    }
-    return 1.8;
-  }
-
-  _TrendYAxisMetrics _calculateYAxisMetrics(
-    List<double> values, {
-    required String currencyCode,
-  }) {
-    final minimumStep = _minimumYAxisStepForCode(currencyCode);
+  _TrendYAxisMetrics _calculateYAxisMetrics(List<double> values) {
     if (values.isEmpty) {
-      return _TrendYAxisMetrics(
-        min: 0,
-        max: minimumStep * 4,
-        interval: minimumStep,
-      );
+      return const _TrendYAxisMetrics(min: 0, max: 1, interval: 1);
     }
 
     final minValue = values.reduce(math.min);
     final maxValue = values.reduce(math.max);
-    final delta = maxValue - minValue;
+    final priceRange = maxValue - minValue;
 
-    if (delta.abs() < 1e-9) {
-      final center = maxValue;
-      final interval = center == 0
-          ? minimumStep
-          : math.max(
-              minimumStep,
-              _niceNumber(center.abs() * 0.15, round: true),
-            );
-      final min = center <= 0 ? 0.0 : math.max(0.0, center - interval * 2);
-      final max = math.max(interval * 4, center + interval * 2);
+    if (priceRange.abs() < 1e-9) {
       return _TrendYAxisMetrics(
-        min: _normalizeAxisValue(min),
-        max: _normalizeAxisValue(max),
-        interval: _normalizeAxisValue(interval),
+        min: _normalizeAxisValue(minValue - 1),
+        max: _normalizeAxisValue(maxValue + 1),
+        interval: 1,
       );
     }
 
-    final padding = math.max(delta * 0.15, minimumStep * 0.5);
-    final rawMin = math.max(0.0, minValue - padding);
-    final rawMax = maxValue + padding;
-    final interval = math.max(
-      minimumStep,
-      _niceNumber((rawMax - rawMin) / 4, round: true),
-    );
-    final min = rawMin <= 0
-        ? 0.0
-        : (rawMin / interval).floorToDouble() * interval;
-    var max = (rawMax / interval).ceilToDouble() * interval;
-    if (max <= min) {
-      max = min + interval * 4;
-    }
-    if ((max - min) / interval < 3) {
-      max = min + interval * 4;
-    }
+    final rangeWithPadding = priceRange * 1.2;
+    final padding = (rangeWithPadding - priceRange) / 2;
+    final min = math.max(0.0, minValue - padding);
+    final max = maxValue + padding;
+    final interval = _calculateWebNiceInterval(rangeWithPadding / 5);
+
     return _TrendYAxisMetrics(
       min: _normalizeAxisValue(min),
       max: _normalizeAxisValue(max),
@@ -685,46 +560,46 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
     );
   }
 
-  double _minimumYAxisStepForCode(String currencyCode) {
-    const zeroDecimalCurrencies = <String>{'JPY', 'KRW', 'VND', 'IDR'};
-    if (zeroDecimalCurrencies.contains(currencyCode)) {
+  double _calculateWebNiceInterval(double rawInterval) {
+    if (!rawInterval.isFinite || rawInterval <= 0) {
       return 1;
     }
-    return 0.01;
+
+    final magnitude = math
+        .pow(10, (math.log(rawInterval) / math.ln10).floor())
+        .toDouble();
+    final normalized = rawInterval / magnitude;
+
+    if (normalized < 1.5) {
+      return 1 * magnitude;
+    }
+    if (normalized < 3) {
+      return 2 * magnitude;
+    }
+    if (normalized < 7) {
+      return 5 * magnitude;
+    }
+    return 10 * magnitude;
   }
 
-  double _niceNumber(double value, {required bool round}) {
-    if (!value.isFinite || value <= 0) {
-      return 1;
+  List<double> _buildYAxisValues({
+    required double min,
+    required double max,
+    required double interval,
+  }) {
+    if (interval <= 0 || max <= min) {
+      return <double>[min, max];
     }
 
-    final exponent = math.pow(10, (math.log(value) / math.ln10).floor());
-    final fraction = value / exponent;
-
-    late final double niceFraction;
-    if (round) {
-      if (fraction < 1.5) {
-        niceFraction = 1;
-      } else if (fraction < 3) {
-        niceFraction = 2;
-      } else if (fraction < 7) {
-        niceFraction = 5;
-      } else {
-        niceFraction = 10;
-      }
-    } else {
-      if (fraction <= 1) {
-        niceFraction = 1;
-      } else if (fraction <= 2) {
-        niceFraction = 2;
-      } else if (fraction <= 5) {
-        niceFraction = 5;
-      } else {
-        niceFraction = 10;
-      }
+    final values = <double>[];
+    for (var value = min; value <= max + interval * 0.5; value += interval) {
+      values.add(_normalizeAxisValue(value));
+    }
+    if (values.isEmpty || (values.last - max).abs() > 1e-6) {
+      values.add(_normalizeAxisValue(max));
     }
 
-    return niceFraction * exponent;
+    return values;
   }
 
   double _normalizeAxisValue(double value) {
@@ -735,63 +610,12 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
     return usdAmount * currency.currentRate;
   }
 
-  String _formatAxisPrice(
-    double value,
-    CurrencyController currency, {
-    required double interval,
-  }) {
-    final digits = _axisFractionDigitsForInterval(interval, currency.code);
-    return '${currency.symbol}${value.toStringAsFixed(digits)}';
+  String _formatAxisPrice(double value, CurrencyController currency) {
+    return '${currency.symbol}${value.toStringAsFixed(2)}';
   }
 
   String _formatConvertedPrice(double amount, CurrencyController currency) {
-    final digits = _fractionDigitsForValue(
-      amount,
-      currencyCode: currency.code,
-      compact: true,
-    );
-    return '${currency.symbol} ${amount.toStringAsFixed(digits)}';
-  }
-
-  int _axisFractionDigitsForInterval(double interval, String currencyCode) {
-    const zeroDecimalCurrencies = <String>{'JPY', 'KRW', 'VND', 'IDR'};
-    if (zeroDecimalCurrencies.contains(currencyCode)) {
-      return 0;
-    }
-
-    if (!interval.isFinite || interval <= 0) {
-      return 2;
-    }
-
-    if (interval >= 1) {
-      return 2;
-    }
-
-    final digits = (-math.log(interval) / math.ln10).ceil();
-    return digits.clamp(2, 4);
-  }
-
-  int _fractionDigitsForValue(
-    double value, {
-    required String currencyCode,
-    required bool compact,
-  }) {
-    const zeroDecimalCurrencies = <String>{'JPY', 'KRW', 'VND', 'IDR'};
-    if (zeroDecimalCurrencies.contains(currencyCode)) {
-      return 0;
-    }
-
-    final absValue = value.abs();
-    if (absValue >= 1) {
-      return 2;
-    }
-    if (absValue >= 0.1) {
-      return compact ? 2 : 3;
-    }
-    if (absValue >= 0.01) {
-      return compact ? 3 : 4;
-    }
-    return compact ? 4 : 5;
+    return '${currency.symbol}${amount.toStringAsFixed(2)}';
   }
 }
 

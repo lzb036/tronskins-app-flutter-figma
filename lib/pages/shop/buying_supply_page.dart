@@ -16,6 +16,7 @@ import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 import 'package:tronskins_app/components/layout/list_end_tip.dart';
+import 'package:tronskins_app/pages/shop/buying_supply_matcher.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
 class BuyingSupplyPage extends StatefulWidget {
@@ -116,16 +117,51 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
     return res.datas;
   }
 
-  bool _hasNextInventoryPage(InventoryResponse data, int loadedCount) {
-    final total = data.total ?? data.pager?.total;
-    if (total != null && total > 0) {
-      return loadedCount < total;
-    }
+  bool _hasNextInventoryPage(InventoryResponse data, int currentPage) {
     if (data.items.isEmpty) {
       return false;
     }
+    final total = data.total ?? data.pager?.total;
     final pageSize = data.pager?.pageSize ?? _inventoryPageSize;
+    if (total != null && total > 0) {
+      return currentPage * pageSize < total;
+    }
     return data.items.length >= pageSize;
+  }
+
+  Future<_SupplyInventoryBatch> _fetchMatchingInventoryBatch(
+    int startPage,
+  ) async {
+    var page = startPage;
+    var hasMore = false;
+    final matchedItems = <InventoryItem>[];
+    final schemas = <String, ShopSchemaInfo>{};
+
+    while (true) {
+      final data = await _fetchInventoryPage(page);
+      if (data == null) {
+        return _SupplyInventoryBatch(
+          items: matchedItems,
+          schemas: schemas,
+          nextPage: page,
+          hasMore: false,
+        );
+      }
+
+      schemas.addAll(data.schemas);
+      matchedItems.addAll(filterSupplyInventoryItems(_request, data.items));
+      hasMore = _hasNextInventoryPage(data, page);
+      final nextPage = page + 1;
+      if (matchedItems.isNotEmpty || !hasMore) {
+        return _SupplyInventoryBatch(
+          items: matchedItems,
+          schemas: schemas,
+          nextPage: nextPage,
+          hasMore: hasMore,
+        );
+      }
+      page = nextPage;
+    }
   }
 
   Future<void> _refresh() async {
@@ -140,18 +176,18 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
       }
     });
     try {
-      final data = await _fetchInventoryPage(1);
+      final batch = await _fetchMatchingInventoryBatch(1);
       if (!mounted) {
         return;
       }
       setState(() {
         _items
           ..clear()
-          ..addAll(data?.items ?? const <InventoryItem>[]);
-        _schemas.addAll(data?.schemas ?? const {});
+          ..addAll(batch.items);
+        _schemas.addAll(batch.schemas);
         _selectedIds.clear();
-        _hasMore = data != null && _hasNextInventoryPage(data, _items.length);
-        _page = _hasMore ? 2 : 1;
+        _hasMore = batch.hasMore;
+        _page = batch.nextPage;
         _hasLoadedOnce = true;
       });
     } finally {
@@ -178,21 +214,15 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
     }
     setState(() => _isLoading = true);
     try {
-      final data = await _fetchInventoryPage(_page);
+      final batch = await _fetchMatchingInventoryBatch(_page);
       if (!mounted) {
         return;
       }
       setState(() {
-        if (data == null || data.items.isEmpty) {
-          _hasMore = false;
-        } else {
-          _items.addAll(data.items);
-          _hasMore = _hasNextInventoryPage(data, _items.length);
-          if (_hasMore) {
-            _page += 1;
-          }
-        }
-        _schemas.addAll(data?.schemas ?? const {});
+        _items.addAll(batch.items);
+        _hasMore = batch.hasMore;
+        _page = batch.nextPage;
+        _schemas.addAll(batch.schemas);
         _hasLoadedOnce = true;
       });
     } finally {
@@ -225,7 +255,10 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
         (item.coolingDown ?? false) || (item.cooldown?.isNotEmpty == true);
     final isTradable = item.tradable ?? true;
     final inSupply = item.status == 2;
-    return isTradable && !isCooling && !inSupply;
+    return isTradable &&
+        !isCooling &&
+        !inSupply &&
+        matchesBuyRequestSupplyConstraints(_request, item);
   }
 
   void _toggleSelection(InventoryItem item) {
@@ -246,6 +279,10 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
     }
     if (item.status == 2) {
       AppSnackbar.info('app.inventory.in_supply'.tr);
+      return;
+    }
+    if (!matchesBuyRequestSupplyConstraints(_request, item)) {
+      AppSnackbar.info('app.trade.filter.failed'.tr);
       return;
     }
     if (!_selectedIds.contains(id) && _maxNeed > 0) {
@@ -307,6 +344,18 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
     }
     if (_maxNeed > 0 && _selectedIds.length > _maxNeed) {
       AppSnackbar.info('app.trade.supply.message.more_than_needed'.tr);
+      return;
+    }
+    final selectedItems = _items.where(
+      (item) => item.id != null && _selectedIds.contains(item.id),
+    );
+    if (selectedItems.length != _selectedIds.length ||
+        !selectedItems.every((item) => _isSelectable(item))) {
+      _selectedIds.removeWhere(
+        (id) => !_items.any((item) => item.id == id && _isSelectable(item)),
+      );
+      AppSnackbar.info('app.trade.filter.failed'.tr);
+      setState(() {});
       return;
     }
     final currency = Get.find<CurrencyController>();
@@ -708,6 +757,20 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
     }
     return const SizedBox(height: 4);
   }
+}
+
+class _SupplyInventoryBatch {
+  const _SupplyInventoryBatch({
+    required this.items,
+    required this.schemas,
+    required this.nextPage,
+    required this.hasMore,
+  });
+
+  final List<InventoryItem> items;
+  final Map<String, ShopSchemaInfo> schemas;
+  final int nextPage;
+  final bool hasMore;
 }
 
 class _SupplyPalette {

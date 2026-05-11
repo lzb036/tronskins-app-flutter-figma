@@ -101,7 +101,7 @@ class MarketDetailController extends GetxController {
     ]);
   }
 
-  Future<void> loadTrend({bool reset = false, int days = 30}) async {
+  Future<void> loadTrend({bool reset = false, int days = 7}) async {
     if (isLoadingTrend.value) {
       return;
     }

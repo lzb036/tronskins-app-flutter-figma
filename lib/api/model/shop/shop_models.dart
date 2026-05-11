@@ -356,8 +356,9 @@ class ShopPager {
 
   factory ShopPager.fromJson(Map<String, dynamic> json) {
     return ShopPager(
-      page: _asInt(json['page']) ?? 1,
-      pageSize: _asInt(json['pageSize']) ?? 10,
+      page: _asInt(json['page'] ?? json['current'] ?? json['currentPage']) ?? 1,
+      pageSize:
+          _asInt(json['pageSize'] ?? json['page_size'] ?? json['rp']) ?? 10,
       total: _asInt(json['total']) ?? 0,
     );
   }

@@ -66,7 +66,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   final ApiShopProductServer _shopProductApi = ApiShopProductServer();
   late final TabController _tabController;
   int _currentTabIndex = 0;
-  int _selectedDays = 30;
+  int _selectedDays = 7;
   MarketTemplateDetail? _templateDetail;
   bool _loadingTemplate = false;
   List<_WearOption> _wearOptions = <_WearOption>[];
