@@ -61,8 +61,11 @@ class ShopOrderDetailPage extends StatelessWidget {
         : <ShopOrderItem>[order];
     final totalPrice = _sumOrdersPrice(displayOrders);
     final totalItemCount = _countOrderItems(displayOrders);
-    final feeAmount = isPendingFlow ? null : _extractFeeAmount(order);
-    final incomeAmount = isPendingFlow
+    final showDealAmountOnly = !isPendingFlow && args.fromPurchaseRecord;
+    final feeAmount = isPendingFlow || showDealAmountOnly
+        ? null
+        : _extractFeeAmount(order);
+    final incomeAmount = isPendingFlow || showDealAmountOnly
         ? null
         : _extractIncomeAmount(
             order: order,
@@ -3020,6 +3023,7 @@ class _ShopOrderDetailArgs {
     this.stickers = const {},
     this.disableOrderActions = false,
     this.fromDeliveryGoodsDrawer = false,
+    this.fromPurchaseRecord = false,
   });
 
   final ShopOrderItem? order;
@@ -3030,6 +3034,7 @@ class _ShopOrderDetailArgs {
   final Map<String, dynamic> stickers;
   final bool disableOrderActions;
   final bool fromDeliveryGoodsDrawer;
+  final bool fromPurchaseRecord;
 
   factory _ShopOrderDetailArgs.fromDynamic(dynamic raw) {
     if (raw is! Map) {
@@ -3045,6 +3050,7 @@ class _ShopOrderDetailArgs {
       stickers: _parseStickers(raw['stickers']),
       disableOrderActions: _parseBool(raw['disableOrderActions']),
       fromDeliveryGoodsDrawer: _parseBool(raw['fromDeliveryGoodsDrawer']),
+      fromPurchaseRecord: _parseBool(raw['fromPurchaseRecord']),
     );
   }
 

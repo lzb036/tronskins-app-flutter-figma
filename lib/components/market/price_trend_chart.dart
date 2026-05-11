@@ -19,6 +19,7 @@ const double _trendChartTopPadding = 14;
 const double _trendBottomTitlesReservedHeight = 34;
 const double _trendMinLeftAxisWidth = 28;
 const double _trendMaxLeftAxisWidth = 44;
+const double _trendMinHorizontalDomainPadding = 0.45;
 const int _trendMaxVisibleDotCount = 7;
 
 class _TrendYAxisMetrics {
@@ -31,6 +32,13 @@ class _TrendYAxisMetrics {
   final double min;
   final double max;
   final double interval;
+}
+
+class _TrendXAxisLabel {
+  const _TrendXAxisLabel({required this.index, required this.label});
+
+  final int index;
+  final String label;
 }
 
 class PriceTrendChart extends StatefulWidget {
@@ -91,7 +99,8 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
     final displayMin = yAxisMetrics.min;
     final displayMax = yAxisMetrics.max;
     final leftInterval = yAxisMetrics.interval;
-    final axisDateFormat = DateFormat('yyyy-MM-dd');
+    final xAxisDateFormat = DateFormat('MM-dd');
+    final xAxisYearLabel = _buildXAxisYearLabel(times);
     final subtitleColor = isDark ? _trendSlate300 : _trendBuffText;
     final int? selectedSpotIndex =
         _selectedSpotIndex != null && _selectedSpotIndex! < spots.length
@@ -162,11 +171,18 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
           constraints.maxWidth - leftAxisWidth,
         );
         final chartWidth = plotViewportWidth;
-        final labelIndices = _buildLabelIndices(
-          length: times.length,
-          chartWidth: chartWidth,
+        final horizontalDomainPadding = _resolveHorizontalDomainPadding(
+          spots.length,
         );
-        final bottomInterval = _resolveBottomInterval(labelIndices);
+        final chartMinX = -horizontalDomainPadding;
+        final chartMaxX = spots.isEmpty
+            ? horizontalDomainPadding
+            : spots.last.x + horizontalDomainPadding;
+        final xAxisLabels = _buildXAxisLabels(
+          times: times,
+          formatter: xAxisDateFormat,
+          visibleDotIndices: visibleDotIndices,
+        );
 
         return ColoredBox(
           color: isDark ? _trendSlate900 : Colors.white,
@@ -215,209 +231,220 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
                           child: Stack(
                             clipBehavior: Clip.none,
                             children: [
-                              LineChart(
-                                LineChartData(
-                                  minX: 0,
-                                  maxX: spots.isEmpty ? 0 : spots.last.x,
-                                  minY: displayMin,
-                                  maxY: displayMax,
-                                  showingTooltipIndicators:
-                                      showingTooltipIndicators,
-                                  clipData: const FlClipData(
-                                    top: true,
-                                    bottom: true,
-                                    left: false,
-                                    right: false,
-                                  ),
-                                  gridData: FlGridData(
-                                    show: true,
-                                    drawVerticalLine: false,
-                                    horizontalInterval: leftInterval,
-                                    getDrawingHorizontalLine: (value) => FlLine(
-                                      color: isDark
-                                          ? Colors.white.withValues(alpha: 0.08)
-                                          : _trendBuffGrid,
-                                      strokeWidth: 1,
+                              Positioned.fill(
+                                bottom: _trendBottomTitlesReservedHeight,
+                                child: LineChart(
+                                  LineChartData(
+                                    minX: chartMinX,
+                                    maxX: chartMaxX,
+                                    minY: displayMin,
+                                    maxY: displayMax,
+                                    showingTooltipIndicators:
+                                        showingTooltipIndicators,
+                                    clipData: const FlClipData(
+                                      top: true,
+                                      bottom: true,
+                                      left: false,
+                                      right: false,
                                     ),
-                                  ),
-                                  borderData: FlBorderData(
-                                    show: true,
-                                    border: Border(
-                                      left: BorderSide(
-                                        color: isDark
-                                            ? Colors.white.withValues(
-                                                alpha: 0.14,
-                                              )
-                                            : _trendBuffAxis,
-                                        width: 1,
-                                      ),
-                                      bottom: BorderSide(
-                                        color: isDark
-                                            ? Colors.white.withValues(
-                                                alpha: 0.14,
-                                              )
-                                            : _trendBuffAxis,
-                                        width: 1,
-                                      ),
-                                    ),
-                                  ),
-                                  titlesData: FlTitlesData(
-                                    topTitles: const AxisTitles(
-                                      sideTitles: SideTitles(showTitles: false),
-                                    ),
-                                    rightTitles: const AxisTitles(
-                                      sideTitles: SideTitles(showTitles: false),
-                                    ),
-                                    leftTitles: const AxisTitles(
-                                      sideTitles: SideTitles(showTitles: false),
-                                    ),
-                                    bottomTitles: AxisTitles(
-                                      sideTitles: SideTitles(
-                                        showTitles: true,
-                                        reservedSize:
-                                            _trendBottomTitlesReservedHeight,
-                                        interval: bottomInterval,
-                                        getTitlesWidget: (value, meta) {
-                                          final index = value.round();
-                                          if (index < 0 ||
-                                              index >= times.length ||
-                                              !labelIndices.contains(index)) {
-                                            return const SizedBox.shrink();
-                                          }
-                                          final label = axisDateFormat.format(
-                                            times[index],
-                                          );
-                                          final edgeOffset =
-                                              _resolveBottomLabelOffset(
-                                                index: index,
-                                                totalCount: times.length,
-                                              );
-                                          return SideTitleWidget(
-                                            axisSide: meta.axisSide,
-                                            space: 8,
-                                            child: Transform.translate(
-                                              offset: Offset(edgeOffset, 0),
-                                              child: Text(
-                                                label,
-                                                style: axisLabelStyle,
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                  lineBarsData: [lineBarData],
-                                  lineTouchData: LineTouchData(
-                                    handleBuiltInTouches: false,
-                                    touchSpotThreshold: 22,
-                                    touchCallback: _handleChartTap,
-                                    touchTooltipData: LineTouchTooltipData(
-                                      tooltipRoundedRadius: 2,
-                                      tooltipPadding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 10,
+                                    gridData: FlGridData(
+                                      show: true,
+                                      drawVerticalLine: false,
+                                      horizontalInterval: leftInterval,
+                                      getDrawingHorizontalLine: (value) =>
+                                          FlLine(
+                                            color: isDark
+                                                ? Colors.white.withValues(
+                                                    alpha: 0.08,
+                                                  )
+                                                : _trendBuffGrid,
+                                            strokeWidth: 1,
                                           ),
-                                      tooltipMargin: 14,
-                                      maxContentWidth: 210,
-                                      fitInsideHorizontally: true,
-                                      fitInsideVertically: true,
-                                      tooltipBgColor: isDark
-                                          ? _trendSlate900
-                                          : _trendBuffTooltip.withValues(
-                                              alpha: 0.94,
-                                            ),
-                                      tooltipBorder: BorderSide(
-                                        color: isDark
-                                            ? Colors.white.withValues(
-                                                alpha: 0.08,
-                                              )
-                                            : _trendBuffTooltipBorder,
-                                      ),
-                                      getTooltipItems: (items) {
-                                        return items.map((item) {
-                                          final date = DateFormat(
-                                            'yyyy-MM-dd',
-                                          ).format(times[item.spotIndex]);
-                                          return LineTooltipItem(
-                                            '',
-                                            TextStyle(
-                                              color: isDark
-                                                  ? Colors.white
-                                                  : _trendSlate900,
-                                              fontSize: 12,
-                                              height: 1.55,
-                                            ),
-                                            textAlign: TextAlign.left,
-                                            children: [
-                                              const TextSpan(
-                                                text: '● ',
-                                                style: TextStyle(
-                                                  color: _trendBuffBlue,
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                              ),
-                                              TextSpan(
-                                                text: _formatConvertedPrice(
-                                                  item.y,
-                                                  currency,
-                                                ),
-                                                style: TextStyle(
-                                                  color: isDark
-                                                      ? Colors.white
-                                                      : _trendSlate900,
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                              ),
-                                              TextSpan(
-                                                text: '\n$date',
-                                                style: TextStyle(
-                                                  color: subtitleColor,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                            ],
-                                          );
-                                        }).toList();
-                                      },
                                     ),
-                                    getTouchedSpotIndicator:
-                                        (barData, spotIndexes) {
-                                          return spotIndexes.map((index) {
-                                            return TouchedSpotIndicatorData(
-                                              FlLine(
+                                    borderData: FlBorderData(
+                                      show: true,
+                                      border: Border(
+                                        left: BorderSide(
+                                          color: isDark
+                                              ? Colors.white.withValues(
+                                                  alpha: 0.14,
+                                                )
+                                              : _trendBuffAxis,
+                                          width: 1,
+                                        ),
+                                        bottom: BorderSide(
+                                          color: isDark
+                                              ? Colors.white.withValues(
+                                                  alpha: 0.14,
+                                                )
+                                              : _trendBuffAxis,
+                                          width: 1,
+                                        ),
+                                      ),
+                                    ),
+                                    titlesData: const FlTitlesData(
+                                      topTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: false,
+                                        ),
+                                      ),
+                                      rightTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: false,
+                                        ),
+                                      ),
+                                      leftTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: false,
+                                        ),
+                                      ),
+                                      bottomTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: false,
+                                        ),
+                                      ),
+                                    ),
+                                    lineBarsData: [lineBarData],
+                                    lineTouchData: LineTouchData(
+                                      handleBuiltInTouches: false,
+                                      touchSpotThreshold: 22,
+                                      touchCallback: _handleChartTap,
+                                      touchTooltipData: LineTouchTooltipData(
+                                        tooltipRoundedRadius: 2,
+                                        tooltipPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 10,
+                                            ),
+                                        tooltipMargin: 14,
+                                        maxContentWidth: 210,
+                                        fitInsideHorizontally: true,
+                                        fitInsideVertically: true,
+                                        tooltipBgColor: isDark
+                                            ? _trendSlate900
+                                            : _trendBuffTooltip.withValues(
+                                                alpha: 0.94,
+                                              ),
+                                        tooltipBorder: BorderSide(
+                                          color: isDark
+                                              ? Colors.white.withValues(
+                                                  alpha: 0.08,
+                                                )
+                                              : _trendBuffTooltipBorder,
+                                        ),
+                                        getTooltipItems: (items) {
+                                          return items.map((item) {
+                                            final date = DateFormat(
+                                              'yyyy-MM-dd',
+                                            ).format(times[item.spotIndex]);
+                                            return LineTooltipItem(
+                                              '',
+                                              TextStyle(
                                                 color: isDark
-                                                    ? Colors.white.withValues(
-                                                        alpha: 0.18,
-                                                      )
-                                                    : _trendBuffAxis,
-                                                strokeWidth: 1,
+                                                    ? Colors.white
+                                                    : _trendSlate900,
+                                                fontSize: 12,
+                                                height: 1.55,
                                               ),
-                                              FlDotData(
-                                                show: true,
-                                                getDotPainter:
-                                                    (
-                                                      spot,
-                                                      percent,
-                                                      data,
-                                                      spotIndex,
-                                                    ) {
-                                                      return FlDotCirclePainter(
-                                                        radius: 5.4,
-                                                        color: _trendBuffBlue,
-                                                        strokeColor: isDark
-                                                            ? _trendSlate900
-                                                            : Colors.white,
-                                                        strokeWidth: 2.8,
-                                                      );
-                                                    },
-                                              ),
+                                              textAlign: TextAlign.left,
+                                              children: [
+                                                const TextSpan(
+                                                  text: '● ',
+                                                  style: TextStyle(
+                                                    color: _trendBuffBlue,
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                                TextSpan(
+                                                  text: _formatConvertedPrice(
+                                                    item.y,
+                                                    currency,
+                                                  ),
+                                                  style: TextStyle(
+                                                    color: isDark
+                                                        ? Colors.white
+                                                        : _trendSlate900,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                                TextSpan(
+                                                  text: '\n$date',
+                                                  style: TextStyle(
+                                                    color: subtitleColor,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
                                             );
                                           }).toList();
                                         },
+                                      ),
+                                      getTouchedSpotIndicator:
+                                          (barData, spotIndexes) {
+                                            return spotIndexes.map((index) {
+                                              return TouchedSpotIndicatorData(
+                                                FlLine(
+                                                  color: isDark
+                                                      ? Colors.white.withValues(
+                                                          alpha: 0.18,
+                                                        )
+                                                      : _trendBuffAxis,
+                                                  strokeWidth: 1,
+                                                ),
+                                                FlDotData(
+                                                  show: true,
+                                                  getDotPainter:
+                                                      (
+                                                        spot,
+                                                        percent,
+                                                        data,
+                                                        spotIndex,
+                                                      ) {
+                                                        return FlDotCirclePainter(
+                                                          radius: 5.4,
+                                                          color: _trendBuffBlue,
+                                                          strokeColor: isDark
+                                                              ? _trendSlate900
+                                                              : Colors.white,
+                                                          strokeWidth: 2.8,
+                                                        );
+                                                      },
+                                                ),
+                                              );
+                                            }).toList();
+                                          },
+                                    ),
                                   ),
+                                ),
+                              ),
+                              Positioned(
+                                top: 14,
+                                right: 14,
+                                child: IgnorePointer(
+                                  child: Text(
+                                    xAxisYearLabel,
+                                    maxLines: 1,
+                                    style: TextStyle(
+                                      color: subtitleColor.withValues(
+                                        alpha: 0.72,
+                                      ),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                height: _trendBottomTitlesReservedHeight,
+                                child: _FixedXAxisLabels(
+                                  labels: xAxisLabels,
+                                  minX: chartMinX,
+                                  maxX: chartMaxX,
+                                  textStyle: axisLabelStyle,
                                 ),
                               ),
                             ],
@@ -467,53 +494,52 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
     return DateTime.fromMillisecondsSinceEpoch(timestamp);
   }
 
-  Set<int> _buildLabelIndices({
-    required int length,
-    required double chartWidth,
-  }) {
-    if (length <= 0) {
-      return const <int>{};
-    }
-    if (length <= 2) {
-      return List<int>.generate(length, (index) => index).toSet();
+  String _buildXAxisYearLabel(List<DateTime> times) {
+    if (times.isEmpty) {
+      return '';
     }
 
-    final usableWidth = math.max(0.0, chartWidth - 32);
-    final desiredLabels = (usableWidth / 84).floor().clamp(2, length);
-    if (desiredLabels >= length) {
-      return List<int>.generate(length, (index) => index).toSet();
+    final firstYear = times.first.year;
+    final lastYear = times.last.year;
+    if (firstYear == lastYear) {
+      return '$firstYear';
     }
-
-    final indices = <int>{0, length - 1};
-    final step = math.max(
-      1,
-      ((length - 1) / math.max(desiredLabels - 1, 1)).ceil(),
-    );
-    for (var index = step; index < length - 1; index += step) {
-      indices.add(index);
-    }
-    return indices;
+    return '$firstYear-$lastYear';
   }
 
-  double _resolveBottomInterval(Set<int> indices) {
-    if (indices.length <= 1) {
-      return 1;
+  List<_TrendXAxisLabel> _buildXAxisLabels({
+    required List<DateTime> times,
+    required DateFormat formatter,
+    required Set<int> visibleDotIndices,
+  }) {
+    if (times.isEmpty || visibleDotIndices.isEmpty) {
+      return const <_TrendXAxisLabel>[];
     }
-    final ordered = indices.toList()..sort();
-    return math.max(1, ordered[1] - ordered[0]).toDouble();
+
+    final labels = <_TrendXAxisLabel>[];
+    final seenLabels = <String>{};
+    final orderedIndices = visibleDotIndices.toList()..sort();
+
+    for (final index in orderedIndices) {
+      if (index < 0 || index >= times.length) {
+        continue;
+      }
+      final label = formatter.format(times[index]);
+      if (seenLabels.add(label)) {
+        labels.add(_TrendXAxisLabel(index: index, label: label));
+      }
+    }
+
+    return labels;
   }
 
-  double _resolveBottomLabelOffset({
-    required int index,
-    required int totalCount,
-  }) {
-    if (index == 0) {
-      return 14;
+  double _resolveHorizontalDomainPadding(int pointCount) {
+    if (pointCount <= 1) {
+      return _trendMinHorizontalDomainPadding;
     }
-    if (index == totalCount - 1) {
-      return -16;
-    }
-    return 0;
+
+    final range = (pointCount - 1).toDouble();
+    return math.max(_trendMinHorizontalDomainPadding, range * 0.04);
   }
 
   Set<int> _buildVisibleDotIndices(List<FlSpot> spots) {
@@ -828,6 +854,102 @@ class _FixedYAxisLabels extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+class _FixedXAxisLabels extends StatelessWidget {
+  const _FixedXAxisLabels({
+    required this.labels,
+    required this.minX,
+    required this.maxX,
+    required this.textStyle,
+  });
+
+  final List<_TrendXAxisLabel> labels;
+  final double minX;
+  final double maxX;
+  final TextStyle textStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    if (labels.isEmpty || maxX <= minX) {
+      return const SizedBox.shrink();
+    }
+
+    final textDirection = Directionality.of(context);
+    final textScaler = MediaQuery.textScalerOf(context);
+    final xRange = maxX - minX;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final measuredLabels =
+            <({_TrendXAxisLabel label, double left, double width})>[];
+        for (final label in labels) {
+          final painter = TextPainter(
+            text: TextSpan(text: label.label, style: textStyle),
+            textDirection: textDirection,
+            textScaler: textScaler,
+            maxLines: 1,
+          )..layout();
+          final labelWidth = painter.width + 8;
+          final x = ((label.index - minX) / xRange) * constraints.maxWidth;
+          final left = (x - labelWidth / 2)
+              .clamp(0.0, math.max(0.0, constraints.maxWidth - labelWidth))
+              .toDouble();
+          measuredLabels.add((label: label, left: left, width: labelWidth));
+        }
+
+        final positionedLabels = _positionXAxisLabels(measuredLabels);
+        return Stack(
+          clipBehavior: Clip.none,
+          children: positionedLabels.map((item) {
+            return Positioned(
+              left: item.left,
+              top: item.top,
+              width: item.width,
+              child: Text(
+                item.label.label,
+                maxLines: 1,
+                overflow: TextOverflow.visible,
+                textAlign: TextAlign.center,
+                style: textStyle,
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  List<({_TrendXAxisLabel label, double left, double width, double top})>
+  _positionXAxisLabels(
+    List<({_TrendXAxisLabel label, double left, double width})> labels,
+  ) {
+    const minGap = 4.0;
+    const rowTops = <double>[5, 18];
+    final rowRightEdges = <double>[-double.maxFinite, -double.maxFinite];
+    final positioned =
+        <({_TrendXAxisLabel label, double left, double width, double top})>[];
+
+    for (final item in labels) {
+      final left = item.left;
+      final row = left >= rowRightEdges[0] + minGap
+          ? 0
+          : left >= rowRightEdges[1] + minGap
+          ? 1
+          : rowRightEdges[0] <= rowRightEdges[1]
+          ? 0
+          : 1;
+      rowRightEdges[row] = left + item.width;
+      positioned.add((
+        label: item.label,
+        left: item.left,
+        width: item.width,
+        top: rowTops[row],
+      ));
+    }
+
+    return positioned..sort((a, b) => a.label.index.compareTo(b.label.index));
   }
 }
 

@@ -693,6 +693,119 @@ class _ShopPageState extends State<ShopPage>
     return total;
   }
 
+  double _sellRecordActualIncome(ShopOrderItem record) {
+    final direct = _findDirectNumericValue(record.raw, const [
+      'real_price',
+      'realPrice',
+      'actual_income',
+      'actualIncome',
+      'income',
+      'seller_income',
+      'sellerIncome',
+      'real_income',
+      'realIncome',
+      'final_income',
+      'finalIncome',
+      'receivable',
+      'receivable_amount',
+      'receivableAmount',
+    ]);
+    if (direct != null) {
+      return direct;
+    }
+
+    final detailIncome = _sumDetailNumericValues(record.details, const [
+      'real_price',
+      'realPrice',
+      'actual_income',
+      'actualIncome',
+      'income',
+      'seller_income',
+      'sellerIncome',
+      'real_income',
+      'realIncome',
+      'final_income',
+      'finalIncome',
+      'receivable',
+      'receivable_amount',
+      'receivableAmount',
+    ]);
+    if (detailIncome != null) {
+      return detailIncome;
+    }
+
+    final totalPrice = _sumOrderPrice(record);
+    final fee = _findDirectNumericValue(record.raw, const [
+      'service_fee',
+      'serviceFee',
+      'fee',
+      'commission',
+      'commission_fee',
+      'commissionFee',
+      'charge_fee',
+      'chargeFee',
+      'tax',
+    ]);
+    if (fee != null) {
+      return totalPrice - fee;
+    }
+
+    final detailFee = _sumDetailNumericValues(record.details, const [
+      'service_fee',
+      'serviceFee',
+      'fee',
+      'commission',
+      'commission_fee',
+      'commissionFee',
+      'charge_fee',
+      'chargeFee',
+      'tax',
+    ]);
+    if (detailFee != null) {
+      return totalPrice - detailFee;
+    }
+
+    return totalPrice;
+  }
+
+  double? _sumDetailNumericValues(
+    List<ShopOrderDetail> details,
+    List<String> keys,
+  ) {
+    var hasValue = false;
+    double total = 0;
+    for (final detail in details) {
+      final value = _findDirectNumericValue(detail.raw, keys);
+      if (value == null) {
+        continue;
+      }
+      hasValue = true;
+      total += value * (detail.count ?? 1);
+    }
+    return hasValue ? total : null;
+  }
+
+  double? _findDirectNumericValue(Map<String, dynamic> raw, List<String> keys) {
+    final normalizedKeys = keys.map((item) => item.toLowerCase()).toSet();
+    for (final entry in raw.entries) {
+      if (!normalizedKeys.contains(entry.key.toString().toLowerCase())) {
+        continue;
+      }
+      return _asDouble(entry.value);
+    }
+    return null;
+  }
+
+  double? _asDouble(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is num) {
+      return value.toDouble();
+    }
+    return double.tryParse(value.toString());
+  }
+
   List<ShopOrderDetail> _pendingVisibleDetails(ShopOrderItem order) {
     return order.details
         .where((detail) => !_isPendingHiddenAccessoryDetail(detail))
@@ -2847,7 +2960,7 @@ class _ShopPageState extends State<ShopPage>
             primary.schemaId,
           );
     final title = primary?.marketName ?? schema?.marketName ?? '-';
-    final totalPrice = _sumOrderPrice(record);
+    final actualIncome = _sellRecordActualIncome(record);
     final wearValue =
         primary?.paintWear ??
         (primary == null
@@ -3027,7 +3140,7 @@ class _ShopPageState extends State<ShopPage>
                                             CrossAxisAlignment.end,
                                         children: [
                                           Text(
-                                            currency.format(totalPrice),
+                                            currency.format(actualIncome),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: TextStyle(

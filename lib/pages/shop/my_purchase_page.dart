@@ -285,59 +285,11 @@ class _MyPurchasePageState extends State<MyPurchasePage>
     return total;
   }
 
-  String _buyRecordActualIncomeText(
+  String _buyRecordDealAmountText(
     ShopOrderItem order,
     CurrencyController currency,
   ) {
-    final totalPrice = _sumOrderPrice(order);
-    final incomeAmount = _extractIncomeAmount(
-      order: order,
-      totalPrice: totalPrice,
-      feeAmount: _extractFeeAmount(order),
-    );
-    return currency.format(incomeAmount ?? totalPrice);
-  }
-
-  double? _extractFeeAmount(ShopOrderItem order) {
-    return _findNumericValue(order.raw, const [
-      'service_fee',
-      'serviceFee',
-      'fee',
-      'commission',
-      'commission_fee',
-      'commissionFee',
-      'charge_fee',
-      'chargeFee',
-      'tax',
-    ]);
-  }
-
-  double? _extractIncomeAmount({
-    required ShopOrderItem order,
-    required double totalPrice,
-    required double? feeAmount,
-  }) {
-    final direct = _findNumericValue(order.raw, const [
-      'actual_income',
-      'actualIncome',
-      'income',
-      'seller_income',
-      'sellerIncome',
-      'real_income',
-      'realIncome',
-      'final_income',
-      'finalIncome',
-      'receivable',
-      'receivable_amount',
-      'receivableAmount',
-    ]);
-    if (direct != null) {
-      return direct;
-    }
-    if (feeAmount != null) {
-      return totalPrice - feeAmount;
-    }
-    return null;
+    return currency.format(_sumOrderPrice(order));
   }
 
   Future<void> _openReceiptFilterSheet() async {
@@ -496,57 +448,6 @@ class _MyPurchasePageState extends State<MyPurchasePage>
     return int.tryParse(value.toString());
   }
 
-  double? _asDouble(dynamic value) {
-    if (value == null) {
-      return null;
-    }
-    if (value is num) {
-      return value.toDouble();
-    }
-    return double.tryParse(value.toString());
-  }
-
-  double? _findNumericValue(dynamic data, List<String> keys) {
-    final value = _findValue(
-      data,
-      keys.map((item) => item.toLowerCase()).toSet(),
-    );
-    return _asDouble(value);
-  }
-
-  dynamic _findValue(
-    dynamic data,
-    Set<String> normalizedKeys, [
-    int depth = 0,
-  ]) {
-    if (depth > 3 || data == null) {
-      return null;
-    }
-    if (data is Map) {
-      for (final entry in data.entries) {
-        final key = entry.key.toString().toLowerCase();
-        if (normalizedKeys.contains(key) && entry.value != null) {
-          return entry.value;
-        }
-      }
-      for (final entry in data.entries) {
-        final result = _findValue(entry.value, normalizedKeys, depth + 1);
-        if (result != null) {
-          return result;
-        }
-      }
-    }
-    if (data is List) {
-      for (final item in data) {
-        final result = _findValue(item, normalizedKeys, depth + 1);
-        if (result != null) {
-          return result;
-        }
-      }
-    }
-    return null;
-  }
-
   TagInfo? _schemaTag(ShopSchemaInfo? schema, String key) {
     final tags = schema?.raw['tags'];
     if (tags is Map) {
@@ -572,6 +473,7 @@ class _MyPurchasePageState extends State<MyPurchasePage>
         'schemas': Map<String, ShopSchemaInfo>.from(controller.schemas),
         'users': Map<String, ShopUserInfo>.from(controller.users),
         'stickers': Map<String, dynamic>.from(controller.stickers),
+        'fromPurchaseRecord': true,
       },
     );
   }
@@ -1084,9 +986,9 @@ class _MyPurchasePageState extends State<MyPurchasePage>
       ),
       child: Obx(
         () => _buildBuyRecordSummaryRow(
-          label: _text(zh: '到账金额', en: 'Actual Income'),
+          label: _text(zh: '成交金额', en: 'Sale Price'),
           value: Text(
-            _buyRecordActualIncomeText(order, currency),
+            _buyRecordDealAmountText(order, currency),
             textAlign: TextAlign.right,
             style: const TextStyle(
               color: _buyRecordBodyColor,

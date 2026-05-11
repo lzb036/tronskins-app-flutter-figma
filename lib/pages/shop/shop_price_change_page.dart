@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:tronskins_app/api/model/market/market_models.dart';
 import 'package:tronskins_app/api/model/shop/shop_models.dart';
 import 'package:tronskins_app/api/shop_product.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
@@ -11,6 +12,7 @@ import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/pages/shop/shop_price_change_confirm_page.dart';
+import 'package:tronskins_app/routes/app_routes.dart';
 
 class _ShopItemMergeGroup {
   _ShopItemMergeGroup(this.key, ShopItemAsset first) : items = [first];
@@ -220,6 +222,110 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
       }
     }
     return null;
+  }
+
+  int? _parseInt(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    return int.tryParse(value.toString());
+  }
+
+  MarketItemTags? _marketTagsFromSchema(ShopSchemaInfo? schema) {
+    final tags = schema?.raw['tags'];
+    if (tags is Map<String, dynamic>) {
+      return MarketItemTags.fromJson(tags);
+    }
+    if (tags is Map) {
+      return MarketItemTags.fromJson(
+        tags.map((key, value) => MapEntry(key.toString(), value)),
+      );
+    }
+    return null;
+  }
+
+  MarketItemEntity _buildMarketDetailItem(
+    ShopItemAsset item,
+    ShopSchemaInfo? schema,
+  ) {
+    final asset = _resolveAsset(item);
+    final schemaId =
+        item.schemaId ??
+        _parseInt(item.raw['schema_id'] ?? item.raw['schemaId']) ??
+        _parseInt(asset?['schema_id'] ?? asset?['schemaId'] ?? asset?['id']) ??
+        _parseInt(
+          schema?.raw['schema_id'] ??
+              schema?.raw['schemaId'] ??
+              schema?.raw['id'],
+        );
+    final marketHashName =
+        item.marketHashName ??
+        schema?.marketHashName ??
+        _extractText(item.raw, const ['market_hash_name', 'marketHashName']) ??
+        _extractText(asset, const ['market_hash_name', 'marketHashName']);
+    final marketName =
+        item.marketName ??
+        schema?.marketName ??
+        _extractText(item.raw, const ['market_name', 'marketName', 'name']) ??
+        _extractText(asset, const ['market_name', 'marketName', 'name']);
+    final imageUrl =
+        item.imageUrl ??
+        schema?.imageUrl ??
+        _extractText(item.raw, const ['image_url', 'imageUrl', 'image']) ??
+        _extractText(asset, const ['image_url', 'imageUrl', 'image']);
+
+    return MarketItemEntity(
+      id: schemaId,
+      schemaId: schemaId,
+      appId:
+          item.appId ??
+          _parseInt(schema?.raw['app_id'] ?? schema?.raw['appId']) ??
+          _appId,
+      marketName: marketName ?? marketHashName,
+      marketHashName: marketHashName,
+      imageUrl: imageUrl,
+      marketPrice:
+          _extractDouble(schema?.raw, const [
+            'reference_price',
+            'referencePrice',
+            'market_price',
+            'marketPrice',
+            'buff_min_price',
+            'buffMinPrice',
+            'sell_min',
+            'price',
+          ]) ??
+          item.price,
+      paintSeed:
+          _extractText(asset, const ['paint_seed', 'paintSeed']) ??
+          _extractText(item.raw, const ['paint_seed', 'paintSeed']),
+      paintIndex:
+          _extractText(asset, const ['paint_index', 'paintIndex']) ??
+          _extractText(item.raw, const ['paint_index', 'paintIndex']),
+      paintWear: _extractWearText(item, asset),
+      percentage:
+          _extractText(asset, const ['percentage']) ??
+          _extractText(item.raw, const ['percentage']),
+      phase:
+          _extractText(asset, const ['phase']) ??
+          _extractText(item.raw, const ['phase']),
+      tags: _marketTagsFromSchema(schema),
+    );
+  }
+
+  void _openListingDetails(ShopItemAsset item) {
+    final detailItem = _buildMarketDetailItem(item, _lookupSchema(item));
+    if (detailItem.schemaId == null && detailItem.id == null) {
+      AppSnackbar.error('app.trade.filter.failed'.tr);
+      return;
+    }
+    Get.toNamed(Routers.MARKET_DETAIL, arguments: detailItem);
   }
 
   String? _extractWearText(ShopItemAsset item, Map<String, dynamic>? asset) {
@@ -1142,99 +1248,106 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                GestureDetector(
-                  onTap: imageUrl.isEmpty
-                      ? null
-                      : () => _showImagePreview(
-                          title: title,
-                          preview: GameItemImage(
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _openListingDetails(item),
+                borderRadius: BorderRadius.circular(8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onLongPress: imageUrl.isEmpty
+                          ? null
+                          : () => _showImagePreview(
+                              title: title,
+                              preview: GameItemImage(
+                                imageUrl: imageUrl,
+                                appId: item.appId ?? _appId,
+                                rarity: rarity,
+                                quality: quality,
+                                exterior: exterior,
+                                paintSeed: paintSeed,
+                                phase: phase,
+                                percentage: percentage,
+                                paintWearText: wearText,
+                                count: itemCount,
+                                alwaysShowCount: _mergeSameItems,
+                                stickers: stickers,
+                                gems: gems,
+                              ),
+                            ),
+                      child: SizedBox(
+                        width: 80,
+                        height: 80,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: GameItemImage(
                             imageUrl: imageUrl,
                             appId: item.appId ?? _appId,
                             rarity: rarity,
                             quality: quality,
                             exterior: exterior,
-                            paintSeed: paintSeed,
-                            phase: phase,
-                            percentage: percentage,
-                            paintWearText: wearText,
                             count: itemCount,
                             alwaysShowCount: _mergeSameItems,
-                            stickers: stickers,
-                            gems: gems,
+                            showTopBadges: false,
+                            stickers: const [],
+                            gems: const [],
                           ),
                         ),
-                  child: SizedBox(
-                    width: 80,
-                    height: 80,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: GameItemImage(
-                        imageUrl: imageUrl,
-                        appId: item.appId ?? _appId,
-                        rarity: rarity,
-                        quality: quality,
-                        exterior: exterior,
-                        count: itemCount,
-                        alwaysShowCount: _mergeSameItems,
-                        showTopBadges: false,
-                        stickers: const [],
-                        gems: const [],
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 3, bottom: 4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 3, bottom: 4),
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: Text(
-                                title,
-                                maxLines: 2,
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Color(0xFF191C1E),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      height: 1.3,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (subtitle.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                subtitle,
+                                maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  color: Color(0xFF191C1E),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  height: 1.3,
+                                  color: Color(0xFF757684),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.5,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
-                            ),
+                            ],
+                            if (stickers.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              _buildStickerPreviewRow(stickers),
+                            ],
                           ],
                         ),
-                        if (subtitle.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            subtitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xFF757684),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                              height: 1.5,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                        if (stickers.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          _buildStickerPreviewRow(stickers),
-                        ],
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
             const SizedBox(height: 16),
             if (wearValue != null && wearText != null) ...[
