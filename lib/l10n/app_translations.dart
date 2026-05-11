@@ -1014,7 +1014,7 @@ const Map<String, Map<String, String>> _excelBacklogMessages = {
     'app.shop.status.current_prefix': 'Current: ',
     'app.market.detail.page_title': 'Listing Details',
     'app.market.product.details': 'Item Details',
-    'app.market.detail.accepted_patterns': 'Accepted Patterns',
+    'app.market.detail.accepted_patterns': 'Style',
     'app.market.detail.no_requirement': 'No requirement',
     'app.market.buyer': 'Buyer',
     'app.market.item.stickers': 'Containing Stickers',
@@ -1056,6 +1056,62 @@ const Map<String, Map<String, String>> _excelBacklogMessages = {
     'app.common.yes': 'Yes',
     'app.common.no': 'No',
   },
+  'fr_FR': {
+    'app.market.detail.accepted_patterns': 'Style',
+    'app.market.detail.no_requirement': 'Aucune exigence',
+  },
+  'ge_DE': {
+    'app.market.detail.accepted_patterns': 'Stil',
+    'app.market.detail.no_requirement': 'Keine Anforderung',
+  },
+  'in_ID': {
+    'app.market.detail.accepted_patterns': 'Gaya',
+    'app.market.detail.no_requirement': 'Tidak ada persyaratan',
+  },
+  'it_IT': {
+    'app.market.detail.accepted_patterns': 'Stile',
+    'app.market.detail.no_requirement': 'Nessun requisito',
+  },
+  'ja_JP': {
+    'app.market.detail.accepted_patterns': 'スタイル',
+    'app.market.detail.no_requirement': '条件なし',
+  },
+  'ko_KR': {
+    'app.market.detail.accepted_patterns': '스타일',
+    'app.market.detail.no_requirement': '요구 사항 없음',
+  },
+  'la_LAT': {
+    'app.market.detail.accepted_patterns': 'Estilo',
+    'app.market.detail.no_requirement': 'Sin requisitos',
+  },
+  'po_PL': {
+    'app.market.detail.accepted_patterns': 'Styl',
+    'app.market.detail.no_requirement': 'Brak wymagań',
+  },
+  'po_PT': {
+    'app.market.detail.accepted_patterns': 'Estilo',
+    'app.market.detail.no_requirement': 'Sem requisito',
+  },
+  'ru_RU': {
+    'app.market.detail.accepted_patterns': 'Стиль',
+    'app.market.detail.no_requirement': 'Без требований',
+  },
+  'sp_ES': {
+    'app.market.detail.accepted_patterns': 'Estilo',
+    'app.market.detail.no_requirement': 'Sin requisitos',
+  },
+  'th_TH': {
+    'app.market.detail.accepted_patterns': 'รูปแบบ',
+    'app.market.detail.no_requirement': 'ไม่มีข้อกำหนด',
+  },
+  'tu_TR': {
+    'app.market.detail.accepted_patterns': 'Stil',
+    'app.market.detail.no_requirement': 'Gereksinim yok',
+  },
+  'vi_VN': {
+    'app.market.detail.accepted_patterns': 'Kiểu',
+    'app.market.detail.no_requirement': 'Không yêu cầu',
+  },
   'zh_CN': {
     'app.tabbar.market': '饰品市场',
     'app.market.empty.title': '暂无饰品数据',
@@ -1082,7 +1138,7 @@ const Map<String, Map<String, String>> _excelBacklogMessages = {
     'app.shop.status.current_prefix': '目前状态: ',
     'app.market.detail.page_title': '饰品详情',
     'app.market.product.details': '饰品详情',
-    'app.market.detail.accepted_patterns': '接受图案',
+    'app.market.detail.accepted_patterns': '款式',
     'app.market.detail.no_requirement': '无要求',
     'app.market.buyer': '买家',
     'app.market.item.stickers': '包含印花',
@@ -1147,7 +1203,7 @@ const Map<String, Map<String, String>> _excelBacklogMessages = {
     'app.shop.status.current_prefix': '目前狀態: ',
     'app.market.detail.page_title': '飾品詳情',
     'app.market.product.details': '飾品詳情',
-    'app.market.detail.accepted_patterns': '接受圖案',
+    'app.market.detail.accepted_patterns': '款式',
     'app.market.detail.no_requirement': '無要求',
     'app.market.buyer': '買家',
     'app.market.item.stickers': '包含印花',
