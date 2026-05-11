@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:tronskins_app/api/market.dart';
 import 'package:tronskins_app/api/system.dart';
 import 'package:tronskins_app/api/model/market/market_models.dart';
@@ -15,7 +14,6 @@ class HomeController extends GetxController {
   final ApiSystemServer _systemApi = ApiSystemServer();
   final GlobalGameController _globalGameController =
       GlobalGameController.ensureInstance();
-  static const String _noticeCloseKey = 'app_notify_close';
   static const int _latestPageSize = 10;
   static const int _hotPageSize = 20;
 
@@ -28,6 +26,7 @@ class HomeController extends GetxController {
   final RxBool systemNoticeVisible = false.obs;
   Worker? _gameWorker;
   Worker? _serverWorker;
+  bool _systemNoticeDismissedForLifecycle = false;
 
   int _latestPage = 1;
   int _hotPage = 1;
@@ -80,7 +79,7 @@ class HomeController extends GetxController {
         return;
       }
       systemNotice.value = notice;
-      systemNoticeVisible.value = _shouldShowNotice(notice);
+      systemNoticeVisible.value = !_systemNoticeDismissedForLifecycle;
     } catch (error, stackTrace) {
       AppLogger.errorLog(
         'HOME',
@@ -92,12 +91,9 @@ class HomeController extends GetxController {
     }
   }
 
-  Future<void> dismissSystemNotice() async {
+  void dismissSystemNotice() {
+    _systemNoticeDismissedForLifecycle = true;
     systemNoticeVisible.value = false;
-    await GetStorage().write(
-      _noticeCloseKey,
-      DateTime.now().millisecondsSinceEpoch,
-    );
   }
 
   Future<void> fetchLatest({bool reset = false}) async {
@@ -217,28 +213,5 @@ class HomeController extends GetxController {
 
   bool _hasNoticeText(SystemNoticeEntity notice) {
     return notice.content?.trim().isNotEmpty ?? false;
-  }
-
-  bool _shouldShowNotice(SystemNoticeEntity notice) {
-    final lastClosedAt = _timestampMillis(GetStorage().read(_noticeCloseKey));
-    if (lastClosedAt <= 0) {
-      return true;
-    }
-    final createdAt = _timestampMillis(notice.createTime);
-    if (createdAt <= 0) {
-      return false;
-    }
-    return createdAt > lastClosedAt;
-  }
-
-  int _timestampMillis(dynamic value) {
-    if (value == null) {
-      return 0;
-    }
-    final raw = value is num ? value.toInt() : int.tryParse(value.toString());
-    if (raw == null || raw <= 0) {
-      return 0;
-    }
-    return raw < 1000000000000 ? raw * 1000 : raw;
   }
 }
