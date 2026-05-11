@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
+import 'package:tronskins_app/common/widgets/shrinking_price_text.dart';
 import 'package:tronskins_app/components/game_item/gem_row.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/game_item/game_item_utils.dart';
@@ -317,10 +318,8 @@ class MarketShowcaseCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Obx(
-                        () => Text(
-                          CurrencyController.to.format(price),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        () => ShrinkingPriceText(
+                          text: CurrencyController.to.format(price),
                           style: const TextStyle(
                             color: _marketShowcaseBrandBlue,
                             fontSize: 14,

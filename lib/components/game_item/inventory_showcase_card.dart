@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/api/model/shop/shop_models.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
+import 'package:tronskins_app/common/widgets/shrinking_price_text.dart';
 import 'package:tronskins_app/components/game_item/gem_row.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/game_item/game_item_utils.dart';
@@ -415,10 +416,8 @@ class InventoryShowcaseCard extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: Obx(
-                                  () => Text(
-                                    CurrencyController.to.format(price),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  () => ShrinkingPriceText(
+                                    text: CurrencyController.to.format(price),
                                     style: const TextStyle(
                                       color: _inventoryShowcaseBrandBlue,
                                       fontSize: 14,

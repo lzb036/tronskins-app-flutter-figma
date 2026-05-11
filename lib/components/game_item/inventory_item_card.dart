@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/api/model/shop/shop_models.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
+import 'package:tronskins_app/common/widgets/shrinking_price_text.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/game_item/game_item_utils.dart';
@@ -180,23 +181,26 @@ class InventoryItemCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
               child: Row(
                 children: [
-                  Obx(
-                    () => Text(
-                      currency.format(price),
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w600,
+                  Expanded(
+                    child: Obx(
+                      () => ShrinkingPriceText(
+                        text: currency.format(price),
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                  const Spacer(),
-                  if (item.tradable == false)
+                  if (item.tradable == false) ...[
+                    const SizedBox(width: 6),
                     Text(
                       'app.trade.non_tradable'.tr,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.error,
                       ),
                     ),
+                  ],
                 ],
               ),
             ),

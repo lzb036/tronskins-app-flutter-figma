@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/api/model/market/market_models.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
+import 'package:tronskins_app/common/widgets/shrinking_price_text.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/game_item/game_item_utils.dart';
@@ -88,16 +89,18 @@ class MarketItemCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
               child: Row(
                 children: [
-                  Obx(
-                    () => Text(
-                      currency.format(price),
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w600,
+                  Expanded(
+                    child: Obx(
+                      () => ShrinkingPriceText(
+                        text: currency.format(price),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 6),
                   Text(
                     '${item.sellNum ?? 0} ${'app.trade.onSale.nums'.tr}',
                     style: Theme.of(context).textTheme.bodySmall,
