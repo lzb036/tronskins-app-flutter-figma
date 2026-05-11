@@ -12,6 +12,7 @@ import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/user_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/utils/string_utils.dart';
+import 'package:tronskins_app/common/utils/trade_purchase_error.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/components/filter/filter_sheet_style.dart';
@@ -774,13 +775,12 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
     }
 
     final total = price * nums;
-    final available = (user.fund?.available ?? 0) + (user.fund?.gift ?? 0);
-    if (available < total) {
+    if (isPurchaseBalanceInsufficient(total, fallbackUser: user)) {
       resetSubmittingState();
       Get.dialog(
         AlertDialog(
           title: Text('app.system.tips.title'.tr),
-          content: Text('app.trade.purchase.message.supply_price_error'.tr),
+          content: Text(tradeBuyBalanceInsufficientKey.tr),
           actions: [
             TextButton(
               onPressed: () => Get.back(),
@@ -861,9 +861,18 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
         return;
       } else {
         AppSnackbar.error(
-          res.message.isNotEmpty ? res.message : 'app.trade.filter.failed'.tr,
+          resolvePurchaseFailureMessage(
+            message: res.message,
+            datas: datas,
+            totalAmount: total,
+            fallbackUser: user,
+          ),
         );
       }
+    } catch (_) {
+      AppSnackbar.error(
+        resolvePurchaseFailureMessage(totalAmount: total, fallbackUser: user),
+      );
     } finally {
       if (mounted && !shouldClosePage) {
         setState(() => _isSubmitting = false);

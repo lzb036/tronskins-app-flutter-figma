@@ -19,6 +19,7 @@ import 'package:tronskins_app/components/market/price_trend_chart.dart';
 import 'package:tronskins_app/controllers/market/market_detail_controller.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/utils/trade_purchase_error.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
@@ -4595,6 +4596,10 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       AppSnackbar.error('app.trade.filter.failed'.tr);
       return;
     }
+    if (isPurchaseBalanceInsufficient(price, fallbackUser: user)) {
+      AppSnackbar.error(tradeBuyBalanceInsufficientKey.tr);
+      return;
+    }
     final currency = Get.find<CurrencyController>();
     final amountText = currency.format(price);
     final serviceFeeText = currency.format(0);
@@ -4676,11 +4681,18 @@ class _MarketDetailPageState extends State<MarketDetailPage>
         await controller.loadTransactions(reset: true);
       } else {
         AppSnackbar.error(
-          res.message.isNotEmpty ? res.message : 'app.trade.filter.failed'.tr,
+          resolvePurchaseFailureMessage(
+            message: res.message,
+            datas: datas,
+            totalAmount: price,
+            fallbackUser: user,
+          ),
         );
       }
     } catch (_) {
-      AppSnackbar.error('app.trade.filter.failed'.tr);
+      AppSnackbar.error(
+        resolvePurchaseFailureMessage(totalAmount: price, fallbackUser: user),
+      );
     } finally {
       if (purchaseKey != null && mounted) {
         setState(() => _onSalePurchasingIds.remove(purchaseKey));

@@ -12,6 +12,7 @@ import 'package:tronskins_app/api/shop_product.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/user_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/utils/trade_purchase_error.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/components/filter/filter_sheet_style.dart';
 import 'package:tronskins_app/components/game_item/game_item_utils.dart';
@@ -781,6 +782,13 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
       return;
     }
 
+    final totalAmount = price * num;
+    if (isPurchaseBalanceInsufficient(totalAmount, fallbackUser: user)) {
+      resetSubmittingState();
+      AppSnackbar.error(tradeBuyBalanceInsufficientKey.tr);
+      return;
+    }
+
     if (!alreadySubmitting) {
       setState(() => _isSubmitting = true);
     }
@@ -843,9 +851,21 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
         return;
       } else {
         AppSnackbar.error(
-          res.message.isNotEmpty ? res.message : 'app.trade.filter.failed'.tr,
+          resolvePurchaseFailureMessage(
+            message: res.message,
+            datas: datas,
+            totalAmount: totalAmount,
+            fallbackUser: user,
+          ),
         );
       }
+    } catch (_) {
+      AppSnackbar.error(
+        resolvePurchaseFailureMessage(
+          totalAmount: totalAmount,
+          fallbackUser: user,
+        ),
+      );
     } finally {
       if (mounted && !shouldClosePage) {
         setState(() => _isSubmitting = false);

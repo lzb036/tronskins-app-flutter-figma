@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
+import 'package:tronskins_app/common/theme/settings_top_bar_style.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 
 class ExchangeRatePage extends StatefulWidget {
@@ -15,6 +16,9 @@ class _ExchangeRatePageState extends State<ExchangeRatePage> {
   static const _brandColor = Color(0xFF00288E);
   static const _mutedColor = Color(0x99444653);
   static const _sectionColor = Color(0x99444653);
+  static const _contentHorizontalPadding = 16.0;
+  static const _contentTopGap = 16.0;
+  static const _contentBottomPadding = 40.0;
 
   static const _currencyNames = <String, String>{
     'USD': 'United States Dollar',
@@ -89,7 +93,7 @@ class _ExchangeRatePageState extends State<ExchangeRatePage> {
             }
 
             return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 96, 16, 40),
+              padding: _contentPadding(context),
               children: [
                 Align(
                   alignment: Alignment.center,
@@ -127,6 +131,19 @@ class _ExchangeRatePageState extends State<ExchangeRatePage> {
           const _ExchangeRateTopBar(),
         ],
       ),
+    );
+  }
+
+  EdgeInsets _contentPadding(BuildContext context) {
+    final topPadding =
+        MediaQuery.of(context).padding.top +
+        settingsTopBarToolbarHeight +
+        _contentTopGap;
+    return EdgeInsets.fromLTRB(
+      _contentHorizontalPadding,
+      topPadding,
+      _contentHorizontalPadding,
+      _contentBottomPadding,
     );
   }
 

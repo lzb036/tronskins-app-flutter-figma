@@ -84,6 +84,7 @@ Map<String, String> _missingMessagesFor(String locale) {
     ..._messagesWithEnglishFallback(_twoFaTokenMessages, normalized),
     ..._messagesWithEnglishFallback(_shopBacklogMessages, normalized),
     ..._messagesWithEnglishFallback(_deliverBacklogMessages, normalized),
+    ..._messagesWithEnglishFallback(_purchaseFailureMessages, normalized),
     ..._messagesWithEnglishFallback(_inlineBacklogMessages, normalized),
     ..._messagesWithEnglishFallback(_excelBacklogMessages, normalized),
     ...?_rechargeSecurityMessages[normalized],
@@ -346,6 +347,69 @@ const Map<String, Map<String, String>> _missingMessages = {
     'app.user.setting.language.description': '選擇您偏好的畫廊體驗語言',
     'app.user.setting.language.apply_notice': '變更會立即生效。',
   },
+};
+
+const Map<String, Map<String, String>> _purchaseFailureMessages = {
+  'en_US': {
+    'app.trade.buy.message.balance_insufficient':
+        'Insufficient balance. Please recharge before buying.',
+  },
+  'zh_CN': {'app.trade.buy.message.balance_insufficient': '账户余额不足，请先充值后再购买。'},
+  'fr_FR': {
+    'app.trade.buy.message.balance_insufficient':
+        'Solde insuffisant. Veuillez recharger avant d’acheter.',
+  },
+  'ge_DE': {
+    'app.trade.buy.message.balance_insufficient':
+        'Unzureichendes Guthaben. Bitte lade vor dem Kauf auf.',
+  },
+  'in_ID': {
+    'app.trade.buy.message.balance_insufficient':
+        'Saldo tidak mencukupi. Silakan isi ulang sebelum membeli.',
+  },
+  'it_IT': {
+    'app.trade.buy.message.balance_insufficient':
+        'Saldo insufficiente. Ricarica prima di acquistare.',
+  },
+  'ja_JP': {
+    'app.trade.buy.message.balance_insufficient': '残高が不足しています。購入前にチャージしてください。',
+  },
+  'ko_KR': {
+    'app.trade.buy.message.balance_insufficient': '잔액이 부족합니다. 구매 전에 충전해 주세요.',
+  },
+  'la_LAT': {
+    'app.trade.buy.message.balance_insufficient':
+        'Saldo insufficiens. Quaeso ante emptionem reple.',
+  },
+  'po_PL': {
+    'app.trade.buy.message.balance_insufficient':
+        'Niewystarczające saldo. Doładuj konto przed zakupem.',
+  },
+  'po_PT': {
+    'app.trade.buy.message.balance_insufficient':
+        'Saldo insuficiente. Recarregue antes de comprar.',
+  },
+  'ru_RU': {
+    'app.trade.buy.message.balance_insufficient':
+        'Недостаточно средств. Пополните баланс перед покупкой.',
+  },
+  'sp_ES': {
+    'app.trade.buy.message.balance_insufficient':
+        'Saldo insuficiente. Recarga antes de comprar.',
+  },
+  'th_TH': {
+    'app.trade.buy.message.balance_insufficient':
+        'ยอดเงินไม่เพียงพอ กรุณาเติมเงินก่อนซื้อ',
+  },
+  'tu_TR': {
+    'app.trade.buy.message.balance_insufficient':
+        'Bakiye yetersiz. Satın almadan önce bakiye yükleyin.',
+  },
+  'vi_VN': {
+    'app.trade.buy.message.balance_insufficient':
+        'Số dư không đủ. Vui lòng nạp tiền trước khi mua.',
+  },
+  'zh_TW': {'app.trade.buy.message.balance_insufficient': '帳戶餘額不足，請先充值後再購買。'},
 };
 
 const Map<String, Map<String, String>> _settingsOverviewMessages = {

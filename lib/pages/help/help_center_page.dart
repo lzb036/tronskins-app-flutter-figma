@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/api/model/help/help_models.dart';
+import 'package:tronskins_app/common/theme/settings_top_bar_style.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/controllers/help/help_controller.dart';
@@ -26,6 +27,9 @@ class _HelpCenterPageState extends State<HelpCenterPage> {
   static const _mutedColor = Color(0xFF757684);
   static const _brandColor = Color(0xFF1E40AF);
   static const _brandLight = Color(0xFFA8B8FF);
+  static const _contentHorizontalPadding = 16.0;
+  static const _contentTopGap = 16.0;
+  static const _contentBottomPadding = 40.0;
 
   String? _selectedCategoryCode;
 
@@ -63,11 +67,11 @@ class _HelpCenterPageState extends State<HelpCenterPage> {
                     (categories.isEmpty || !hasOverviewData);
 
                 if (showInitialSkeleton) {
-                  return _buildLoadingSkeleton();
+                  return _buildLoadingSkeleton(context);
                 }
 
                 return SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 96, 16, 40),
+                  padding: _contentPadding(context),
                   child: Align(
                     alignment: Alignment.topCenter,
                     child: ConstrainedBox(
@@ -123,10 +127,23 @@ class _HelpCenterPageState extends State<HelpCenterPage> {
     );
   }
 
-  Widget _buildLoadingSkeleton() {
+  EdgeInsets _contentPadding(BuildContext context) {
+    final topPadding =
+        MediaQuery.of(context).padding.top +
+        settingsTopBarToolbarHeight +
+        _contentTopGap;
+    return EdgeInsets.fromLTRB(
+      _contentHorizontalPadding,
+      topPadding,
+      _contentHorizontalPadding,
+      _contentBottomPadding,
+    );
+  }
+
+  Widget _buildLoadingSkeleton(BuildContext context) {
     return SingleChildScrollView(
       physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 96, 16, 40),
+      padding: _contentPadding(context),
       child: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
