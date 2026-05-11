@@ -1059,58 +1059,72 @@ const Map<String, Map<String, String>> _excelBacklogMessages = {
   'fr_FR': {
     'app.market.detail.accepted_patterns': 'Style',
     'app.market.detail.no_requirement': 'Aucune exigence',
+    'app.trade.purchase.terminate': 'Terminer',
   },
   'ge_DE': {
     'app.market.detail.accepted_patterns': 'Stil',
     'app.market.detail.no_requirement': 'Keine Anforderung',
+    'app.trade.purchase.terminate': 'Beenden',
   },
   'in_ID': {
     'app.market.detail.accepted_patterns': 'Gaya',
     'app.market.detail.no_requirement': 'Tidak ada persyaratan',
+    'app.trade.purchase.terminate': 'Hentikan',
   },
   'it_IT': {
     'app.market.detail.accepted_patterns': 'Stile',
     'app.market.detail.no_requirement': 'Nessun requisito',
+    'app.trade.purchase.terminate': 'Termina',
   },
   'ja_JP': {
     'app.market.detail.accepted_patterns': 'スタイル',
     'app.market.detail.no_requirement': '条件なし',
+    'app.trade.purchase.terminate': '終了',
   },
   'ko_KR': {
     'app.market.detail.accepted_patterns': '스타일',
     'app.market.detail.no_requirement': '요구 사항 없음',
+    'app.trade.purchase.terminate': '종료',
   },
   'la_LAT': {
     'app.market.detail.accepted_patterns': 'Estilo',
     'app.market.detail.no_requirement': 'Sin requisitos',
+    'app.trade.purchase.terminate': 'Terminar',
   },
   'po_PL': {
     'app.market.detail.accepted_patterns': 'Styl',
     'app.market.detail.no_requirement': 'Brak wymagań',
+    'app.trade.purchase.terminate': 'Zakończ',
   },
   'po_PT': {
     'app.market.detail.accepted_patterns': 'Estilo',
     'app.market.detail.no_requirement': 'Sem requisito',
+    'app.trade.purchase.terminate': 'Terminar',
   },
   'ru_RU': {
     'app.market.detail.accepted_patterns': 'Стиль',
     'app.market.detail.no_requirement': 'Без требований',
+    'app.trade.purchase.terminate': 'Прекратить',
   },
   'sp_ES': {
     'app.market.detail.accepted_patterns': 'Estilo',
     'app.market.detail.no_requirement': 'Sin requisitos',
+    'app.trade.purchase.terminate': 'Terminar',
   },
   'th_TH': {
     'app.market.detail.accepted_patterns': 'รูปแบบ',
     'app.market.detail.no_requirement': 'ไม่มีข้อกำหนด',
+    'app.trade.purchase.terminate': 'ยุติ',
   },
   'tu_TR': {
     'app.market.detail.accepted_patterns': 'Stil',
     'app.market.detail.no_requirement': 'Gereksinim yok',
+    'app.trade.purchase.terminate': 'Sonlandır',
   },
   'vi_VN': {
     'app.market.detail.accepted_patterns': 'Kiểu',
     'app.market.detail.no_requirement': 'Không yêu cầu',
+    'app.trade.purchase.terminate': 'Chấm dứt',
   },
   'zh_CN': {
     'app.tabbar.market': '饰品市场',
@@ -1171,6 +1185,7 @@ const Map<String, Map<String, String>> _excelBacklogMessages = {
     'app.inline.buying.terminate_action': '确认终止',
     'app.inline.buying.terminate_prefix': '你确定要终止 ',
     'app.inline.buying.terminate_suffix': ' 的本次求购吗？',
+    'app.trade.purchase.terminate': '终止求购',
     'app.inline.order.deliver_now': '立即发货',
     'app.trade.notice.ready_to_deliver': '准备发货',
     'app.trade.notice.deliver_now': '立即发货',
@@ -1236,6 +1251,7 @@ const Map<String, Map<String, String>> _excelBacklogMessages = {
     'app.inline.buying.terminate_action': '確認終止',
     'app.inline.buying.terminate_prefix': '你確定要終止 ',
     'app.inline.buying.terminate_suffix': ' 的本次求購嗎？',
+    'app.trade.purchase.terminate': '終止求購',
     'app.inline.order.deliver_now': '立即發貨',
     'app.trade.notice.ready_to_deliver': '準備發貨',
     'app.trade.notice.deliver_now': '立即發貨',

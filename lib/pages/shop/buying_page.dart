@@ -6,6 +6,7 @@ import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/api/shop_product.dart';
 import 'package:tronskins_app/common/theme/settings_top_bar_style.dart';
 import 'package:intl/intl.dart';
+import 'package:tronskins_app/api/model/market/market_models.dart';
 import 'package:tronskins_app/api/model/shop/shop_models.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/hooks/game/global_game_controller.dart';
@@ -226,9 +227,47 @@ class _BuyingPageState extends State<BuyingPage>
   }
 
   ShopSchemaInfo? _lookupSchema(BuyRequestItem item) {
-    final key = item.schemaId?.toString();
-    if (key != null && controller.schemas.containsKey(key)) {
-      return controller.schemas[key];
+    final keys = [
+      item.schemaId?.toString(),
+      item.raw['schema_id']?.toString(),
+      item.raw['schemaId']?.toString(),
+      item.raw['market_hash_name']?.toString(),
+      item.raw['marketHashName']?.toString(),
+      item.raw['market_name']?.toString(),
+      item.raw['marketName']?.toString(),
+    ].whereType<String>().where((key) => key.trim().isNotEmpty);
+    for (final key in keys) {
+      final normalized = key.trim();
+      if (controller.schemas.containsKey(normalized)) {
+        return controller.schemas[normalized];
+      }
+    }
+
+    final schemaId = item.schemaId?.toString();
+    final marketHashName =
+        item.raw['market_hash_name']?.toString() ??
+        item.raw['marketHashName']?.toString();
+    final marketName =
+        item.raw['market_name']?.toString() ??
+        item.raw['marketName']?.toString();
+    for (final schema in controller.schemas.values) {
+      final rawId =
+          schema.raw['id']?.toString() ??
+          schema.raw['schema_id']?.toString() ??
+          schema.raw['schemaId']?.toString();
+      if (schemaId != null && rawId == schemaId) {
+        return schema;
+      }
+      if (marketHashName != null &&
+          (schema.marketHashName == marketHashName ||
+              schema.raw['market_hash_name']?.toString() == marketHashName)) {
+        return schema;
+      }
+      if (marketName != null &&
+          (schema.marketName == marketName ||
+              schema.raw['market_name']?.toString() == marketName)) {
+        return schema;
+      }
     }
     return null;
   }
@@ -527,6 +566,115 @@ class _BuyingPageState extends State<BuyingPage>
 
   double? _buyRequestDouble(BuyRequestItem item, List<String> keys) {
     return _rawDouble(item.raw, keys);
+  }
+
+  int? _parseInt(dynamic value) {
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  double? _parseDouble(dynamic value) {
+    if (value is double) {
+      return value;
+    }
+    if (value is num) {
+      return value.toDouble();
+    }
+    return double.tryParse(value?.toString() ?? '');
+  }
+
+  String? _schemaText(ShopSchemaInfo? schema, List<String> keys) {
+    if (schema == null) {
+      return null;
+    }
+    return _rawText(schema.raw, keys);
+  }
+
+  double? _schemaDouble(ShopSchemaInfo? schema, List<String> keys) {
+    if (schema == null) {
+      return null;
+    }
+    return _rawDouble(schema.raw, keys);
+  }
+
+  MarketItemTags? _marketTagsFromSchema(ShopSchemaInfo? schema) {
+    final tags = schema?.raw['tags'];
+    if (tags is Map<String, dynamic>) {
+      return MarketItemTags.fromJson(tags);
+    }
+    if (tags is Map) {
+      return MarketItemTags.fromJson(Map<String, dynamic>.from(tags));
+    }
+    return null;
+  }
+
+  MarketItemEntity _buildMarketDetailItem(
+    BuyRequestItem item,
+    ShopSchemaInfo? schema,
+  ) {
+    final schemaId =
+        item.schemaId ??
+        _rawInt(item.raw, const ['schema_id', 'schemaId']) ??
+        _parseInt(schema?.raw['id']) ??
+        _parseInt(schema?.raw['schema_id'] ?? schema?.raw['schemaId']);
+    final marketHashName =
+        schema?.marketHashName ??
+        _rawText(item.raw, const ['market_hash_name', 'marketHashName']) ??
+        _schemaText(schema, const ['market_hash_name', 'marketHashName']);
+    final marketName =
+        schema?.marketName ??
+        _rawText(item.raw, const ['market_name', 'marketName', 'name']) ??
+        _schemaText(schema, const ['market_name', 'marketName', 'name']);
+    final imageUrl =
+        schema?.imageUrl ??
+        _rawText(item.raw, const ['image_url', 'imageUrl', 'image']) ??
+        _schemaText(schema, const ['image_url', 'imageUrl', 'image']);
+
+    return MarketItemEntity(
+      id: schemaId,
+      schemaId: schemaId,
+      appId:
+          item.appId ??
+          _rawInt(item.raw, const ['app_id', 'appId']) ??
+          _parseInt(schema?.raw['app_id'] ?? schema?.raw['appId']) ??
+          _currentAppId,
+      marketName: marketName ?? marketHashName,
+      marketHashName: marketHashName,
+      imageUrl: imageUrl,
+      marketPrice:
+          _schemaDouble(schema, const [
+            'reference_price',
+            'referencePrice',
+            'market_price',
+            'marketPrice',
+            'buff_min_price',
+            'buffMinPrice',
+            'sell_min',
+            'price',
+          ]) ??
+          _parseDouble(item.raw['market_price'] ?? item.raw['marketPrice']) ??
+          item.price,
+      paintSeed: _rawText(item.raw, const ['paint_seed', 'paintSeed']),
+      paintIndex: _rawText(item.raw, const ['paint_index', 'paintIndex']),
+      paintWear: _rawText(item.raw, const ['paint_wear', 'paintWear']),
+      percentage: _rawText(item.raw, const ['percentage']),
+      phase: _rawText(item.raw, const ['phase']) ?? item.phase,
+      tags: _marketTagsFromSchema(schema),
+    );
+  }
+
+  void _openListingDetails(BuyRequestItem item, ShopSchemaInfo? schema) {
+    final detailItem = _buildMarketDetailItem(item, schema);
+    if (detailItem.schemaId == null && detailItem.id == null) {
+      AppSnackbar.error('app.trade.filter.failed'.tr);
+      return;
+    }
+    Get.toNamed(Routers.MARKET_DETAIL, arguments: detailItem);
   }
 
   String _formatSpecNumber(double value, {int precision = 2}) {
@@ -1713,7 +1861,7 @@ class _BuyingPageState extends State<BuyingPage>
       return OutlinedButton(
         onPressed: () => _confirmTerminateBuying(item),
         style: _buildDangerActionButtonStyle(),
-        child: _buildCompactActionLabel(_text(zh: '终止求购', en: 'Terminate')),
+        child: _buildCompactActionLabel('app.trade.purchase.terminate'.tr),
       );
     }
 
@@ -1743,35 +1891,39 @@ class _BuyingPageState extends State<BuyingPage>
 
   Widget _buildMyBuyingItem(BuyRequestItem item) {
     final schema = _lookupSchema(item);
-    return DecoratedBox(
-      decoration: _buildMyBuyingCardDecoration(),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _formatTime(item.upTime ?? item.createTime),
-                    style: const TextStyle(
-                      color: _buyRecordBodyColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                      height: 16 / 12,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _openListingDetails(item, schema),
+      child: DecoratedBox(
+        decoration: _buildMyBuyingCardDecoration(),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _formatTime(item.upTime ?? item.createTime),
+                      style: const TextStyle(
+                        color: _buyRecordBodyColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                        height: 16 / 12,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                _buildProgressBadge(item),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildBuyRequestSummary(item, schema),
-            const SizedBox(height: 16),
-            _buildMyBuyingActions(item, schema),
-          ],
+                  const SizedBox(width: 12),
+                  _buildProgressBadge(item),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildBuyRequestSummary(item, schema),
+              const SizedBox(height: 16),
+              _buildMyBuyingActions(item, schema),
+            ],
+          ),
         ),
       ),
     );
@@ -1897,77 +2049,81 @@ class _BuyingPageState extends State<BuyingPage>
 
   Widget _buildRecordItem(BuyRequestItem item) {
     final schema = _lookupSchema(item);
-    return Container(
-      decoration: _buildBuyRecordCardDecoration(),
-      child: Padding(
-        padding: const EdgeInsets.all(21),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _text(zh: '下单时间', en: 'ORDER DATE'),
-                        style: TextStyle(
-                          color: _buyRecordMutedColor,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          height: 15 / 10,
-                          letterSpacing: _isChineseLocale ? 0 : 1,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _openListingDetails(item, schema),
+      child: Container(
+        decoration: _buildBuyRecordCardDecoration(),
+        child: Padding(
+          padding: const EdgeInsets.all(21),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _text(zh: '下单时间', en: 'ORDER DATE'),
+                          style: TextStyle(
+                            color: _buyRecordMutedColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            height: 15 / 10,
+                            letterSpacing: _isChineseLocale ? 0 : 1,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _formatTime(item.createTime ?? item.upTime),
-                        style: const TextStyle(
-                          color: _buyRecordTitleColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          height: 18 / 12,
+                        const SizedBox(height: 4),
+                        Text(
+                          _formatTime(item.createTime ?? item.upTime),
+                          style: const TextStyle(
+                            color: _buyRecordTitleColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            height: 18 / 12,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                _buildRecordStatusChip(item),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildRecordPreviewImage(item, schema),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _recordTitle(item, schema),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _buyRecordTitleColor,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          height: 24 / 16,
+                  const SizedBox(width: 12),
+                  _buildRecordStatusChip(item),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildRecordPreviewImage(item, schema),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _recordTitle(item, schema),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _buyRecordTitleColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            height: 24 / 16,
+                          ),
                         ),
-                      ),
-                      _buildPurchaseInfoWrap(item),
-                    ],
+                        _buildPurchaseInfoWrap(item),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildRecordSummaryPanel(item),
-          ],
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildRecordSummaryPanel(item),
+            ],
+          ),
         ),
       ),
     );
