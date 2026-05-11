@@ -85,6 +85,7 @@ Map<String, String> _missingMessagesFor(String locale) {
     ..._messagesWithEnglishFallback(_shopBacklogMessages, normalized),
     ..._messagesWithEnglishFallback(_deliverBacklogMessages, normalized),
     ..._messagesWithEnglishFallback(_purchaseFailureMessages, normalized),
+    ..._messagesWithEnglishFallback(_feedbackActionMessages, normalized),
     ..._messagesWithEnglishFallback(_inlineBacklogMessages, normalized),
     ..._messagesWithEnglishFallback(_excelBacklogMessages, normalized),
     ...?_rechargeSecurityMessages[normalized],
@@ -410,6 +411,26 @@ const Map<String, Map<String, String>> _purchaseFailureMessages = {
         'Số dư không đủ. Vui lòng nạp tiền trước khi mua.',
   },
   'zh_TW': {'app.trade.buy.message.balance_insufficient': '帳戶餘額不足，請先充值後再購買。'},
+};
+
+const Map<String, Map<String, String>> _feedbackActionMessages = {
+  'en_US': {'app.user.feedback.mark_resolved': 'Mark Resolved'},
+  'zh_CN': {'app.user.feedback.mark_resolved': '标记已解决'},
+  'fr_FR': {'app.user.feedback.mark_resolved': 'Marquer comme résolu'},
+  'ge_DE': {'app.user.feedback.mark_resolved': 'Als gelöst markieren'},
+  'in_ID': {'app.user.feedback.mark_resolved': 'Tandai selesai'},
+  'it_IT': {'app.user.feedback.mark_resolved': 'Segna come risolto'},
+  'ja_JP': {'app.user.feedback.mark_resolved': '解決済みにする'},
+  'ko_KR': {'app.user.feedback.mark_resolved': '해결됨으로 표시'},
+  'la_LAT': {'app.user.feedback.mark_resolved': 'Marca ut solutum'},
+  'po_PL': {'app.user.feedback.mark_resolved': 'Oznacz jako rozwiązane'},
+  'po_PT': {'app.user.feedback.mark_resolved': 'Marcar como resolvido'},
+  'ru_RU': {'app.user.feedback.mark_resolved': 'Отметить как решено'},
+  'sp_ES': {'app.user.feedback.mark_resolved': 'Marcar como resuelto'},
+  'th_TH': {'app.user.feedback.mark_resolved': 'ทำเครื่องหมายว่าแก้ไขแล้ว'},
+  'tu_TR': {'app.user.feedback.mark_resolved': 'Çözüldü olarak işaretle'},
+  'vi_VN': {'app.user.feedback.mark_resolved': 'Đánh dấu đã giải quyết'},
+  'zh_TW': {'app.user.feedback.mark_resolved': '標記為已解決'},
 };
 
 const Map<String, Map<String, String>> _settingsOverviewMessages = {

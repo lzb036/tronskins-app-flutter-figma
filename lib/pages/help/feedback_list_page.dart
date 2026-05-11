@@ -675,7 +675,7 @@ class _FeedbackStyle {
         Get.locale?.languageCode.toLowerCase().startsWith('zh') == true;
     return switch (status) {
       0 => isZh ? '待处理' : 'Pending',
-      1 => isZh ? '处理中' : 'Processing',
+      1 => isZh ? '已回复' : 'Replied',
       2 => isZh ? '已解决' : 'Resolved',
       3 => isZh ? '已关闭' : 'Closed',
       _ => isZh ? '未知' : 'Unknown',

@@ -27,9 +27,13 @@ class WalletController extends GetxController {
 
   final RxList<WalletFundFlowItem> fundFlows = <WalletFundFlowItem>[].obs;
   final RxBool isLoadingFundFlows = false.obs;
+  final Rxn<DateTime> fundFlowStartDate = Rxn<DateTime>();
+  final Rxn<DateTime> fundFlowEndDate = Rxn<DateTime>();
   int _fundFlowPage = 1;
   bool _fundFlowHasMore = true;
   bool get hasMoreFundFlows => _fundFlowHasMore;
+  bool get hasFundFlowDateFilter =>
+      fundFlowStartDate.value != null || fundFlowEndDate.value != null;
 
   final RxList<WalletLockedItem> lockedItems = <WalletLockedItem>[].obs;
   final RxBool isLoadingLocked = false.obs;
@@ -156,9 +160,13 @@ class WalletController extends GetxController {
         _fundFlowHasMore = true;
         fundFlows.clear();
       }
+      final startTime = _toStartUnix(fundFlowStartDate.value);
+      final endTime = _toEndUnix(fundFlowEndDate.value);
       final res = await _api.fundChangesList(
         page: _fundFlowPage,
         pageSize: pageSize,
+        startTime: startTime,
+        endTime: endTime,
       );
       final data = res.datas;
       final list = data?.list ?? <WalletFundFlowItem>[];
@@ -179,6 +187,34 @@ class WalletController extends GetxController {
     } finally {
       isLoadingFundFlows.value = false;
     }
+  }
+
+  Future<void> applyFundFlowDateRange({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    var normalizedStart = _dateOnly(startDate);
+    var normalizedEnd = _dateOnly(endDate);
+    if (normalizedStart != null &&
+        normalizedEnd != null &&
+        normalizedStart.isAfter(normalizedEnd)) {
+      final temp = normalizedStart;
+      normalizedStart = normalizedEnd;
+      normalizedEnd = temp;
+    }
+
+    fundFlowStartDate.value = normalizedStart;
+    fundFlowEndDate.value = normalizedEnd;
+    await loadFundFlows(reset: true);
+  }
+
+  Future<void> clearFundFlowDateRange() async {
+    if (!hasFundFlowDateFilter) {
+      return;
+    }
+    fundFlowStartDate.value = null;
+    fundFlowEndDate.value = null;
+    await loadFundFlows(reset: true);
   }
 
   Future<void> loadLockedFunds({bool reset = false}) async {
@@ -464,6 +500,39 @@ class WalletController extends GetxController {
     }
 
     return fetchedCount >= pageSize;
+  }
+
+  DateTime? _dateOnly(DateTime? date) {
+    if (date == null) {
+      return null;
+    }
+    return DateTime(date.year, date.month, date.day);
+  }
+
+  int? _toUnix(DateTime? date) {
+    if (date == null) {
+      return null;
+    }
+    return (date.millisecondsSinceEpoch / 1000).floor();
+  }
+
+  int? _toStartUnix(DateTime? date) {
+    if (date == null) {
+      return null;
+    }
+    return _toUnix(DateTime(date.year, date.month, date.day));
+  }
+
+  int? _toEndUnix(DateTime? date) {
+    if (date == null) {
+      return null;
+    }
+    final nextDay = DateTime(
+      date.year,
+      date.month,
+      date.day,
+    ).add(const Duration(days: 1));
+    return _toUnix(nextDay.subtract(const Duration(seconds: 1)));
   }
 
   Future<void> loadWithdrawAddresses() async {

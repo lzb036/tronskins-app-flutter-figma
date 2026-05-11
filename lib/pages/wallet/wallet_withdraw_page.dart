@@ -1477,7 +1477,7 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
             child: IconButton(
               onPressed: () => Get.toNamed(Routers.WALLET_WITHDRAW_RECORD),
               icon: const Icon(Icons.history_rounded),
-              color: _brandDarkColor,
+              color: _bodyColor,
               tooltip: 'app.user.wallet.withdraw_record'.tr,
             ),
           ),

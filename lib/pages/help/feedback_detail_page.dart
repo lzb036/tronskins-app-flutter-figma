@@ -31,6 +31,7 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
 
   String _ticketId = '';
   int? _status;
+  String? _statusName;
   bool _refreshing = false;
   bool _replyUploading = false;
   bool _replySubmitting = false;
@@ -47,6 +48,7 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
       _status = args['status'] is int
           ? args['status'] as int
           : int.tryParse(args['status']?.toString() ?? '');
+      _statusName = args['statusName']?.toString();
     } else {
       _ticketId = args?.toString() ?? '';
     }
@@ -314,6 +316,7 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
             ? List<FeedbackReply>.of(list)
             : list.skip(1).toList(growable: false);
         final effectiveStatus = detail?.status ?? _status;
+        final effectiveStatusName = detail?.statusName ?? _statusName;
         final closed = effectiveStatus == 2 || effectiveStatus == 3;
         final canInput = !closed;
         final showLoadingFooter = loading && conversationReplies.isNotEmpty;
@@ -394,9 +397,8 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
             _FeedbackDetailTopBar(
               title: _topBarTitle(detail),
               onBack: () => Navigator.maybePop(context),
-              resolvedLabel: _resolvedButtonLabel,
-              resolving: _replySolving,
-              onResolve: canInput ? _confirmSolveTicket : null,
+              status: effectiveStatus,
+              statusName: effectiveStatusName,
             ),
             if (canInput)
               _FeedbackChatFooter(
@@ -406,9 +408,11 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
                 uploading: _replyUploading,
                 submitting: _replySubmitting,
                 solving: _replySolving,
+                resolveLabel: _resolveActionLabel,
                 onPickImage: _pickReplyImage,
                 onRemoveImage: _removeReplyImage,
                 onSend: _sendReply,
+                onResolve: _confirmSolveTicket,
               ),
           ],
         );
@@ -416,11 +420,7 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
     );
   }
 
-  String get _resolvedButtonLabel {
-    final isZh =
-        Get.locale?.languageCode.toLowerCase().startsWith('zh') == true;
-    return isZh ? '已解决' : 'Resolved';
-  }
+  String get _resolveActionLabel => 'app.user.feedback.mark_resolved'.tr;
 
   FeedbackReply? _initialFeedbackReply(List<FeedbackReply> replies) {
     if (replies.isEmpty) return null;
@@ -970,16 +970,14 @@ class _FeedbackDetailTopBar extends StatelessWidget {
   const _FeedbackDetailTopBar({
     required this.title,
     required this.onBack,
-    required this.resolvedLabel,
-    required this.resolving,
-    required this.onResolve,
+    required this.status,
+    required this.statusName,
   });
 
   final String title;
   final VoidCallback onBack;
-  final String resolvedLabel;
-  final bool resolving;
-  final VoidCallback? onResolve;
+  final int? status;
+  final String? statusName;
 
   @override
   Widget build(BuildContext context) {
@@ -1030,17 +1028,62 @@ class _FeedbackDetailTopBar extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                if (onResolve != null)
-                  _FeedbackResolveButton(
-                    label: resolvedLabel,
-                    loading: resolving,
-                    onTap: resolving ? null : onResolve,
-                  )
-                else
-                  const SizedBox(width: 0),
+                _FeedbackStatusChip(status: status, statusName: statusName),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FeedbackStatusChip extends StatelessWidget {
+  const _FeedbackStatusChip({required this.status, required this.statusName});
+
+  final int? status;
+  final String? statusName;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = status ?? -1;
+    final colors = _FeedbackDetailStyle.statusColors(value);
+    final label = statusName?.trim().isNotEmpty == true
+        ? statusName!.trim()
+        : _FeedbackDetailStyle.statusLabel(value);
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 150),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 34),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: colors.background,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _FeedbackDetailStyle.statusIcon(value),
+              color: colors.foreground,
+              size: 16,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colors.foreground,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  height: 18 / 13,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1085,9 +1128,11 @@ class _FeedbackChatFooter extends StatelessWidget {
     required this.uploading,
     required this.submitting,
     required this.solving,
+    required this.resolveLabel,
     required this.onPickImage,
     required this.onRemoveImage,
     required this.onSend,
+    required this.onResolve,
   });
 
   final TextEditingController controller;
@@ -1096,9 +1141,11 @@ class _FeedbackChatFooter extends StatelessWidget {
   final bool uploading;
   final bool submitting;
   final bool solving;
+  final String resolveLabel;
   final VoidCallback onPickImage;
   final ValueChanged<int> onRemoveImage;
   final VoidCallback onSend;
+  final VoidCallback onResolve;
 
   @override
   Widget build(BuildContext context) {
@@ -1117,6 +1164,15 @@ class _FeedbackChatFooter extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: _FeedbackResolveButton(
+                    label: resolveLabel,
+                    loading: solving,
+                    onTap: disabled ? null : onResolve,
+                  ),
+                ),
+                const SizedBox(height: 12),
                 if (imagePaths.isNotEmpty) ...[
                   _FeedbackReplyImageStrip(
                     paths: imagePaths,
@@ -1487,6 +1543,53 @@ class _FeedbackDetailStyle {
 
   static double footerHeight(BuildContext context, int imageCount) {
     final previewHeight = imageCount > 0 ? 74.0 : 0.0;
-    return 92 + previewHeight + MediaQuery.paddingOf(context).bottom;
+    return 138 + previewHeight + MediaQuery.paddingOf(context).bottom;
+  }
+
+  static ({Color background, Color foreground}) statusColors(int status) {
+    return switch (status) {
+      0 => (
+        background: const Color(0xFFFEF3C7),
+        foreground: const Color(0xFF92400E),
+      ),
+      1 => (
+        background: const Color(0xFFFEF3C7),
+        foreground: const Color(0xFF92400E),
+      ),
+      2 => (
+        background: const Color(0xFFE4F7EA),
+        foreground: const Color(0xFF15803D),
+      ),
+      3 => (
+        background: const Color(0xFFFEE2E2),
+        foreground: const Color(0xFF991B1B),
+      ),
+      _ => (
+        background: const Color(0xFFE9EEF1),
+        foreground: const Color(0xFF394047),
+      ),
+    };
+  }
+
+  static IconData statusIcon(int status) {
+    return switch (status) {
+      0 => Icons.history_rounded,
+      1 => Icons.history_rounded,
+      2 => Icons.check_circle_outline_rounded,
+      3 => Icons.error_outline_rounded,
+      _ => Icons.help_outline_rounded,
+    };
+  }
+
+  static String statusLabel(int status) {
+    final isZh =
+        Get.locale?.languageCode.toLowerCase().startsWith('zh') == true;
+    return switch (status) {
+      0 => isZh ? '待处理' : 'Pending',
+      1 => isZh ? '已回复' : 'Replied',
+      2 => isZh ? '已解决' : 'Resolved',
+      3 => isZh ? '已关闭' : 'Closed',
+      _ => isZh ? '未知' : 'Unknown',
+    };
   }
 }

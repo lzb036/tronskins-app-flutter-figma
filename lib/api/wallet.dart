@@ -6,10 +6,20 @@ class ApiWalletServer {
   final HttpHelper http = HttpHelper.getInstance();
 
   Future<BaseHttpResponse<WalletListResponse<WalletFundFlowItem>>>
-  fundChangesList({int page = 1, int pageSize = 20}) async {
+  fundChangesList({
+    int page = 1,
+    int pageSize = 20,
+    int? startTime,
+    int? endTime,
+  }) async {
     final response = await http.post(
       'api/app/fund/changes/list',
-      data: {'page': page, 'pageSize': pageSize},
+      data: {
+        'page': page,
+        'pageSize': pageSize,
+        if (startTime != null) 'startTime': startTime,
+        if (endTime != null) 'endTime': endTime,
+      },
     );
     return BaseHttpResponse.fromJson(
       response.data as Map<String, dynamic>,

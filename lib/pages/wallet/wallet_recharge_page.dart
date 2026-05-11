@@ -241,7 +241,7 @@ class _WalletRechargePageState extends State<WalletRechargePage>
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: _RechargeIconAction(
-                icon: Icons.receipt_long_outlined,
+                icon: Icons.history_rounded,
                 tooltip: 'app.user.wallet.recharge_record'.tr,
                 onTap: () => Get.toNamed(Routers.WALLET_RECHARGE_RECORD),
               ),
@@ -1020,7 +1020,13 @@ class _RechargeIconAction extends StatelessWidget {
         child: SizedBox(
           width: 40,
           height: 40,
-          child: Center(child: Icon(icon, size: 20)),
+          child: Center(
+            child: Icon(
+              icon,
+              color: _WalletRechargePageState._bodyText,
+              size: 20,
+            ),
+          ),
         ),
       ),
     );
