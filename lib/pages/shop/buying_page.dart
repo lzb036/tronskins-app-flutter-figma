@@ -2423,6 +2423,8 @@ class _PurchasePriceChangeDialog extends StatefulWidget {
 class _PurchasePriceChangeDialogState
     extends State<_PurchasePriceChangeDialog> {
   static const double _minTradePrice = 0.02;
+  static const int _minPurchaseQuantity = 1;
+  static const int _maxPurchaseQuantity = 1000;
 
   final ApiShopProductServer _api = ApiShopProductServer();
   final TextEditingController _priceController = TextEditingController();
@@ -2439,8 +2441,7 @@ class _PurchasePriceChangeDialogState
   void initState() {
     super.initState();
     _priceController.text = _normalizeDisplayPrice(widget.item.price ?? 0);
-    _numController.text = (widget.item.nums ?? widget.item.count ?? 1)
-        .toString();
+    _numController.text = _currentPurchaseQuantityText;
     _loadParams();
   }
 
@@ -2522,6 +2523,24 @@ class _PurchasePriceChangeDialogState
     return _buyingParseDouble(_schemaRaw['buy_max']) ?? 0;
   }
 
+  int _boundQuantity(int quantity) {
+    if (quantity < _minPurchaseQuantity) {
+      return _minPurchaseQuantity;
+    }
+    if (quantity > _maxPurchaseQuantity) {
+      return _maxPurchaseQuantity;
+    }
+    return quantity;
+  }
+
+  int get _currentPurchaseQuantity {
+    final quantity = widget.item.nums ?? widget.item.count ?? 1;
+    return _boundQuantity(quantity);
+  }
+
+  String get _currentPurchaseQuantityText =>
+      _currentPurchaseQuantity.toString();
+
   Future<void> _loadReferencePrice({bool silentError = false}) async {
     final schemaId =
         widget.item.schemaId ??
@@ -2588,15 +2607,98 @@ class _PurchasePriceChangeDialogState
     return value.length - dotIndex - 1 > 2;
   }
 
+  void _setControllerText(TextEditingController controller, String text) {
+    controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.fromPosition(TextPosition(offset: text.length)),
+    );
+  }
+
+  String _sanitizeDecimalText(String value) {
+    final buffer = StringBuffer();
+    var hasDecimalPoint = false;
+    var decimalCount = 0;
+
+    for (final codeUnit in value.codeUnits) {
+      final char = String.fromCharCode(codeUnit);
+      if (char == '.' || char == ',') {
+        if (hasDecimalPoint) {
+          continue;
+        }
+        hasDecimalPoint = true;
+        buffer.write(buffer.isEmpty ? '0.' : '.');
+        continue;
+      }
+      if (codeUnit < 48 || codeUnit > 57) {
+        continue;
+      }
+      if (hasDecimalPoint) {
+        if (decimalCount >= 2) {
+          continue;
+        }
+        decimalCount += 1;
+      }
+      buffer.write(char);
+    }
+
+    return buffer.toString();
+  }
+
   void _sanitizePrice(String value) {
+    final sanitized = _sanitizeDecimalText(value);
+    if (sanitized != value) {
+      _setControllerText(_priceController, sanitized);
+    }
     setState(() {});
   }
 
   void _normalizePriceOnBlur() {
+    final text = _priceController.text;
+    if (text.isEmpty) {
+      return;
+    }
+    if (text.endsWith('.')) {
+      _setControllerText(_priceController, text.substring(0, text.length - 1));
+    }
+    final price = double.tryParse(_priceController.text);
+    if (price == null) {
+      return;
+    }
+    if (price < _minTradePrice) {
+      _setControllerText(_priceController, _minTradePrice.toStringAsFixed(2));
+    }
     setState(() {});
   }
 
+  bool _isValidQuantityText(String value) {
+    final text = value.trim();
+    if (text.isEmpty) {
+      return false;
+    }
+    if (!RegExp(r'^\d+$').hasMatch(text)) {
+      return false;
+    }
+    final quantity = int.tryParse(text);
+    return quantity != null &&
+        quantity >= _minPurchaseQuantity &&
+        quantity <= _maxPurchaseQuantity;
+  }
+
+  void _resetNumToCurrentQuantity() {
+    _setControllerText(_numController, _currentPurchaseQuantityText);
+  }
+
   void _sanitizeNum(String value) {
+    if (value.isNotEmpty && !_isValidQuantityText(value)) {
+      _resetNumToCurrentQuantity();
+    }
+    setState(() {});
+  }
+
+  void _normalizeNumOnBlur() {
+    if (!_isValidQuantityText(_numController.text)) {
+      _resetNumToCurrentQuantity();
+    }
     setState(() {});
   }
 
@@ -2623,15 +2725,11 @@ class _PurchasePriceChangeDialogState
       AppSnackbar.error('app.market.filter.message.price_error'.tr);
       return;
     }
-    final nums = int.tryParse(numText);
-    if (nums == null || nums <= 0) {
-      AppSnackbar.error('app.trade.purchase.message.num_error'.tr);
+    if (!_isValidQuantityText(numText)) {
+      _resetNumToCurrentQuantity();
       return;
     }
-    if (nums > 200) {
-      AppSnackbar.error('app.market.detail.bulk_buying.num_error'.tr);
-      return;
-    }
+    final nums = int.parse(numText);
     final effectiveMinPrice = _minPrice > 0 ? _minPrice : _minTradePrice;
     if (price < effectiveMinPrice) {
       AppSnackbar.error('app.trade.purchase.message.min_price_error'.tr);
@@ -3021,6 +3119,7 @@ class _PurchasePriceChangeDialogState
                 controller: _numController,
                 keyboardType: TextInputType.number,
                 onChanged: _sanitizeNum,
+                onEditingComplete: _normalizeNumOnBlur,
               ),
               const SizedBox(height: 12),
               Row(

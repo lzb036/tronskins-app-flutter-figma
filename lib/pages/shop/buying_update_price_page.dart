@@ -28,6 +28,8 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
   bool _isSubmitting = false;
 
   static const double _minTradePrice = 0.02;
+  static const int _minPurchaseQuantity = 1;
+  static const int _maxPurchaseQuantity = 1000;
   static const Color _pageBackground = Color(0xFFF7F9FB);
   static const Color _cardSurface = Colors.white;
   static const Color _softSurface = Color(0xFFF2F4F6);
@@ -61,7 +63,7 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
     }
 
     _priceController.text = _normalizeDisplayPrice(_item.price ?? 0);
-    _numController.text = (_item.nums ?? 0).toString();
+    _numController.text = _currentPurchaseQuantityText;
     _priceController.addListener(_onInputChanged);
     _numController.addListener(_onInputChanged);
     _loadParams();
@@ -119,6 +121,24 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
   double _buyMax() {
     return _parseDouble(_schemaRaw['buy_max']) ?? 0;
   }
+
+  int _boundQuantity(int quantity) {
+    if (quantity < _minPurchaseQuantity) {
+      return _minPurchaseQuantity;
+    }
+    if (quantity > _maxPurchaseQuantity) {
+      return _maxPurchaseQuantity;
+    }
+    return quantity;
+  }
+
+  int get _currentPurchaseQuantity {
+    final quantity = _item.nums ?? _item.count ?? 1;
+    return _boundQuantity(quantity);
+  }
+
+  String get _currentPurchaseQuantityText =>
+      _currentPurchaseQuantity.toString();
 
   double _truncateTo2(double value) {
     return (value * 100).floor() / 100;
@@ -182,6 +202,36 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
     );
   }
 
+  String _sanitizeDecimalText(String value) {
+    final buffer = StringBuffer();
+    var hasDecimalPoint = false;
+    var decimalCount = 0;
+
+    for (final codeUnit in value.codeUnits) {
+      final char = String.fromCharCode(codeUnit);
+      if (char == '.' || char == ',') {
+        if (hasDecimalPoint) {
+          continue;
+        }
+        hasDecimalPoint = true;
+        buffer.write(buffer.isEmpty ? '0.' : '.');
+        continue;
+      }
+      if (codeUnit < 48 || codeUnit > 57) {
+        continue;
+      }
+      if (hasDecimalPoint) {
+        if (decimalCount >= 2) {
+          continue;
+        }
+        decimalCount += 1;
+      }
+      buffer.write(char);
+    }
+
+    return buffer.toString();
+  }
+
   void _applyMaxPrice() {
     final value = _getPricingRules(_buyMax());
     if (value <= 0) {
@@ -191,19 +241,9 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
   }
 
   void _sanitizePrice(String value) {
-    if (value.isEmpty) {
-      setState(() {});
-      return;
-    }
-    final parsed = double.tryParse(value);
-    if (parsed == null) {
-      setState(() {});
-      return;
-    }
-    final parts = value.split('.');
-    if (parts.length == 2 && parts[1].length > 2) {
-      final truncated = _truncateTo2(parsed);
-      _setControllerText(_priceController, truncated.toStringAsFixed(2));
+    final sanitized = _sanitizeDecimalText(value);
+    if (sanitized != value) {
+      _setControllerText(_priceController, sanitized);
     }
     setState(() {});
   }
@@ -227,14 +267,34 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
     setState(() {});
   }
 
-  void _sanitizeNum(String value) {
-    if (value.contains('.')) {
-      final integer = value.split('.').first;
-      _setControllerText(_numController, integer);
+  bool _isValidQuantityText(String value) {
+    final text = value.trim();
+    if (text.isEmpty) {
+      return false;
     }
-    final numValue = int.tryParse(_numController.text) ?? 0;
-    if (numValue > 200) {
-      _setControllerText(_numController, '200');
+    if (!RegExp(r'^\d+$').hasMatch(text)) {
+      return false;
+    }
+    final quantity = int.tryParse(text);
+    return quantity != null &&
+        quantity >= _minPurchaseQuantity &&
+        quantity <= _maxPurchaseQuantity;
+  }
+
+  void _resetNumToCurrentQuantity() {
+    _setControllerText(_numController, _currentPurchaseQuantityText);
+  }
+
+  void _sanitizeNum(String value) {
+    if (value.isNotEmpty && !_isValidQuantityText(value)) {
+      _resetNumToCurrentQuantity();
+    }
+    setState(() {});
+  }
+
+  void _normalizeNumOnBlur() {
+    if (!_isValidQuantityText(_numController.text)) {
+      _resetNumToCurrentQuantity();
     }
     setState(() {});
   }
@@ -265,11 +325,15 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
       return;
     }
     final price = double.tryParse(normalizedPriceText);
-    final nums = int.tryParse(numText);
-    if (price == null || price <= 0 || nums == null || nums <= 0) {
+    if (price == null || price <= 0) {
       AppSnackbar.error('app.market.filter.message.price_error'.tr);
       return;
     }
+    if (!_isValidQuantityText(numText)) {
+      _resetNumToCurrentQuantity();
+      return;
+    }
+    final nums = int.parse(numText);
     final effectiveMinPrice = _minPrice > 0 ? _minPrice : _minTradePrice;
     if (price < effectiveMinPrice) {
       AppSnackbar.error('app.trade.purchase.message.min_price_error'.tr);
@@ -566,6 +630,8 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
                 contentPadding: EdgeInsets.zero,
               ),
               onChanged: _sanitizeNum,
+              onEditingComplete: _normalizeNumOnBlur,
+              onSubmitted: (_) => _normalizeNumOnBlur(),
             ),
           ),
         ],
