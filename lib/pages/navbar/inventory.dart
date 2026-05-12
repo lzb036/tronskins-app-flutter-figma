@@ -803,7 +803,8 @@ class _InventoryPageState extends State<InventoryPage>
                               : isCooling
                               ? 'app.market.product.cooling'.tr
                               : isOnSale
-                              ? 'app.inventory.on_sale'.tr
+                              ? 'app.inventory.message.on_sale_not_selectable'
+                                    .tr
                               : 'app.inventory.in_supply'.tr,
                         );
                         return;

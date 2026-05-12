@@ -82,6 +82,7 @@ Map<String, String> _missingMessagesFor(String locale) {
     ..._messagesWithEnglishFallback(_exchangeRateMessages, normalized),
     ..._messagesWithEnglishFallback(_marketBacklogMessages, normalized),
     ..._messagesWithEnglishFallback(_twoFaTokenMessages, normalized),
+    ..._messagesWithEnglishFallback(_inventorySelectionMessages, normalized),
     ..._messagesWithEnglishFallback(_shopBacklogMessages, normalized),
     ..._messagesWithEnglishFallback(_deliverBacklogMessages, normalized),
     ..._messagesWithEnglishFallback(_purchaseFailureMessages, normalized),
@@ -884,6 +885,69 @@ const Map<String, Map<String, String>> _marketBacklogMessages = {
     'app.market.item.fill_rate': '發貨率',
     'app.market.csgo.wear_unlimited': '不限磨損度',
   },
+};
+
+const Map<String, Map<String, String>> _inventorySelectionMessages = {
+  'en_US': {
+    'app.inventory.message.on_sale_not_selectable':
+        'Item is listed for sale and cannot be selected.',
+  },
+  'fr_FR': {
+    'app.inventory.message.on_sale_not_selectable':
+        'L’objet est en vente et ne peut pas être sélectionné.',
+  },
+  'ge_DE': {
+    'app.inventory.message.on_sale_not_selectable':
+        'Der Gegenstand steht zum Verkauf und kann nicht ausgewählt werden.',
+  },
+  'in_ID': {
+    'app.inventory.message.on_sale_not_selectable':
+        'Item sedang dijual dan tidak dapat dipilih.',
+  },
+  'it_IT': {
+    'app.inventory.message.on_sale_not_selectable':
+        'L’oggetto è in vendita e non può essere selezionato.',
+  },
+  'ja_JP': {
+    'app.inventory.message.on_sale_not_selectable': 'アイテムは出品中のため選択できません。',
+  },
+  'ko_KR': {
+    'app.inventory.message.on_sale_not_selectable': '아이템이 판매 중이어서 선택할 수 없습니다.',
+  },
+  'la_LAT': {
+    'app.inventory.message.on_sale_not_selectable':
+        'El artículo está en venta y no se puede seleccionar.',
+  },
+  'po_PL': {
+    'app.inventory.message.on_sale_not_selectable':
+        'Przedmiot jest wystawiony na sprzedaż i nie można go wybrać.',
+  },
+  'po_PT': {
+    'app.inventory.message.on_sale_not_selectable':
+        'O item está à venda e não pode ser selecionado.',
+  },
+  'ru_RU': {
+    'app.inventory.message.on_sale_not_selectable':
+        'Предмет выставлен на продажу и не может быть выбран.',
+  },
+  'sp_ES': {
+    'app.inventory.message.on_sale_not_selectable':
+        'El artículo está en venta y no se puede seleccionar.',
+  },
+  'th_TH': {
+    'app.inventory.message.on_sale_not_selectable':
+        'ไอเท็มกำลังขายอยู่และไม่สามารถเลือกได้',
+  },
+  'tu_TR': {
+    'app.inventory.message.on_sale_not_selectable':
+        'Eşya satışta ve seçilemez.',
+  },
+  'vi_VN': {
+    'app.inventory.message.on_sale_not_selectable':
+        'Vật phẩm đang được bán và không thể chọn.',
+  },
+  'zh_CN': {'app.inventory.message.on_sale_not_selectable': '饰品出售中，无法选中。'},
+  'zh_TW': {'app.inventory.message.on_sale_not_selectable': '飾品出售中，無法選取。'},
 };
 
 const Map<String, Map<String, String>> _shopBacklogMessages = {
