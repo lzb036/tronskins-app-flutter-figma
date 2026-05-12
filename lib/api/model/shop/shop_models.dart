@@ -331,12 +331,22 @@ class BuyRequestItem {
       percentageMin: _asDouble(
         json['percentage_min'] ??
             json['percentageMin'] ??
-            json['paintGradientMin'],
+            json['paintGradientMin'] ??
+            json['paint_gradient_min'] ??
+            json['gradientMin'] ??
+            json['gradient_min'] ??
+            json['fadePercentageMin'] ??
+            json['fade_percentage_min'],
       ),
       percentageMax: _asDouble(
         json['percentage_max'] ??
             json['percentageMax'] ??
-            json['paintGradientMax'],
+            json['paintGradientMax'] ??
+            json['paint_gradient_max'] ??
+            json['gradientMax'] ??
+            json['gradient_max'] ??
+            json['fadePercentageMax'] ??
+            json['fade_percentage_max'],
       ),
       count: _asInt(json['count']),
     );

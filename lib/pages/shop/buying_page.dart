@@ -61,6 +61,26 @@ class _BuyingPageState extends State<BuyingPage>
   static const double _recordStackCountBorderWidth = 1.25 * _recordStackScale;
   static const String _defaultPurchaseSortField = 'time';
   static const bool _defaultPurchaseSortAsc = false;
+  static const List<String> _purchaseGradientMinKeys = [
+    'percentage_min',
+    'percentageMin',
+    'paintGradientMin',
+    'paint_gradient_min',
+    'gradientMin',
+    'gradient_min',
+    'fadePercentageMin',
+    'fade_percentage_min',
+  ];
+  static const List<String> _purchaseGradientMaxKeys = [
+    'percentage_max',
+    'percentageMax',
+    'paintGradientMax',
+    'paint_gradient_max',
+    'gradientMax',
+    'gradient_max',
+    'fadePercentageMax',
+    'fade_percentage_max',
+  ];
   static const List<SortOption> _purchaseSortOptions = [
     SortOption(labelKey: 'app.market.filter.time', field: 'time'),
     SortOption(labelKey: 'app.market.filter.price', field: 'price'),
@@ -562,11 +582,24 @@ class _BuyingPageState extends State<BuyingPage>
     if (text == null) {
       return null;
     }
-    return double.tryParse(text);
+    return double.tryParse(text.trim().replaceAll('%', '').replaceAll(',', ''));
   }
 
   double? _buyRequestDouble(BuyRequestItem item, List<String> keys) {
-    return _rawDouble(item.raw, keys);
+    final direct = _rawDouble(item.raw, keys);
+    if (direct != null) {
+      return direct;
+    }
+    for (final sourceKey in const ['asset', 'assets', 'csgoAsset']) {
+      final source = item.raw[sourceKey];
+      if (source is Map<String, dynamic>) {
+        final nested = _rawDouble(source, keys);
+        if (nested != null) {
+          return nested;
+        }
+      }
+    }
+    return null;
   }
 
   int? _parseInt(dynamic value) {
@@ -708,19 +741,9 @@ class _BuyingPageState extends State<BuyingPage>
 
   String? _formatGradientSpec(BuyRequestItem item) {
     final min =
-        item.percentageMin ??
-        _buyRequestDouble(item, const [
-          'percentage_min',
-          'percentageMin',
-          'paintGradientMin',
-        ]);
+        item.percentageMin ?? _buyRequestDouble(item, _purchaseGradientMinKeys);
     final max =
-        item.percentageMax ??
-        _buyRequestDouble(item, const [
-          'percentage_max',
-          'percentageMax',
-          'paintGradientMax',
-        ]);
+        item.percentageMax ?? _buyRequestDouble(item, _purchaseGradientMaxKeys);
     if (min == null || max == null || max < 0) {
       return null;
     }

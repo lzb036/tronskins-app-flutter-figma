@@ -794,6 +794,8 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
           'schemaId': _schemaId,
           'paintWearMax': _wearMax,
           'paintWearMin': _wearMin,
+          'percentageMin': _gradientMin,
+          'percentageMax': _gradientMax,
           'paintGradientMin': _gradientMin,
           'paintGradientMax': _gradientMax,
           'paintIndex': _selectedPaintIndex,
