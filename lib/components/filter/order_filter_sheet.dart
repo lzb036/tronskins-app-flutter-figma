@@ -138,6 +138,15 @@ class OrderFilterSheet extends StatefulWidget {
 }
 
 class _OrderFilterSheetState extends State<OrderFilterSheet> {
+  static const List<double> _attributeWearScaleMarkers = <double>[
+    0.00,
+    0.07,
+    0.15,
+    0.38,
+    0.45,
+    0.80,
+  ];
+
   DateTime? _startDate;
   DateTime? _endDate;
   double? _attributeWearMin;
@@ -1129,9 +1138,11 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
     MarketFilterGroupMeta group,
     RangeValues values,
   ) {
+    final startValue = _attributeWearSliderPositionToValue(values.start);
+    final endValue = _attributeWearSliderPositionToValue(values.end);
     final normalized = RangeValues(
-      _roundOrderWear(values.start.clamp(0.0, 0.8)),
-      _roundOrderWear(values.end.clamp(0.0, 0.8)),
+      _roundOrderWear(startValue.clamp(0.0, 0.8)),
+      _roundOrderWear(endValue.clamp(0.0, 0.8)),
     );
     String? matchedKey;
     for (final option in _buildOrderWearOptions(group)) {
@@ -1164,11 +1175,47 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
     return value.toStringAsFixed(2);
   }
 
+  double get _attributeWearSliderMax =>
+      (_attributeWearScaleMarkers.length - 1).toDouble();
+
+  double _attributeWearValueToSliderPosition(double value) {
+    final clamped = value
+        .clamp(
+          _attributeWearScaleMarkers.first,
+          _attributeWearScaleMarkers.last,
+        )
+        .toDouble();
+    for (
+      var index = 0;
+      index < _attributeWearScaleMarkers.length - 1;
+      index++
+    ) {
+      final start = _attributeWearScaleMarkers[index];
+      final end = _attributeWearScaleMarkers[index + 1];
+      final isLastSegment = index == _attributeWearScaleMarkers.length - 2;
+      if (clamped <= end || isLastSegment) {
+        final span = end - start;
+        return span <= 0 ? index.toDouble() : index + (clamped - start) / span;
+      }
+    }
+    return _attributeWearSliderMax;
+  }
+
+  double _attributeWearSliderPositionToValue(double position) {
+    final clamped = position.clamp(0.0, _attributeWearSliderMax).toDouble();
+    final segmentIndex = clamped >= _attributeWearSliderMax
+        ? _attributeWearScaleMarkers.length - 2
+        : clamped.floor();
+    final fraction = clamped - segmentIndex;
+    final start = _attributeWearScaleMarkers[segmentIndex];
+    final end = _attributeWearScaleMarkers[segmentIndex + 1];
+    return start + (end - start) * fraction;
+  }
+
   Widget _buildAttributeWearScale(
     RangeValues range,
     MarketFilterGroupMeta group,
   ) {
-    const markers = <double>[0.00, 0.07, 0.15, 0.38, 0.45, 0.80];
     const segmentColors = <Color>[
       Color(0xFFDBEAFE),
       Color(0xFF93C5FD),
@@ -1176,6 +1223,10 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
       Color(0xFF1D4ED8),
       Color(0xFF1E3A8A),
     ];
+    final sliderRange = RangeValues(
+      _attributeWearValueToSliderPosition(range.start),
+      _attributeWearValueToSliderPosition(range.end),
+    );
     return SizedBox(
       height: 58,
       child: Stack(
@@ -1188,7 +1239,7 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                for (final marker in markers)
+                for (final marker in _attributeWearScaleMarkers)
                   Text(
                     _formatOrderWearValue(marker),
                     style: const TextStyle(
@@ -1210,7 +1261,6 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
                 children: [
                   for (var i = 0; i < segmentColors.length; i++)
                     Expanded(
-                      flex: ((markers[i + 1] - markers[i]) * 1000).round(),
                       child: Container(height: 6, color: segmentColors[i]),
                     ),
                 ],
@@ -1234,10 +1284,10 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
                 overlappingShapeStrokeColor: FilterSheetStyle.priceAccent,
               ),
               child: RangeSlider(
-                values: range,
+                values: sliderRange,
                 min: 0,
-                max: 0.8,
-                divisions: 80,
+                max: _attributeWearSliderMax,
+                divisions: 400,
                 onChanged: (values) => _updateAttributeWearRange(group, values),
               ),
             ),

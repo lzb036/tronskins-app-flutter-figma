@@ -408,6 +408,14 @@ class MarketFilterSheet extends StatefulWidget {
 
 class _MarketFilterSheetState extends State<MarketFilterSheet> {
   static const String _weaponTypeDefaultName = 'unlimited';
+  static const List<double> _wearScaleMarkers = <double>[
+    0.00,
+    0.07,
+    0.15,
+    0.38,
+    0.45,
+    0.80,
+  ];
 
   late String _sortField;
   late bool _sortAsc;
@@ -4176,9 +4184,11 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
   }
 
   void _updateWearRange(_AttributeGroup group, RangeValues values) {
+    final startValue = _wearSliderPositionToValue(values.start);
+    final endValue = _wearSliderPositionToValue(values.end);
     final normalized = RangeValues(
-      _roundWear(values.start.clamp(0.0, 0.8)),
-      _roundWear(values.end.clamp(0.0, 0.8)),
+      _roundWear(startValue.clamp(0.0, 0.8)),
+      _roundWear(endValue.clamp(0.0, 0.8)),
     );
     final isFullRange =
         normalized.start <= 0.0 + 0.001 && normalized.end >= 0.8 - 0.001;
@@ -4213,8 +4223,36 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
     return value.toStringAsFixed(2);
   }
 
+  double get _wearSliderMax => (_wearScaleMarkers.length - 1).toDouble();
+
+  double _wearValueToSliderPosition(double value) {
+    final clamped = value
+        .clamp(_wearScaleMarkers.first, _wearScaleMarkers.last)
+        .toDouble();
+    for (var index = 0; index < _wearScaleMarkers.length - 1; index++) {
+      final start = _wearScaleMarkers[index];
+      final end = _wearScaleMarkers[index + 1];
+      final isLastSegment = index == _wearScaleMarkers.length - 2;
+      if (clamped <= end || isLastSegment) {
+        final span = end - start;
+        return span <= 0 ? index.toDouble() : index + (clamped - start) / span;
+      }
+    }
+    return _wearSliderMax;
+  }
+
+  double _wearSliderPositionToValue(double position) {
+    final clamped = position.clamp(0.0, _wearSliderMax).toDouble();
+    final segmentIndex = clamped >= _wearSliderMax
+        ? _wearScaleMarkers.length - 2
+        : clamped.floor();
+    final fraction = clamped - segmentIndex;
+    final start = _wearScaleMarkers[segmentIndex];
+    final end = _wearScaleMarkers[segmentIndex + 1];
+    return start + (end - start) * fraction;
+  }
+
   Widget _buildWearScale(RangeValues range, _AttributeGroup group) {
-    const markers = <double>[0.00, 0.07, 0.15, 0.38, 0.45, 0.80];
     const segmentColors = <Color>[
       Color(0xFFDBEAFE),
       Color(0xFF93C5FD),
@@ -4222,6 +4260,10 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
       Color(0xFF1D4ED8),
       Color(0xFF1E3A8A),
     ];
+    final sliderRange = RangeValues(
+      _wearValueToSliderPosition(range.start),
+      _wearValueToSliderPosition(range.end),
+    );
     return SizedBox(
       height: 58,
       child: Stack(
@@ -4234,7 +4276,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                for (final marker in markers)
+                for (final marker in _wearScaleMarkers)
                   Text(
                     _formatWearValue(marker),
                     style: const TextStyle(
@@ -4257,7 +4299,6 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                 children: [
                   for (var i = 0; i < segmentColors.length; i++)
                     Expanded(
-                      flex: ((markers[i + 1] - markers[i]) * 1000).round(),
                       child: Container(height: 6, color: segmentColors[i]),
                     ),
                 ],
@@ -4283,10 +4324,10 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                 inactiveTickMarkColor: Colors.transparent,
               ),
               child: RangeSlider(
-                values: range,
+                values: sliderRange,
                 min: 0,
-                max: 0.8,
-                divisions: 80,
+                max: _wearSliderMax,
+                divisions: 400,
                 onChanged: (values) => _updateWearRange(group, values),
               ),
             ),
