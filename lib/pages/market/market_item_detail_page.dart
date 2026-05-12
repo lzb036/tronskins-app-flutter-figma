@@ -2217,21 +2217,26 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 if (currentPrice != null)
-                                  Wrap(
-                                    crossAxisAlignment:
-                                        WrapCrossAlignment.center,
-                                    spacing: 8,
-                                    runSpacing: 6,
+                                  Row(
                                     children: [
-                                      Text(
-                                        currency.format(currentPrice),
-                                        style: const TextStyle(
-                                          color: _priceOrange,
-                                          fontSize: 34,
-                                          height: 38 / 34,
-                                          fontWeight: FontWeight.w700,
+                                      Flexible(
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          alignment: Alignment.centerLeft,
+                                          child: Text(
+                                            currency.format(currentPrice),
+                                            maxLines: 1,
+                                            softWrap: false,
+                                            style: const TextStyle(
+                                              color: _priceOrange,
+                                              fontSize: 34,
+                                              height: 38 / 34,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
                                         ),
                                       ),
+                                      const SizedBox(width: 8),
                                       Container(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 8,
