@@ -6100,6 +6100,8 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
   late final TextEditingController _gradientMaxController;
   late final TextEditingController _minPriceController;
   late final TextEditingController _maxPriceController;
+  late final FocusNode _wearMinFocusNode;
+  late final FocusNode _wearMaxFocusNode;
   late String? _selectedSortField;
   late bool? _selectedSortAsc;
   late int? _selectedPaintIndex;
@@ -6108,6 +6110,18 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
   @override
   void initState() {
     super.initState();
+    _wearMinFocusNode = FocusNode()
+      ..addListener(() {
+        if (!_wearMinFocusNode.hasFocus) {
+          _normalizeWearInput(_wearMinController);
+        }
+      });
+    _wearMaxFocusNode = FocusNode()
+      ..addListener(() {
+        if (!_wearMaxFocusNode.hasFocus) {
+          _normalizeWearInput(_wearMaxController);
+        }
+      });
     _paintSeedController = TextEditingController(text: widget.initialPaintSeed);
     _wearMinController = TextEditingController(
       text: _formatWearInput(widget.initialWearMin),
@@ -6135,6 +6149,8 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
 
   @override
   void dispose() {
+    _wearMinFocusNode.dispose();
+    _wearMaxFocusNode.dispose();
     _paintSeedController.dispose();
     _wearMinController.dispose();
     _wearMaxController.dispose();
@@ -6159,8 +6175,32 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
   }
 
   double? _parseWearValue(String value) {
-    final parsed = _parseOptionalDouble(value)?.clamp(0.0, 0.8).toDouble();
+    final parsed = _parseOptionalDouble(
+      value,
+    )?.clamp(_wearInputMin, _wearInputMax).toDouble();
     return parsed == null ? null : _roundWearValue(parsed);
+  }
+
+  double? _parseWearControllerValue(TextEditingController controller) {
+    final raw = controller.text.trim();
+    if (raw.isEmpty) {
+      return null;
+    }
+    final parsed = _parseOptionalDouble(raw);
+    if (parsed == null || _isSpecialZeroWearInput(raw)) {
+      return _defaultWearValueForController(controller);
+    }
+    if (identical(controller, _wearMaxController)) {
+      final minValue = _wearMinValueForMaxComparison();
+      if (parsed > _wearInputMax || parsed < minValue) {
+        return _wearInputMax;
+      }
+      return _roundWearValue(parsed);
+    }
+    if (parsed < _wearInputMin || parsed > _wearInputMax) {
+      return _wearInputMin;
+    }
+    return _roundWearValue(parsed);
   }
 
   double? _parsePercentageValue(String value) {
@@ -6179,7 +6219,103 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
     if (value == null) {
       return '';
     }
-    return _roundWearValue(value.clamp(0.0, 0.8).toDouble()).toStringAsFixed(2);
+    return _roundWearValue(
+      value.clamp(_wearInputMin, _wearInputMax).toDouble(),
+    ).toStringAsFixed(2);
+  }
+
+  double get _wearInputMin {
+    double? min;
+    for (final option in widget.wearQuickOptions) {
+      final value = double.tryParse(option.minText);
+      if (value == null) {
+        continue;
+      }
+      min = min == null || value < min ? value : min;
+    }
+    return min ?? 0.0;
+  }
+
+  double get _wearInputMax {
+    double? max;
+    for (final option in widget.wearQuickOptions) {
+      final value = double.tryParse(option.maxText);
+      if (value == null) {
+        continue;
+      }
+      max = max == null || value > max ? value : max;
+    }
+    return max ?? 0.8;
+  }
+
+  String get _wearMinHint => _formatWearInput(_wearInputMin);
+
+  String get _wearMaxHint => _formatWearInput(_wearInputMax);
+
+  bool _isSpecialZeroWearInput(String value) {
+    final normalized = value.trim().replaceAll('.', '');
+    if (normalized.length < 2) {
+      return false;
+    }
+    return normalized.isNotEmpty && RegExp(r'^0+$').hasMatch(normalized);
+  }
+
+  double _defaultWearValueForController(TextEditingController controller) {
+    return identical(controller, _wearMaxController)
+        ? _wearInputMax
+        : _wearInputMin;
+  }
+
+  double _wearMinValueForMaxComparison() {
+    final raw = _wearMinController.text.trim();
+    if (raw.isEmpty) {
+      return _wearInputMin;
+    }
+    final parsed = _parseOptionalDouble(raw);
+    if (parsed == null ||
+        _isSpecialZeroWearInput(raw) ||
+        parsed < _wearInputMin ||
+        parsed > _wearInputMax) {
+      return _wearInputMin;
+    }
+    return _roundWearValue(parsed);
+  }
+
+  void _normalizeWearInput(TextEditingController controller) {
+    final raw = controller.text.trim();
+    if (raw.isEmpty) {
+      return;
+    }
+    final value = _parseWearControllerValue(controller);
+    final normalized = _formatWearInput(value);
+    if (normalized.isEmpty) {
+      return;
+    }
+    if (controller.text != normalized) {
+      controller.value = TextEditingValue(
+        text: normalized,
+        selection: TextSelection.collapsed(offset: normalized.length),
+      );
+    }
+    if (mounted) {
+      setState(() {});
+    }
+    if (identical(controller, _wearMinController) &&
+        _wearMaxController.text.trim().isNotEmpty) {
+      _normalizeWearInput(_wearMaxController);
+    }
+  }
+
+  void _handleWearInputChanged(TextEditingController controller) {
+    final raw = controller.text.trim();
+    final parsed = _parseOptionalDouble(raw);
+    if (_isSpecialZeroWearInput(raw) ||
+        parsed == null && raw.isNotEmpty ||
+        (parsed != null && parsed > _wearInputMax)) {
+      _normalizeWearInput(controller);
+      return;
+    }
+    setState(() {});
   }
 
   String _formatPercentageInput(double? value) {
@@ -6253,6 +6389,8 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
   }
 
   void _applyAndClose() {
+    _normalizeWearInput(_wearMinController);
+    _normalizeWearInput(_wearMaxController);
     Navigator.of(context).pop(
       _OnSaleFilterValue(
         sortField: _selectedSortField,
@@ -6261,8 +6399,8 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
         maxPrice: _parseOptionalDouble(_maxPriceController.text),
         paintSeed: _trimToNull(_paintSeedController.text),
         paintIndex: _selectedPaintIndex,
-        paintWearMin: _parseWearValue(_wearMinController.text),
-        paintWearMax: _parseWearValue(_wearMaxController.text),
+        paintWearMin: _parseWearControllerValue(_wearMinController),
+        paintWearMax: _parseWearControllerValue(_wearMaxController),
         percentageMin: _parsePercentageValue(_gradientMinController.text),
         percentageMax: _parsePercentageValue(_gradientMaxController.text),
         tierId: _selectedTierId,
@@ -6295,11 +6433,17 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
     required TextInputType keyboardType,
     required String hintText,
     List<TextInputFormatter>? inputFormatters,
+    FocusNode? focusNode,
+    ValueChanged<String>? onChanged,
+    ValueChanged<String>? onSubmitted,
   }) {
     return TextField(
       controller: controller,
+      focusNode: focusNode,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
+      onChanged: onChanged,
+      onSubmitted: onSubmitted,
       decoration: FilterSheetStyle.inputDecoration(hintText: hintText),
     );
   }
@@ -6511,6 +6655,7 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
                           Expanded(
                             child: _buildField(
                               controller: _wearMinController,
+                              focusNode: _wearMinFocusNode,
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
@@ -6518,7 +6663,11 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
                               inputFormatters: const [
                                 _DecimalTextInputFormatter(decimalDigits: 2),
                               ],
-                              hintText: '0.00',
+                              hintText: _wearMinHint,
+                              onChanged: (_) =>
+                                  _handleWearInputChanged(_wearMinController),
+                              onSubmitted: (_) =>
+                                  _normalizeWearInput(_wearMinController),
                             ),
                           ),
                           const Padding(
@@ -6536,6 +6685,7 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
                           Expanded(
                             child: _buildField(
                               controller: _wearMaxController,
+                              focusNode: _wearMaxFocusNode,
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
@@ -6543,7 +6693,11 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
                               inputFormatters: const [
                                 _DecimalTextInputFormatter(decimalDigits: 2),
                               ],
-                              hintText: '0.80',
+                              hintText: _wearMaxHint,
+                              onChanged: (_) =>
+                                  _handleWearInputChanged(_wearMaxController),
+                              onSubmitted: (_) =>
+                                  _normalizeWearInput(_wearMaxController),
                             ),
                           ),
                         ],
