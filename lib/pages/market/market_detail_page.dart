@@ -18,6 +18,7 @@ import 'package:tronskins_app/components/layout/list_end_tip.dart';
 import 'package:tronskins_app/components/market/price_trend_chart.dart';
 import 'package:tronskins_app/controllers/market/market_detail_controller.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
+import 'package:tronskins_app/common/theme/system_ui_overlay_style.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/utils/trade_purchase_error.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
@@ -1222,7 +1223,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
           ? const Color(0xFF1B1C20)
           : _figmaPageCoolBackground,
       body: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: SystemUiOverlayStyle.dark,
+        value: appTransparentSystemUiOverlayStyle,
         child: SafeArea(
           bottom: false,
           child: BackToTopScope(

@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tronskins_app/common/theme/settings_top_bar_style.dart';
+import 'package:tronskins_app/common/theme/system_ui_overlay_style.dart';
 
 class SettingsStyleAppBar extends AppBar {
   SettingsStyleAppBar({
@@ -51,7 +52,8 @@ class SettingsStyleAppBar extends AppBar {
              const Border(bottom: BorderSide(color: settingsTopBarBorderColor)),
          toolbarTextStyle: toolbarTextStyle ?? settingsTopBarTitleTextStyle,
          titleTextStyle: titleTextStyle ?? settingsTopBarTitleTextStyle,
-         systemOverlayStyle: systemOverlayStyle ?? SystemUiOverlayStyle.dark,
+         systemOverlayStyle:
+             systemOverlayStyle ?? appTransparentSystemUiOverlayStyle,
          actionsPadding: actionsPadding ?? settingsTopBarActionsPadding,
          flexibleSpace:
              flexibleSpace ?? const _SettingsStyleAppBarBlurBackground(),

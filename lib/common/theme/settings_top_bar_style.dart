@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:tronskins_app/common/theme/system_ui_overlay_style.dart';
 
 const settingsTopBarBackground = Color(0xFFF8FAFC);
 const settingsTopBarBlurBackground = Color.fromRGBO(248, 250, 252, 0.7);
@@ -38,7 +38,7 @@ AppBarTheme settingsTopBarAppBarTheme() {
     actionsIconTheme: IconThemeData(color: settingsTopBarBrandColor, size: 20),
     titleTextStyle: settingsTopBarTitleTextStyle,
     toolbarTextStyle: settingsTopBarTitleTextStyle,
-    systemOverlayStyle: SystemUiOverlayStyle.dark,
+    systemOverlayStyle: appTransparentSystemUiOverlayStyle,
     shape: Border(bottom: BorderSide(color: settingsTopBarBorderColor)),
     actionsPadding: settingsTopBarActionsPadding,
   );

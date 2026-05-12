@@ -10,6 +10,7 @@ import 'package:tronskins_app/common/http/http_helper.dart';
 import 'package:tronskins_app/common/logging/app_logger.dart';
 import 'package:tronskins_app/common/theme/dark_theme.dart';
 import 'package:tronskins_app/common/theme/light_theme.dart';
+import 'package:tronskins_app/common/theme/system_ui_overlay_style.dart';
 import 'package:tronskins_app/common/widgets/app_request_loading_overlay.dart';
 import 'package:tronskins_app/common/widgets/auth_session_expired_listener.dart';
 import 'package:tronskins_app/common/widgets/restart_widget.dart';
@@ -21,6 +22,7 @@ import 'package:tronskins_app/routes/index.dart';
 Future<void> main() async {
   await AppLogger.run(() async {
     WidgetsFlutterBinding.ensureInitialized();
+    configureTransparentSystemBars();
 
     await GetStorage.init();
     // Init named boxes for locale/theme persistence.
