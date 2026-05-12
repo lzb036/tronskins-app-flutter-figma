@@ -14,6 +14,7 @@ import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/login_required_prompt.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
+import 'package:tronskins_app/components/filter/filter_price_support.dart';
 import 'package:tronskins_app/components/filter/filter_models.dart';
 import 'package:tronskins_app/components/filter/market_filter_sheet.dart';
 import 'package:tronskins_app/components/filter/order_filter_sheet.dart';
@@ -2476,16 +2477,21 @@ class _PurchasePriceChangeDialogState
     return null;
   }
 
-  double _truncateTo2(double value) {
-    return (value * 100).floor() / 100;
-  }
-
   String _normalizeDisplayPrice(double value) {
     if (value <= 0) {
       return '';
     }
-    final normalized = _truncateTo2(value);
-    return normalized.toStringAsFixed(2);
+    return FilterPriceSupport.formatEditableNumber(
+      Get.find<CurrencyController>(),
+      value,
+    );
+  }
+
+  double _inputPriceUsd([String? value]) {
+    return FilterPriceSupport.displayToRoundedUsd(
+      Get.find<CurrencyController>(),
+      value ?? _priceController.text,
+    );
   }
 
   Future<void> _loadParams() async {
@@ -2573,7 +2579,7 @@ class _PurchasePriceChangeDialogState
   }
 
   double _totalAmount() {
-    final price = double.tryParse(_priceController.text) ?? 0;
+    final price = _inputPriceUsd();
     final num = int.tryParse(_numController.text) ?? 0;
     return price * num;
   }
@@ -2590,10 +2596,7 @@ class _PurchasePriceChangeDialogState
       AppSnackbar.error('app.trade.filter.failed'.tr);
       return;
     }
-    _priceController.text = _normalizeDisplayPrice(value);
-    _priceController.selection = TextSelection.fromPosition(
-      TextPosition(offset: _priceController.text.length),
-    );
+    _setControllerText(_priceController, _normalizeDisplayPrice(value));
     if (mounted) {
       setState(() {});
     }
@@ -2660,12 +2663,15 @@ class _PurchasePriceChangeDialogState
     if (text.endsWith('.')) {
       _setControllerText(_priceController, text.substring(0, text.length - 1));
     }
-    final price = double.tryParse(_priceController.text);
-    if (price == null) {
+    final price = _inputPriceUsd();
+    if (price <= 0) {
       return;
     }
     if (price < _minTradePrice) {
-      _setControllerText(_priceController, _minTradePrice.toStringAsFixed(2));
+      _setControllerText(
+        _priceController,
+        _normalizeDisplayPrice(_minTradePrice),
+      );
     }
     setState(() {});
   }
@@ -2720,8 +2726,8 @@ class _PurchasePriceChangeDialogState
       AppSnackbar.error('app.market.filter.message.price_error'.tr);
       return;
     }
-    final price = double.tryParse(normalizedPriceText);
-    if (price == null || price <= 0) {
+    final price = _inputPriceUsd(normalizedPriceText);
+    if (price <= 0) {
       AppSnackbar.error('app.market.filter.message.price_error'.tr);
       return;
     }
@@ -3094,7 +3100,7 @@ class _PurchasePriceChangeDialogState
               ),
               const SizedBox(height: 12),
               _buildInputShell(
-                prefix: '¥',
+                prefix: currency.symbol,
                 controller: _priceController,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,

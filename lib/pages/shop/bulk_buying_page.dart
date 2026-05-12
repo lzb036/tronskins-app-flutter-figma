@@ -14,6 +14,7 @@ import 'package:tronskins_app/common/storage/user_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/utils/trade_purchase_error.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
+import 'package:tronskins_app/components/filter/filter_price_support.dart';
 import 'package:tronskins_app/components/filter/filter_sheet_style.dart';
 import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 
@@ -205,8 +206,8 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
   }
 
   Future<void> _queryMatchedOnSale() async {
-    final maxPrice = double.tryParse(_priceController.text);
-    if (maxPrice == null || maxPrice <= 0) {
+    final maxPrice = _inputPriceUsd();
+    if (maxPrice <= 0) {
       _matchQueryVersion++;
       if (_matchedItems.isNotEmpty || _isLoadingMatches) {
         setState(() {
@@ -278,7 +279,7 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
       return;
     }
     final user = UserStorage.getUserInfo();
-    final price = double.tryParse(_priceController.text) ?? 0;
+    final price = _inputPriceUsd();
     final num = int.tryParse(_numController.text) ?? 0;
     if (user == null || price <= 0 || num <= 0) {
       await _submit();
@@ -720,12 +721,14 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
   }
 
   String _displayAmount(CurrencyController currency, double amount) {
-    final formatted = currency.format(amount);
-    final prefix = '${currency.symbol} ';
-    if (formatted.startsWith(prefix)) {
-      return formatted.substring(prefix.length);
-    }
-    return formatted.replaceFirst(currency.symbol, '').trim();
+    return FilterPriceSupport.formatEditableNumber(currency, amount);
+  }
+
+  double _inputPriceUsd([String? value]) {
+    return FilterPriceSupport.displayToRoundedUsd(
+      Get.find<CurrencyController>(),
+      value ?? _priceController.text,
+    );
   }
 
   Future<void> _submit({bool alreadySubmitting = false}) async {
@@ -747,7 +750,7 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
     }
     FocusManager.instance.primaryFocus?.unfocus();
 
-    final price = double.tryParse(_priceController.text) ?? 0;
+    final price = _inputPriceUsd();
     final num = int.tryParse(_numController.text) ?? 0;
     final sellMin = _schema?.sellMin ?? 0;
 

@@ -9,6 +9,7 @@ import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/game_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
+import 'package:tronskins_app/components/filter/filter_price_support.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/pages/shop/shop_price_change_confirm_page.dart';
@@ -68,10 +69,13 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
     _schemas = schemaMap;
     _appId = args['appId'] as int? ?? GameStorage.getGameType();
 
+    final currency = Get.find<CurrencyController>();
     for (final item in _items) {
       final id = item.id!;
       final initialPrice = _normalizePrice(item.price ?? 0);
-      final initial = initialPrice > 0 ? initialPrice.toStringAsFixed(2) : '';
+      final initial = initialPrice > 0
+          ? FilterPriceSupport.formatEditableNumber(currency, initialPrice)
+          : '';
       _controllers[id] = TextEditingController(text: initial);
       _prices[id] = initialPrice;
     }
@@ -360,6 +364,7 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
       return;
     }
 
+    final currency = Get.find<CurrencyController>();
     final parsed = double.tryParse(value);
     if (parsed == null) {
       for (final id in ids) {
@@ -373,6 +378,7 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
     if (decimal.length == 2 && decimal[1].length > 2) {
       final normalized = _truncateTo2(parsed);
       final text = normalized.toStringAsFixed(2);
+      final usdPrice = FilterPriceSupport.displayToRoundedUsd(currency, text);
       for (final id in ids) {
         final controller = _controllers[id];
         if (controller != null && controller.text != text) {
@@ -383,12 +389,13 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
             ),
           );
         }
-        _prices[id] = normalized;
+        _prices[id] = usdPrice;
       }
       setState(() {});
       return;
     }
 
+    final usdPrice = FilterPriceSupport.displayToRoundedUsd(currency, value);
     for (final id in ids) {
       if (sourceId == null || sourceId != id) {
         final controller = _controllers[id];
@@ -396,7 +403,7 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
           controller.text = value;
         }
       }
-      _prices[id] = parsed;
+      _prices[id] = usdPrice;
     }
     setState(() {});
   }
@@ -420,7 +427,8 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
         ),
       );
     }
-    final parsed = double.tryParse(text) ?? 0;
+    final currency = Get.find<CurrencyController>();
+    final parsed = FilterPriceSupport.displayToRoundedUsd(currency, text);
     for (final id in ids) {
       _prices[id] = parsed;
       if (id == activeId) {
@@ -675,6 +683,7 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
   }
 
   void _applyReferencePrice() {
+    final currency = Get.find<CurrencyController>();
     for (final item in _items) {
       final id = item.id!;
       final reference = _extractSellMinForPricing(_lookupSchema(item));
@@ -698,12 +707,16 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
         continue;
       }
       _prices[id] = normalizedPrice;
-      _controllers[id]?.text = normalizedPrice.toStringAsFixed(2);
+      _controllers[id]?.text = FilterPriceSupport.formatEditableNumber(
+        currency,
+        normalizedPrice,
+      );
     }
     setState(() {});
   }
 
   void _syncMergedGroupPricesFromLead() {
+    final currency = Get.find<CurrencyController>();
     final groups = _buildMergedGroups();
     for (final group in groups) {
       final ids = _groupIds(group);
@@ -715,7 +728,9 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
       var mergedText = '';
       for (final id in ids) {
         final currentText = _controllers[id]?.text.trim() ?? '';
-        final currentPrice = _prices[id] ?? double.tryParse(currentText) ?? 0;
+        final currentPrice =
+            _prices[id] ??
+            FilterPriceSupport.displayToRoundedUsd(currency, currentText);
         if (currentPrice > mergedPrice) {
           mergedPrice = currentPrice;
           mergedText = currentText;
@@ -726,7 +741,10 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
         mergedPrice = 0;
         mergedText = '';
       } else if (mergedText.isEmpty) {
-        mergedText = mergedPrice.toStringAsFixed(2);
+        mergedText = FilterPriceSupport.formatEditableNumber(
+          currency,
+          mergedPrice,
+        );
       }
 
       for (final id in ids) {
@@ -886,11 +904,12 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
   }
 
   void _applySuggestedPriceForIds(List<int> ids, int leadId, double value) {
+    final currency = Get.find<CurrencyController>();
     final normalized = _normalizePrice(value);
     if (normalized <= 0) {
       return;
     }
-    final text = _plainNumberText(normalized);
+    final text = FilterPriceSupport.formatEditableNumber(currency, normalized);
     for (final id in ids) {
       _prices[id] = normalized;
       final controller = _controllers[id];
@@ -904,18 +923,6 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
       }
     }
     _normalizeInputOnBlurForIds(ids, sourceId: leadId);
-  }
-
-  String _plainNumberText(double value, {bool trimTrailingZeros = true}) {
-    if (!value.isFinite) {
-      return '--';
-    }
-    var text = value.toStringAsFixed(2);
-    if (trimTrailingZeros) {
-      text = text.replaceFirst(RegExp(r'\.00$'), '');
-      text = text.replaceFirst(RegExp(r'(\.\d)0$'), r'$1');
-    }
-    return text;
   }
 
   String _formatConvertedCurrency(

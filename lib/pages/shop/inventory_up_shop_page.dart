@@ -9,6 +9,7 @@ import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
+import 'package:tronskins_app/components/filter/filter_price_support.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/controllers/inventory/inventory_controller.dart';
@@ -284,6 +285,7 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
       return;
     }
 
+    final currency = Get.find<CurrencyController>();
     final parsed = double.tryParse(value);
     if (parsed == null) {
       for (final id in ids) {
@@ -297,6 +299,7 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
     if (decimal.length == 2 && decimal[1].length > 2) {
       final normalized = _truncateTo2(parsed);
       final text = normalized.toStringAsFixed(2);
+      final usdPrice = FilterPriceSupport.displayToRoundedUsd(currency, text);
       for (final id in ids) {
         final controller = _controllers[id];
         if (controller != null && controller.text != text) {
@@ -307,12 +310,13 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
             ),
           );
         }
-        _prices[id] = normalized;
+        _prices[id] = usdPrice;
       }
       setState(() {});
       return;
     }
 
+    final usdPrice = FilterPriceSupport.displayToRoundedUsd(currency, value);
     for (final id in ids) {
       if (sourceId == null || sourceId != id) {
         final controller = _controllers[id];
@@ -320,7 +324,7 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
           controller.text = value;
         }
       }
-      _prices[id] = parsed;
+      _prices[id] = usdPrice;
     }
     setState(() {});
   }
@@ -344,7 +348,8 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
         ),
       );
     }
-    final parsed = double.tryParse(text) ?? 0;
+    final currency = Get.find<CurrencyController>();
+    final parsed = FilterPriceSupport.displayToRoundedUsd(currency, text);
     for (final id in ids) {
       _prices[id] = parsed;
       if (id == activeId) {
@@ -359,6 +364,7 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
   }
 
   void _syncMergedGroupPricesFromLead() {
+    final currency = Get.find<CurrencyController>();
     final groups = _buildMergedGroups();
     for (final group in groups) {
       final ids = _groupIds(group);
@@ -370,7 +376,9 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
       var mergedText = '';
       for (final id in ids) {
         final currentText = _controllers[id]?.text.trim() ?? '';
-        final currentPrice = _prices[id] ?? double.tryParse(currentText) ?? 0;
+        final currentPrice =
+            _prices[id] ??
+            FilterPriceSupport.displayToRoundedUsd(currency, currentText);
         if (currentPrice > mergedPrice) {
           mergedPrice = currentPrice;
           mergedText = currentText;
@@ -381,7 +389,10 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
         mergedPrice = 0;
         mergedText = '';
       } else if (mergedText.isEmpty) {
-        mergedText = mergedPrice.toStringAsFixed(2);
+        mergedText = FilterPriceSupport.formatEditableNumber(
+          currency,
+          mergedPrice,
+        );
       }
 
       for (final id in ids) {
@@ -496,6 +507,7 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
   }
 
   void _applyReferencePrice() {
+    final currency = Get.find<CurrencyController>();
     for (final item in _items) {
       final id = item.id!;
       final normalizedPrice = _suggestedPricingPrice(_lookupSchema(item));
@@ -503,7 +515,10 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
         continue;
       }
       _prices[id] = normalizedPrice;
-      _controllers[id]?.text = normalizedPrice.toStringAsFixed(2);
+      _controllers[id]?.text = FilterPriceSupport.formatEditableNumber(
+        currency,
+        normalizedPrice,
+      );
     }
     setState(() {});
   }
@@ -729,11 +744,12 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
   }
 
   void _applySuggestedPrice(List<int> ids, int leadId, double value) {
+    final currency = Get.find<CurrencyController>();
     final normalized = _normalizePrice(value);
     if (normalized <= 0) {
       return;
     }
-    final text = _plainNumberText(normalized);
+    final text = FilterPriceSupport.formatEditableNumber(currency, normalized);
     for (final id in ids) {
       _prices[id] = normalized;
       final controller = _controllers[id];
@@ -747,18 +763,6 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
       }
     }
     _normalizeInputOnBlurForIds(ids, sourceId: leadId);
-  }
-
-  String _plainNumberText(double value, {bool trimTrailingZeros = true}) {
-    if (!value.isFinite) {
-      return '--';
-    }
-    var text = value.toStringAsFixed(2);
-    if (trimTrailingZeros) {
-      text = text.replaceFirst(RegExp(r'\.00$'), '');
-      text = text.replaceFirst(RegExp(r'(\.\d)0$'), r'$1');
-    }
-    return text;
   }
 
   String _formatConvertedCurrency(

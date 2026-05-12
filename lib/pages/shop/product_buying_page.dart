@@ -15,6 +15,7 @@ import 'package:tronskins_app/common/utils/string_utils.dart';
 import 'package:tronskins_app/common/utils/trade_purchase_error.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
+import 'package:tronskins_app/components/filter/filter_price_support.dart';
 import 'package:tronskins_app/components/filter/filter_sheet_style.dart';
 import 'package:tronskins_app/components/game_item/game_item_utils.dart';
 import 'package:tronskins_app/controllers/shop/buy_request_controller.dart';
@@ -172,7 +173,7 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
   }
 
   double _totalAmount() {
-    final price = double.tryParse(_priceController.text) ?? 0;
+    final price = _inputPriceUsd();
     final nums = int.tryParse(_numController.text) ?? 0;
     return price * nums;
   }
@@ -247,15 +248,15 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
     if (value.isEmpty) {
       return;
     }
-    final parsed = double.tryParse(value);
-    if (parsed == null) {
+    final parsed = _inputPriceUsd(value);
+    if (parsed <= 0) {
       return;
     }
     var next = parsed;
     if (next < _minPrice) {
       next = _minPrice;
     }
-    final text = next.toStringAsFixed(2);
+    final text = _displayAmount(Get.find<CurrencyController>(), next);
     _priceController.text = text;
     _priceController.selection = TextSelection.fromPosition(
       TextPosition(offset: _priceController.text.length),
@@ -636,7 +637,7 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
       return;
     }
     final user = UserStorage.getUserInfo();
-    final price = double.tryParse(_priceController.text) ?? 0;
+    final price = _inputPriceUsd();
     final nums = int.tryParse(_numController.text) ?? 0;
     final maxQuantity = _maxPublishQuantity;
     if (user == null ||
@@ -744,7 +745,7 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
       return;
     }
 
-    final price = double.tryParse(_priceController.text) ?? 0;
+    final price = _inputPriceUsd();
     final nums = int.tryParse(_numController.text) ?? 0;
     final maxQuantity = _maxPublishQuantity;
     if (maxQuantity <= 0) {
@@ -887,12 +888,14 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
   }
 
   String _displayAmount(CurrencyController currency, double amount) {
-    final formatted = currency.format(amount);
-    final prefix = '${currency.symbol} ';
-    if (formatted.startsWith(prefix)) {
-      return formatted.substring(prefix.length);
-    }
-    return formatted.replaceFirst(currency.symbol, '').trim();
+    return FilterPriceSupport.formatEditableNumber(currency, amount);
+  }
+
+  double _inputPriceUsd([String? value]) {
+    return FilterPriceSupport.displayToRoundedUsd(
+      Get.find<CurrencyController>(),
+      value ?? _priceController.text,
+    );
   }
 
   String get _guidelineTitle {

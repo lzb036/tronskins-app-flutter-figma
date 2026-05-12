@@ -8,6 +8,7 @@ import 'package:tronskins_app/api/shop_product.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
+import 'package:tronskins_app/components/filter/filter_price_support.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 
 class BuyingUpdatePricePage extends StatefulWidget {
@@ -140,10 +141,6 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
   String get _currentPurchaseQuantityText =>
       _currentPurchaseQuantity.toString();
 
-  double _truncateTo2(double value) {
-    return (value * 100).floor() / 100;
-  }
-
   int _resolveAppId() {
     final value = _item.appId ?? _schemaRaw['app_id'] ?? _schemaRaw['appId'];
     if (value is int) {
@@ -159,8 +156,17 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
     if (value <= 0) {
       return '';
     }
-    final normalized = _truncateTo2(value);
-    return normalized.toStringAsFixed(2);
+    return FilterPriceSupport.formatEditableNumber(
+      Get.find<CurrencyController>(),
+      value,
+    );
+  }
+
+  double _inputPriceUsd([String? value]) {
+    return FilterPriceSupport.displayToRoundedUsd(
+      Get.find<CurrencyController>(),
+      value ?? _priceController.text,
+    );
   }
 
   double _getPricingRules(double buyMaxPrice) {
@@ -182,7 +188,7 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
   }
 
   double _totalAmount() {
-    final price = double.tryParse(_priceController.text) ?? 0;
+    final price = _inputPriceUsd();
     final num = int.tryParse(_numController.text) ?? 0;
     return price * num;
   }
@@ -237,7 +243,7 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
     if (value <= 0) {
       return;
     }
-    _setControllerText(_priceController, value.toStringAsFixed(2));
+    _setControllerText(_priceController, _normalizeDisplayPrice(value));
   }
 
   void _sanitizePrice(String value) {
@@ -257,12 +263,15 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
       final normalizedText = text.substring(0, text.length - 1);
       _setControllerText(_priceController, normalizedText);
     }
-    final price = double.tryParse(_priceController.text);
-    if (price == null) {
+    final price = _inputPriceUsd();
+    if (price <= 0) {
       return;
     }
     if (price < _minTradePrice) {
-      _setControllerText(_priceController, _minTradePrice.toStringAsFixed(2));
+      _setControllerText(
+        _priceController,
+        _normalizeDisplayPrice(_minTradePrice),
+      );
     }
     setState(() {});
   }
@@ -324,8 +333,8 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
       AppSnackbar.error('app.market.filter.message.price_error'.tr);
       return;
     }
-    final price = double.tryParse(normalizedPriceText);
-    if (price == null || price <= 0) {
+    final price = _inputPriceUsd(normalizedPriceText);
+    if (price <= 0) {
       AppSnackbar.error('app.market.filter.message.price_error'.tr);
       return;
     }
@@ -397,12 +406,7 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
   }
 
   String _displayAmount(CurrencyController currency, double amount) {
-    final formatted = currency.format(amount);
-    final prefix = '${currency.symbol} ';
-    if (formatted.startsWith(prefix)) {
-      return formatted.substring(prefix.length);
-    }
-    return formatted.replaceFirst(currency.symbol, '').trim();
+    return FilterPriceSupport.formatEditableNumber(currency, amount);
   }
 
   String get _guidelineTitle {

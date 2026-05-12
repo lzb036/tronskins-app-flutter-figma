@@ -35,6 +35,18 @@ class FilterPriceSupport {
     return parsed / rate;
   }
 
+  static double displayToRoundedUsd(
+    CurrencyController currency,
+    String rawValue, {
+    int fractionDigits = 2,
+  }) {
+    final usdValue = displayToUsd(currency, rawValue);
+    if (!usdValue.isFinite || usdValue <= 0) {
+      return 0;
+    }
+    return double.parse(usdValue.toStringAsFixed(fractionDigits));
+  }
+
   static String formatEditableNumber(
     CurrencyController currency,
     double usdValue,
