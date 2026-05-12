@@ -561,17 +561,6 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
     return warningLines;
   }
 
-  String _pricingWarningPreviewText(List<String> warningLines) {
-    if (warningLines.isEmpty) {
-      return '';
-    }
-    final previewLines = warningLines.take(3).toList();
-    if (warningLines.length > previewLines.length) {
-      previewLines.add('...');
-    }
-    return previewLines.join('\n');
-  }
-
   Future<void> _submit() async {
     if (_isSubmitting) {
       return;
@@ -593,16 +582,21 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
     final currency = Get.find<CurrencyController>();
     final warningLines = _buildWarningLines(payload);
     if (warningLines.isNotEmpty) {
-      await showFigmaModal<void>(
+      final confirmed = await showFigmaModal<bool>(
         context: context,
+        barrierDismissible: false,
         child: FigmaConfirmationDialog(
           title: 'app.inventory.pricing_abnormal'.tr,
-          content: Text(_pricingWarningPreviewText(warningLines)),
+          message: 'app.inventory.pricing_abnormal_confirm'.tr,
           primaryLabel: 'app.common.confirm'.tr,
-          onPrimary: () => Get.back(),
+          secondaryLabel: 'app.common.cancel'.tr,
+          onPrimary: () => popModalRoute(context, true),
+          onSecondary: () => popModalRoute(context, false),
         ),
       );
-      return;
+      if (confirmed != true) {
+        return;
+      }
     }
     final expectedIncomeText = _loadingParams
         ? '--'
@@ -615,7 +609,7 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
             trimTrailingZeros: true,
           );
 
-    final confirmed = await Get.to<bool>(
+    await Get.to<void>(
       () => InventoryUpShopConfirmPage(
         totalCount: _totalCount(),
         totalPriceText: currency.format(_totalPrice()),
@@ -625,12 +619,15 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
         rewardPointsText:
             '${_totalRewardPoints()} ${'app.user.integral.unit'.tr}',
         warningLines: warningLines,
+        onConfirm: () => _submitPayload(payload),
       ),
     );
-    if (confirmed != true) {
-      return;
-    }
+  }
 
+  Future<bool> _submitPayload(Map<int, double> payload) async {
+    if (_isSubmitting) {
+      return false;
+    }
     setState(() => _isSubmitting = true);
     try {
       final steamStatus = await _steamApi.steamOnlineState();
@@ -654,7 +651,7 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
             ],
           ),
         );
-        return;
+        return false;
       }
 
       final submitRes = await _inventoryController.submitUpShopItems(payload);
@@ -668,19 +665,17 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
                 : 'app.trade.filter.failed'.tr);
 
       if (submitCode == 0 || submitCode == 200) {
-        if (!mounted) {
-          return;
-        }
-        Navigator.of(context).pop(true);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           AppSnackbar.success('app.inventory.message.upshop_success'.tr);
         });
-        return;
+        return true;
       }
 
       AppSnackbar.error(submitText);
+      return false;
     } catch (_) {
       AppSnackbar.error('app.trade.filter.failed'.tr);
+      return false;
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);

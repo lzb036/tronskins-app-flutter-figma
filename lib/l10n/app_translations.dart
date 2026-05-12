@@ -900,6 +900,8 @@ const Map<String, Map<String, String>> _shopBacklogMessages = {
     'app.shop.delist.title': 'Confirm Delisting',
     'app.shop.delist.confirm_action': 'Confirm Delisting',
     'app.shop.setting.official_vendor': 'Official Vendor',
+    'app.inventory.pricing_abnormal_confirm':
+        'Your price is not within the normal market range. Confirm listing?',
   },
   'zh_CN': {
     'app.trade.sale.failed': '出售失败',
@@ -913,6 +915,7 @@ const Map<String, Map<String, String>> _shopBacklogMessages = {
     'app.shop.delist.title': '确认下架',
     'app.shop.delist.confirm_action': '确认下架',
     'app.shop.setting.official_vendor': '官方认证卖家',
+    'app.inventory.pricing_abnormal_confirm': '您的定价不是市场正常价格，确认是否上架。',
   },
   'zh_TW': {
     'app.trade.sale.failed': '出售失敗',
@@ -926,6 +929,7 @@ const Map<String, Map<String, String>> _shopBacklogMessages = {
     'app.shop.delist.title': '確認下架',
     'app.shop.delist.confirm_action': '確認下架',
     'app.shop.setting.official_vendor': '官方認證賣家',
+    'app.inventory.pricing_abnormal_confirm': '您的定價不是市場正常價格，確認是否上架。',
   },
 };
 

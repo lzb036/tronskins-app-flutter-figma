@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 
-class InventoryUpShopConfirmPage extends StatelessWidget {
+class InventoryUpShopConfirmPage extends StatefulWidget {
   const InventoryUpShopConfirmPage({
     super.key,
     required this.totalCount,
@@ -14,6 +14,7 @@ class InventoryUpShopConfirmPage extends StatelessWidget {
     required this.confirmAmountText,
     required this.rewardPointsText,
     required this.warningLines,
+    required this.onConfirm,
   });
 
   final int totalCount;
@@ -23,6 +24,7 @@ class InventoryUpShopConfirmPage extends StatelessWidget {
   final String confirmAmountText;
   final String rewardPointsText;
   final List<String> warningLines;
+  final Future<bool> Function() onConfirm;
 
   static const Color _pageBackground = Color(0xFFF7F9FB);
   static const Color _brandColor = Color(0xFF1E40AF);
@@ -35,65 +37,101 @@ class InventoryUpShopConfirmPage extends StatelessWidget {
   static const Color _dangerColor = Color(0xFFBA1A1A);
 
   @override
+  State<InventoryUpShopConfirmPage> createState() =>
+      _InventoryUpShopConfirmPageState();
+}
+
+class _InventoryUpShopConfirmPageState
+    extends State<InventoryUpShopConfirmPage> {
+  bool _isSubmitting = false;
+
+  Future<void> _handleConfirm() async {
+    if (_isSubmitting) {
+      return;
+    }
+    setState(() => _isSubmitting = true);
+    var closingRoutes = false;
+    try {
+      final ok = await widget.onConfirm();
+      if (!mounted || !ok) {
+        return;
+      }
+      final navigator = Navigator.of(context);
+      closingRoutes = true;
+      navigator.pop(true);
+      navigator.pop(true);
+    } finally {
+      if (mounted && !closingRoutes) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
-    return Scaffold(
-      backgroundColor: _pageBackground,
-      appBar: SettingsStyleAppBar(
-        title: Text('app.inventory.upshop.confirm.title'.tr),
-      ),
-      body: Stack(
-        children: [
-          const Positioned(
-            top: 80,
-            right: -39,
-            child: _BlurDecoration(color: Color.fromRGBO(0, 40, 142, 0.05)),
-          ),
-          const Positioned(
-            left: -39,
-            bottom: 80,
-            child: _BlurDecoration(color: Color.fromRGBO(0, 88, 190, 0.05)),
-          ),
-          SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(16, 24, 16, 24 + bottomInset),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (warningLines.isNotEmpty) ...[
-                  _WarningCard(lines: warningLines),
-                  const SizedBox(height: 24),
-                ],
-                _SummaryCard(
-                  totalCount: totalCount,
-                  totalPriceText: totalPriceText,
-                  handlingFeeText: handlingFeeText,
-                  expectedIncomeText: expectedIncomeText,
-                  rewardPointsText: rewardPointsText,
-                ),
-                const SizedBox(height: 24),
-                _ChecklistCard(
-                  items: [
-                    _ChecklistEntry(
-                      title: '1',
-                      content: 'app.trade.order.seller_tips_1'.tr,
-                    ),
-                    _ChecklistEntry(
-                      title: '2',
-                      content: 'app.trade.order.seller_tips_2'.tr,
-                    ),
-                    _ChecklistEntry(
-                      title: '3',
-                      content: 'app.trade.order.seller_tips_3'.tr,
-                    ),
-                  ],
-                ),
-              ],
+    return PopScope(
+      canPop: !_isSubmitting,
+      child: Scaffold(
+        backgroundColor: InventoryUpShopConfirmPage._pageBackground,
+        appBar: SettingsStyleAppBar(
+          title: Text('app.inventory.upshop.confirm.title'.tr),
+        ),
+        body: Stack(
+          children: [
+            const Positioned(
+              top: 80,
+              right: -39,
+              child: _BlurDecoration(color: Color.fromRGBO(0, 40, 142, 0.05)),
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: _BottomActionBar(
-        confirmAmountText: confirmAmountText,
+            const Positioned(
+              left: -39,
+              bottom: 80,
+              child: _BlurDecoration(color: Color.fromRGBO(0, 88, 190, 0.05)),
+            ),
+            SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(16, 24, 16, 24 + bottomInset),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (widget.warningLines.isNotEmpty) ...[
+                    _WarningCard(lines: widget.warningLines),
+                    const SizedBox(height: 24),
+                  ],
+                  _SummaryCard(
+                    totalCount: widget.totalCount,
+                    totalPriceText: widget.totalPriceText,
+                    handlingFeeText: widget.handlingFeeText,
+                    expectedIncomeText: widget.expectedIncomeText,
+                    rewardPointsText: widget.rewardPointsText,
+                  ),
+                  const SizedBox(height: 24),
+                  _ChecklistCard(
+                    items: [
+                      _ChecklistEntry(
+                        title: '1',
+                        content: 'app.trade.order.seller_tips_1'.tr,
+                      ),
+                      _ChecklistEntry(
+                        title: '2',
+                        content: 'app.trade.order.seller_tips_2'.tr,
+                      ),
+                      _ChecklistEntry(
+                        title: '3',
+                        content: 'app.trade.order.seller_tips_3'.tr,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        bottomNavigationBar: _BottomActionBar(
+          confirmAmountText: widget.confirmAmountText,
+          isSubmitting: _isSubmitting,
+          onConfirm: _handleConfirm,
+        ),
       ),
     );
   }
@@ -520,9 +558,15 @@ class _ChecklistItem extends StatelessWidget {
 }
 
 class _BottomActionBar extends StatelessWidget {
-  const _BottomActionBar({required this.confirmAmountText});
+  const _BottomActionBar({
+    required this.confirmAmountText,
+    required this.isSubmitting,
+    required this.onConfirm,
+  });
 
   final String confirmAmountText;
+  final bool isSubmitting;
+  final VoidCallback onConfirm;
 
   @override
   Widget build(BuildContext context) {
@@ -560,7 +604,9 @@ class _BottomActionBar extends StatelessWidget {
                     label: 'app.common.cancel'.tr,
                     backgroundColor: const Color(0xFFF1F5F9),
                     labelColor: const Color(0xFF64748B),
-                    onTap: () => Navigator.of(context).pop(false),
+                    onTap: isSubmitting
+                        ? null
+                        : () => Navigator.of(context).pop(false),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -570,6 +616,7 @@ class _BottomActionBar extends StatelessWidget {
                     label: 'app.common.confirm'.tr,
                     amountText: confirmAmountText,
                     labelColor: Colors.white,
+                    loading: isSubmitting,
                     gradient: const LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -578,7 +625,7 @@ class _BottomActionBar extends StatelessWidget {
                         Color(0xFF3B82F6),
                       ],
                     ),
-                    onTap: () => Navigator.of(context).pop(true),
+                    onTap: isSubmitting ? null : onConfirm,
                   ),
                 ),
               ],
@@ -594,10 +641,11 @@ class _ActionButton extends StatelessWidget {
   const _ActionButton({
     required this.label,
     required this.labelColor,
-    required this.onTap,
+    this.onTap,
     this.backgroundColor,
     this.gradient,
     this.amountText,
+    this.loading = false,
   });
 
   final String label;
@@ -605,69 +653,82 @@ class _ActionButton extends StatelessWidget {
   final Color? backgroundColor;
   final LinearGradient? gradient;
   final String? amountText;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
+    final isEnabled = onTap != null && !loading;
+    final content = loading
+        ? SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.2,
+              valueColor: AlwaysStoppedAnimation<Color>(labelColor),
+            ),
+          )
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                maxLines: 1,
+                softWrap: false,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: labelColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  height: 1.35,
+                  letterSpacing: 0.2,
+                ),
+              ),
+              if ((amountText ?? '').isNotEmpty) ...[
+                const SizedBox(width: 6),
+                Text(
+                  amountText!,
+                  maxLines: 1,
+                  softWrap: false,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: labelColor,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    height: 1.3,
+                    letterSpacing: 0.1,
+                  ),
+                ),
+              ],
+            ],
+          );
+
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: onTap,
-        child: Ink(
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            gradient: gradient,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: gradient == null
-                ? null
-                : const [
-                    BoxShadow(
-                      color: Color.fromRGBO(0, 0, 0, 0.1),
-                      blurRadius: 15,
-                      offset: Offset(0, 10),
-                    ),
-                  ],
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Center(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    label,
-                    maxLines: 1,
-                    softWrap: false,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: labelColor,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      height: 1.35,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                  if ((amountText ?? '').isNotEmpty) ...[
-                    const SizedBox(width: 6),
-                    Text(
-                      amountText!,
-                      maxLines: 1,
-                      softWrap: false,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: labelColor,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        height: 1.3,
-                        letterSpacing: 0.1,
+      child: Opacity(
+        opacity: isEnabled ? 1 : 0.72,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: isEnabled ? onTap : null,
+          child: Ink(
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              gradient: gradient,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: gradient == null
+                  ? null
+                  : const [
+                      BoxShadow(
+                        color: Color.fromRGBO(0, 0, 0, 0.1),
+                        blurRadius: 15,
+                        offset: Offset(0, 10),
                       ),
-                    ),
-                  ],
-                ],
-              ),
+                    ],
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Center(
+              child: FittedBox(fit: BoxFit.scaleDown, child: content),
             ),
           ),
         ),
