@@ -124,6 +124,9 @@ class ShopOrderDetailPage extends StatelessWidget {
                               : () =>
                                     _copyOrderId(context, order.id!.toString()),
                           useDeliveryGoodsPalette: args.fromDeliveryGoodsDrawer,
+                          requireCompletedStatusForCompletedTime:
+                              args.fromShopSellRecord ||
+                              args.fromPurchaseRecord,
                         ),
                         const SizedBox(height: 16),
                         _buildOrderStatusCard(
@@ -228,9 +231,14 @@ class ShopOrderDetailPage extends StatelessWidget {
     required int totalItemCount,
     required VoidCallback? onCopy,
     required bool useDeliveryGoodsPalette,
+    required bool requireCompletedStatusForCompletedTime,
   }) {
     final statusLabel = _statusCardHeadline(order, statusText: statusText);
-    final statusRows = _buildStatusRows(order);
+    final statusRows = _buildStatusRows(
+      order,
+      requireCompletedStatusForCompletedTime:
+          requireCompletedStatusForCompletedTime,
+    );
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -1926,7 +1934,10 @@ class ShopOrderDetailPage extends StatelessWidget {
     return trimmed.isNotEmpty ? trimmed : 'app.trade.filter.failed'.tr;
   }
 
-  List<_StatusRowData> _buildStatusRows(ShopOrderItem order) {
+  List<_StatusRowData> _buildStatusRows(
+    ShopOrderItem order, {
+    bool requireCompletedStatusForCompletedTime = false,
+  }) {
     final rows = <_StatusRowData>[
       _StatusRowData(
         label: '${_text(zh: '订单号', en: 'Order No')}:',
@@ -1940,7 +1951,10 @@ class ShopOrderDetailPage extends StatelessWidget {
     ];
     final completed = _formatTime(order.changeTime);
     final showCompletedTime =
-        completed != '-' && !_shouldHideCompletedTime(order.status);
+        completed != '-' &&
+        (requireCompletedStatusForCompletedTime
+            ? _isCompletedTradeStatus(order.status)
+            : !_shouldHideCompletedTime(order.status));
     if (showCompletedTime) {
       rows.add(
         _StatusRowData(
@@ -2005,6 +2019,10 @@ class ShopOrderDetailPage extends StatelessWidget {
 
   bool _isUnfinishedTradeStatus(int? status) {
     return status == 2 || status == 3 || status == 4;
+  }
+
+  bool _isCompletedTradeStatus(int? status) {
+    return status == 6;
   }
 
   bool _shouldHideCompletedTime(int? status) {
@@ -3099,6 +3117,7 @@ class _ShopOrderDetailArgs {
     this.disableOrderActions = false,
     this.fromDeliveryGoodsDrawer = false,
     this.fromPurchaseRecord = false,
+    this.fromShopSellRecord = false,
   });
 
   final ShopOrderItem? order;
@@ -3110,6 +3129,7 @@ class _ShopOrderDetailArgs {
   final bool disableOrderActions;
   final bool fromDeliveryGoodsDrawer;
   final bool fromPurchaseRecord;
+  final bool fromShopSellRecord;
 
   factory _ShopOrderDetailArgs.fromDynamic(dynamic raw) {
     if (raw is! Map) {
@@ -3126,6 +3146,7 @@ class _ShopOrderDetailArgs {
       disableOrderActions: _parseBool(raw['disableOrderActions']),
       fromDeliveryGoodsDrawer: _parseBool(raw['fromDeliveryGoodsDrawer']),
       fromPurchaseRecord: _parseBool(raw['fromPurchaseRecord']),
+      fromShopSellRecord: _parseBool(raw['fromShopSellRecord']),
     );
   }
 

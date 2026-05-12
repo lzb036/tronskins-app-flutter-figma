@@ -3766,6 +3766,7 @@ class _ShopPageState extends State<ShopPage>
         'users': Map<String, ShopUserInfo>.from(salesController.users),
         'stickers': Map<String, dynamic>.from(salesController.stickers),
         'disableOrderActions': true,
+        'fromShopSellRecord': true,
       },
     );
   }
