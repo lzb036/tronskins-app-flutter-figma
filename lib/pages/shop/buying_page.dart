@@ -1173,48 +1173,6 @@ class _BuyingPageState extends State<BuyingPage>
         0;
   }
 
-  int _recordSettledQuantity(BuyRequestItem item) {
-    final received =
-        item.received ??
-        _rawInt(item.raw, const [
-          'received',
-          'settled_nums',
-          'settledNums',
-          'done_count',
-          'doneCount',
-          'success_count',
-          'successCount',
-        ]);
-    if (received != null && received > 0) {
-      return received;
-    }
-    if (_isRecordCompleted(item)) {
-      return _recordDisplayQuantity(item);
-    }
-    return 0;
-  }
-
-  double _recordSettledAmount(BuyRequestItem item) {
-    final rawTotal = _rawDouble(item.raw, const [
-      'settled_price',
-      'settledPrice',
-      'done_price',
-      'donePrice',
-      'success_price',
-      'successPrice',
-      'total_price',
-      'totalPrice',
-    ]);
-    if (rawTotal != null && rawTotal > 0) {
-      return rawTotal;
-    }
-    return _recordUnitPrice(item) * _recordSettledQuantity(item);
-  }
-
-  double _recordRequestedAmount(BuyRequestItem item) {
-    return _recordUnitPrice(item) * _recordDisplayQuantity(item);
-  }
-
   bool _textContainsAny(String source, List<String> keywords) {
     for (final keyword in keywords) {
       if (source.contains(keyword)) {
@@ -1547,20 +1505,6 @@ class _BuyingPageState extends State<BuyingPage>
     );
   }
 
-  String _recordFormulaText(
-    BuyRequestItem item,
-    CurrencyController currency, {
-    required bool settled,
-  }) {
-    final quantity = settled
-        ? _recordSettledQuantity(item)
-        : _recordDisplayQuantity(item);
-    final amount = settled
-        ? _recordSettledAmount(item)
-        : _recordRequestedAmount(item);
-    return '${currency.format(_recordUnitPrice(item))} x $quantity = ${currency.format(amount)}';
-  }
-
   String _recordSupplyDemandText(BuyRequestItem item) {
     final supplied =
         item.received ??
@@ -1596,14 +1540,7 @@ class _BuyingPageState extends State<BuyingPage>
       ),
       child: Obx(() {
         final currency = Get.find<CurrencyController>();
-        final primaryLabel = isCompleted
-            ? _text(zh: '单价', en: 'Unit Price')
-            : _text(zh: '汇总', en: 'Summary');
-        final primaryText = _recordFormulaText(
-          item,
-          currency,
-          settled: isCompleted,
-        );
+        final primaryText = currency.format(_recordUnitPrice(item));
         final primaryStyle = isCompleted
             ? const TextStyle(
                 color: _buyRecordBodyColor,
@@ -1622,7 +1559,7 @@ class _BuyingPageState extends State<BuyingPage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildRecordSummaryRow(
-              label: primaryLabel,
+              label: _text(zh: '单价', en: 'Unit Price'),
               value: Text(
                 primaryText,
                 textAlign: TextAlign.right,

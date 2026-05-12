@@ -699,7 +699,7 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
                     : '当前出价高于在售价，将按你设置的价格挂出求购。',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  color: Color(0xFF64748B),
+                  color: _dangerColor,
                   fontSize: 13,
                   fontWeight: FontWeight.w400,
                   height: 20 / 13,
@@ -778,18 +778,7 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
     final total = price * nums;
     if (isPurchaseBalanceInsufficient(total, fallbackUser: user)) {
       resetSubmittingState();
-      Get.dialog(
-        AlertDialog(
-          title: Text('app.system.tips.title'.tr),
-          content: Text(tradeBuyBalanceInsufficientKey.tr),
-          actions: [
-            TextButton(
-              onPressed: () => Get.back(),
-              child: Text('app.common.confirm'.tr),
-            ),
-          ],
-        ),
-      );
+      AppSnackbar.error(tradeBuyBalanceInsufficientKey.tr);
       return;
     }
 
@@ -814,33 +803,11 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
       final datas = res.datas;
       if (datas is String) {
         if (datas.contains('lower than')) {
-          Get.dialog(
-            AlertDialog(
-              title: Text('app.system.tips.title'.tr),
-              content: Text(datas),
-              actions: [
-                TextButton(
-                  onPressed: () => Get.back(),
-                  child: Text('app.common.confirm'.tr),
-                ),
-              ],
-            ),
-          );
+          AppSnackbar.error(datas);
           return;
         }
         if (datas.contains('Steam issue')) {
-          Get.dialog(
-            AlertDialog(
-              title: Text('app.system.tips.title'.tr),
-              content: Text('app.steam.message.trading_restrictions'.tr),
-              actions: [
-                TextButton(
-                  onPressed: () => Get.back(),
-                  child: Text('app.common.confirm'.tr),
-                ),
-              ],
-            ),
-          );
+          AppSnackbar.error('app.steam.message.trading_restrictions'.tr);
           return;
         }
       }

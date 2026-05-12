@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:tronskins_app/api/model/notify/notify_models.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/components/layout/list_end_tip.dart';
 import 'package:tronskins_app/controllers/user/notify_controller.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
@@ -68,6 +69,35 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
 
   void _openDetail(TradeNotifyItem item) {
     Get.toNamed(Routers.TRADE_NOTICE_DETAIL, arguments: item);
+  }
+
+  Future<void> _confirmDelete(TradeNotifyItem item) async {
+    final id = item.id;
+    if (id == null || id.isEmpty) {
+      return;
+    }
+
+    await showFigmaModal<void>(
+      context: context,
+      barrierDismissible: false,
+      child: FigmaAsyncConfirmationDialog(
+        title: 'app.system.tips.title'.tr,
+        message: 'app.system.notice.delete_tips'.tr,
+        primaryLabel: 'app.common.delete'.tr,
+        secondaryLabel: 'app.common.cancel'.tr,
+        onSecondary: () => popModalRoute(context),
+        onConfirm: (dialogContext) async {
+          await _handleDelete(item);
+          if (dialogContext.mounted) {
+            popModalRoute(dialogContext);
+          }
+        },
+        icon: Icons.delete_outline_rounded,
+        accentColor: const Color(0xFFDC2626),
+        iconColor: const Color(0xFFDC2626),
+        iconBackgroundColor: const Color.fromRGBO(220, 38, 38, 0.10),
+      ),
+    );
   }
 
   Future<void> _handleDelete(TradeNotifyItem item) async {
@@ -365,7 +395,7 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
                                     extentRatio: 0.34,
                                     children: [
                                       SlidableAction(
-                                        onPressed: (_) => _handleDelete(item),
+                                        onPressed: (_) => _confirmDelete(item),
                                         backgroundColor: const Color(
                                           0xFFDC2626,
                                         ),

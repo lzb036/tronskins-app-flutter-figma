@@ -87,6 +87,7 @@ Map<String, String> _missingMessagesFor(String locale) {
     ..._messagesWithEnglishFallback(_purchaseFailureMessages, normalized),
     ..._messagesWithEnglishFallback(_feedbackActionMessages, normalized),
     ..._messagesWithEnglishFallback(_inlineBacklogMessages, normalized),
+    ..._messagesWithEnglishFallback(_noticeActionMessages, normalized),
     ..._messagesWithEnglishFallback(_excelBacklogMessages, normalized),
     ...?_rechargeSecurityMessages[normalized],
   };
@@ -839,6 +840,7 @@ const Map<String, Map<String, String>> _marketBacklogMessages = {
     'app.market.item.skin_number': 'Skin Number',
     'app.market.item.avg_delivery': 'Avg. Delivery',
     'app.market.item.fill_rate': 'Fill Rate',
+    'app.market.csgo.wear_unlimited': 'Wear Unlimited',
   },
   'zh_CN': {
     'app.market.detail.listed': '在售',
@@ -859,6 +861,7 @@ const Map<String, Map<String, String>> _marketBacklogMessages = {
     'app.market.item.skin_number': '皮肤编号',
     'app.market.item.avg_delivery': '平均发货',
     'app.market.item.fill_rate': '发货率',
+    'app.market.csgo.wear_unlimited': '不限磨损度',
   },
   'zh_TW': {
     'app.market.detail.listed': '在售',
@@ -879,6 +882,7 @@ const Map<String, Map<String, String>> _marketBacklogMessages = {
     'app.market.item.skin_number': '皮膚編號',
     'app.market.item.avg_delivery': '平均發貨',
     'app.market.item.fill_rate': '發貨率',
+    'app.market.csgo.wear_unlimited': '不限磨損度',
   },
 };
 
@@ -1071,6 +1075,15 @@ const Map<String, Map<String, String>> _inlineBacklogMessages = {
     'app.inline.wallet.highest_buy_order': '求購最高價',
     'app.inline.collection.default': '預設排序',
   },
+};
+
+const Map<String, Map<String, String>> _noticeActionMessages = {
+  'en_US': {
+    'app.system.notice.delete_tips':
+        'Are you sure you want to delete this notification?',
+  },
+  'zh_CN': {'app.system.notice.delete_tips': '确认删除这条通知吗？'},
+  'zh_TW': {'app.system.notice.delete_tips': '確認刪除這條通知嗎？'},
 };
 
 const Map<String, Map<String, String>> _excelBacklogMessages = {

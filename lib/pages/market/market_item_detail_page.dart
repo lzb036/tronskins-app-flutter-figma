@@ -48,6 +48,7 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
   Map<String, MarketSchemaInfo> _schemas = {};
   Map<String, dynamic> _stickers = {};
   Map<String, dynamic>? _shopInfo;
+  bool _readOnly = false;
   bool _loadingShopInfo = false;
   bool _isPurchasing = false;
   bool _favorited = false;
@@ -62,8 +63,11 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     _user = _parseUser(args['user']);
     _schemas = _parseSchemas(args['schemas']);
     _stickers = _parseStickerMap(args['stickers']);
+    _readOnly = args['readOnly'] == true;
     _favorited = _item.favorited == true;
-    _loadShopInfo();
+    if (!_readOnly) {
+      _loadShopInfo();
+    }
   }
 
   MarketListItem _parseItem(dynamic raw) {
@@ -2103,6 +2107,7 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
         ? keychains
         : schemaKeychains;
     final isOwnOnSale = _isOwnOnSaleItem();
+    final showActionBar = !isOwnOnSale && !_readOnly;
     final displayName =
         _schema?.marketName ??
         _item.marketHashName ??
@@ -2190,7 +2195,7 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
           ],
         ),
         body: ListView(
-          padding: EdgeInsets.only(bottom: isOwnOnSale ? 24 : 20),
+          padding: EdgeInsets.only(bottom: showActionBar ? 20 : 24),
           children: [
             _buildTopHeroImage(imageUrl: imageUrl, onTap: _openMarketDetail),
             Padding(
@@ -2643,9 +2648,8 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
             ),
           ],
         ),
-        bottomNavigationBar: isOwnOnSale
-            ? null
-            : Container(
+        bottomNavigationBar: showActionBar
+            ? Container(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                 decoration: const BoxDecoration(
                   color: _surfaceCard,
@@ -2696,7 +2700,8 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
                     ],
                   ),
                 ),
-              ),
+              )
+            : null,
       ),
     );
   }

@@ -62,6 +62,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   final MarketDetailController controller = Get.put(MarketDetailController());
   final GlobalKey _onSaleSortButtonKey = GlobalKey();
   final GlobalKey _onSaleWearButtonKey = GlobalKey();
+  final GlobalKey _onSaleGradientButtonKey = GlobalKey();
   final GlobalKey _onSalePhaseButtonKey = GlobalKey();
   final ApiMarketServer _marketApi = ApiMarketServer();
   final ApiShopProductServer _shopProductApi = ApiShopProductServer();
@@ -81,6 +82,8 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   int? _onSalePaintIndex;
   double? _onSaleWearMin;
   double? _onSaleWearMax;
+  double? _onSalePercentageMin;
+  double? _onSalePercentageMax;
   String? _onSaleSortField;
   bool? _onSaleSortAsc;
   final Set<String> _onSalePurchasingIds = <String>{};
@@ -2095,7 +2098,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
               children: [
                 Expanded(
                   child: Text(
-                    _figmaToolbarFloatLabel,
+                    'app.market.csgo.wear_unlimited'.tr,
                     style: TextStyle(
                       color: (_onSaleWearMin == null && _onSaleWearMax == null)
                           ? _figmaBlue700
@@ -2165,6 +2168,192 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       return;
     }
     await _selectWearQuickOption(selected.option);
+  }
+
+  String get _detailMarketHashName =>
+      _templateDetail?.schema?.marketHashName ?? controller.marketHashName;
+
+  bool get _hasGradientRangeSource {
+    if (controller.appId != 730) {
+      return false;
+    }
+    final normalizedName = _detailMarketHashName.toLowerCase();
+    return _templateDetail?.fade == true ||
+        normalizedName.contains('fade') ||
+        normalizedName.contains('case hardened');
+  }
+
+  List<_GradientRangeOption> get _toolbarGradientRangeOptions =>
+      _hasGradientRangeSource
+      ? _buildGradientRangeOptions()
+      : const <_GradientRangeOption>[];
+
+  bool get _hasOnSaleGradient =>
+      _onSalePercentageMin != null || _onSalePercentageMax != null;
+
+  bool _isSelectedGradientRangeOption(_GradientRangeOption option) {
+    return _onSalePercentageMin == option.min &&
+        _onSalePercentageMax == option.max;
+  }
+
+  String get _defaultToolbarGradientLabel => _onSaleGradientLabel;
+
+  String get _currentToolbarGradientLabel {
+    for (final option in _toolbarGradientRangeOptions) {
+      if (_isSelectedGradientRangeOption(option)) {
+        return option.label;
+      }
+    }
+    if (_hasOnSaleGradient) {
+      return _formatGradientRangeLabel(
+        _onSalePercentageMin,
+        _onSalePercentageMax,
+      );
+    }
+    return _defaultToolbarGradientLabel;
+  }
+
+  Future<void> _selectOnSaleGradientOption(_GradientRangeOption? option) async {
+    final nextMin = option?.min;
+    final nextMax = option?.max;
+    final sameSelection =
+        _onSalePercentageMin == nextMin && _onSalePercentageMax == nextMax;
+    if (sameSelection) {
+      return;
+    }
+    setState(() {
+      _onSalePercentageMin = nextMin;
+      _onSalePercentageMax = nextMax;
+    });
+    await _applyOnSaleFilterWithCurrentState();
+  }
+
+  Future<void> _openOnSaleGradientMenu() async {
+    if (controller.isLoadingOnSale.value) {
+      return;
+    }
+    final options = _toolbarGradientRangeOptions;
+    if (options.isEmpty) {
+      return;
+    }
+    final currentContext = _onSaleGradientButtonKey.currentContext;
+    if (currentContext == null) {
+      return;
+    }
+    final target = currentContext.findRenderObject() as RenderBox?;
+    final overlay =
+        Overlay.of(currentContext).context.findRenderObject() as RenderBox?;
+    if (target == null || overlay == null) {
+      return;
+    }
+    final targetTopLeft = target.localToGlobal(Offset.zero, ancestor: overlay);
+    final targetBottomRight = target.localToGlobal(
+      target.size.bottomRight(Offset.zero),
+      ancestor: overlay,
+    );
+    final menuPosition = RelativeRect.fromRect(
+      Rect.fromLTWH(
+        targetTopLeft.dx,
+        targetBottomRight.dy + 6,
+        target.size.width,
+        0,
+      ),
+      Offset.zero & overlay.size,
+    );
+
+    final selected = await showMenu<_GradientMenuSelection>(
+      context: context,
+      position: menuPosition,
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      elevation: 10,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      items: [
+        PopupMenuItem<_GradientMenuSelection>(
+          value: _GradientMenuSelection.clear(),
+          height: 0,
+          padding: EdgeInsets.zero,
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 132),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: !_hasOnSaleGradient
+                  ? _figmaBlue700.withValues(alpha: 0.06)
+                  : Colors.transparent,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'app.market.csgo.gradient_unlimited'.tr,
+                    style: TextStyle(
+                      color: !_hasOnSaleGradient
+                          ? _figmaBlue700
+                          : _figmaSlate800,
+                      fontSize: 13,
+                      height: 18 / 13,
+                      fontWeight: !_hasOnSaleGradient
+                          ? FontWeight.w600
+                          : FontWeight.w500,
+                    ),
+                  ),
+                ),
+                if (!_hasOnSaleGradient)
+                  const Icon(
+                    Icons.check_rounded,
+                    size: 16,
+                    color: _figmaBlue700,
+                  ),
+              ],
+            ),
+          ),
+        ),
+        ...options.map((option) {
+          final isSelected = _isSelectedGradientRangeOption(option);
+          return PopupMenuItem<_GradientMenuSelection>(
+            value: _GradientMenuSelection(option),
+            height: 0,
+            padding: EdgeInsets.zero,
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 132),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? _figmaBlue700.withValues(alpha: 0.06)
+                    : Colors.transparent,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      option.label,
+                      style: TextStyle(
+                        color: isSelected ? _figmaBlue700 : _figmaSlate800,
+                        fontSize: 13,
+                        height: 18 / 13,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  if (isSelected)
+                    const Icon(
+                      Icons.check_rounded,
+                      size: 16,
+                      color: _figmaBlue700,
+                    ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+    if (selected == null || !mounted) {
+      return;
+    }
+    await _selectOnSaleGradientOption(selected.option);
   }
 
   List<_PaintKitOption> get _toolbarPhaseOptions => _buildPaintKitOptions();
@@ -2337,6 +2526,8 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       paintIndex: _onSalePaintIndex,
       paintWearMin: _onSaleWearMin,
       paintWearMax: _onSaleWearMax,
+      percentageMin: _onSalePercentageMin,
+      percentageMax: _onSalePercentageMax,
       preserveVisibleItems: preserveVisibleItems,
     );
   }
@@ -2450,6 +2641,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     final actionButtonBackground = _figmaSlate100;
     final actionBorderRadius = BorderRadius.circular(8);
     final showWearQuickFilter = _toolbarWearQuickOptions.isNotEmpty;
+    final showGradientQuickFilter = _toolbarGradientRangeOptions.isNotEmpty;
     final showPhaseQuickFilter = _toolbarPhaseOptions.isNotEmpty;
     return Container(
       width: double.infinity,
@@ -2499,8 +2691,27 @@ class _MarketDetailPageState extends State<MarketDetailPage>
                                   onTap: _openOnSaleWearMenu,
                                 ),
                               ],
-                              if (showPhaseQuickFilter) ...[
+                              if (showGradientQuickFilter) ...[
                                 SizedBox(width: showWearQuickFilter ? 14 : 18),
+                                _buildTopToolbarTextAction(
+                                  actionKey: _onSaleGradientButtonKey,
+                                  label: _currentToolbarGradientLabel,
+                                  color: _hasOnSaleGradient
+                                      ? quickFilterActiveColor
+                                      : quickFilterColor,
+                                  icon: Icons.keyboard_arrow_down_rounded,
+                                  iconSize: 13,
+                                  onTap: _openOnSaleGradientMenu,
+                                ),
+                              ],
+                              if (showPhaseQuickFilter) ...[
+                                SizedBox(
+                                  width:
+                                      (showWearQuickFilter ||
+                                          showGradientQuickFilter)
+                                      ? 14
+                                      : 18,
+                                ),
                                 _buildTopToolbarTextAction(
                                   actionKey: _onSalePhaseButtonKey,
                                   label: _currentToolbarPhaseLabel,
@@ -2673,7 +2884,9 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       (_onSalePaintSeed?.isNotEmpty ?? false) ||
       _onSalePaintIndex != null ||
       _onSaleWearMin != null ||
-      _onSaleWearMax != null;
+      _onSaleWearMax != null ||
+      _onSalePercentageMin != null ||
+      _onSalePercentageMax != null;
 
   Future<void> _clearOnSaleFilter() async {
     setState(() {
@@ -2685,6 +2898,8 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       _onSalePaintIndex = null;
       _onSaleWearMin = null;
       _onSaleWearMax = null;
+      _onSalePercentageMin = null;
+      _onSalePercentageMax = null;
     });
     await _applyOnSaleFilterWithCurrentState();
   }
@@ -2692,10 +2907,12 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   Future<void> _openOnSaleFilterSheet() async {
     final sortOptions = _buildOnSaleSortOptions();
     final paintKits = _buildPaintKitOptions();
+    final gradientRangeOptions = _toolbarGradientRangeOptions;
     final wearQuickOptions = _buildWearQuickOptions(
       _templateDetail?.schema?.tags?.exterior?.key,
     );
     final showCsgoFilter = controller.appId == 730;
+    final showGradientFilter = gradientRangeOptions.isNotEmpty;
 
     final barrierLabel = MaterialLocalizations.of(
       context,
@@ -2722,12 +2939,16 @@ class _MarketDetailPageState extends State<MarketDetailPage>
               initialPaintIndex: _onSalePaintIndex,
               initialWearMin: _onSaleWearMin,
               initialWearMax: _onSaleWearMax,
+              initialPercentageMin: _onSalePercentageMin,
+              initialPercentageMax: _onSalePercentageMax,
               initialMinPrice: _onSaleMinPrice,
               initialMaxPrice: _onSaleMaxPrice,
               sortOptions: sortOptions,
               paintKits: paintKits,
+              gradientRangeOptions: gradientRangeOptions,
               wearQuickOptions: wearQuickOptions,
               showCsgoFilter: showCsgoFilter,
+              showGradientFilter: showGradientFilter,
               formatSortLabel: _formatOnSaleSortLabel,
             ),
           ),
@@ -2761,6 +2982,8 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       _onSalePaintIndex = result.paintIndex;
       _onSaleWearMin = result.paintWearMin;
       _onSaleWearMax = result.paintWearMax;
+      _onSalePercentageMin = result.percentageMin;
+      _onSalePercentageMax = result.percentageMax;
     });
     await _applyOnSaleFilterWithCurrentState();
   }
@@ -2780,13 +3003,48 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       if (id == null) {
         continue;
       }
-      final label =
-          _cleanText(map['phase']?.toString()) ??
-          _cleanText(map['name']?.toString()) ??
-          id.toString();
+      final label = _cleanText(map['phase']?.toString());
+      if (label == null) {
+        continue;
+      }
       options[id] = _PaintKitOption(id: id, label: label);
     }
-    return options.values.toList(growable: false);
+    final values = options.values.toList(growable: false);
+    return values.length > 1 ? values : const <_PaintKitOption>[];
+  }
+
+  List<_GradientRangeOption> _buildGradientRangeOptions() {
+    return const <_GradientRangeOption>[
+      _GradientRangeOption('80%-90%', 80, 90),
+      _GradientRangeOption('90%-93%', 90, 93),
+      _GradientRangeOption('93%-95%', 93, 95),
+      _GradientRangeOption('95%-97%', 95, 97),
+      _GradientRangeOption('97%-99%', 97, 99),
+      _GradientRangeOption('99%-100%', 99, 100),
+    ];
+  }
+
+  String _formatGradientRangeLabel(double? min, double? max) {
+    if (min != null && max != null) {
+      return '${_formatPercentNumber(min)}%-${_formatPercentNumber(max)}%';
+    }
+    if (min != null) {
+      return '>= ${_formatPercentNumber(min)}%';
+    }
+    if (max != null) {
+      return '<= ${_formatPercentNumber(max)}%';
+    }
+    return _defaultToolbarGradientLabel;
+  }
+
+  String _formatPercentNumber(double value) {
+    if (value == value.roundToDouble()) {
+      return value.toInt().toString();
+    }
+    return value
+        .toStringAsFixed(2)
+        .replaceFirst(RegExp(r'0+$'), '')
+        .replaceFirst(RegExp(r'\.$'), '');
   }
 
   List<_WearQuickOption> _buildWearQuickOptions(String? exteriorKey) {
@@ -4496,8 +4754,9 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   Future<void> _openItemDetail(
     MarketListItem item,
     MarketSchemaInfo? schema,
-    MarketUserInfo? user,
-  ) async {
+    MarketUserInfo? user, {
+    bool readOnly = false,
+  }) async {
     final result = await Get.toNamed(
       Routers.MARKET_ITEM_DETAIL,
       arguments: {
@@ -4506,6 +4765,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
         'user': user,
         'schemas': Map<String, MarketSchemaInfo>.from(controller.schemas),
         'stickers': Map<String, dynamic>.from(controller.stickers),
+        'readOnly': readOnly,
       },
     );
     if (result == true) {
@@ -5072,163 +5332,189 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     final showPrimaryMetaRow = wearText != null || patternText != null;
     final showSecondaryMetaRow = exteriorText != null || buyerText != null;
 
-    return Container(
+    return Material(
       color: _historyRowBackground(index, isDark),
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: _historyStatusBadgeWidth,
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? statusStyle.backgroundColor.withValues(alpha: 0.18)
-                    : statusStyle.backgroundColor,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                statusText,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: statusStyle.statusColor,
-                  fontSize: 10.5,
-                  height: 12 / 10.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: _isEnglishLocale ? 0.3 : 0,
+      child: InkWell(
+        onTap: () => _openItemDetail(
+          item,
+          _lookupMarketSchema(item),
+          null,
+          readOnly: true,
+        ),
+        overlayColor: WidgetStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(WidgetState.pressed)) {
+            return (isDark ? Colors.white : _figmaBlue700).withValues(
+              alpha: isDark ? 0.08 : 0.06,
+            );
+          }
+          if (states.contains(WidgetState.hovered)) {
+            return (isDark ? Colors.white : _figmaBlue700).withValues(
+              alpha: isDark ? 0.05 : 0.035,
+            );
+          }
+          return null;
+        }),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: _historyStatusBadgeWidth,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? statusStyle.backgroundColor.withValues(alpha: 0.18)
+                        : statusStyle.backgroundColor,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    statusText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: statusStyle.statusColor,
+                      fontSize: 10.5,
+                      height: 12 / 10.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: _isEnglishLocale ? 0.3 : 0,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Obx(
-                          () => Text(
-                            currency.format(item.price ?? 0),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: statusStyle.priceColor,
-                              fontSize: 18,
-                              height: 22.5 / 18,
-                              fontWeight: FontWeight.w800,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Obx(
+                              () => Text(
+                                currency.format(item.price ?? 0),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: statusStyle.priceColor,
+                                  fontSize: 18,
+                                  height: 22.5 / 18,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 116),
-                        child: Text(
-                          _formatTime(item.createTime),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.right,
-                          style: TextStyle(
-                            color: isDark ? _figmaSlate300 : _figmaSlate500,
-                            fontSize: 11,
-                            height: 16.5 / 11,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (showPrimaryMetaRow || showSecondaryMetaRow) ...[
-                    const SizedBox(height: 4),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (showPrimaryMetaRow)
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (wearText != null)
-                                      _buildTransactionMetricPill(
-                                        text: wearText,
-                                        isDark: isDark,
-                                      ),
-                                    if (wearText != null && patternText != null)
-                                      const SizedBox(width: 8),
-                                    if (patternText != null)
-                                      Flexible(
-                                        child: Text(
-                                          patternText,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            color: isDark
-                                                ? _figmaSlate300
-                                                : _figmaSlate500,
-                                            fontSize: 10,
-                                            height: 15 / 10,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              if (exteriorText != null) ...[
-                                if (showPrimaryMetaRow)
-                                  const SizedBox(height: 4),
-                                Text(
-                                  exteriorText,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: isDark
-                                        ? _figmaSlate300
-                                        : const Color(0xFF444653),
-                                    fontSize: 10,
-                                    height: 15 / 10,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        if (buyerText != null) ...[
                           const SizedBox(width: 12),
                           ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 92),
+                            constraints: const BoxConstraints(maxWidth: 116),
                             child: Text(
-                              buyerText,
-                              maxLines: 1,
+                              _formatTime(item.createTime),
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               textAlign: TextAlign.right,
                               style: TextStyle(
                                 color: isDark ? _figmaSlate300 : _figmaSlate500,
-                                fontSize: 10,
-                                height: 15 / 10,
-                                fontWeight: FontWeight.w400,
+                                fontSize: 11,
+                                height: 16.5 / 11,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
                         ],
+                      ),
+                      if (showPrimaryMetaRow || showSecondaryMetaRow) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (showPrimaryMetaRow)
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (wearText != null)
+                                          _buildTransactionMetricPill(
+                                            text: wearText,
+                                            isDark: isDark,
+                                          ),
+                                        if (wearText != null &&
+                                            patternText != null)
+                                          const SizedBox(width: 8),
+                                        if (patternText != null)
+                                          Flexible(
+                                            child: Text(
+                                              patternText,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: isDark
+                                                    ? _figmaSlate300
+                                                    : _figmaSlate500,
+                                                fontSize: 10,
+                                                height: 15 / 10,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  if (exteriorText != null) ...[
+                                    if (showPrimaryMetaRow)
+                                      const SizedBox(height: 4),
+                                    Text(
+                                      exteriorText,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? _figmaSlate300
+                                            : const Color(0xFF444653),
+                                        fontSize: 10,
+                                        height: 15 / 10,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            if (buyerText != null) ...[
+                              const SizedBox(width: 12),
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 92),
+                                child: Text(
+                                  buyerText,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.right,
+                                  style: TextStyle(
+                                    color: isDark
+                                        ? _figmaSlate300
+                                        : _figmaSlate500,
+                                    fontSize: 10,
+                                    height: 15 / 10,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ],
-                    ),
-                  ],
-                ],
-              ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -5472,12 +5758,16 @@ class _OnSaleFilterSheetDialog extends StatefulWidget {
     required this.initialPaintIndex,
     required this.initialWearMin,
     required this.initialWearMax,
+    required this.initialPercentageMin,
+    required this.initialPercentageMax,
     required this.initialMinPrice,
     required this.initialMaxPrice,
     required this.sortOptions,
     required this.paintKits,
+    required this.gradientRangeOptions,
     required this.wearQuickOptions,
     required this.showCsgoFilter,
+    required this.showGradientFilter,
     required this.formatSortLabel,
   });
 
@@ -5487,12 +5777,16 @@ class _OnSaleFilterSheetDialog extends StatefulWidget {
   final int? initialPaintIndex;
   final double? initialWearMin;
   final double? initialWearMax;
+  final double? initialPercentageMin;
+  final double? initialPercentageMax;
   final double? initialMinPrice;
   final double? initialMaxPrice;
   final List<_OnSaleSortOption> sortOptions;
   final List<_PaintKitOption> paintKits;
+  final List<_GradientRangeOption> gradientRangeOptions;
   final List<_WearQuickOption> wearQuickOptions;
   final bool showCsgoFilter;
+  final bool showGradientFilter;
   final String Function(_OnSaleSortOption option) formatSortLabel;
 
   @override
@@ -5504,6 +5798,8 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
   late final TextEditingController _paintSeedController;
   late final TextEditingController _wearMinController;
   late final TextEditingController _wearMaxController;
+  late final TextEditingController _gradientMinController;
+  late final TextEditingController _gradientMaxController;
   late final TextEditingController _minPriceController;
   late final TextEditingController _maxPriceController;
   late String? _selectedSortField;
@@ -5519,6 +5815,12 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
     );
     _wearMaxController = TextEditingController(
       text: _formatWearInput(widget.initialWearMax),
+    );
+    _gradientMinController = TextEditingController(
+      text: _formatPercentageInput(widget.initialPercentageMin),
+    );
+    _gradientMaxController = TextEditingController(
+      text: _formatPercentageInput(widget.initialPercentageMax),
     );
     _minPriceController = TextEditingController(
       text: widget.initialMinPrice?.toString(),
@@ -5536,6 +5838,8 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
     _paintSeedController.dispose();
     _wearMinController.dispose();
     _wearMaxController.dispose();
+    _gradientMinController.dispose();
+    _gradientMaxController.dispose();
     _minPriceController.dispose();
     _maxPriceController.dispose();
     super.dispose();
@@ -5559,6 +5863,14 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
     return parsed == null ? null : _roundWearValue(parsed);
   }
 
+  double? _parsePercentageValue(String value) {
+    final parsed = _parseOptionalDouble(value)?.clamp(0.0, 100.0).toDouble();
+    if (parsed == null) {
+      return null;
+    }
+    return (parsed * 100).roundToDouble() / 100;
+  }
+
   double _roundWearValue(double value) {
     return (value * 100).roundToDouble() / 100;
   }
@@ -5568,6 +5880,25 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
       return '';
     }
     return _roundWearValue(value.clamp(0.0, 0.8).toDouble()).toStringAsFixed(2);
+  }
+
+  String _formatPercentageInput(double? value) {
+    if (value == null) {
+      return '';
+    }
+    final rounded = (value.clamp(0.0, 100.0).toDouble() * 100).round() / 100;
+    if (rounded == rounded.roundToDouble()) {
+      return rounded.toInt().toString();
+    }
+    return rounded
+        .toStringAsFixed(2)
+        .replaceFirst(RegExp(r'0+$'), '')
+        .replaceFirst(RegExp(r'\.$'), '');
+  }
+
+  bool _isSelectedGradientOption(_GradientRangeOption option) {
+    return _parsePercentageValue(_gradientMinController.text) == option.min &&
+        _parsePercentageValue(_gradientMaxController.text) == option.max;
   }
 
   int get _activeFilterCount {
@@ -5587,6 +5918,12 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
         widget.showCsgoFilter) {
       count += 1;
     }
+    if ((_parsePercentageValue(_gradientMinController.text) != null ||
+            _parsePercentageValue(_gradientMaxController.text) != null) &&
+        widget.showCsgoFilter &&
+        widget.showGradientFilter) {
+      count += 1;
+    }
     if (_parseOptionalDouble(_minPriceController.text) != null ||
         _parseOptionalDouble(_maxPriceController.text) != null) {
       count += 1;
@@ -5602,6 +5939,8 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
       _paintSeedController.clear();
       _wearMinController.clear();
       _wearMaxController.clear();
+      _gradientMinController.clear();
+      _gradientMaxController.clear();
       _minPriceController.clear();
       _maxPriceController.clear();
     });
@@ -5618,6 +5957,8 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
         paintIndex: _selectedPaintIndex,
         paintWearMin: _parseWearValue(_wearMinController.text),
         paintWearMax: _parseWearValue(_wearMaxController.text),
+        percentageMin: _parsePercentageValue(_gradientMinController.text),
+        percentageMax: _parsePercentageValue(_gradientMaxController.text),
       ),
     );
   }
@@ -5733,6 +6074,99 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
                   ),
                 ),
               ],
+              if (widget.showGradientFilter &&
+                  widget.gradientRangeOptions.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                FilterSheetSection(
+                  title: 'app.market.csgo.gradient_range'.tr,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildField(
+                              controller: _gradientMinController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              inputFormatters: const [
+                                _DecimalTextInputFormatter(decimalDigits: 2),
+                              ],
+                              hintText: '80',
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              '~',
+                              style: TextStyle(
+                                color: FilterSheetStyle.body,
+                                fontSize: 16,
+                                height: 24 / 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: _buildField(
+                              controller: _gradientMaxController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              inputFormatters: const [
+                                _DecimalTextInputFormatter(decimalDigits: 2),
+                              ],
+                              hintText: '100',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _buildOptionChip(
+                            label: 'app.market.csgo.gradient_unlimited'.tr,
+                            selected:
+                                _parsePercentageValue(
+                                      _gradientMinController.text,
+                                    ) ==
+                                    null &&
+                                _parsePercentageValue(
+                                      _gradientMaxController.text,
+                                    ) ==
+                                    null,
+                            onTap: () {
+                              setState(() {
+                                _gradientMinController.clear();
+                                _gradientMaxController.clear();
+                              });
+                            },
+                          ),
+                          ...widget.gradientRangeOptions.map((option) {
+                            return _buildOptionChip(
+                              label: option.label,
+                              selected: _isSelectedGradientOption(option),
+                              onTap: () {
+                                setState(() {
+                                  _gradientMinController.text =
+                                      _formatPercentageInput(option.min);
+                                  _gradientMaxController.text =
+                                      _formatPercentageInput(option.max);
+                                });
+                              },
+                            );
+                          }),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               if (widget.wearQuickOptions.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 FilterSheetSection(
@@ -5794,23 +6228,37 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
-                        children: widget.wearQuickOptions
-                            .map((option) {
-                              final isSelected =
-                                  _wearMinController.text == option.minText &&
-                                  _wearMaxController.text == option.maxText;
-                              return _buildOptionChip(
-                                label: option.label,
-                                selected: isSelected,
-                                onTap: () {
-                                  setState(() {
-                                    _wearMinController.text = option.minText;
-                                    _wearMaxController.text = option.maxText;
-                                  });
-                                },
-                              );
-                            })
-                            .toList(growable: false),
+                        children: [
+                          _buildOptionChip(
+                            label: 'app.market.csgo.wear_unlimited'.tr,
+                            selected:
+                                _parseWearValue(_wearMinController.text) ==
+                                    null &&
+                                _parseWearValue(_wearMaxController.text) ==
+                                    null,
+                            onTap: () {
+                              setState(() {
+                                _wearMinController.clear();
+                                _wearMaxController.clear();
+                              });
+                            },
+                          ),
+                          ...widget.wearQuickOptions.map((option) {
+                            final isSelected =
+                                _wearMinController.text == option.minText &&
+                                _wearMaxController.text == option.maxText;
+                            return _buildOptionChip(
+                              label: option.label,
+                              selected: isSelected,
+                              onTap: () {
+                                setState(() {
+                                  _wearMinController.text = option.minText;
+                                  _wearMaxController.text = option.maxText;
+                                });
+                              },
+                            );
+                          }),
+                        ],
                       ),
                     ],
                   ),
@@ -6067,6 +6515,8 @@ class _OnSaleFilterValue {
     this.paintIndex,
     this.paintWearMin,
     this.paintWearMax,
+    this.percentageMin,
+    this.percentageMax,
   });
 
   final String? sortField;
@@ -6077,6 +6527,8 @@ class _OnSaleFilterValue {
   final int? paintIndex;
   final double? paintWearMin;
   final double? paintWearMax;
+  final double? percentageMin;
+  final double? percentageMax;
 }
 
 class _PaintKitOption {
@@ -6084,6 +6536,14 @@ class _PaintKitOption {
 
   final int id;
   final String label;
+}
+
+class _GradientRangeOption {
+  const _GradientRangeOption(this.label, this.min, this.max);
+
+  final String label;
+  final double min;
+  final double max;
 }
 
 class _WearQuickOption {
@@ -6100,6 +6560,14 @@ class _WearQuickMenuSelection {
   const _WearQuickMenuSelection.clear() : option = null;
 
   final _WearQuickOption? option;
+}
+
+class _GradientMenuSelection {
+  const _GradientMenuSelection(this.option);
+
+  const _GradientMenuSelection.clear() : option = null;
+
+  final _GradientRangeOption? option;
 }
 
 class _PhaseMenuSelection {

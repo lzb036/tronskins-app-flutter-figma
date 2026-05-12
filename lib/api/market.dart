@@ -132,6 +132,8 @@ class ApiMarketServer {
     int? paintIndex,
     double? paintWearMin,
     double? paintWearMax,
+    double? percentageMin,
+    double? percentageMax,
     bool useAuth = true,
     bool fallbackToPublicOnFail = false,
   }) async {
@@ -158,6 +160,8 @@ class ApiMarketServer {
             'paintIndex': paintIndex,
             'paintWearMin': paintWearMin,
             'paintWearMax': paintWearMax,
+            'percentageMin': percentageMin,
+            'percentageMax': percentageMax,
           }..removeWhere((_, value) => value == null),
         );
         return BaseHttpResponse.fromJson(

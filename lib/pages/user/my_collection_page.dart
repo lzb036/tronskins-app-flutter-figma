@@ -1717,25 +1717,11 @@ class _CollectionCategoryCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _CollectionPriceMetric(
-                          label: _collectionText(zh: '出售价', en: 'Sale'),
-                          value: _formatCollectionCompactPrice(
-                            item.sellMinPrice,
-                          ),
-                          priceColor: const Color(0xFFFF6B35),
-                        ),
-                        const SizedBox(width: 24),
-                        _CollectionPriceMetric(
-                          label: _collectionText(zh: '求购价', en: 'Demand'),
-                          value: _formatCollectionCompactPrice(
-                            item.buyMaxPrice,
-                          ),
-                          priceColor: const Color(0xFF10B981),
-                        ),
-                      ],
+                    _CollectionPriceMetricPair(
+                      sellValue: _formatCollectionCompactPrice(
+                        item.sellMinPrice,
+                      ),
+                      buyValue: _formatCollectionCompactPrice(item.buyMaxPrice),
                     ),
                   ],
                 ),
@@ -1884,16 +1870,99 @@ class _CollectionFavoriteCard extends StatelessWidget {
   }
 }
 
+class _CollectionPriceMetricPair extends StatelessWidget {
+  const _CollectionPriceMetricPair({
+    required this.sellValue,
+    required this.buyValue,
+  });
+
+  static const double _maxPriceFontSize = 18;
+  static const double _minPriceFontSize = 1;
+
+  final String sellValue;
+  final String buyValue;
+
+  double _resolvePriceFontSize(BuildContext context, double maxWidth) {
+    if (maxWidth <= 0) {
+      return _minPriceFontSize;
+    }
+
+    var resolved = _maxPriceFontSize;
+    final direction = Directionality.of(context);
+    const baseStyle = TextStyle(
+      fontFamily: 'Space Grotesk',
+      fontSize: _maxPriceFontSize,
+      fontWeight: FontWeight.w700,
+    );
+
+    for (final value in <String>[sellValue, buyValue]) {
+      final painter = TextPainter(
+        text: TextSpan(text: value, style: baseStyle),
+        maxLines: 1,
+        textDirection: direction,
+      )..layout();
+      if (painter.width > maxWidth && painter.width > 0) {
+        final fitted = _maxPriceFontSize * maxWidth / painter.width;
+        if (fitted < resolved) {
+          resolved = fitted;
+        }
+      }
+    }
+
+    return resolved.clamp(_minPriceFontSize, _maxPriceFontSize).toDouble();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : 240.0;
+        final gap = availableWidth < 180 ? 16.0 : 24.0;
+        final metricWidth = ((availableWidth - gap) / 2)
+            .clamp(0.0, availableWidth)
+            .toDouble();
+        final priceFontSize = _resolvePriceFontSize(context, metricWidth);
+
+        return Row(
+          children: [
+            Expanded(
+              child: _CollectionPriceMetric(
+                label: _collectionText(zh: '出售价', en: 'Sale'),
+                value: sellValue,
+                priceColor: const Color(0xFFFF6B35),
+                priceFontSize: priceFontSize,
+              ),
+            ),
+            SizedBox(width: gap),
+            Expanded(
+              child: _CollectionPriceMetric(
+                label: _collectionText(zh: '求购价', en: 'Demand'),
+                value: buyValue,
+                priceColor: const Color(0xFF10B981),
+                priceFontSize: priceFontSize,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _CollectionPriceMetric extends StatelessWidget {
   const _CollectionPriceMetric({
     required this.label,
     required this.value,
     required this.priceColor,
+    this.priceFontSize = 18,
   });
 
   final String label;
   final String value;
   final Color priceColor;
+  final double priceFontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -1905,6 +1974,8 @@ class _CollectionPriceMetric extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 2),
           child: Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Color(0xFF444653),
               fontSize: 10,
@@ -1915,10 +1986,13 @@ class _CollectionPriceMetric extends StatelessWidget {
         ),
         Text(
           value,
+          maxLines: 1,
+          softWrap: false,
+          overflow: TextOverflow.visible,
           style: TextStyle(
             color: priceColor,
             fontFamily: 'Space Grotesk',
-            fontSize: 18,
+            fontSize: priceFontSize,
             height: 28 / 18,
             fontWeight: FontWeight.w700,
           ),

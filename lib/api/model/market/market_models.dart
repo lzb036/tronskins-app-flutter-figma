@@ -441,12 +441,14 @@ class MarketTemplateDetail {
   final Map<String, dynamic>? qualityMap;
   final List<dynamic>? paintKits;
   final bool? isCollected;
+  final bool? fade;
 
   const MarketTemplateDetail({
     this.schema,
     this.qualityMap,
     this.paintKits,
     this.isCollected,
+    this.fade,
   });
 
   factory MarketTemplateDetail.fromJson(Map<String, dynamic> json) {
@@ -460,6 +462,7 @@ class MarketTemplateDetail {
           : null,
       paintKits: json['paintKits'] is List ? json['paintKits'] as List : null,
       isCollected: json['isCollected'] == true,
+      fade: _asBool(json['fade']),
     );
   }
 }
