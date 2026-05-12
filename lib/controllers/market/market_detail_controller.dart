@@ -49,6 +49,7 @@ class MarketDetailController extends GetxController {
   double? _onSalePaintWearMax;
   double? _onSalePercentageMin;
   double? _onSalePercentageMax;
+  int? _onSaleTierId;
   String? _onSaleSortField;
   bool? _onSaleSortAsc;
   bool _pendingOnSaleReset = false;
@@ -179,6 +180,7 @@ class MarketDetailController extends GetxController {
         paintWearMax: _onSalePaintWearMax,
         percentageMin: _onSalePercentageMin,
         percentageMax: _onSalePercentageMax,
+        tierId: _onSaleTierId,
         useAuth: useAuth,
         fallbackToPublicOnFail: true,
       );
@@ -236,6 +238,7 @@ class MarketDetailController extends GetxController {
     double? paintWearMax,
     double? percentageMin,
     double? percentageMax,
+    int? tierId,
     bool preserveVisibleItems = false,
   }) async {
     final normalizedSortField = sortField?.trim();
@@ -252,6 +255,7 @@ class MarketDetailController extends GetxController {
     _onSalePaintWearMax = paintWearMax;
     _onSalePercentageMin = percentageMin;
     _onSalePercentageMax = percentageMax;
+    _onSaleTierId = tierId;
     await loadOnSale(reset: true, preserveVisibleItems: preserveVisibleItems);
   }
 

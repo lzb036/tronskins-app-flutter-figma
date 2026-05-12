@@ -387,6 +387,7 @@ class MarketTemplateSchema {
   final int? schemaId;
   final String? marketName;
   final String? marketHashName;
+  final String? itemWeapon;
   final String? imageUrl;
   final double? sellMin;
   final double? sellMax;
@@ -403,6 +404,7 @@ class MarketTemplateSchema {
     this.schemaId,
     this.marketName,
     this.marketHashName,
+    this.itemWeapon,
     this.imageUrl,
     this.sellMin,
     this.sellMax,
@@ -421,6 +423,8 @@ class MarketTemplateSchema {
       schemaId: _asInt(json['schema_id'] ?? json['schemaId'] ?? json['id']),
       marketName: json['market_name']?.toString(),
       marketHashName: json['market_hash_name']?.toString(),
+      itemWeapon:
+          json['item_weapon']?.toString() ?? json['itemWeapon']?.toString(),
       imageUrl: json['image_url']?.toString(),
       sellMin: _asDouble(json['sell_min']),
       sellMax: _asDouble(json['sell_max']),
@@ -442,6 +446,7 @@ class MarketTemplateDetail {
   final List<dynamic>? paintKits;
   final bool? isCollected;
   final bool? fade;
+  final bool? quenching;
 
   const MarketTemplateDetail({
     this.schema,
@@ -449,6 +454,7 @@ class MarketTemplateDetail {
     this.paintKits,
     this.isCollected,
     this.fade,
+    this.quenching,
   });
 
   factory MarketTemplateDetail.fromJson(Map<String, dynamic> json) {
@@ -463,6 +469,31 @@ class MarketTemplateDetail {
       paintKits: json['paintKits'] is List ? json['paintKits'] as List : null,
       isCollected: json['isCollected'] == true,
       fade: _asBool(json['fade']),
+      quenching: _asBool(json['quenching']),
+    );
+  }
+}
+
+class MarketTierOption {
+  final Map<String, dynamic> raw;
+  final int? id;
+  final String? itemWeapon;
+  final String? tierName;
+
+  const MarketTierOption({
+    this.raw = const {},
+    this.id,
+    this.itemWeapon,
+    this.tierName,
+  });
+
+  factory MarketTierOption.fromJson(Map<String, dynamic> json) {
+    return MarketTierOption(
+      raw: json,
+      id: _asInt(json['id']),
+      itemWeapon:
+          json['itemWeapon']?.toString() ?? json['item_weapon']?.toString(),
+      tierName: json['tierName']?.toString() ?? json['tier_name']?.toString(),
     );
   }
 }

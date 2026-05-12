@@ -65,6 +65,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   final GlobalKey _onSaleWearButtonKey = GlobalKey();
   final GlobalKey _onSaleGradientButtonKey = GlobalKey();
   final GlobalKey _onSalePhaseButtonKey = GlobalKey();
+  final GlobalKey _onSaleTierButtonKey = GlobalKey();
   final ApiMarketServer _marketApi = ApiMarketServer();
   final ApiShopProductServer _shopProductApi = ApiShopProductServer();
   late final TabController _tabController;
@@ -73,6 +74,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   MarketTemplateDetail? _templateDetail;
   bool _loadingTemplate = false;
   List<_WearOption> _wearOptions = <_WearOption>[];
+  List<_TierOption> _tierOptions = <_TierOption>[];
   List<String> _qualityKeys = <String>[];
   int _qualityIndex = 0;
   int? _pendingWearSchemaId;
@@ -85,6 +87,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   double? _onSaleWearMax;
   double? _onSalePercentageMin;
   double? _onSalePercentageMax;
+  int? _onSaleTierId;
   String? _onSaleSortField;
   bool? _onSaleSortAsc;
   final Set<String> _onSalePurchasingIds = <String>{};
@@ -235,6 +238,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       }
       _templateDetail = detail;
       _buildWearOptions(detail);
+      await _loadTierOptions(detail, requestSerial);
       final schema = detail.schema;
       if (schema != null) {
         final mappedItem = _mapTemplateToItem(schema);
@@ -282,6 +286,80 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     _qualityIndex = index >= 0 ? index : 0;
     final selectedKey = _qualityKeys[_qualityIndex];
     _wearOptions = _parseWearOptions(qualityMap[selectedKey]);
+  }
+
+  Future<void> _loadTierOptions(
+    MarketTemplateDetail detail,
+    int requestSerial,
+  ) async {
+    if (!_shouldShowTierFilter(detail)) {
+      _setTierOptions(const <_TierOption>[]);
+      return;
+    }
+    final itemWeapon = _tierItemWeapon(detail);
+    if (itemWeapon == null) {
+      _setTierOptions(const <_TierOption>[]);
+      return;
+    }
+
+    try {
+      final res = await _marketApi.csgoWeaponTierList(itemWeapon: itemWeapon);
+      if (!mounted || requestSerial != _templateRequestSerial) {
+        return;
+      }
+      _setTierOptions(_mapTierOptions(res.datas ?? const []));
+    } catch (_) {
+      if (mounted && requestSerial == _templateRequestSerial) {
+        _setTierOptions(const <_TierOption>[]);
+      }
+    }
+  }
+
+  void _setTierOptions(List<_TierOption> options) {
+    final nextTierId =
+        _onSaleTierId != null &&
+            options.any((option) => option.id == _onSaleTierId)
+        ? _onSaleTierId
+        : null;
+    if (!mounted) {
+      _tierOptions = options;
+      _onSaleTierId = nextTierId;
+      return;
+    }
+    setState(() {
+      _tierOptions = options;
+      _onSaleTierId = nextTierId;
+    });
+  }
+
+  List<_TierOption> _mapTierOptions(List<MarketTierOption> tiers) {
+    final options = <int, _TierOption>{};
+    for (final tier in tiers) {
+      final id = tier.id;
+      final label = _cleanText(tier.tierName);
+      if (id == null || label == null) {
+        continue;
+      }
+      options[id] = _TierOption(id: id, label: label);
+    }
+    return options.values.toList(growable: false);
+  }
+
+  bool _shouldShowTierFilter(MarketTemplateDetail? detail) {
+    if (controller.appId != 730 || detail?.quenching != true) {
+      return false;
+    }
+    final name = _detailMarketHashName.toLowerCase();
+    return name.contains('case hardened') || name.contains('marble fade');
+  }
+
+  String? _tierItemWeapon(MarketTemplateDetail detail) {
+    final schema = detail.schema;
+    return _cleanText(
+      schema?.itemWeapon ??
+          schema?.raw['itemWeapon']?.toString() ??
+          schema?.raw['item_weapon']?.toString(),
+    );
   }
 
   Future<void> _cycleQualityKey() async {
@@ -410,6 +488,8 @@ class _MarketDetailPageState extends State<MarketDetailPage>
           qualityMap: detail.qualityMap,
           paintKits: detail.paintKits,
           isCollected: !isCollected,
+          fade: detail.fade,
+          quenching: detail.quenching,
         );
       }
       if (mounted) {
@@ -971,6 +1051,17 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     }
     return 'app.market.csgo.gradient_range'.tr;
   }
+
+  bool get _isFireIceTier =>
+      _detailMarketHashName.toLowerCase().contains('marble fade');
+
+  String get _tierFilterLabel => _isFireIceTier
+      ? 'app.market.csgo.fire_ice'.tr
+      : 'app.market.csgo.tier'.tr;
+
+  String get _tierUnlimitedLabel => _isFireIceTier
+      ? 'app.market.csgo.fire_ice_unlimited'.tr
+      : 'app.market.csgo.tier_unlimited'.tr;
 
   String get _figmaAcceptedPatternsTitle =>
       'app.market.detail.accepted_patterns'.tr;
@@ -2515,6 +2606,155 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     await _selectOnSalePhaseOption(selected.option);
   }
 
+  List<_TierOption> get _toolbarTierOptions =>
+      _shouldShowTierFilter(_templateDetail) ? _tierOptions : const [];
+
+  String get _currentToolbarTierLabel {
+    for (final option in _toolbarTierOptions) {
+      if (option.id == _onSaleTierId) {
+        return option.label;
+      }
+    }
+    return _tierFilterLabel;
+  }
+
+  Future<void> _selectOnSaleTierOption(_TierOption? option) async {
+    final nextTierId = option?.id;
+    if (nextTierId == _onSaleTierId) {
+      return;
+    }
+    setState(() => _onSaleTierId = nextTierId);
+    await _applyOnSaleFilterWithCurrentState();
+  }
+
+  Future<void> _openOnSaleTierMenu() async {
+    if (controller.isLoadingOnSale.value) {
+      return;
+    }
+    final options = _toolbarTierOptions;
+    if (options.isEmpty) {
+      return;
+    }
+    final currentContext = _onSaleTierButtonKey.currentContext;
+    if (currentContext == null) {
+      return;
+    }
+    final target = currentContext.findRenderObject() as RenderBox?;
+    final overlay =
+        Overlay.of(currentContext).context.findRenderObject() as RenderBox?;
+    if (target == null || overlay == null) {
+      return;
+    }
+    final targetTopLeft = target.localToGlobal(Offset.zero, ancestor: overlay);
+    final targetBottomRight = target.localToGlobal(
+      target.size.bottomRight(Offset.zero),
+      ancestor: overlay,
+    );
+    final menuPosition = RelativeRect.fromRect(
+      Rect.fromLTWH(
+        targetTopLeft.dx,
+        targetBottomRight.dy + 6,
+        target.size.width,
+        0,
+      ),
+      Offset.zero & overlay.size,
+    );
+
+    final selected = await showMenu<_TierMenuSelection>(
+      context: context,
+      position: menuPosition,
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      elevation: 10,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      items: [
+        PopupMenuItem<_TierMenuSelection>(
+          value: _TierMenuSelection.clear(),
+          height: 0,
+          padding: EdgeInsets.zero,
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 156),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: _onSaleTierId == null
+                  ? _figmaBlue700.withValues(alpha: 0.06)
+                  : Colors.transparent,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _tierUnlimitedLabel,
+                    style: TextStyle(
+                      color: _onSaleTierId == null
+                          ? _figmaBlue700
+                          : _figmaSlate800,
+                      fontSize: 13,
+                      height: 18 / 13,
+                      fontWeight: _onSaleTierId == null
+                          ? FontWeight.w600
+                          : FontWeight.w500,
+                    ),
+                  ),
+                ),
+                if (_onSaleTierId == null)
+                  const Icon(
+                    Icons.check_rounded,
+                    size: 16,
+                    color: _figmaBlue700,
+                  ),
+              ],
+            ),
+          ),
+        ),
+        ...options.map((option) {
+          final isSelected = option.id == _onSaleTierId;
+          return PopupMenuItem<_TierMenuSelection>(
+            value: _TierMenuSelection(option),
+            height: 0,
+            padding: EdgeInsets.zero,
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 156),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? _figmaBlue700.withValues(alpha: 0.06)
+                    : Colors.transparent,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      option.label,
+                      style: TextStyle(
+                        color: isSelected ? _figmaBlue700 : _figmaSlate800,
+                        fontSize: 13,
+                        height: 18 / 13,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  if (isSelected)
+                    const Icon(
+                      Icons.check_rounded,
+                      size: 16,
+                      color: _figmaBlue700,
+                    ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+    if (selected == null || !mounted) {
+      return;
+    }
+    await _selectOnSaleTierOption(selected.option);
+  }
+
   Future<void> _applyOnSaleFilterWithCurrentState({
     bool preserveVisibleItems = false,
   }) {
@@ -2529,6 +2769,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       paintWearMax: _onSaleWearMax,
       percentageMin: _onSalePercentageMin,
       percentageMax: _onSalePercentageMax,
+      tierId: _onSaleTierId,
       preserveVisibleItems: preserveVisibleItems,
     );
   }
@@ -2644,6 +2885,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     final showWearQuickFilter = _toolbarWearQuickOptions.isNotEmpty;
     final showGradientQuickFilter = _toolbarGradientRangeOptions.isNotEmpty;
     final showPhaseQuickFilter = _toolbarPhaseOptions.isNotEmpty;
+    final showTierQuickFilter = _toolbarTierOptions.isNotEmpty;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(12, 2, 12, 2),
@@ -2722,6 +2964,26 @@ class _MarketDetailPageState extends State<MarketDetailPage>
                                   icon: Icons.keyboard_arrow_down_rounded,
                                   iconSize: 13,
                                   onTap: _openOnSalePhaseMenu,
+                                ),
+                              ],
+                              if (showTierQuickFilter) ...[
+                                SizedBox(
+                                  width:
+                                      (showWearQuickFilter ||
+                                          showGradientQuickFilter ||
+                                          showPhaseQuickFilter)
+                                      ? 14
+                                      : 18,
+                                ),
+                                _buildTopToolbarTextAction(
+                                  actionKey: _onSaleTierButtonKey,
+                                  label: _currentToolbarTierLabel,
+                                  color: _onSaleTierId != null
+                                      ? quickFilterActiveColor
+                                      : quickFilterColor,
+                                  icon: Icons.keyboard_arrow_down_rounded,
+                                  iconSize: 13,
+                                  onTap: _openOnSaleTierMenu,
                                 ),
                               ],
                             ],
@@ -2887,7 +3149,8 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       _onSaleWearMin != null ||
       _onSaleWearMax != null ||
       _onSalePercentageMin != null ||
-      _onSalePercentageMax != null;
+      _onSalePercentageMax != null ||
+      _onSaleTierId != null;
 
   Future<void> _clearOnSaleFilter() async {
     setState(() {
@@ -2901,6 +3164,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       _onSaleWearMax = null;
       _onSalePercentageMin = null;
       _onSalePercentageMax = null;
+      _onSaleTierId = null;
     });
     await _applyOnSaleFilterWithCurrentState();
   }
@@ -2909,11 +3173,13 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     final sortOptions = _buildOnSaleSortOptions();
     final paintKits = _buildPaintKitOptions();
     final gradientRangeOptions = _toolbarGradientRangeOptions;
+    final tierOptions = _toolbarTierOptions;
     final wearQuickOptions = _buildWearQuickOptions(
       _templateDetail?.schema?.tags?.exterior?.key,
     );
     final showCsgoFilter = controller.appId == 730;
     final showGradientFilter = gradientRangeOptions.isNotEmpty;
+    final showTierFilter = tierOptions.isNotEmpty;
 
     final barrierLabel = MaterialLocalizations.of(
       context,
@@ -2942,14 +3208,19 @@ class _MarketDetailPageState extends State<MarketDetailPage>
               initialWearMax: _onSaleWearMax,
               initialPercentageMin: _onSalePercentageMin,
               initialPercentageMax: _onSalePercentageMax,
+              initialTierId: _onSaleTierId,
               initialMinPrice: _onSaleMinPrice,
               initialMaxPrice: _onSaleMaxPrice,
               sortOptions: sortOptions,
               paintKits: paintKits,
               gradientRangeOptions: gradientRangeOptions,
+              tierOptions: tierOptions,
               wearQuickOptions: wearQuickOptions,
               showCsgoFilter: showCsgoFilter,
               showGradientFilter: showGradientFilter,
+              showTierFilter: showTierFilter,
+              tierLabel: _tierFilterLabel,
+              tierUnlimitedLabel: _tierUnlimitedLabel,
               formatSortLabel: _formatOnSaleSortLabel,
             ),
           ),
@@ -2985,6 +3256,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       _onSaleWearMax = result.paintWearMax;
       _onSalePercentageMin = result.percentageMin;
       _onSalePercentageMax = result.percentageMax;
+      _onSaleTierId = result.tierId;
     });
     await _applyOnSaleFilterWithCurrentState();
   }
@@ -3145,6 +3417,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       raw: item.raw,
       paintIndex: paintIndex,
     );
+    final tierValue = _resolveOnSaleTierLabel(asset: asset, raw: item.raw);
     final stickers = _parseStickers(
       asset: asset,
       raw: item.raw,
@@ -3194,6 +3467,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
         _OnSaleListingFact(_onSaleGradientLabel, percentageLabel),
       if (phaseValue != null)
         _OnSaleListingFact('app.market.csgo.phase'.tr, phaseValue),
+      if (tierValue != null) _OnSaleListingFact(_tierFilterLabel, tierValue),
       if (paintSeed != null)
         _OnSaleListingFact('app.market.item.pattern_template'.tr, paintSeed),
       if (paintIndex != null)
@@ -5078,6 +5352,19 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     return null;
   }
 
+  String? _resolveOnSaleTierLabel({
+    required Map<String, dynamic>? asset,
+    required Map<String, dynamic> raw,
+  }) {
+    return _resolveOnSaleText(asset, raw, const [
+      'tier',
+      'tierName',
+      'tier_name',
+      'fireIce',
+      'fire_ice',
+    ]);
+  }
+
   Widget _buildOnSaleDecorationGroup({required Widget child, String? label}) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -5761,14 +6048,19 @@ class _OnSaleFilterSheetDialog extends StatefulWidget {
     required this.initialWearMax,
     required this.initialPercentageMin,
     required this.initialPercentageMax,
+    required this.initialTierId,
     required this.initialMinPrice,
     required this.initialMaxPrice,
     required this.sortOptions,
     required this.paintKits,
     required this.gradientRangeOptions,
+    required this.tierOptions,
     required this.wearQuickOptions,
     required this.showCsgoFilter,
     required this.showGradientFilter,
+    required this.showTierFilter,
+    required this.tierLabel,
+    required this.tierUnlimitedLabel,
     required this.formatSortLabel,
   });
 
@@ -5780,14 +6072,19 @@ class _OnSaleFilterSheetDialog extends StatefulWidget {
   final double? initialWearMax;
   final double? initialPercentageMin;
   final double? initialPercentageMax;
+  final int? initialTierId;
   final double? initialMinPrice;
   final double? initialMaxPrice;
   final List<_OnSaleSortOption> sortOptions;
   final List<_PaintKitOption> paintKits;
   final List<_GradientRangeOption> gradientRangeOptions;
+  final List<_TierOption> tierOptions;
   final List<_WearQuickOption> wearQuickOptions;
   final bool showCsgoFilter;
   final bool showGradientFilter;
+  final bool showTierFilter;
+  final String tierLabel;
+  final String tierUnlimitedLabel;
   final String Function(_OnSaleSortOption option) formatSortLabel;
 
   @override
@@ -5806,6 +6103,7 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
   late String? _selectedSortField;
   late bool? _selectedSortAsc;
   late int? _selectedPaintIndex;
+  late int? _selectedTierId;
 
   @override
   void initState() {
@@ -5832,6 +6130,7 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
     _selectedSortField = widget.initialSortField;
     _selectedSortAsc = widget.initialSortAsc;
     _selectedPaintIndex = widget.initialPaintIndex;
+    _selectedTierId = widget.initialTierId;
   }
 
   @override
@@ -5914,6 +6213,11 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
     if (_selectedPaintIndex != null && widget.showCsgoFilter) {
       count += 1;
     }
+    if (_selectedTierId != null &&
+        widget.showCsgoFilter &&
+        widget.showTierFilter) {
+      count += 1;
+    }
     if ((_parseOptionalDouble(_wearMinController.text) != null ||
             _parseOptionalDouble(_wearMaxController.text) != null) &&
         widget.showCsgoFilter) {
@@ -5937,6 +6241,7 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
       _selectedSortField = null;
       _selectedSortAsc = null;
       _selectedPaintIndex = null;
+      _selectedTierId = null;
       _paintSeedController.clear();
       _wearMinController.clear();
       _wearMaxController.clear();
@@ -5960,6 +6265,7 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
         paintWearMax: _parseWearValue(_wearMaxController.text),
         percentageMin: _parsePercentageValue(_gradientMinController.text),
         percentageMax: _parsePercentageValue(_gradientMaxController.text),
+        tierId: _selectedTierId,
       ),
     );
   }
@@ -6163,6 +6469,31 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
                             );
                           }),
                         ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              if (widget.showTierFilter && widget.tierOptions.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                FilterSheetSection(
+                  title: widget.tierLabel,
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildOptionChip(
+                        label: widget.tierUnlimitedLabel,
+                        selected: _selectedTierId == null,
+                        onTap: () => setState(() => _selectedTierId = null),
+                      ),
+                      ...widget.tierOptions.map(
+                        (option) => _buildOptionChip(
+                          label: option.label,
+                          selected: _selectedTierId == option.id,
+                          onTap: () =>
+                              setState(() => _selectedTierId = option.id),
+                        ),
                       ),
                     ],
                   ),
@@ -6518,6 +6849,7 @@ class _OnSaleFilterValue {
     this.paintWearMax,
     this.percentageMin,
     this.percentageMax,
+    this.tierId,
   });
 
   final String? sortField;
@@ -6530,10 +6862,18 @@ class _OnSaleFilterValue {
   final double? paintWearMax;
   final double? percentageMin;
   final double? percentageMax;
+  final int? tierId;
 }
 
 class _PaintKitOption {
   const _PaintKitOption({required this.id, required this.label});
+
+  final int id;
+  final String label;
+}
+
+class _TierOption {
+  const _TierOption({required this.id, required this.label});
 
   final int id;
   final String label;
@@ -6577,4 +6917,12 @@ class _PhaseMenuSelection {
   const _PhaseMenuSelection.clear() : option = null;
 
   final _PaintKitOption? option;
+}
+
+class _TierMenuSelection {
+  const _TierMenuSelection(this.option);
+
+  const _TierMenuSelection.clear() : option = null;
+
+  final _TierOption? option;
 }

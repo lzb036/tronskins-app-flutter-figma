@@ -134,6 +134,7 @@ class ApiMarketServer {
     double? paintWearMax,
     double? percentageMin,
     double? percentageMax,
+    int? tierId,
     bool useAuth = true,
     bool fallbackToPublicOnFail = false,
   }) async {
@@ -162,6 +163,7 @@ class ApiMarketServer {
             'paintWearMax': paintWearMax,
             'percentageMin': percentageMin,
             'percentageMax': percentageMax,
+            'tierId': tierId,
           }..removeWhere((_, value) => value == null),
         );
         return BaseHttpResponse.fromJson(
@@ -241,6 +243,22 @@ class ApiMarketServer {
           (json) => MarketTemplateDetail.fromJson(json as Map<String, dynamic>),
         );
       },
+    );
+  }
+
+  Future<BaseHttpResponse<List<MarketTierOption>>> csgoWeaponTierList({
+    required String itemWeapon,
+  }) async {
+    final response = await http.post(
+      'api/public/order/sell/tier/list',
+      data: {'itemWeapon': itemWeapon},
+    );
+    return BaseHttpResponse.fromJson(
+      response.data as Map<String, dynamic>,
+      (json) => (json as List)
+          .whereType<Map<String, dynamic>>()
+          .map(MarketTierOption.fromJson)
+          .toList(),
     );
   }
 

@@ -842,6 +842,10 @@ const Map<String, Map<String, String>> _marketBacklogMessages = {
     'app.market.item.avg_delivery': 'Avg. Delivery',
     'app.market.item.fill_rate': 'Fill Rate',
     'app.market.csgo.wear_unlimited': 'Wear Unlimited',
+    'app.market.csgo.tier': 'Case Hardened Tier',
+    'app.market.csgo.tier_unlimited': 'Any Case Hardened Tier',
+    'app.market.csgo.fire_ice': 'Fire/Ice Tier',
+    'app.market.csgo.fire_ice_unlimited': 'Any Fire/Ice Tier',
   },
   'zh_CN': {
     'app.market.detail.listed': '在售',
@@ -863,6 +867,10 @@ const Map<String, Map<String, String>> _marketBacklogMessages = {
     'app.market.item.avg_delivery': '平均发货',
     'app.market.item.fill_rate': '发货率',
     'app.market.csgo.wear_unlimited': '不限磨损度',
+    'app.market.csgo.tier': '淬火等级',
+    'app.market.csgo.tier_unlimited': '不限淬火等级',
+    'app.market.csgo.fire_ice': '冰火档位',
+    'app.market.csgo.fire_ice_unlimited': '不限冰火档位',
   },
   'zh_TW': {
     'app.market.detail.listed': '在售',
@@ -884,6 +892,10 @@ const Map<String, Map<String, String>> _marketBacklogMessages = {
     'app.market.item.avg_delivery': '平均發貨',
     'app.market.item.fill_rate': '發貨率',
     'app.market.csgo.wear_unlimited': '不限磨損度',
+    'app.market.csgo.tier': '淬火等級',
+    'app.market.csgo.tier_unlimited': '不限淬火等級',
+    'app.market.csgo.fire_ice': '冰火檔位',
+    'app.market.csgo.fire_ice_unlimited': '不限冰火檔位',
   },
 };
 

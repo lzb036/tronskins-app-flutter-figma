@@ -943,6 +943,11 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
     setState(() {
       if (option.isUnlimited) {
         _selectedItemName = null;
+        final parentName = option.parentName?.trim();
+        if (parentName != null && parentName.isNotEmpty) {
+          _selectedTags[group.key] = parentName;
+          return;
+        }
         _selectedTags.remove(group.key);
         return;
       }
@@ -1617,7 +1622,35 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         ),
       ],
     );
-    return [defaultOption, ...options.where((option) => !option.isUnlimited)];
+    return [
+      defaultOption,
+      ...options
+          .where((option) => !option.isUnlimited)
+          .map(_weaponTypeOptionWithDefaultSubtype),
+    ];
+  }
+
+  _AttributeOption _weaponTypeOptionWithDefaultSubtype(
+    _AttributeOption option,
+  ) {
+    final defaultLabel = 'app.market.filter.default'.tr;
+    return _AttributeOption(
+      name: option.name,
+      label: option.label,
+      isUnlimited: option.isUnlimited,
+      parentName: option.parentName,
+      imageUrl: option.imageUrl,
+      color: option.color,
+      subOptions: [
+        _AttributeOption(
+          name: '$_weaponTypeDefaultName:${option.name}',
+          label: defaultLabel,
+          parentName: option.name,
+          isUnlimited: true,
+        ),
+        ...option.subOptions,
+      ],
+    );
   }
 
   int _activeWeaponTypeIndex(List<_AttributeOption> options) {
@@ -2081,6 +2114,12 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
 
   bool _isWeaponSubtypeSelected(_AttributeOption option) {
     if (option.isUnlimited) {
+      final parentName = option.parentName?.trim();
+      if (parentName != null && parentName.isNotEmpty) {
+        final selectedType = (_selectedTags['type'] ?? '').trim();
+        final selectedItemName = (_selectedItemName ?? '').trim();
+        return selectedType == parentName && selectedItemName.isEmpty;
+      }
       return _isWeaponTypeDefaultSelected();
     }
     return (_selectedItemName ?? '').trim() == option.name;
