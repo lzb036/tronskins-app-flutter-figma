@@ -614,6 +614,7 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
   }
 
   Widget _buildServiceBubble(FeedbackReply item) {
+    final content = item.context?.trim() ?? '';
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: Row(
@@ -656,16 +657,36 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      item.context ?? '',
-                      style: const TextStyle(
-                        color: _FeedbackDetailStyle.text,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        height: 22.75 / 14,
+                    if (content.isNotEmpty)
+                      Text(
+                        content,
+                        style: const TextStyle(
+                          color: _FeedbackDetailStyle.text,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          height: 22.75 / 14,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 7),
+                    if (item.images.isNotEmpty) ...[
+                      if (content.isNotEmpty) const SizedBox(height: 12),
+                      _FeedbackMessageImages(
+                        images: item.images,
+                        onPreview: _previewImage,
+                        placeholderColor: _FeedbackDetailStyle.fieldSurface,
+                        errorIconColor: _FeedbackDetailStyle.mutedTextAlt,
+                      ),
+                    ],
+                    if (content.isEmpty && item.images.isEmpty)
+                      const Text(
+                        '--',
+                        style: TextStyle(
+                          color: _FeedbackDetailStyle.text,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          height: 22.75 / 14,
+                        ),
+                      ),
+                    const SizedBox(height: 8),
                     Align(
                       alignment: Alignment.centerRight,
                       child: Text(
@@ -689,6 +710,7 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
   }
 
   Widget _buildUserBubble(FeedbackReply item) {
+    final content = item.context?.trim() ?? '';
     return Padding(
       padding: const EdgeInsets.only(left: 51.31, bottom: 24),
       child: Align(
@@ -726,45 +748,34 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (item.images.isNotEmpty) ...[
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: GestureDetector(
-                          onTap: () => _previewImage(item.images.first),
-                          child: CachedNetworkImage(
-                            imageUrl: item.images.first,
-                            height: 177.78,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            placeholder: (context, _) => const ColoredBox(
-                              color: Color.fromRGBO(0, 0, 0, 0.2),
-                              child: SizedBox(height: 177.78),
-                            ),
-                            errorWidget: (context, _, __) => const ColoredBox(
-                              color: Color.fromRGBO(0, 0, 0, 0.2),
-                              child: SizedBox(
-                                height: 177.78,
-                                child: Center(
-                                  child: Icon(
-                                    Icons.image_not_supported_outlined,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                      _FeedbackMessageImages(
+                        images: item.images,
+                        onPreview: _previewImage,
+                        placeholderColor: const Color.fromRGBO(0, 0, 0, 0.2),
+                        errorIconColor: Colors.white,
+                      ),
+                      if (content.isNotEmpty) const SizedBox(height: 10.88),
+                    ],
+                    if (content.isNotEmpty)
+                      Text(
+                        content,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          height: 22.75 / 14,
+                        ),
+                      )
+                    else if (item.images.isEmpty)
+                      const Text(
+                        '--',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          height: 22.75 / 14,
                         ),
                       ),
-                      const SizedBox(height: 10.88),
-                    ],
-                    Text(
-                      item.context ?? '',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        height: 22.75 / 14,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -845,6 +856,84 @@ class _FeedbackDetailPageState extends State<FeedbackDetailPage> {
       decoration: BoxDecoration(
         color: _FeedbackDetailStyle.skeleton,
         borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
+}
+
+class _FeedbackMessageImages extends StatelessWidget {
+  const _FeedbackMessageImages({
+    required this.images,
+    required this.onPreview,
+    required this.placeholderColor,
+    required this.errorIconColor,
+  });
+
+  final List<String> images;
+  final ValueChanged<String> onPreview;
+  final Color placeholderColor;
+  final Color errorIconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final entry in images.asMap().entries) ...[
+          if (entry.key > 0) const SizedBox(height: 8),
+          _FeedbackMessageImage(
+            url: entry.value,
+            onTap: () => onPreview(entry.value),
+            placeholderColor: placeholderColor,
+            errorIconColor: errorIconColor,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _FeedbackMessageImage extends StatelessWidget {
+  const _FeedbackMessageImage({
+    required this.url,
+    required this.onTap,
+    required this.placeholderColor,
+    required this.errorIconColor,
+  });
+
+  final String url;
+  final VoidCallback onTap;
+  final Color placeholderColor;
+  final Color errorIconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: GestureDetector(
+        onTap: onTap,
+        child: CachedNetworkImage(
+          imageUrl: url,
+          height: 177.78,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          placeholder: (context, _) => ColoredBox(
+            color: placeholderColor,
+            child: const SizedBox(height: 177.78),
+          ),
+          errorWidget: (context, _, __) => ColoredBox(
+            color: placeholderColor,
+            child: SizedBox(
+              height: 177.78,
+              child: Center(
+                child: Icon(
+                  Icons.image_not_supported_outlined,
+                  color: errorIconColor,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

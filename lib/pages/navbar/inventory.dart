@@ -266,6 +266,7 @@ class _InventoryPageState extends State<InventoryPage>
       arguments: {
         'items': selectedItems,
         'schemas': controller.schemas,
+        'stickers': controller.stickers,
         'appId': controller.appId,
       },
     );

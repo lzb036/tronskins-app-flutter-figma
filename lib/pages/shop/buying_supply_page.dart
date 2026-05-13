@@ -337,6 +337,14 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
     return (income * 100).round() / 100;
   }
 
+  int _rewardPoints() {
+    final total = _totalAmount();
+    if (!total.isFinite || total <= 0) {
+      return 0;
+    }
+    return total.floor();
+  }
+
   Future<void> _showConfirmDialog() async {
     if (_selectedIds.isEmpty) {
       AppSnackbar.error('app.trade.supply.message.not_selected'.tr);
@@ -362,7 +370,7 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
     final total = _totalAmount();
     final fee = _feeAmount();
     final income = _incomeAmount();
-    final points = (total * 100).floor() / 100;
+    final points = _rewardPoints();
     final confirmed = await showSteamStyleAmountConfirmDialog(
       context,
       title: 'app.trade.supply.text'.tr,
@@ -383,7 +391,7 @@ class _BuyingSupplyPageState extends State<BuyingSupplyPage> {
         ),
         SteamStyleConfirmSummaryItem(
           label: 'app.user.integral.award'.tr,
-          value: '${points.toStringAsFixed(2)} ${'app.user.integral.unit'.tr}',
+          value: '$points ${'app.user.integral.unit'.tr}',
           valueColor: _SupplyPalette.blue,
           emphasized: true,
         ),

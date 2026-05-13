@@ -3659,6 +3659,7 @@ class _ShopPageState extends State<ShopPage>
         arguments: {
           'items': selectedItems,
           'schemas': salesController.schemas,
+          'stickers': salesController.stickers,
           'appId': _globalGameController.appId,
         },
       );

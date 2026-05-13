@@ -56,6 +56,7 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
 
   late final List<ShopItemAsset> _items;
   late final Map<String, ShopSchemaInfo> _schemas;
+  late final Map<String, dynamic> _stickers;
   late final int _appId;
   double _feeRate = 0;
   double _minFee = 0;
@@ -85,6 +86,10 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
       });
     }
     _schemas = schemaMap;
+    final rawStickers = args['stickers'];
+    _stickers = rawStickers is Map
+        ? rawStickers.map((key, value) => MapEntry(key.toString(), value))
+        : <String, dynamic>{};
     _appId = args['appId'] as int? ?? GameStorage.getGameType();
 
     final currency = Get.find<CurrencyController>();
@@ -259,24 +264,40 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
     return int.tryParse(value.toString());
   }
 
-  MarketItemTags? _marketTagsFromSchema(ShopSchemaInfo? schema) {
-    final tags = schema?.raw['tags'];
-    if (tags is Map<String, dynamic>) {
-      return MarketItemTags.fromJson(tags);
+  MarketSchemaInfo? _marketSchemaFromShopSchema(ShopSchemaInfo? schema) {
+    if (schema == null) {
+      return null;
     }
-    if (tags is Map) {
-      return MarketItemTags.fromJson(
-        tags.map((key, value) => MapEntry(key.toString(), value)),
-      );
-    }
-    return null;
+    return MarketSchemaInfo.fromJson(schema.raw);
   }
 
-  MarketItemEntity _buildMarketDetailItem(
+  Map<String, MarketSchemaInfo> _marketSchemasFromShopSchemas() {
+    return {
+      for (final entry in _schemas.entries)
+        entry.key: MarketSchemaInfo.fromJson(entry.value.raw),
+    };
+  }
+
+  String _marketAssetKey(int? appId) {
+    switch (appId) {
+      case 440:
+        return 'tf2Asset';
+      case 570:
+        return 'dota2Asset';
+      case 730:
+      default:
+        return 'csgoAsset';
+    }
+  }
+
+  MarketListItem _buildListingDetailItem(
     ShopItemAsset item,
     ShopSchemaInfo? schema,
   ) {
     final asset = _resolveAsset(item);
+    final nestedAsset = asset == null || identical(asset, item.raw)
+        ? null
+        : asset;
     final schemaId =
         item.schemaId ??
         _parseInt(item.raw['schema_id'] ?? item.raw['schemaId']) ??
@@ -301,53 +322,61 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
         schema?.imageUrl ??
         _extractText(item.raw, const ['image_url', 'imageUrl', 'image']) ??
         _extractText(asset, const ['image_url', 'imageUrl', 'image']);
+    final appId =
+        item.appId ??
+        _parseInt(schema?.raw['app_id'] ?? schema?.raw['appId']) ??
+        _appId;
 
-    return MarketItemEntity(
-      id: schemaId,
-      schemaId: schemaId,
-      appId:
-          item.appId ??
-          _parseInt(schema?.raw['app_id'] ?? schema?.raw['appId']) ??
-          _appId,
-      marketName: marketName ?? marketHashName,
-      marketHashName: marketHashName,
-      imageUrl: imageUrl,
-      marketPrice:
-          _extractDouble(schema?.raw, const [
-            'reference_price',
-            'referencePrice',
-            'market_price',
-            'marketPrice',
-            'buff_min_price',
-            'buffMinPrice',
-            'sell_min',
-            'price',
-          ]) ??
-          item.price,
-      paintSeed:
+    return MarketListItem.fromJson({
+      ...item.raw,
+      'id': item.raw['sell_id'] ?? item.id,
+      'app_id': appId,
+      'schema_id': schemaId,
+      'user_id': item.userId,
+      'own': true,
+      'favorited': false,
+      'price': item.price,
+      'market_name': marketName ?? marketHashName,
+      'market_hash_name': marketHashName,
+      'image_url': imageUrl,
+      'paint_seed':
           _extractText(asset, const ['paint_seed', 'paintSeed']) ??
           _extractText(item.raw, const ['paint_seed', 'paintSeed']),
-      paintIndex:
+      'paint_index':
           _extractText(asset, const ['paint_index', 'paintIndex']) ??
           _extractText(item.raw, const ['paint_index', 'paintIndex']),
-      paintWear: _extractWearText(item, asset),
-      percentage:
+      'paint_wear': _extractWearText(item, asset),
+      'percentage':
           _extractText(asset, const ['percentage']) ??
           _extractText(item.raw, const ['percentage']),
-      phase:
+      'phase':
           _extractText(asset, const ['phase']) ??
           _extractText(item.raw, const ['phase']),
-      tags: _marketTagsFromSchema(schema),
-    );
+      if (schema?.raw['tags'] != null) 'tags': schema!.raw['tags'],
+      if (nestedAsset != null) _marketAssetKey(appId): nestedAsset,
+    });
   }
 
   void _openListingDetails(ShopItemAsset item) {
-    final detailItem = _buildMarketDetailItem(item, _lookupSchema(item));
-    if (detailItem.schemaId == null && detailItem.id == null) {
+    final schema = _lookupSchema(item);
+    final detailItem = _buildListingDetailItem(item, schema);
+    if (detailItem.schemaId == null &&
+        detailItem.id == null &&
+        (detailItem.marketHashName == null ||
+            detailItem.marketHashName!.isEmpty)) {
       AppSnackbar.error('app.trade.filter.failed'.tr);
       return;
     }
-    Get.toNamed(Routers.MARKET_DETAIL, arguments: detailItem);
+    Get.toNamed(
+      Routers.MARKET_ITEM_DETAIL,
+      arguments: {
+        'item': detailItem,
+        'schema': _marketSchemaFromShopSchema(schema),
+        'schemas': _marketSchemasFromShopSchemas(),
+        'stickers': _stickers,
+        'readOnly': true,
+      },
+    );
   }
 
   String? _extractWearText(ShopItemAsset item, Map<String, dynamic>? asset) {
@@ -623,81 +652,6 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
 
   int _itemCount(ShopItemAsset item) {
     return item.count ?? 1;
-  }
-
-  Future<void> _showImagePreview({
-    required String title,
-    required Widget preview,
-  }) async {
-    final previewWidth = MediaQuery.of(context).size.width - 64;
-    final maxPreviewHeight = MediaQuery.of(context).size.height * 0.62;
-    final previewHeight = (previewWidth * 0.62)
-        .clamp(180.0, maxPreviewHeight)
-        .toDouble();
-    await Get.dialog<void>(
-      Dialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
-        backgroundColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.16),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Get.back(),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
-              ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.68,
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.35),
-                    child: InteractiveViewer(
-                      minScale: 1,
-                      maxScale: 4,
-                      child: SizedBox(
-                        width: previewWidth,
-                        height: previewHeight,
-                        child: preview,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   void _applyReferencePrice() {
@@ -1216,17 +1170,8 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
         item.raw['keychain'],
       ], schemaMap: _schemas),
     );
-    final gems = parseGemList(
-      asset?['gemList'] ??
-          asset?['gems'] ??
-          item.raw['gemList'] ??
-          item.raw['gems'],
-    );
     final wearValue = _extractWearValue(item, asset);
     final wearText = _extractWearText(item, asset);
-    final paintSeed = _extractText(asset, ['paint_seed', 'paintSeed']);
-    final phase = _extractText(asset, ['phase']);
-    final percentage = _extractText(asset, ['percentage']);
     final imageUrl = item.imageUrl ?? schema?.imageUrl ?? '';
     final title =
         item.marketName ?? schema?.marketName ?? item.marketHashName ?? '-';
@@ -1281,44 +1226,22 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    GestureDetector(
-                      onLongPress: imageUrl.isEmpty
-                          ? null
-                          : () => _showImagePreview(
-                              title: title,
-                              preview: GameItemImage(
-                                imageUrl: imageUrl,
-                                appId: item.appId ?? _appId,
-                                rarity: rarity,
-                                quality: quality,
-                                exterior: exterior,
-                                paintSeed: paintSeed,
-                                phase: phase,
-                                percentage: percentage,
-                                paintWearText: wearText,
-                                count: itemCount,
-                                alwaysShowCount: _mergeSameItems,
-                                stickers: stickers,
-                                gems: gems,
-                              ),
-                            ),
-                      child: SizedBox(
-                        width: 80,
-                        height: 80,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: GameItemImage(
-                            imageUrl: imageUrl,
-                            appId: item.appId ?? _appId,
-                            rarity: rarity,
-                            quality: quality,
-                            exterior: exterior,
-                            count: itemCount,
-                            alwaysShowCount: _mergeSameItems,
-                            showTopBadges: false,
-                            stickers: const [],
-                            gems: const [],
-                          ),
+                    SizedBox(
+                      width: 80,
+                      height: 80,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: GameItemImage(
+                          imageUrl: imageUrl,
+                          appId: item.appId ?? _appId,
+                          rarity: rarity,
+                          quality: quality,
+                          exterior: exterior,
+                          count: itemCount,
+                          alwaysShowCount: _mergeSameItems,
+                          showTopBadges: false,
+                          stickers: const [],
+                          gems: const [],
                         ),
                       ),
                     ),

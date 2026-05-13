@@ -4064,6 +4064,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       arguments: <String, dynamic>{
         'items': <ShopItemAsset>[shopItem],
         'schemas': schemaMap,
+        'stickers': controller.stickers,
         'appId': item.appId ?? controller.appId,
       },
     );
