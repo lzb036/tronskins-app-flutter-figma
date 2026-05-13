@@ -429,8 +429,8 @@ class _BuyingPageState extends State<BuyingPage>
     return tags;
   }
 
-  String _initialPurchaseSortField(String sortField) =>
-      sortField.isEmpty ? _defaultPurchaseSortField : sortField;
+  String? _initialPurchaseSortField(String sortField) =>
+      sortField.isEmpty ? null : sortField;
 
   bool _initialPurchaseSortAsc({
     required String sortField,
@@ -440,11 +440,10 @@ class _BuyingPageState extends State<BuyingPage>
   }
 
   String _appliedPurchaseSortField(OrderFilterResult result) {
-    final field = (result.sortField ?? '').trim();
-    final asc = result.sortAsc ?? _defaultPurchaseSortAsc;
-    if (field == _defaultPurchaseSortField && asc == _defaultPurchaseSortAsc) {
+    if (result.sortField == null) {
       return '';
     }
+    final field = (result.sortField ?? '').trim();
     return field;
   }
 
@@ -472,7 +471,7 @@ class _BuyingPageState extends State<BuyingPage>
 
   Future<void> _openMyBuyingFilterSheet() async {
     final currentTags = _normalizeFilterTags(controller.buyingTags);
-    final result = await OrderFilterSheet.showFromRight(
+    final result = await OrderFilterSheet.showFromLeft(
       context: context,
       initial: OrderFilterResult(
         sortAsc: _initialPurchaseSortAsc(
@@ -517,7 +516,7 @@ class _BuyingPageState extends State<BuyingPage>
 
   Future<void> _openRecordFilterSheet() async {
     final currentTags = _normalizeFilterTags(controller.recordTags);
-    final result = await OrderFilterSheet.showFromRight(
+    final result = await OrderFilterSheet.showFromLeft(
       context: context,
       initial: OrderFilterResult(
         sortAsc: _initialPurchaseSortAsc(

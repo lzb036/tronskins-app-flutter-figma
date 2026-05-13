@@ -293,11 +293,11 @@ class _MyPurchasePageState extends State<MyPurchasePage>
   }
 
   Future<void> _openReceiptFilterSheet() async {
-    final result = await OrderFilterSheet.showFromRight(
+    final result = await OrderFilterSheet.showFromLeft(
       context: context,
       initial: OrderFilterResult(
         sortField: controller.waitingSortField.value.isEmpty
-            ? _defaultOrderSortField
+            ? null
             : controller.waitingSortField.value,
         sortAsc: controller.waitingSortField.value.isEmpty
             ? _defaultOrderSortAsc
@@ -330,14 +330,14 @@ class _MyPurchasePageState extends State<MyPurchasePage>
   }
 
   Future<void> _openBuyRecordFilterSheet() async {
-    final result = await OrderFilterSheet.showFromRight(
+    final result = await OrderFilterSheet.showFromLeft(
       context: context,
       initial: OrderFilterResult(
         statusList: controller.buyRecordStatusList.toList(),
         startDate: controller.buyRecordStartDate.value,
         endDate: controller.buyRecordEndDate.value,
         sortField: controller.buyRecordSortField.value.isEmpty
-            ? _defaultOrderSortField
+            ? null
             : controller.buyRecordSortField.value,
         sortAsc: controller.buyRecordSortField.value.isEmpty
             ? _defaultOrderSortAsc
@@ -382,11 +382,11 @@ class _MyPurchasePageState extends State<MyPurchasePage>
   }
 
   ({String field, bool asc}) _storedOrderSort(OrderFilterResult result) {
-    final field = (result.sortField ?? '').trim();
-    final asc = result.sortAsc ?? _defaultOrderSortAsc;
-    if (field == _defaultOrderSortField && asc == _defaultOrderSortAsc) {
+    if (result.sortField == null) {
       return (field: '', asc: _defaultOrderSortAsc);
     }
+    final field = (result.sortField ?? '').trim();
+    final asc = result.sortAsc ?? _defaultOrderSortAsc;
     return (field: field, asc: field.isEmpty ? _defaultOrderSortAsc : asc);
   }
 

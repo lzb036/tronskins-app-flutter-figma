@@ -74,6 +74,100 @@ class OrderFilterSheet extends StatefulWidget {
     bool attributeUseFlatSections = false,
     List<OrderFilterSectionCategory>? sectionOrder,
   }) {
+    return _showSideSheet(
+      context: context,
+      initial: initial,
+      statusOptions: statusOptions,
+      sortOptions: sortOptions,
+      defaultSortField: defaultSortField,
+      defaultSortAsc: defaultSortAsc,
+      titleKey: titleKey,
+      showSort: showSort,
+      showStatus: showStatus,
+      showDateRange: showDateRange,
+      enableAttributeFilter: enableAttributeFilter,
+      appId: appId,
+      attributeSortOptions: attributeSortOptions,
+      attributeShowSort: attributeShowSort,
+      attributeShowPriceRange: attributeShowPriceRange,
+      attributeGroupOrder: attributeGroupOrder,
+      includeFallbackAttributeGroups: includeFallbackAttributeGroups,
+      attributeUseFlatSections: attributeUseFlatSections,
+      sectionOrder: sectionOrder,
+      alignment: Alignment.centerRight,
+      beginOffset: const Offset(1, 0),
+    );
+  }
+
+  static Future<OrderFilterResult?> showFromLeft({
+    required BuildContext context,
+    required OrderFilterResult initial,
+    required List<StatusOption> statusOptions,
+    List<SortOption> sortOptions = const [],
+    String defaultSortField = '',
+    bool defaultSortAsc = false,
+    String titleKey = 'app.market.filter.text',
+    bool showSort = false,
+    bool showStatus = true,
+    bool showDateRange = true,
+    bool enableAttributeFilter = false,
+    int? appId,
+    List<SortOption> attributeSortOptions = const [],
+    bool attributeShowSort = false,
+    bool attributeShowPriceRange = false,
+    List<String> attributeGroupOrder = const [],
+    bool includeFallbackAttributeGroups = true,
+    bool attributeUseFlatSections = false,
+    List<OrderFilterSectionCategory>? sectionOrder,
+  }) {
+    return _showSideSheet(
+      context: context,
+      initial: initial,
+      statusOptions: statusOptions,
+      sortOptions: sortOptions,
+      defaultSortField: defaultSortField,
+      defaultSortAsc: defaultSortAsc,
+      titleKey: titleKey,
+      showSort: showSort,
+      showStatus: showStatus,
+      showDateRange: showDateRange,
+      enableAttributeFilter: enableAttributeFilter,
+      appId: appId,
+      attributeSortOptions: attributeSortOptions,
+      attributeShowSort: attributeShowSort,
+      attributeShowPriceRange: attributeShowPriceRange,
+      attributeGroupOrder: attributeGroupOrder,
+      includeFallbackAttributeGroups: includeFallbackAttributeGroups,
+      attributeUseFlatSections: attributeUseFlatSections,
+      sectionOrder: sectionOrder,
+      alignment: Alignment.centerLeft,
+      beginOffset: const Offset(-1, 0),
+    );
+  }
+
+  static Future<OrderFilterResult?> _showSideSheet({
+    required BuildContext context,
+    required OrderFilterResult initial,
+    required List<StatusOption> statusOptions,
+    required List<SortOption> sortOptions,
+    required String defaultSortField,
+    required bool defaultSortAsc,
+    required String titleKey,
+    required bool showSort,
+    required bool showStatus,
+    required bool showDateRange,
+    required bool enableAttributeFilter,
+    required int? appId,
+    required List<SortOption> attributeSortOptions,
+    required bool attributeShowSort,
+    required bool attributeShowPriceRange,
+    required List<String> attributeGroupOrder,
+    required bool includeFallbackAttributeGroups,
+    required bool attributeUseFlatSections,
+    required List<OrderFilterSectionCategory>? sectionOrder,
+    required Alignment alignment,
+    required Offset beginOffset,
+  }) {
     final barrierLabel = MaterialLocalizations.of(
       context,
     ).modalBarrierDismissLabel;
@@ -86,7 +180,7 @@ class OrderFilterSheet extends StatefulWidget {
       pageBuilder: (dialogContext, animation, secondaryAnimation) {
         final width = MediaQuery.of(dialogContext).size.width;
         return Align(
-          alignment: Alignment.centerRight,
+          alignment: alignment,
           child: SizedBox(
             width: width,
             child: Material(
@@ -124,7 +218,7 @@ class OrderFilterSheet extends StatefulWidget {
         );
         return SlideTransition(
           position: Tween<Offset>(
-            begin: const Offset(1, 0),
+            begin: beginOffset,
             end: Offset.zero,
           ).animate(curved),
           child: child,
@@ -138,6 +232,7 @@ class OrderFilterSheet extends StatefulWidget {
 }
 
 class _OrderFilterSheetState extends State<OrderFilterSheet> {
+  static const String _defaultSortChoiceField = '__default_sort__';
   static const List<double> _attributeWearScaleMarkers = <double>[
     0.00,
     0.07,
@@ -167,6 +262,8 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
   bool _hasScheduledAttributeLoad = false;
   bool _isFetchingAttributeGroups = false;
   final Map<String, GlobalKey> _selectionAnchorKeys = {};
+  final Set<String> _expandedAccordionSections = <String>{};
+  final Set<String> _knownAccordionSections = <String>{};
   CurrencyController get _currency => Get.find<CurrencyController>();
 
   @override
@@ -174,8 +271,14 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
     super.initState();
     _startDate = widget.initial.startDate;
     _endDate = widget.initial.endDate;
-    _sortAsc = widget.initial.sortAsc ?? false;
-    _sortField = widget.initial.sortField ?? _defaultSortField();
+    final initialSortField = (widget.initial.sortField ?? '').trim();
+    final initialSortIsDefault = initialSortField.isEmpty;
+    _sortAsc = initialSortIsDefault
+        ? _defaultSortAsc()
+        : widget.initial.sortAsc ?? _defaultSortAsc();
+    _sortField = initialSortIsDefault
+        ? _defaultSortChoiceField
+        : initialSortField;
     _minController = TextEditingController(
       text: _initialPriceText(widget.initial.priceMin),
     );
@@ -268,9 +371,7 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
     final min = _parseDisplayPriceOrNull(_minController.text);
     final max = _parseDisplayPriceOrNull(_maxController.text);
     final hasSortFilter = widget.showSort
-        ? _sortField.isNotEmpty &&
-              !(_sortField == _defaultSortField() &&
-                  _sortAsc == _defaultSortAsc())
+        ? !_isDefaultSortChoice && _sortField.isNotEmpty
         : (widget.attributeShowSort && _attributeSortField.isNotEmpty);
 
     if (hasSortFilter) {
@@ -402,7 +503,7 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
   void _reset() {
     setState(() {
       _sortAsc = _defaultSortAsc();
-      _sortField = _defaultSortField();
+      _sortField = _defaultSortChoiceField;
       _selectedStatusIndex = -1;
       _startDate = null;
       _endDate = null;
@@ -507,10 +608,10 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
     Navigator.of(context).pop(
       OrderFilterResult(
         sortAsc: widget.showSort
-            ? _sortAsc
+            ? (_isDefaultSortChoice ? _defaultSortAsc() : _sortAsc)
             : (widget.attributeShowSort ? _attributeSortAsc : null),
         sortField: widget.showSort
-            ? _sortField
+            ? (_isDefaultSortChoice ? null : _sortField)
             : (widget.attributeShowSort ? _attributeSortField : null),
         priceMin: widget.attributeShowPriceRange ? min : null,
         priceMax: widget.attributeShowPriceRange ? max : null,
@@ -646,14 +747,243 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
     }
   }
 
+  bool _isAccordionExpanded(String sectionKey) {
+    if (_knownAccordionSections.add(sectionKey)) {
+      _expandedAccordionSections.add(sectionKey);
+    }
+    return _expandedAccordionSections.contains(sectionKey);
+  }
+
+  void _toggleAccordionSection(String sectionKey) {
+    setState(() {
+      _knownAccordionSections.add(sectionKey);
+      if (_expandedAccordionSections.contains(sectionKey)) {
+        _expandedAccordionSections.remove(sectionKey);
+      } else {
+        _expandedAccordionSections.add(sectionKey);
+      }
+    });
+  }
+
+  Widget _buildAccordionSection({
+    required String sectionKey,
+    required String title,
+    String? summary,
+    required Widget child,
+    EdgeInsetsGeometry contentPadding = const EdgeInsets.fromLTRB(
+      20,
+      0,
+      20,
+      20,
+    ),
+    bool showDivider = false,
+  }) {
+    final expanded = _isAccordionExpanded(sectionKey);
+    final summaryText = summary?.trim();
+    const titleStyle = TextStyle(
+      color: FilterSheetStyle.title,
+      fontSize: 18,
+      height: 28 / 18,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.45,
+    );
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: FilterSheetStyle.cardBackground,
+        borderRadius: FilterSheetStyle.cardRadius,
+        boxShadow: FilterSheetStyle.cardShadow,
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            borderRadius: FilterSheetStyle.cardRadius,
+            onTap: () => _toggleAccordionSection(sectionKey),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              child: Row(
+                children: [
+                  if (summaryText == null || summaryText.isEmpty)
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: titleStyle,
+                      ),
+                    )
+                  else
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: titleStyle,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              summaryText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(
+                                color: FilterSheetStyle.primaryBright,
+                                fontSize: 13,
+                                height: 18 / 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(width: 12),
+                  AnimatedRotation(
+                    turns: expanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 180),
+                    child: const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 18,
+                      color: Color(0xFF94A3B8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (expanded) ...[
+            if (showDivider)
+              const Divider(
+                height: 1,
+                thickness: 1,
+                color: FilterSheetStyle.surfaceStroke,
+              ),
+            Padding(padding: contentPadding, child: child),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String? _priceSectionSummary() {
+    final min = _parseDisplayPriceOrNull(_minController.text);
+    final max = _parseDisplayPriceOrNull(_maxController.text);
+    if (min == null && max == null) {
+      return null;
+    }
+    if (min != null && max != null) {
+      return '${_formatDisplayPrice(min)} - ${_formatDisplayPrice(max)}';
+    }
+    if (min != null) {
+      return '${_formatDisplayPrice(min)}+';
+    }
+    return '<= ${_formatDisplayPrice(max!)}';
+  }
+
+  String? _sortSectionSummary() {
+    if (_isDefaultSortChoice) {
+      return null;
+    }
+    for (final choice in _buildSortChoices()) {
+      if (choice.field == _sortField && choice.asc == _sortAsc) {
+        return choice.label;
+      }
+    }
+    return null;
+  }
+
+  String? _statusSectionSummary() {
+    if (_selectedStatusIndex < 0 ||
+        _selectedStatusIndex >= widget.statusOptions.length) {
+      return null;
+    }
+    final option = widget.statusOptions[_selectedStatusIndex];
+    return option.values.isEmpty ? null : option.labelKey.tr;
+  }
+
+  String? _dateSectionSummary() {
+    if (_startDate == null && _endDate == null) {
+      return null;
+    }
+    final start = _startDate == null ? '' : _formatDate(_startDate);
+    final end = _endDate == null ? '' : _formatDate(_endDate);
+    if (start.isNotEmpty && end.isNotEmpty) {
+      return '$start - $end';
+    }
+    if (start.isNotEmpty) {
+      return '$start+';
+    }
+    return '<= $end';
+  }
+
+  String? _attributeGroupSummary(MarketFilterGroupMeta group) {
+    if (group.key == 'type') {
+      final itemName = (_attributeItemName ?? '').trim();
+      if (itemName.isNotEmpty) {
+        return group.labelForValue(itemName) ?? itemName;
+      }
+    }
+
+    final multiValues = _attributeMultiTags[group.key]
+        ?.where((value) => value.trim().isNotEmpty && value != 'unlimited')
+        .toList(growable: false);
+    if (multiValues != null && multiValues.isNotEmpty) {
+      return _joinSummaryLabels(
+        multiValues
+            .map((value) => group.labelForValue(value) ?? value)
+            .toList(growable: false),
+      );
+    }
+
+    final selected = (_attributeTags[group.key]?.toString() ?? '').trim();
+    if (selected.isNotEmpty && selected != 'unlimited') {
+      return group.labelForValue(selected) ?? selected;
+    }
+
+    if (group.key == 'exterior' &&
+        (_attributeWearMin != null || _attributeWearMax != null)) {
+      final range = _currentAttributeWearRange();
+      return '${_formatOrderWearValue(range.start)} - '
+          '${_formatOrderWearValue(range.end)}';
+    }
+    return null;
+  }
+
+  String? _joinSummaryLabels(List<String> labels) {
+    final cleanLabels = labels
+        .map((label) => label.trim())
+        .where((label) => label.isNotEmpty)
+        .toList(growable: false);
+    if (cleanLabels.isEmpty) {
+      return null;
+    }
+    if (cleanLabels.length <= 2) {
+      return cleanLabels.join(', ');
+    }
+    return '${cleanLabels.take(2).join(', ')} +${cleanLabels.length - 2}';
+  }
+
   Widget _buildAttributeSection() {
     if (_attributeGroupsLoading) {
-      return const _OrderFilterLoadingBlock();
+      return _buildAccordionSection(
+        sectionKey: 'attribute',
+        title: 'app.market.filter.text'.tr,
+        child: const _OrderFilterLoadingBlock(),
+      );
     }
     if (_attributeGroups.isEmpty) {
-      return Text(
-        'app.common.no_data'.tr,
-        style: Theme.of(context).textTheme.bodySmall,
+      return _buildAccordionSection(
+        sectionKey: 'attribute',
+        title: 'app.market.filter.text'.tr,
+        child: Text(
+          'app.common.no_data'.tr,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
       );
     }
     final sections = _buildAttributeBodySections();
@@ -662,7 +992,7 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
       children: [
         for (var i = 0; i < sections.length; i++) ...[
           sections[i],
-          if (i != sections.length - 1) const SizedBox(height: 39),
+          if (i != sections.length - 1) const SizedBox(height: 16),
         ],
       ],
     );
@@ -831,11 +1161,35 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
     List<BoxShadow>? unselectedBoxShadow,
     FontWeight selectedFontWeight = FontWeight.w600,
     FontWeight unselectedFontWeight = FontWeight.w500,
+    bool defaultSelected = false,
+    VoidCallback? onDefaultTap,
   }) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
+        if (onDefaultTap != null)
+          FilterSheetOptionChip(
+            label: _defaultFilterLabel,
+            selected: defaultSelected,
+            selectedStyle: selectedStyle,
+            selectedColor: selectedColor,
+            selectedBorderColor: selectedBorderColor,
+            selectedTextColor: selectedTextColor,
+            unselectedColor: unselectedColor,
+            unselectedBorderColor: unselectedBorderColor,
+            unselectedTextColor: unselectedTextColor,
+            borderRadius: borderRadius,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            minHeight: minHeight,
+            fontSize: fontSize,
+            height: 21 / fontSize,
+            selectedBoxShadow: selectedBoxShadow,
+            unselectedBoxShadow: unselectedBoxShadow,
+            selectedFontWeight: selectedFontWeight,
+            unselectedFontWeight: unselectedFontWeight,
+            onTap: onDefaultTap,
+          ),
         for (final option in options)
           FilterSheetOptionChip(
             label: option.value,
@@ -863,11 +1217,14 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
   }
 
   Widget _buildAttributeTypeSection(MarketFilterGroupMeta group) {
-    return FilterSheetSection(
+    return _buildAccordionSection(
+      sectionKey: 'attribute:${group.key}',
       title: group.labelKey.tr,
-      carded: false,
+      summary: _attributeGroupSummary(group),
       child: _buildAttributePlainChipWrap(
         options: _attributeVisibleOptions(group),
+        defaultSelected: _isDefaultSelectedForAttributeGroup(group.key),
+        onDefaultTap: () => _selectDefaultForAttributeGroup(group.key),
         isSelected: (value) =>
             (_attributeTags[group.key]?.toString() ?? '') == value,
         onTap: (value) {
@@ -899,8 +1256,10 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
   Widget _buildAttributeRaritySection(MarketFilterGroupMeta group) {
     final options = _attributeVisibleOptions(group);
     final selected = _selectedAttributeValues(group.key);
-    return FilterSheetSection(
+    return _buildAccordionSection(
+      sectionKey: 'attribute:${group.key}',
       title: group.labelKey.tr,
+      summary: _attributeGroupSummary(group),
       child: LayoutBuilder(
         builder: (context, constraints) {
           const spacing = 12.0;
@@ -909,6 +1268,14 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
             spacing: spacing,
             runSpacing: spacing,
             children: [
+              SizedBox(
+                width: itemWidth,
+                child: FilterSheetCheckboxTile(
+                  label: _defaultFilterLabel,
+                  selected: selected.isEmpty,
+                  onTap: () => _selectDefaultForAttributeGroup(group.key),
+                ),
+              ),
               for (final option in options)
                 SizedBox(
                   width: itemWidth,
@@ -947,17 +1314,11 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
   Widget _buildAttributeWearSection(MarketFilterGroupMeta group) {
     final range = _currentAttributeWearRange();
     final options = _buildOrderWearOptions(group);
-    return FilterSheetSection(
+    final isDefault = _isDefaultSelectedForAttributeGroup(group.key);
+    return _buildAccordionSection(
+      sectionKey: 'attribute:${group.key}',
       title: group.labelKey.tr,
-      trailing: Text(
-        '${_formatOrderWearValue(range.start)} - ${_formatOrderWearValue(range.end)}',
-        style: const TextStyle(
-          color: FilterSheetStyle.primary,
-          fontSize: 14,
-          height: 20 / 14,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
+      summary: _attributeGroupSummary(group),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -967,10 +1328,31 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
             spacing: 8,
             runSpacing: 8,
             children: [
+              FilterSheetOptionChip(
+                label: _defaultFilterLabel,
+                selected: isDefault,
+                selectedStyle: FilterChipSelectedStyle.soft,
+                selectedColor: FilterSheetStyle.selectedSoft,
+                selectedBorderColor: FilterSheetStyle.selectedSoftBorder,
+                selectedTextColor: FilterSheetStyle.primary,
+                unselectedColor: const Color(0xFFECEEF0),
+                unselectedBorderColor: Colors.transparent,
+                unselectedTextColor: FilterSheetStyle.body,
+                borderRadius: FilterSheetStyle.chipRadius,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 9,
+                ),
+                minHeight: 36,
+                fontSize: 12,
+                height: 18 / 12,
+                onTap: () => _selectDefaultForAttributeGroup(group.key),
+              ),
               for (final option in options)
                 FilterSheetOptionChip(
                   label: option.label,
-                  selected: _isOrderWearOptionActive(option, range),
+                  selected:
+                      !isDefault && _isOrderWearOptionActive(option, range),
                   selectedStyle: FilterChipSelectedStyle.soft,
                   selectedColor: FilterSheetStyle.selectedSoft,
                   selectedBorderColor: FilterSheetStyle.selectedSoftBorder,
@@ -1006,13 +1388,42 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
         }
       }
     }
-    return FilterSheetSection(
+    final sectionKey = groups.map((group) => group.key).join(':');
+    final summary = _joinSummaryLabels([
+      for (final option in options)
+        if ((_attributeTags[option.groupKey]?.toString() ?? '') ==
+            option.optionKey)
+          option.label,
+    ]);
+    final groupKeys = groups.map((group) => group.key).toList(growable: false);
+    final defaultSelected = groupKeys.every(
+      _isDefaultSelectedForAttributeGroup,
+    );
+    return _buildAccordionSection(
+      sectionKey: 'attribute:category:$sectionKey',
       title: 'app.market.csgo.category'.tr,
-      carded: false,
+      summary: summary,
       child: Wrap(
         spacing: 8,
         runSpacing: 8,
         children: [
+          FilterSheetOptionChip(
+            label: _defaultFilterLabel,
+            selected: defaultSelected,
+            selectedStyle: FilterChipSelectedStyle.soft,
+            selectedColor: Colors.transparent,
+            selectedBorderColor: const Color(0xFFFF9500),
+            selectedTextColor: const Color(0xFFFF9500),
+            unselectedColor: Colors.transparent,
+            unselectedBorderColor: FilterSheetStyle.border,
+            unselectedTextColor: FilterSheetStyle.body,
+            borderRadius: const BorderRadius.all(Radius.circular(4)),
+            padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 9),
+            minHeight: 40,
+            fontSize: 14,
+            height: 21 / 14,
+            onTap: () => _selectDefaultForAttributeGroups(groupKeys),
+          ),
           for (final option in options)
             FilterSheetOptionChip(
               label: option.label,
@@ -1048,11 +1459,14 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
   }
 
   Widget _buildAttributeFallbackSection(MarketFilterGroupMeta group) {
-    return FilterSheetSection(
+    return _buildAccordionSection(
+      sectionKey: 'attribute:${group.key}',
       title: group.labelKey.tr,
-      carded: false,
+      summary: _attributeGroupSummary(group),
       child: _buildAttributePlainChipWrap(
         options: _attributeVisibleOptions(group),
+        defaultSelected: _isDefaultSelectedForAttributeGroup(group.key),
+        onDefaultTap: () => _selectDefaultForAttributeGroup(group.key),
         isSelected: (value) =>
             (_attributeTags[group.key]?.toString() ?? '') == value,
         onTap: (value) {
@@ -1308,19 +1722,13 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
       }
     }
 
-    final defaultSortField = _defaultSortField();
-    final hasDefaultSortOption = widget.sortOptions.any(
-      (option) => option.field == defaultSortField,
+    push(
+      _OrderSortChoice(
+        field: _defaultSortChoiceField,
+        asc: _defaultSortAsc(),
+        label: _defaultFilterLabel,
+      ),
     );
-    if (defaultSortField.isEmpty || !hasDefaultSortOption) {
-      push(
-        _OrderSortChoice(
-          field: defaultSortField,
-          asc: _defaultSortAsc(),
-          label: 'app.market.filter.default'.tr,
-        ),
-      );
-    }
 
     for (final option in widget.sortOptions) {
       switch (option.field) {
@@ -1381,14 +1789,12 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
         _OrderSortChoice(
           field: _sortField,
           asc: _sortAsc,
-          label: 'app.market.filter.default'.tr,
+          label: _defaultFilterLabel,
         ),
       );
     }
     return choices;
   }
-
-  String _defaultSortField() => widget.defaultSortField;
 
   bool _defaultSortAsc() => widget.defaultSortAsc;
 
@@ -1397,6 +1803,44 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
   }
 
   bool _defaultAttributeSortAsc() => false;
+
+  String get _defaultFilterLabel => 'app.market.filter.default'.tr;
+
+  bool get _isDefaultSortChoice => _sortField == _defaultSortChoiceField;
+
+  bool _isDefaultSelectedForAttributeGroup(String key) {
+    final multiValues = _attributeMultiTags[key];
+    final hasMultiValues = multiValues != null && multiValues.isNotEmpty;
+    final hasTag = (_attributeTags[key]?.toString() ?? '').trim().isNotEmpty;
+    final hasItemName = key == 'type' && (_attributeItemName ?? '').isNotEmpty;
+    final hasWearRange =
+        key == 'exterior' &&
+        (_attributeWearMin != null || _attributeWearMax != null);
+    return !hasMultiValues && !hasTag && !hasItemName && !hasWearRange;
+  }
+
+  void _selectDefaultForAttributeGroup(String key) {
+    setState(() {
+      _attributeTags.remove(key);
+      _attributeMultiTags.remove(key);
+      if (key == 'type') {
+        _attributeItemName = null;
+      }
+      if (key == 'exterior') {
+        _attributeWearMin = null;
+        _attributeWearMax = null;
+      }
+    });
+  }
+
+  void _selectDefaultForAttributeGroups(Iterable<String> keys) {
+    setState(() {
+      for (final key in keys) {
+        _attributeTags.remove(key);
+        _attributeMultiTags.remove(key);
+      }
+    });
+  }
 
   double _priceUpperBound() {
     final values = <double>[
@@ -1568,27 +2012,37 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
   }
 
   Widget _buildStatusSection(_OrderFilterSection section) {
-    return FilterSheetSection(
-      title: 'app.trade.order.status'.tr,
+    return _buildAccordionSection(
+      sectionKey: section.key,
+      title: section.labelKey.tr,
+      summary: _statusSectionSummary(),
       child: Wrap(
         spacing: 8,
         runSpacing: 8,
-        children: List.generate(widget.statusOptions.length, (index) {
-          final option = widget.statusOptions[index];
-          final selected = _selectedStatusIndex == index;
-          return KeyedSubtree(
-            key: _selectionAnchorKey(section.key, 'status:$index'),
-            child: FilterSheetOptionChip(
-              label: option.labelKey.tr,
-              selected: selected,
-              onTap: () {
-                setState(() {
-                  _selectedStatusIndex = selected ? -1 : index;
-                });
-              },
+        children: [
+          for (var index = 0; index < widget.statusOptions.length; index++)
+            KeyedSubtree(
+              key: _selectionAnchorKey(section.key, 'status:$index'),
+              child: FilterSheetOptionChip(
+                label: widget.statusOptions[index].values.isEmpty
+                    ? _defaultFilterLabel
+                    : widget.statusOptions[index].labelKey.tr,
+                selected:
+                    _selectedStatusIndex == index ||
+                    (_selectedStatusIndex < 0 &&
+                        widget.statusOptions[index].values.isEmpty),
+                onTap: () {
+                  setState(() {
+                    _selectedStatusIndex =
+                        widget.statusOptions[index].values.isEmpty ||
+                            _selectedStatusIndex == index
+                        ? -1
+                        : index;
+                  });
+                },
+              ),
             ),
-          );
-        }),
+        ],
       ),
     );
   }
@@ -1606,55 +2060,55 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
     final foregroundColor = hasDate
         ? FilterSheetStyle.primary
         : FilterSheetStyle.hint;
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: InkWell(
-        borderRadius: FilterSheetStyle.chipRadius,
-        onTap: hasDate
-            ? () => setState(() {
-                _startDate = null;
-                _endDate = null;
-              })
-            : null,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          height: 36,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
+    return InkWell(
+      borderRadius: FilterSheetStyle.chipRadius,
+      onTap: hasDate
+          ? () => setState(() {
+              _startDate = null;
+              _endDate = null;
+            })
+          : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: hasDate
+              ? FilterSheetStyle.selectedSoft
+              : FilterSheetStyle.mutedBackground,
+          borderRadius: FilterSheetStyle.chipRadius,
+          border: Border.all(
             color: hasDate
-                ? FilterSheetStyle.selectedSoft
-                : FilterSheetStyle.mutedBackground,
-            borderRadius: FilterSheetStyle.chipRadius,
-            border: Border.all(
-              color: hasDate
-                  ? FilterSheetStyle.selectedSoftBorder
-                  : FilterSheetStyle.surfaceStroke,
-            ),
+                ? FilterSheetStyle.selectedSoftBorder
+                : FilterSheetStyle.surfaceStroke,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.close_rounded, size: 16, color: foregroundColor),
-              const SizedBox(width: 6),
-              Text(
-                'app.market.filter.clear'.tr,
-                style: TextStyle(
-                  color: foregroundColor,
-                  fontSize: 13,
-                  height: 19.5 / 13,
-                  fontWeight: FontWeight.w600,
-                ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.close_rounded, size: 16, color: foregroundColor),
+            const SizedBox(width: 6),
+            Text(
+              'app.market.filter.clear'.tr,
+              style: TextStyle(
+                color: foregroundColor,
+                fontSize: 13,
+                height: 19.5 / 13,
+                fontWeight: FontWeight.w600,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildDateSection() {
-    return FilterSheetSection(
+    final defaultSelected = _startDate == null && _endDate == null;
+    return _buildAccordionSection(
+      sectionKey: 'app.trade.order.date',
       title: 'app.trade.order.date'.tr,
+      summary: _dateSectionSummary(),
       child: Column(
         children: [
           Row(
@@ -1677,7 +2131,35 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
             ],
           ),
           const SizedBox(height: 8),
-          _buildDateClearButton(),
+          Row(
+            children: [
+              FilterSheetOptionChip(
+                label: _defaultFilterLabel,
+                selected: defaultSelected,
+                selectedStyle: FilterChipSelectedStyle.soft,
+                selectedColor: FilterSheetStyle.selectedSoft,
+                selectedBorderColor: FilterSheetStyle.selectedSoftBorder,
+                selectedTextColor: FilterSheetStyle.primary,
+                unselectedColor: const Color(0xFFECEEF0),
+                unselectedBorderColor: Colors.transparent,
+                unselectedTextColor: FilterSheetStyle.body,
+                borderRadius: FilterSheetStyle.chipRadius,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 9,
+                ),
+                minHeight: 36,
+                fontSize: 13,
+                height: 19.5 / 13,
+                onTap: () => setState(() {
+                  _startDate = null;
+                  _endDate = null;
+                }),
+              ),
+              const SizedBox(width: 8),
+              _buildDateClearButton(),
+            ],
+          ),
         ],
       ),
     );
@@ -1686,11 +2168,37 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
   Widget _buildPriceSection() {
     final maxBound = _priceUpperBound();
     final range = _currentPriceRangeValues(maxBound);
-    return FilterSheetSection(
+    final defaultSelected =
+        _parseDisplayPriceOrNull(_minController.text) == null &&
+        _parseDisplayPriceOrNull(_maxController.text) == null;
+    return _buildAccordionSection(
+      sectionKey: 'app.market.filter.price_range',
       title: 'app.market.filter.price_range'.tr,
+      summary: _priceSectionSummary(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          FilterSheetOptionChip(
+            label: _defaultFilterLabel,
+            selected: defaultSelected,
+            selectedStyle: FilterChipSelectedStyle.soft,
+            selectedColor: FilterSheetStyle.selectedSoft,
+            selectedBorderColor: FilterSheetStyle.selectedSoftBorder,
+            selectedTextColor: FilterSheetStyle.primary,
+            unselectedColor: const Color(0xFFECEEF0),
+            unselectedBorderColor: Colors.transparent,
+            unselectedTextColor: FilterSheetStyle.body,
+            borderRadius: FilterSheetStyle.chipRadius,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            minHeight: 36,
+            fontSize: 13,
+            height: 19.5 / 13,
+            onTap: () => setState(() {
+              _minController.clear();
+              _maxController.clear();
+            }),
+          ),
+          const SizedBox(height: 16),
           _buildPriceSlider(maxBound, range),
           const SizedBox(height: 16),
           Row(
@@ -1741,8 +2249,11 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
 
   Widget _buildSortSection(_OrderFilterSection section) {
     final choices = _buildSortChoices();
-    return FilterSheetSection(
-      title: 'app.market.filter.sort'.tr,
+    return _buildAccordionSection(
+      sectionKey: section.key,
+      title: section.labelKey.tr,
+      summary: _sortSectionSummary(),
+      contentPadding: EdgeInsets.zero,
       child: Column(
         children: [
           for (var i = 0; i < choices.length; i++)
@@ -1812,13 +2323,13 @@ class _OrderFilterSheetState extends State<OrderFilterSheet> {
             )
           : SingleChildScrollView(
               physics: const ClampingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 23, 16, 24),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (var i = 0; i < sections.length; i++) ...[
                     _buildSectionContent(sections[i]),
-                    if (i != sections.length - 1) const SizedBox(height: 39),
+                    if (i != sections.length - 1) const SizedBox(height: 16),
                   ],
                 ],
               ),
