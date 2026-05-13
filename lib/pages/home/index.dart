@@ -36,17 +36,16 @@ class _HomePageState extends State<HomePage>
   final HomeController controller = Get.isRegistered<HomeController>()
       ? Get.find<HomeController>()
       : Get.put(HomeController());
+  final MarketListController marketController =
+      Get.isRegistered<MarketListController>()
+      ? Get.find<MarketListController>()
+      : Get.put(MarketListController());
   late final TabController _tabController;
   final ScrollController _latestScroll = ScrollController();
   final ScrollController _hotScroll = ScrollController();
   final TextEditingController _searchController = TextEditingController();
   Worker? _gameWorker;
-  String _sortField = '';
-  bool _sortAsc = false;
-  double? _priceMin;
-  double? _priceMax;
-  Map<String, dynamic>? _tags;
-  String? _itemName;
+  Worker? _marketKeywordWorker;
 
   @override
   void initState() {
@@ -54,6 +53,16 @@ class _HomePageState extends State<HomePage>
     _tabController = TabController(length: 2, vsync: this);
     _latestScroll.addListener(_handleLatestScroll);
     _hotScroll.addListener(_handleHotScroll);
+    _searchController.text = marketController.keywords.value;
+    _marketKeywordWorker = ever<String>(marketController.keywords, (value) {
+      if (_searchController.text == value) {
+        return;
+      }
+      _searchController.text = value;
+      if (mounted) {
+        setState(() {});
+      }
+    });
     _gameWorker = ever<int>(controller.appId, (_) {
       _resetHomeViewportForGameChange();
     });
@@ -67,6 +76,7 @@ class _HomePageState extends State<HomePage>
     _latestScroll.dispose();
     _hotScroll.dispose();
     _gameWorker?.dispose();
+    _marketKeywordWorker?.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -168,62 +178,55 @@ class _HomePageState extends State<HomePage>
       showSort: !isTf2,
       showAttributeFilters: !isTf2,
       initial: MarketFilterResult(
-        sortField: _sortField,
-        sortAsc: _sortField.isEmpty ? false : _sortAsc,
-        priceMin: _priceMin,
-        priceMax: _priceMax,
-        tags: isTf2 ? const <String, dynamic>{} : _tags,
-        itemName: isTf2 ? null : _itemName,
+        sortField: marketController.sortField.value,
+        sortAsc: marketController.sortField.value.isEmpty
+            ? false
+            : marketController.sortAsc.value,
+        priceMin: marketController.priceMin.value,
+        priceMax: marketController.priceMax.value,
+        tags: isTf2
+            ? const <String, dynamic>{}
+            : Map<String, dynamic>.from(marketController.tags),
+        itemName: isTf2 ? null : marketController.itemName.value,
       ),
     );
-    if (result != null) {
-      if (result.clearKeyword) {
-        setState(() => _searchController.clear());
-      }
-      setState(() {
-        _sortField = result.sortField;
-        _sortAsc = result.sortField.isEmpty ? false : result.sortAsc;
-        _priceMin = result.priceMin;
-        _priceMax = result.priceMax;
-        _tags = result.tags == null || result.tags!.isEmpty
-            ? null
-            : result.tags;
-        _itemName = (result.itemName == null || result.itemName!.isEmpty)
-            ? null
-            : result.itemName;
-      });
-      _switchToMarketWithArgs({
-        'keyword': _searchController.text.trim(),
-        'sortField': result.sortField,
-        'sortAsc': result.sortField.isEmpty ? false : result.sortAsc,
-        'minPrice': result.priceMin,
-        'maxPrice': result.priceMax,
-        'tags': result.tags,
-        'itemName': result.itemName,
-      });
+    if (result == null || !mounted) {
+      return;
     }
+    final keyword = result.clearKeyword ? '' : _searchController.text.trim();
+    if (result.clearKeyword) {
+      setState(() => _searchController.clear());
+    }
+    _switchToMarketWithArgs({
+      'keyword': keyword,
+      'sortField': result.sortField,
+      'sortAsc': result.sortField.isEmpty ? false : result.sortAsc,
+      'minPrice': result.priceMin,
+      'maxPrice': result.priceMax,
+      'tags': result.tags,
+      'itemName': result.itemName,
+    });
   }
 
   void _submitSearch({String? keyword}) {
     final searchKeyword = keyword ?? _searchController.text.trim();
     _switchToMarketWithArgs({
       'keyword': searchKeyword,
-      'sortField': _sortField,
-      'sortAsc': _sortField.isEmpty ? false : _sortAsc,
-      'minPrice': _priceMin,
-      'maxPrice': _priceMax,
-      'tags': _tags,
-      'itemName': _itemName,
+      'sortField': marketController.sortField.value,
+      'sortAsc': marketController.sortField.value.isEmpty
+          ? false
+          : marketController.sortAsc.value,
+      'minPrice': marketController.priceMin.value,
+      'maxPrice': marketController.priceMax.value,
+      'tags': Map<String, dynamic>.from(marketController.tags),
+      'itemName': marketController.itemName.value,
     });
   }
 
   void _switchToMarketWithArgs(Map<String, dynamic> args) {
     args['appId'] = controller.appId.value;
-    final marketCtrl = Get.isRegistered<MarketListController>()
-        ? Get.find<MarketListController>()
-        : Get.put(MarketListController());
-    marketCtrl.applyInitialArgs(args);
-    marketCtrl.refresh(reset: true);
+    marketController.applyInitialArgs(args);
+    marketController.refresh(reset: true);
     final navCtrl = Get.isRegistered<NavController>()
         ? Get.find<NavController>()
         : Get.put(NavController(), permanent: true);
@@ -250,7 +253,7 @@ class _HomePageState extends State<HomePage>
         bottom: false,
         child: Column(
           children: [
-            _buildHeader(),
+            Obx(() => _buildHeader()),
             Expanded(
               child: TabBarView(
                 controller: _tabController,
@@ -288,11 +291,11 @@ class _HomePageState extends State<HomePage>
 
   Widget _buildHeader() {
     final hasActiveFilter =
-        _sortField.isNotEmpty ||
-        _priceMin != null ||
-        _priceMax != null ||
-        (_tags?.isNotEmpty ?? false) ||
-        (_itemName?.isNotEmpty ?? false);
+        marketController.sortField.value.isNotEmpty ||
+        marketController.priceMin.value != null ||
+        marketController.priceMax.value != null ||
+        marketController.tags.isNotEmpty ||
+        (marketController.itemName.value?.isNotEmpty ?? false);
 
     return Container(
       decoration: BoxDecoration(
@@ -459,17 +462,6 @@ class _HomePageState extends State<HomePage>
                   return;
                 }
                 await controller.changeGame(selected);
-                if (!mounted) {
-                  return;
-                }
-                setState(() {
-                  _sortField = '';
-                  _sortAsc = false;
-                  _priceMin = null;
-                  _priceMax = null;
-                  _tags = null;
-                  _itemName = null;
-                });
               },
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),

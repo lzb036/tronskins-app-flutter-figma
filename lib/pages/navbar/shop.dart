@@ -681,6 +681,9 @@ class _ShopPageState extends State<ShopPage>
   }
 
   double _sumOrderPrice(ShopOrderItem order) {
+    if (order.totalPrice != null) {
+      return order.totalPrice!;
+    }
     if (order.price != null) {
       return order.price!;
     }
@@ -691,119 +694,6 @@ class _ShopPageState extends State<ShopPage>
       total += unit * count;
     }
     return total;
-  }
-
-  double _sellRecordActualIncome(ShopOrderItem record) {
-    final direct = _findDirectNumericValue(record.raw, const [
-      'real_price',
-      'realPrice',
-      'actual_income',
-      'actualIncome',
-      'income',
-      'seller_income',
-      'sellerIncome',
-      'real_income',
-      'realIncome',
-      'final_income',
-      'finalIncome',
-      'receivable',
-      'receivable_amount',
-      'receivableAmount',
-    ]);
-    if (direct != null) {
-      return direct;
-    }
-
-    final detailIncome = _sumDetailNumericValues(record.details, const [
-      'real_price',
-      'realPrice',
-      'actual_income',
-      'actualIncome',
-      'income',
-      'seller_income',
-      'sellerIncome',
-      'real_income',
-      'realIncome',
-      'final_income',
-      'finalIncome',
-      'receivable',
-      'receivable_amount',
-      'receivableAmount',
-    ]);
-    if (detailIncome != null) {
-      return detailIncome;
-    }
-
-    final totalPrice = _sumOrderPrice(record);
-    final fee = _findDirectNumericValue(record.raw, const [
-      'service_fee',
-      'serviceFee',
-      'fee',
-      'commission',
-      'commission_fee',
-      'commissionFee',
-      'charge_fee',
-      'chargeFee',
-      'tax',
-    ]);
-    if (fee != null) {
-      return totalPrice - fee;
-    }
-
-    final detailFee = _sumDetailNumericValues(record.details, const [
-      'service_fee',
-      'serviceFee',
-      'fee',
-      'commission',
-      'commission_fee',
-      'commissionFee',
-      'charge_fee',
-      'chargeFee',
-      'tax',
-    ]);
-    if (detailFee != null) {
-      return totalPrice - detailFee;
-    }
-
-    return totalPrice;
-  }
-
-  double? _sumDetailNumericValues(
-    List<ShopOrderDetail> details,
-    List<String> keys,
-  ) {
-    var hasValue = false;
-    double total = 0;
-    for (final detail in details) {
-      final value = _findDirectNumericValue(detail.raw, keys);
-      if (value == null) {
-        continue;
-      }
-      hasValue = true;
-      total += value * (detail.count ?? 1);
-    }
-    return hasValue ? total : null;
-  }
-
-  double? _findDirectNumericValue(Map<String, dynamic> raw, List<String> keys) {
-    final normalizedKeys = keys.map((item) => item.toLowerCase()).toSet();
-    for (final entry in raw.entries) {
-      if (!normalizedKeys.contains(entry.key.toString().toLowerCase())) {
-        continue;
-      }
-      return _asDouble(entry.value);
-    }
-    return null;
-  }
-
-  double? _asDouble(dynamic value) {
-    if (value == null) {
-      return null;
-    }
-    if (value is num) {
-      return value.toDouble();
-    }
-    return double.tryParse(value.toString());
   }
 
   List<ShopOrderDetail> _pendingVisibleDetails(ShopOrderItem order) {
@@ -976,7 +866,28 @@ class _ShopPageState extends State<ShopPage>
     return '+$count';
   }
 
+  static const TextStyle _pendingMetaTextStyle = TextStyle(
+    color: Color(0xFF444653),
+    fontSize: 11,
+    height: 16.5 / 11,
+    fontWeight: FontWeight.w400,
+  );
+
+  String? _pendingRawText(ShopOrderItem order, List<String> keys) {
+    for (final key in keys) {
+      final value = order.raw[key]?.toString().trim();
+      if (value != null && value.isNotEmpty) {
+        return value;
+      }
+    }
+    return null;
+  }
+
   int _pendingShippingType(ShopOrderItem order) {
+    final orderType = order.type;
+    if (orderType == 1 || orderType == 2) {
+      return orderType == 2 ? 2 : 1;
+    }
     for (final detail in order.details) {
       if (detail.type == 2) {
         return 2;
@@ -1001,6 +912,27 @@ class _ShopPageState extends State<ShopPage>
       return 18;
     }
     return 18;
+  }
+
+  String _pendingOrderTypeLabel(ShopOrderItem order) {
+    final rawLabel = _pendingRawText(order, const [
+      'typeName',
+      'type_name',
+      'typeNameText',
+      'type_name_text',
+    ]);
+    if (rawLabel != null) {
+      return rawLabel;
+    }
+
+    final type = _pendingShippingType(order);
+    if (type == 2) {
+      return 'app.trade.supply.text'.tr;
+    }
+    if (type == 1) {
+      return 'app.trade.sale.text'.tr;
+    }
+    return '';
   }
 
   int _pendingDeadlineMs(ShopOrderItem order) {
@@ -1032,23 +964,13 @@ class _ShopPageState extends State<ShopPage>
       child: showCountdown
           ? _PendingShipmentCountdown(
               endTimeMs: deadlineMs,
-              style: const TextStyle(
-                color: Color(0xFF444653),
-                fontSize: 11,
-                height: 16.5 / 11,
-                fontWeight: FontWeight.w400,
-              ),
+              style: _pendingMetaTextStyle,
             )
           : Text(
               _formatTime(order.createTime),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFF444653),
-                fontSize: 11,
-                height: 16.5 / 11,
-                fontWeight: FontWeight.w400,
-              ),
+              style: _pendingMetaTextStyle,
             ),
     );
   }
@@ -1088,8 +1010,28 @@ class _ShopPageState extends State<ShopPage>
               : (status == -1
                     ? Theme.of(context).colorScheme.onSurfaceVariant
                     : Theme.of(context).colorScheme.error));
+    final typeLabel = _pendingOrderTypeLabel(order);
 
-    return _buildPendingStatusText(label: statusText, color: statusColor);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        _buildPendingStatusText(label: statusText, color: statusColor),
+        if (typeLabel.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          SizedBox(
+            width: double.infinity,
+            child: Text(
+              typeLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
+              style: _pendingMetaTextStyle,
+            ),
+          ),
+        ],
+      ],
+    );
   }
 
   Widget _buildSellRecordDetailImage({
@@ -2960,7 +2902,7 @@ class _ShopPageState extends State<ShopPage>
             primary.schemaId,
           );
     final title = primary?.marketName ?? schema?.marketName ?? '-';
-    final actualIncome = _sellRecordActualIncome(record);
+    final dealAmount = _sumOrderPrice(record);
     final wearValue =
         primary?.paintWear ??
         (primary == null
@@ -3140,7 +3082,7 @@ class _ShopPageState extends State<ShopPage>
                                             CrossAxisAlignment.end,
                                         children: [
                                           Text(
-                                            currency.format(actualIncome),
+                                            currency.format(dealAmount),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
