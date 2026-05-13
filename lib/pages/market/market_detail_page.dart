@@ -1055,6 +1055,12 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   bool get _isFireIceTier =>
       _detailMarketHashName.toLowerCase().contains('marble fade');
 
+  bool get _shouldHideGradientFilterForFireIce =>
+      _isFireIceTier && _toolbarTierOptions.isNotEmpty;
+
+  bool get _shouldShowGradientFilter =>
+      _hasGradientRangeSource && !_shouldHideGradientFilterForFireIce;
+
   String get _tierFilterLabel => _isFireIceTier
       ? 'app.market.csgo.fire_ice'.tr
       : 'app.market.csgo.tier'.tr;
@@ -2276,12 +2282,13 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   }
 
   List<_GradientRangeOption> get _toolbarGradientRangeOptions =>
-      _hasGradientRangeSource
+      _shouldShowGradientFilter
       ? _buildGradientRangeOptions()
       : const <_GradientRangeOption>[];
 
   bool get _hasOnSaleGradient =>
-      _onSalePercentageMin != null || _onSalePercentageMax != null;
+      _shouldShowGradientFilter &&
+      (_onSalePercentageMin != null || _onSalePercentageMax != null);
 
   bool _isSelectedGradientRangeOption(_GradientRangeOption option) {
     return _onSalePercentageMin == option.min &&
@@ -2767,8 +2774,8 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       paintIndex: _onSalePaintIndex,
       paintWearMin: _onSaleWearMin,
       paintWearMax: _onSaleWearMax,
-      percentageMin: _onSalePercentageMin,
-      percentageMax: _onSalePercentageMax,
+      percentageMin: _shouldShowGradientFilter ? _onSalePercentageMin : null,
+      percentageMax: _shouldShowGradientFilter ? _onSalePercentageMax : null,
       tierId: _onSaleTierId,
       preserveVisibleItems: preserveVisibleItems,
     );
@@ -3148,8 +3155,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       _onSalePaintIndex != null ||
       _onSaleWearMin != null ||
       _onSaleWearMax != null ||
-      _onSalePercentageMin != null ||
-      _onSalePercentageMax != null ||
+      _hasOnSaleGradient ||
       _onSaleTierId != null;
 
   Future<void> _clearOnSaleFilter() async {
@@ -3254,8 +3260,8 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       _onSalePaintIndex = result.paintIndex;
       _onSaleWearMin = result.paintWearMin;
       _onSaleWearMax = result.paintWearMax;
-      _onSalePercentageMin = result.percentageMin;
-      _onSalePercentageMax = result.percentageMax;
+      _onSalePercentageMin = showGradientFilter ? result.percentageMin : null;
+      _onSalePercentageMax = showGradientFilter ? result.percentageMax : null;
       _onSaleTierId = result.tierId;
     });
     await _applyOnSaleFilterWithCurrentState();
@@ -6402,8 +6408,12 @@ class _OnSaleFilterSheetDialogState extends State<_OnSaleFilterSheetDialog> {
         paintIndex: _selectedPaintIndex,
         paintWearMin: _parseWearControllerValue(_wearMinController),
         paintWearMax: _parseWearControllerValue(_wearMaxController),
-        percentageMin: _parsePercentageValue(_gradientMinController.text),
-        percentageMax: _parsePercentageValue(_gradientMaxController.text),
+        percentageMin: widget.showGradientFilter
+            ? _parsePercentageValue(_gradientMinController.text)
+            : null,
+        percentageMax: widget.showGradientFilter
+            ? _parsePercentageValue(_gradientMaxController.text)
+            : null,
         tierId: _selectedTierId,
       ),
     );
