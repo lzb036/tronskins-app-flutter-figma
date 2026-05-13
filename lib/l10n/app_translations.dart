@@ -698,7 +698,7 @@ const Map<String, Map<String, String>> _priceChangeConfirmMessages = {
 
 const Map<String, Map<String, String>> _inventoryUpShopConfirmMessages = {
   'en_US': {
-    'app.inventory.upshop.confirm.title': 'Confirmation Listing',
+    'app.inventory.upshop.confirm.title': 'Listing Confirmation',
     'app.inventory.upshop.confirm.list_title': 'Sell Listings',
     'app.inventory.upshop.confirm.item_unit.one': 'item',
     'app.inventory.upshop.confirm.item_unit.other': 'items',
