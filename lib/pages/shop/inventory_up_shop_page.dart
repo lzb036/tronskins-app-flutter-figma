@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/api/model/shop/shop_models.dart';
 import 'package:tronskins_app/api/shop_product.dart';
@@ -24,6 +25,23 @@ class _InventoryMergeGroup {
 }
 
 enum _PricingPreset { min, pricing, max }
+
+class _PriceInputFormatter extends TextInputFormatter {
+  const _PriceInputFormatter();
+
+  static final RegExp _allowedPattern = RegExp(r'^\d*\.?\d*$');
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (_allowedPattern.hasMatch(newValue.text)) {
+      return newValue;
+    }
+    return oldValue;
+  }
+}
 
 class InventoryUpShopPage extends StatefulWidget {
   const InventoryUpShopPage({super.key});
@@ -570,7 +588,7 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
       final id = item.id!;
       final price = _prices[id] ?? 0;
       if (price <= 0) {
-        AppSnackbar.error('app.inventory.message.price_and_num_error'.tr);
+        AppSnackbar.error('app.market.filter.message.price_error'.tr);
         return;
       }
       payload[id] = price;
@@ -1322,6 +1340,7 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
+                      inputFormatters: const [_PriceInputFormatter()],
                       style: const TextStyle(
                         color: Color(0xFF00288E),
                         fontSize: 20,

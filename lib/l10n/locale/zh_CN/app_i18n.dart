@@ -88,7 +88,7 @@ final Map<String, String> zh_CN = {
   "app.market.filter.date_start": "开始日期",
   "app.market.filter.date_end": "结束日期",
   "app.market.filter.message.start_date_error": "起始日期不能晚于结束日期！",
-  "app.market.filter.message.price_error": "请输入正确的价格",
+  "app.market.filter.message.price_error": "请输入正确的价格！",
   "app.market.filter.dota2.gemstones_contains": "包含宝石",
   "app.market.filter.dota2.gemstones_faceted": "棱彩宝石",
   "app.market.filter.dota2.gemstones_engraved": "铭刻宝石",
