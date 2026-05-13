@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:tronskins_app/api/model/wallet/wallet_models.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
+import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/components/layout/list_end_tip.dart';
@@ -85,9 +87,59 @@ class _WalletWithdrawRecordPageState extends State<WalletWithdrawRecordPage> {
 
   String get _serialNoLabel => _isChineseLocale ? '流水号' : 'Serial No';
 
-  String get _copySerialText => _isChineseLocale ? '复制流水号' : 'Copy Serial No';
+  String get _cancelWithdrawText =>
+      _isChineseLocale ? '取消提现' : 'Cancel Withdrawal';
 
   String get _closeText => _isChineseLocale ? '关闭' : 'Close';
+
+  bool _canCancelWithdraw(WalletWithdrawRecord item) => item.status == 0;
+
+  Future<void> _handleCancelWithdraw(
+    BuildContext detailContext,
+    WalletWithdrawRecord item,
+  ) async {
+    final withdrawId = item.id?.trim();
+    if (withdrawId == null || withdrawId.isEmpty) {
+      AppSnackbar.error('app.trade.filter.failed'.tr);
+      return;
+    }
+
+    await showFigmaModal<void>(
+      context: context,
+      barrierDismissible: false,
+      child: FigmaAsyncConfirmationDialog(
+        icon: Icons.cancel_outlined,
+        iconColor: const Color(0xFFE11D48),
+        iconBackgroundColor: const Color.fromRGBO(225, 29, 72, 0.10),
+        accentColor: const Color(0xFFE11D48),
+        title: _cancelWithdrawText,
+        message: 'app.user.withdraw.message.cancel'.tr,
+        primaryLabel: _cancelWithdrawText,
+        secondaryLabel: 'app.common.cancel'.tr,
+        onSecondary: () => popModalRoute(context),
+        onConfirm: (confirmContext) async {
+          try {
+            final success = await controller.cancelWithdraw(withdrawId);
+            if (!success) {
+              AppSnackbar.error('app.trade.filter.failed'.tr);
+              return;
+            }
+            if (confirmContext.mounted) {
+              popModalRoute(confirmContext);
+            }
+            if (detailContext.mounted) {
+              Navigator.of(detailContext, rootNavigator: true).pop();
+            }
+            await controller.loadWithdrawRecords(reset: true);
+            await controller.refreshUser();
+            AppSnackbar.success('app.system.message.success'.tr);
+          } catch (_) {
+            AppSnackbar.error('app.trade.filter.failed'.tr);
+          }
+        },
+      ),
+    );
+  }
 
   Future<void> _showWithdrawDetail({
     required WalletWithdrawRecord item,
@@ -102,8 +154,8 @@ class _WalletWithdrawRecordPageState extends State<WalletWithdrawRecordPage> {
         return _WithdrawDetailDialog(
           title: _withdrawDetailTitle,
           serialNoLabel: _serialNoLabel,
-          copySerialText: _copySerialText,
           closeText: _closeText,
+          cancelWithdrawText: _cancelWithdrawText,
           timeLabel: 'app.market.filter.time'.tr,
           amountLabel: 'app.user.withdraw.amount'.tr,
           addressLabel: 'app.user.wallet.address'.tr,
@@ -114,7 +166,8 @@ class _WalletWithdrawRecordPageState extends State<WalletWithdrawRecordPage> {
           walletAddress: _displayValue(item.account),
           statusText: _displayValue(item.statusName),
           tone: tone,
-          onCopySerial: () => _copyText(item.id ?? ''),
+          canCancelWithdraw: _canCancelWithdraw(item),
+          onCancelWithdraw: () => _handleCancelWithdraw(dialogContext, item),
         );
       },
     );
@@ -383,10 +436,9 @@ class _WithdrawRecordTile extends StatelessWidget {
 }
 
 class _RecordCopyButton extends StatelessWidget {
-  const _RecordCopyButton({required this.onTap, this.iconSize = 15});
+  const _RecordCopyButton({required this.onTap});
 
   final VoidCallback onTap;
-  final double iconSize;
 
   @override
   Widget build(BuildContext context) {
@@ -400,7 +452,7 @@ class _RecordCopyButton extends StatelessWidget {
           padding: const EdgeInsets.all(2),
           child: Icon(
             Icons.content_copy_rounded,
-            size: iconSize,
+            size: 15,
             color: const Color(0xFFCBD5E1),
           ),
         ),
@@ -413,8 +465,8 @@ class _WithdrawDetailDialog extends StatelessWidget {
   const _WithdrawDetailDialog({
     required this.title,
     required this.serialNoLabel,
-    required this.copySerialText,
     required this.closeText,
+    required this.cancelWithdrawText,
     required this.timeLabel,
     required this.amountLabel,
     required this.addressLabel,
@@ -425,13 +477,14 @@ class _WithdrawDetailDialog extends StatelessWidget {
     required this.walletAddress,
     required this.statusText,
     required this.tone,
-    required this.onCopySerial,
+    required this.canCancelWithdraw,
+    required this.onCancelWithdraw,
   });
 
   final String title;
   final String serialNoLabel;
-  final String copySerialText;
   final String closeText;
+  final String cancelWithdrawText;
   final String timeLabel;
   final String amountLabel;
   final String addressLabel;
@@ -442,7 +495,8 @@ class _WithdrawDetailDialog extends StatelessWidget {
   final String walletAddress;
   final String statusText;
   final _StatusTone tone;
-  final VoidCallback onCopySerial;
+  final bool canCancelWithdraw;
+  final VoidCallback onCancelWithdraw;
 
   @override
   Widget build(BuildContext context) {
@@ -483,10 +537,6 @@ class _WithdrawDetailDialog extends StatelessWidget {
                 const SizedBox(height: 20),
                 _WithdrawDetailField(
                   label: serialNoLabel,
-                  trailing: _RecordCopyButton(
-                    onTap: onCopySerial,
-                    iconSize: 16,
-                  ),
                   child: Text(
                     serialNo,
                     style: const TextStyle(
@@ -593,12 +643,18 @@ class _WithdrawDetailDialog extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
-                _DetailActionButton(
-                  label: copySerialText,
-                  onTap: onCopySerial,
-                  isPrimary: true,
-                ),
-                const SizedBox(height: 12),
+                if (canCancelWithdraw) ...[
+                  _DetailActionButton(
+                    label: cancelWithdrawText,
+                    onTap: onCancelWithdraw,
+                    gradientColors: const [
+                      Color(0xFFDC2626),
+                      Color(0xFFF43F5E),
+                    ],
+                    shadowColor: const Color(0xFFE11D48),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 _DetailActionButton(
                   label: closeText,
                   onTap: () => Navigator.of(context).pop(),
@@ -613,15 +669,10 @@ class _WithdrawDetailDialog extends StatelessWidget {
 }
 
 class _WithdrawDetailField extends StatelessWidget {
-  const _WithdrawDetailField({
-    required this.label,
-    required this.child,
-    this.trailing,
-  });
+  const _WithdrawDetailField({required this.label, required this.child});
 
   final String label;
   final Widget child;
-  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -641,10 +692,7 @@ class _WithdrawDetailField extends StatelessWidget {
         const SizedBox(height: 4),
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(child: child),
-            if (trailing != null) ...[const SizedBox(width: 12), trailing!],
-          ],
+          children: [Expanded(child: child)],
         ),
       ],
     );
@@ -655,23 +703,37 @@ class _DetailActionButton extends StatelessWidget {
   const _DetailActionButton({
     required this.label,
     required this.onTap,
-    this.isPrimary = false,
+    this.gradientColors,
+    this.shadowColor,
   });
 
   final String label;
   final VoidCallback onTap;
-  final bool isPrimary;
+  final List<Color>? gradientColors;
+  final Color? shadowColor;
 
   @override
   Widget build(BuildContext context) {
-    final gradient = isPrimary
-        ? const LinearGradient(
+    final colors = gradientColors;
+    final gradient = colors == null
+        ? null
+        : LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)],
-          )
-        : null;
-    final foregroundColor = isPrimary ? Colors.white : const Color(0xFF444653);
+            colors: colors,
+          );
+    final foregroundColor = gradient == null
+        ? const Color(0xFF444653)
+        : Colors.white;
+    final boxShadow = colors == null
+        ? null
+        : [
+            BoxShadow(
+              color: (shadowColor ?? colors.first).withValues(alpha: 0.20),
+              blurRadius: 15,
+              offset: const Offset(0, 10),
+            ),
+          ];
 
     return Material(
       color: Colors.transparent,
@@ -688,15 +750,7 @@ class _DetailActionButton extends StatelessWidget {
             border: gradient == null
                 ? Border.all(color: const Color(0xFFC4C5D5))
                 : null,
-            boxShadow: isPrimary
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFF00288E).withValues(alpha: 0.20),
-                      blurRadius: 15,
-                      offset: const Offset(0, 10),
-                    ),
-                  ]
-                : null,
+            boxShadow: boxShadow,
           ),
           child: Center(
             child: Text(
@@ -706,7 +760,9 @@ class _DetailActionButton extends StatelessWidget {
               style: TextStyle(
                 color: foregroundColor,
                 fontSize: 14,
-                fontWeight: isPrimary ? FontWeight.w600 : FontWeight.w500,
+                fontWeight: gradient == null
+                    ? FontWeight.w500
+                    : FontWeight.w600,
                 height: 20 / 14,
               ),
             ),
