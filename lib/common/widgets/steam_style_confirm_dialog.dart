@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 
 class SteamStyleConfirmSummaryItem {
   const SteamStyleConfirmSummaryItem({
@@ -94,14 +95,32 @@ class _SteamStyleAmountConfirmDialog extends StatefulWidget {
 
 class _SteamStyleAmountConfirmDialogState
     extends State<_SteamStyleAmountConfirmDialog> {
+  static const String _agreementAcceptedKey =
+      'steam_style_purchase_agreement_accepted_v1';
+
+  final GetStorage _storage = GetStorage();
   bool _agreed = false;
   bool _showAgreementHint = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _agreed = widget.requireAgreement && _hasAcceptedAgreement;
+  }
+
+  bool get _hasAcceptedAgreement =>
+      _storage.read(_agreementAcceptedKey) == true;
+
+  void _rememberAgreementAccepted() {
+    _storage.write(_agreementAcceptedKey, true);
+  }
 
   void _toggleAgreement([bool? value]) {
     setState(() {
       _agreed = value ?? !_agreed;
       if (_agreed) {
         _showAgreementHint = false;
+        _rememberAgreementAccepted();
       }
     });
   }
@@ -111,6 +130,9 @@ class _SteamStyleAmountConfirmDialogState
       HapticFeedback.lightImpact();
       setState(() => _showAgreementHint = true);
       return;
+    }
+    if (widget.requireAgreement && _agreed) {
+      _rememberAgreementAccepted();
     }
     Navigator.of(context).pop(true);
   }
