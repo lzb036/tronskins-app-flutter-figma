@@ -60,6 +60,26 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   static const Color _figmaRed600 = Color(0xFFD92D20);
   static const Color _figmaRed400 = Color(0xFFF1695C);
   static const Color _figmaOrange = Color(0xFFFF9800);
+  static const List<String> _buyRequestGradientMinKeys = [
+    'percentage_min',
+    'percentageMin',
+    'paintGradientMin',
+    'paint_gradient_min',
+    'gradientMin',
+    'gradient_min',
+    'fadePercentageMin',
+    'fade_percentage_min',
+  ];
+  static const List<String> _buyRequestGradientMaxKeys = [
+    'percentage_max',
+    'percentageMax',
+    'paintGradientMax',
+    'paint_gradient_max',
+    'gradientMax',
+    'gradient_max',
+    'fadePercentageMax',
+    'fade_percentage_max',
+  ];
   final MarketDetailController controller = Get.put(MarketDetailController());
   final GlobalKey _onSaleSortButtonKey = GlobalKey();
   final GlobalKey _onSaleWearButtonKey = GlobalKey();
@@ -4322,9 +4342,105 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   bool _hasBuyRequestRequirementValue(String value) =>
       value != _figmaNoRequirementTitle;
 
-  String _formatBuyRequestPatternRequirement(BuyRequestItem item) {
-    final text =
-        _pickRequirementText(item.raw, const [
+  String _formatBuyRequestSpecNumber(double value, {int precision = 2}) {
+    final fixed = value.toStringAsFixed(precision);
+    return fixed
+        .replaceFirst(RegExp(r'0+$'), '')
+        .replaceFirst(RegExp(r'\.$'), '');
+  }
+
+  double? _normalizeBuyRequestGradientValue(
+    double? value,
+    double? min,
+    double? max,
+  ) {
+    if (value == null) {
+      return null;
+    }
+    final usesFractionScale =
+        value <= 1 && ((min != null && min <= 1) || (max != null && max <= 1));
+    return usesFractionScale ? value * 100 : value;
+  }
+
+  String? _formatBuyRequestGradientRequirement(BuyRequestItem item) {
+    final rawMin =
+        item.percentageMin ??
+        _extractDouble(item.raw, _buyRequestGradientMinKeys);
+    final rawMax =
+        item.percentageMax ??
+        _extractDouble(item.raw, _buyRequestGradientMaxKeys);
+    if (rawMin == null && rawMax == null) {
+      return null;
+    }
+
+    final min = _normalizeBuyRequestGradientValue(rawMin, rawMin, rawMax);
+    final max = _normalizeBuyRequestGradientValue(rawMax, rawMin, rawMax);
+    if (min != null && max != null) {
+      final minText = _formatBuyRequestSpecNumber(min);
+      if ((max - 100).abs() < 0.000001) {
+        return '≥$minText%';
+      }
+      if (min.abs() < 0.000001) {
+        return '≤${_formatBuyRequestSpecNumber(max)}%';
+      }
+      return '$minText%-${_formatBuyRequestSpecNumber(max)}%';
+    }
+    if (min != null) {
+      return '≥${_formatBuyRequestSpecNumber(min)}%';
+    }
+    if (max != null) {
+      return '≤${_formatBuyRequestSpecNumber(max)}%';
+    }
+    return null;
+  }
+
+  String _buyRequestMarketHashName(
+    BuyRequestItem item,
+    ShopSchemaInfo? schema,
+  ) {
+    final candidates = [
+      schema?.marketHashName,
+      schema?.raw['market_hash_name']?.toString(),
+      schema?.raw['marketHashName']?.toString(),
+      item.raw['market_hash_name']?.toString(),
+      item.raw['marketHashName']?.toString(),
+      _detailMarketHashName,
+    ];
+    for (final candidate in candidates) {
+      final text = _cleanText(candidate);
+      if (text != null) {
+        return text;
+      }
+    }
+    return '';
+  }
+
+  bool _buyRequestSupportsGradientFilter(
+    BuyRequestItem item,
+    ShopSchemaInfo? schema,
+  ) {
+    final appId = item.appId ?? controller.appId;
+    if (appId != 730) {
+      return false;
+    }
+    final name = _buyRequestMarketHashName(item, schema).toLowerCase();
+    return name.contains('fade') || name.contains('渐变');
+  }
+
+  bool _buyRequestSupportsPatternFilter(
+    BuyRequestItem item,
+    ShopSchemaInfo? schema,
+  ) {
+    final appId = item.appId ?? controller.appId;
+    if (appId != 730) {
+      return false;
+    }
+    final name = _buyRequestMarketHashName(item, schema).toLowerCase();
+    return name.contains('doppler') || name.contains('多普勒');
+  }
+
+  String? _resolveBuyRequestPatternRequirement(BuyRequestItem item) {
+    return _pickRequirementText(item.raw, const [
           'accepted_patterns',
           'acceptedPatterns',
           'phaseList',
@@ -4335,7 +4451,54 @@ class _MarketDetailPageState extends State<MarketDetailPage>
           'phase',
         ]) ??
         _cleanText(item.phase);
-    return text ?? _figmaNoRequirementTitle;
+  }
+
+  List<_BuyRequestRequirementData> _buildBuyRequestRequirements(
+    BuyRequestItem item,
+    ShopSchemaInfo? schema,
+  ) {
+    final quantityRequirement = _formatBuyRequestQuantity(item);
+    final requirements = <_BuyRequestRequirementData>[
+      _BuyRequestRequirementData(
+        label: _figmaQuantityTitle,
+        value: quantityRequirement,
+        isActive: _hasBuyRequestRequirementValue(quantityRequirement),
+      ),
+    ];
+
+    void addRequirement(String label, String value, {bool? isActive}) {
+      requirements.add(
+        _BuyRequestRequirementData(
+          label: label,
+          value: value,
+          isActive: isActive ?? _hasBuyRequestRequirementValue(value),
+        ),
+      );
+    }
+
+    final patternRequirement = _resolveBuyRequestPatternRequirement(item);
+    if (patternRequirement != null ||
+        _buyRequestSupportsPatternFilter(item, schema)) {
+      addRequirement(
+        _figmaAcceptedPatternsTitle,
+        patternRequirement ?? 'app.market.csgo.phase_unlimited'.tr,
+        isActive: patternRequirement != null,
+      );
+    }
+
+    final gradientRequirement = _formatBuyRequestGradientRequirement(item);
+    if (gradientRequirement != null ||
+        _buyRequestSupportsGradientFilter(item, schema)) {
+      addRequirement(
+        'app.market.csgo.gradient_range'.tr,
+        gradientRequirement ?? 'app.market.csgo.gradient_unlimited'.tr,
+        isActive: gradientRequirement != null,
+      );
+    }
+
+    addRequirement(_figmaWearTitle, _formatBuyRequestWearRequirement(item));
+
+    return requirements;
   }
 
   String? _pickRequirementText(Map<String, dynamic> raw, List<String> keys) {
@@ -4527,11 +4690,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
               final isDark = Theme.of(context).brightness == Brightness.dark;
               final buyerName =
                   _cleanText(user?.nickname) ?? _figmaBuyerFallbackName;
-              final quantityRequirement = _formatBuyRequestQuantity(item);
-              final wearRequirement = _formatBuyRequestWearRequirement(item);
-              final patternRequirement = _formatBuyRequestPatternRequirement(
-                item,
-              );
+              final requirements = _buildBuyRequestRequirements(item, schema);
 
               Widget buildHeaderActionButtons() {
                 if (!isOwn) {
@@ -4674,29 +4833,18 @@ class _MarketDetailPageState extends State<MarketDetailPage>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildBuyRequestRequirementRow(
-                              label: _figmaQuantityTitle,
-                              value: quantityRequirement,
-                              isActive: _hasBuyRequestRequirementValue(
-                                quantityRequirement,
+                            for (
+                              var rowIndex = 0;
+                              rowIndex < requirements.length;
+                              rowIndex++
+                            ) ...[
+                              if (rowIndex > 0) const SizedBox(height: 6),
+                              _buildBuyRequestRequirementRow(
+                                label: requirements[rowIndex].label,
+                                value: requirements[rowIndex].value,
+                                isActive: requirements[rowIndex].isActive,
                               ),
-                            ),
-                            const SizedBox(height: 6),
-                            _buildBuyRequestRequirementRow(
-                              label: _figmaWearTitle,
-                              value: wearRequirement,
-                              isActive: _hasBuyRequestRequirementValue(
-                                wearRequirement,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            _buildBuyRequestRequirementRow(
-                              label: _figmaAcceptedPatternsTitle,
-                              value: patternRequirement,
-                              isActive: _hasBuyRequestRequirementValue(
-                                patternRequirement,
-                              ),
-                            ),
+                            ],
                           ],
                         ),
                       ),
@@ -6986,6 +7134,18 @@ class _OnSaleListingFact {
 
   final String label;
   final String value;
+}
+
+class _BuyRequestRequirementData {
+  const _BuyRequestRequirementData({
+    required this.label,
+    required this.value,
+    required this.isActive,
+  });
+
+  final String label;
+  final String value;
+  final bool isActive;
 }
 
 class _OnSaleSortOption {
