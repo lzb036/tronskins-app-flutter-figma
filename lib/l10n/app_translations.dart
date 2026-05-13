@@ -1015,6 +1015,8 @@ const Map<String, Map<String, String>> _deliverBacklogMessages = {
     'app.trade.deliver.steam_guard_tip':
         'When confirming in Steam Guard, carefully verify the buyer Steam account and item information.',
     'app.trade.deliver.steam_buyer': 'Steam Buyer',
+    'app.trade.deliver.steam_level': 'STEAM LEVEL',
+    'app.trade.deliver.steam_account_age': 'STEAM ACCOUNT AGE',
     'app.trade.deliver.list_summary': 'LIST SUMMARY',
     'app.trade.deliver.mobile_confirm_notice':
         'STEAM MOBILE CONFIRMATION REQUIRED\nAPI KEY VERIFIED SECURE',
@@ -1027,6 +1029,8 @@ const Map<String, Map<String, String>> _deliverBacklogMessages = {
     'app.trade.deliver.steam_guard_tip':
         '在 Steam 令牌确认时，请仔细核对买家的 Steam 账号与商品信息。',
     'app.trade.deliver.steam_buyer': 'Steam 买家',
+    'app.trade.deliver.steam_level': 'STEAM 等级',
+    'app.trade.deliver.steam_account_age': 'STEAM 账号年龄',
     'app.trade.deliver.list_summary': '清单摘要',
     'app.trade.deliver.mobile_confirm_notice':
         '需要前往 STEAM 手机端确认\nAPI KEY 已安全验证',
@@ -1038,6 +1042,8 @@ const Map<String, Map<String, String>> _deliverBacklogMessages = {
     'app.trade.deliver.steam_guard_tip':
         '在 Steam 權杖確認時，請仔細核對買家的 Steam 帳號與商品資訊。',
     'app.trade.deliver.steam_buyer': 'Steam 買家',
+    'app.trade.deliver.steam_level': 'STEAM 等級',
+    'app.trade.deliver.steam_account_age': 'STEAM 帳號年齡',
     'app.trade.deliver.list_summary': '清單摘要',
     'app.trade.deliver.mobile_confirm_notice':
         '需要前往 STEAM 手機端確認\nAPI KEY 已安全驗證',

@@ -579,9 +579,9 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
                   children: [
                     _buildSteamLevelBadge(level),
                     const SizedBox(width: 6),
-                    const Text(
-                      'STEAM LEVEL',
-                      style: TextStyle(
+                    Text(
+                      'app.trade.deliver.steam_level'.tr,
+                      style: const TextStyle(
                         color: Color(0xFF94A3B8),
                         fontSize: 9,
                         fontWeight: FontWeight.w800,
@@ -598,9 +598,9 @@ class _ShopDeliverGoodsPageState extends State<ShopDeliverGoodsPage> {
                     children: [
                       _buildSteamAccountAgeBadge(yearsLevel),
                       const SizedBox(width: 6),
-                      const Text(
-                        'STEAM ACCOUNT AGE',
-                        style: TextStyle(
+                      Text(
+                        'app.trade.deliver.steam_account_age'.tr,
+                        style: const TextStyle(
                           color: Color(0xFF94A3B8),
                           fontSize: 9,
                           fontWeight: FontWeight.w800,

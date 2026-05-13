@@ -156,11 +156,6 @@ class UserSetting extends StatelessWidget {
                             title: 'app.user.setting.about'.tr,
                             onTap: () => Get.toNamed(Routers.USER_ABOUT),
                           ),
-                          _buildActionTile(
-                            icon: Icons.bug_report_outlined,
-                            title: 'app.user.setting.auth_test_center'.tr,
-                            onTap: () => Get.toNamed(Routers.USER_AUTH_TEST),
-                          ),
                         ]),
                         const SizedBox(height: 12),
                         Center(child: _buildVersionCaption()),
