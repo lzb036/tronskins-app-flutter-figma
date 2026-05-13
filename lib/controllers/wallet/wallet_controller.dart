@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:tronskins_app/api/loginServer.dart';
 import 'package:tronskins_app/api/shop_product.dart';
 import 'package:tronskins_app/api/wallet.dart';
@@ -21,6 +22,9 @@ class WalletController extends GetxController {
   final ApiWalletServer _api;
   final ApiLoginServer _userApi;
   final ApiShopProductServer _shopApi;
+  final GetStorage _storage = GetStorage();
+  static const String _selectedWithdrawAddressKey =
+      'wallet_selected_withdraw_address';
 
   final Rx<UserInfoEntity?> userInfo = Rx<UserInfoEntity?>(null);
   final RxBool isLoadingUser = false.obs;
@@ -545,13 +549,16 @@ class WalletController extends GetxController {
       if (res.success) {
         final list = res.datas ?? <WalletWithdrawAddress>[];
         withdrawAddresses.assignAll(list);
-        if (list.isNotEmpty) {
-          selectedWithdrawAddress.value = list.first;
-        }
+        _restoreSelectedWithdrawAddress(list);
       }
     } finally {
       isLoadingAddresses.value = false;
     }
+  }
+
+  void selectWithdrawAddress(WalletWithdrawAddress address) {
+    selectedWithdrawAddress.value = address;
+    _rememberWithdrawAddress(address);
   }
 
   Future<bool> addWithdrawAddress({
@@ -571,9 +578,15 @@ class WalletController extends GetxController {
     if (res.success) {
       withdrawAddresses.removeWhere((item) => item.id == id);
       if (selectedWithdrawAddress.value?.id == id) {
-        selectedWithdrawAddress.value = withdrawAddresses.isNotEmpty
+        final fallback = withdrawAddresses.isNotEmpty
             ? withdrawAddresses.first
             : null;
+        selectedWithdrawAddress.value = fallback;
+        if (fallback == null) {
+          _storage.remove(_selectedWithdrawAddressKey);
+        } else {
+          _rememberWithdrawAddress(fallback);
+        }
       }
       return true;
     }
@@ -677,5 +690,67 @@ class WalletController extends GetxController {
       }
     } catch (_) {}
     return null;
+  }
+
+  void _restoreSelectedWithdrawAddress(List<WalletWithdrawAddress> list) {
+    if (list.isEmpty) {
+      selectedWithdrawAddress.value = null;
+      _storage.remove(_selectedWithdrawAddressKey);
+      return;
+    }
+
+    final selected =
+        _findMatchingWithdrawAddress(list, selectedWithdrawAddress.value) ??
+        _findMatchingWithdrawAddress(list, _readRememberedWithdrawAddress()) ??
+        list.first;
+    selectedWithdrawAddress.value = selected;
+    _rememberWithdrawAddress(selected);
+  }
+
+  WalletWithdrawAddress? _readRememberedWithdrawAddress() {
+    final raw = _storage.read(_selectedWithdrawAddressKey);
+    if (raw is Map) {
+      return WalletWithdrawAddress(
+        id: raw['id']?.toString(),
+        account: raw['account']?.toString(),
+      );
+    }
+    return null;
+  }
+
+  WalletWithdrawAddress? _findMatchingWithdrawAddress(
+    List<WalletWithdrawAddress> list,
+    WalletWithdrawAddress? target,
+  ) {
+    if (target == null) {
+      return null;
+    }
+
+    final id = target.id?.trim() ?? '';
+    if (id.isNotEmpty) {
+      for (final item in list) {
+        if (item.id == id) {
+          return item;
+        }
+      }
+    }
+
+    final account = target.account?.trim() ?? '';
+    if (account.isEmpty) {
+      return null;
+    }
+    for (final item in list) {
+      if ((item.account ?? '').trim() == account) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  void _rememberWithdrawAddress(WalletWithdrawAddress address) {
+    _storage.write(_selectedWithdrawAddressKey, {
+      'id': address.id ?? '',
+      'account': address.account ?? '',
+    });
   }
 }

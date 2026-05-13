@@ -869,7 +869,7 @@ class _WalletWithdrawPageState extends State<WalletWithdrawPage> {
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          controller.selectedWithdrawAddress.value = item;
+          controller.selectWithdrawAddress(item);
           Navigator.of(context).pop();
         },
         borderRadius: BorderRadius.zero,

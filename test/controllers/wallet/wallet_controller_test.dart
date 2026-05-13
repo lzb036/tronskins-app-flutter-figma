@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:tronskins_app/api/model/wallet/wallet_models.dart';
 import 'package:tronskins_app/api/wallet.dart';
 import 'package:tronskins_app/common/http/model/base_response.dart';
@@ -14,7 +15,7 @@ void main() {
   const pathProviderChannel = MethodChannel('plugins.flutter.io/path_provider');
   late Directory storageDirectory;
 
-  setUpAll(() {
+  setUpAll(() async {
     Get.testMode = true;
     storageDirectory = Directory.systemTemp.createTempSync(
       'tronskins_wallet_controller_test_',
@@ -29,9 +30,17 @@ void main() {
             _ => null,
           };
         });
+    await GetStorage.init();
   });
 
-  tearDown(Get.reset);
+  setUp(() async {
+    await GetStorage().erase();
+  });
+
+  tearDown(() async {
+    Get.reset();
+    await GetStorage().erase();
+  });
 
   tearDownAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -110,6 +119,41 @@ void main() {
       },
     );
   });
+
+  group('WalletController withdraw address selection', () {
+    test('keeps selected withdraw address when wallet list reloads', () async {
+      final addressA = _fakeWithdrawAddress('address-a');
+      final addressB = _fakeWithdrawAddress('address-b');
+      final api = _FakeWalletApi()..withdrawAddresses = [addressA, addressB];
+      final controller = WalletController(api: api);
+
+      await controller.loadWithdrawAddresses();
+      expect(controller.selectedWithdrawAddress.value?.id, 'address-a');
+
+      controller.selectWithdrawAddress(addressB);
+      await controller.loadWithdrawAddresses();
+
+      expect(controller.selectedWithdrawAddress.value?.id, 'address-b');
+    });
+
+    test('restores remembered withdraw address in a new controller', () async {
+      final addressA = _fakeWithdrawAddress('address-a');
+      final addressB = _fakeWithdrawAddress('address-b');
+      final firstController = WalletController(
+        api: _FakeWalletApi()..withdrawAddresses = [addressA, addressB],
+      );
+
+      await firstController.loadWithdrawAddresses();
+      firstController.selectWithdrawAddress(addressB);
+
+      final secondController = WalletController(
+        api: _FakeWalletApi()..withdrawAddresses = [addressA, addressB],
+      );
+      await secondController.loadWithdrawAddresses();
+
+      expect(secondController.selectedWithdrawAddress.value?.id, 'address-b');
+    });
+  });
 }
 
 WalletFundFlowItem _fakeFundFlow(String id) {
@@ -124,8 +168,17 @@ WalletFundFlowItem _fakeFundFlow(String id) {
   );
 }
 
+WalletWithdrawAddress _fakeWithdrawAddress(String id) {
+  return WalletWithdrawAddress(
+    id: id,
+    name: 'Wallet $id',
+    account: 'account-$id',
+  );
+}
+
 class _FakeWalletApi extends ApiWalletServer {
   List<List<WalletFundFlowItem>> pages = const [];
+  List<WalletWithdrawAddress> withdrawAddresses = const [];
   final List<_FundFlowCall> calls = [];
 
   @override
@@ -160,6 +213,16 @@ class _FakeWalletApi extends ApiWalletServer {
           pages: pages.length,
         ),
       ),
+    );
+  }
+
+  @override
+  Future<BaseHttpResponse<List<WalletWithdrawAddress>>>
+  withdrawWalletList() async {
+    return BaseHttpResponse<List<WalletWithdrawAddress>>(
+      code: 0,
+      message: '',
+      datas: withdrawAddresses,
     );
   }
 }

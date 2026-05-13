@@ -932,8 +932,9 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
     double usdAmount, {
     bool trimTrailingZeros = false,
   }) {
+    final symbol = _normalizedCurrencySymbol(currency);
     if (!usdAmount.isFinite || usdAmount <= 0) {
-      return '${currency.symbol}0';
+      return '${symbol}0';
     }
 
     final converted = usdAmount * currency.currentRate;
@@ -959,7 +960,16 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
       number = number.replaceFirst(RegExp(r'\.00$'), '');
       number = number.replaceFirst(RegExp(r'(\.\d)0$'), r'$1');
     }
-    return '${currency.symbol}$number';
+    final cleanNumber = number.replaceFirst(RegExp(r'^\$+'), '');
+    return '$symbol$cleanNumber';
+  }
+
+  String _normalizedCurrencySymbol(CurrencyController currency) {
+    final symbol = currency.symbol.trim();
+    if (symbol.isEmpty) {
+      return r'$';
+    }
+    return symbol.replaceAll(RegExp(r'\$+'), r'$');
   }
 
   String _pricingWarningText(CurrencyController currency, double? price) {
@@ -1374,7 +1384,7 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
               child: Row(
                 children: [
                   Text(
-                    currency.symbol,
+                    _normalizedCurrencySymbol(currency),
                     style: const TextStyle(
                       color: Color(0xFF444653),
                       fontSize: 16,
@@ -1454,7 +1464,9 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
                       const SizedBox(height: 2),
                       Text(
                         suggestionText,
-                        softWrap: true,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: false,
                         style: const TextStyle(
                           color: Color(0xFF444653),
                           fontSize: 11,
