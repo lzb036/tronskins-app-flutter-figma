@@ -714,6 +714,9 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
   }
 
   bool _isCompleteWearLowerInput(String text) {
+    if (RegExp(r'^0\.0+$').hasMatch(text)) {
+      return true;
+    }
     final dotIndex = text.indexOf('.');
     if (dotIndex < 0) {
       return text.length > 1;

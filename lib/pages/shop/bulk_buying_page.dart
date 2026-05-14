@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/api/market.dart';
@@ -37,6 +38,7 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
   static const Color _brandBlue = Color(0xFF1E40AF);
   static const Color _brandBlueEnd = Color(0xFF2170E4);
   static const Color _itemPreviewSlate = Color(0xFF1E293B);
+  static final RegExp _wearInputTextPattern = RegExp(r'^(?:\d+|\d*\.\d{0,2})$');
 
   final ApiMarketServer _marketApi = ApiMarketServer();
   final ApiShopProductServer _shopApi = ApiShopProductServer();
@@ -350,6 +352,8 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
     final wearQuickOptions = _buildWearQuickOptions(exteriorKey);
     final minWearHint = wearQuickOptions.first.minText;
     final maxWearHint = wearQuickOptions.last.maxText;
+    final minWearAllowed = wearQuickOptions.first.min;
+    final maxWearAllowed = wearQuickOptions.last.max;
 
     final wearMinController = TextEditingController(
       text: _wearMin != null ? _formatWearValue(_wearMin!) : '',
@@ -357,6 +361,17 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
     final wearMaxController = TextEditingController(
       text: _wearMax != null ? _formatWearValue(_wearMax!) : '',
     );
+    var isClosingFilterSheet = false;
+    final wearInputFormatter = TextInputFormatter.withFunction((
+      oldValue,
+      newValue,
+    ) {
+      final text = newValue.text;
+      if (text.isEmpty || _wearInputTextPattern.hasMatch(text)) {
+        return newValue;
+      }
+      return oldValue;
+    });
 
     final result = await showModalBottomSheet<_BulkWearRange>(
       context: context,
@@ -375,13 +390,43 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
                   (max - option.max).abs() < 0.000001;
             }
 
-            Future<void> closeSheet(_BulkWearRange result) async {
-              FocusManager.instance.primaryFocus?.unfocus();
-              await Future<void>.delayed(const Duration(milliseconds: 10));
-              if (!context.mounted) {
-                return;
+            void normalizeWearTextFields() {
+              final normalized = _normalizeWearRange(
+                minInput: wearMinController.text,
+                maxInput: wearMaxController.text,
+                exteriorKey: exteriorKey,
+              );
+              _syncWearTextController(wearMinController, normalized.min);
+              _syncWearTextController(wearMaxController, normalized.max);
+              if (context.mounted && !isClosingFilterSheet) {
+                setModalState(() {});
               }
+            }
+
+            void handleWearTextChanged(
+              TextEditingController controller, {
+              required double fallbackValue,
+            }) {
+              final boundaryValue = _wearInputBoundaryValue(
+                text: controller.text,
+                minAllowed: minWearAllowed,
+                maxAllowed: maxWearAllowed,
+                fallbackValue: fallbackValue,
+              );
+              if (boundaryValue != null) {
+                _syncWearTextController(controller, boundaryValue);
+              }
+              setModalState(() {});
+            }
+
+            void closeSheet(_BulkWearRange result) {
+              isClosingFilterSheet = true;
               Navigator.of(context).pop(result);
+            }
+
+            void dismissSheet() {
+              isClosingFilterSheet = true;
+              Navigator.of(context).pop();
             }
 
             return AnimatedPadding(
@@ -399,7 +444,7 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
                     title: 'app.market.filter.text'.tr,
                     resetLabel: 'app.market.filter.reset'.tr,
                     onReset: () => closeSheet(const _BulkWearRange()),
-                    onClose: () => Navigator.of(context).pop(),
+                    onClose: dismissSheet,
                     confirmLabel: 'app.market.filter.finish'.tr,
                     onConfirm: () {
                       final normalized = _normalizeWearRange(
@@ -426,7 +471,16 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
                                         const TextInputType.numberWithOptions(
                                           decimal: true,
                                         ),
-                                    onChanged: (_) => setModalState(() {}),
+                                    inputFormatters: [wearInputFormatter],
+                                    textInputAction: TextInputAction.next,
+                                    onChanged: (_) => handleWearTextChanged(
+                                      wearMinController,
+                                      fallbackValue: minWearAllowed,
+                                    ),
+                                    onSubmitted: (_) {
+                                      normalizeWearTextFields();
+                                      FocusScope.of(context).nextFocus();
+                                    },
                                     decoration:
                                         FilterSheetStyle.inputDecoration(
                                           hintText: minWearHint,
@@ -451,7 +505,16 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
                                         const TextInputType.numberWithOptions(
                                           decimal: true,
                                         ),
-                                    onChanged: (_) => setModalState(() {}),
+                                    inputFormatters: [wearInputFormatter],
+                                    textInputAction: TextInputAction.done,
+                                    onChanged: (_) => handleWearTextChanged(
+                                      wearMaxController,
+                                      fallbackValue: maxWearAllowed,
+                                    ),
+                                    onSubmitted: (_) {
+                                      normalizeWearTextFields();
+                                      FocusScope.of(context).unfocus();
+                                    },
                                     decoration:
                                         FilterSheetStyle.inputDecoration(
                                           hintText: maxWearHint,
@@ -646,27 +709,23 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
     final minAllowed = options.first.min;
     final maxAllowed = options.last.max;
 
-    var min = _toDouble(minInput.trim());
-    var max = _toDouble(maxInput.trim());
-
-    if (min != null) {
-      if (min < minAllowed) {
-        min = minAllowed;
-      } else if (min > maxAllowed) {
-        min = maxAllowed;
-      }
-    }
-
-    if (max != null) {
-      if (max < minAllowed) {
-        max = minAllowed;
-      } else if (max > maxAllowed) {
-        max = maxAllowed;
-      }
-    }
+    var min = _normalizeBulkWearInput(
+      _toDouble(minInput.trim()),
+      minAllowed,
+      maxAllowed,
+      fallbackValue: minAllowed,
+    );
+    var max = _normalizeBulkWearInput(
+      _toDouble(maxInput.trim()),
+      minAllowed,
+      maxAllowed,
+      fallbackValue: maxAllowed,
+    );
 
     if (min != null && max != null && min > max) {
+      final nextMin = max;
       max = min;
+      min = nextMin;
     }
 
     return _BulkWearRange(
@@ -689,6 +748,69 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
   }
 
   String _formatWearValue(double value) => value.toStringAsFixed(2);
+
+  double? _normalizeBulkWearInput(
+    double? value,
+    double minAllowed,
+    double maxAllowed, {
+    required double fallbackValue,
+  }) {
+    if (value == null) {
+      return null;
+    }
+    if (value < minAllowed || value > maxAllowed) {
+      return fallbackValue;
+    }
+    return value;
+  }
+
+  double? _wearInputBoundaryValue({
+    required String text,
+    required double minAllowed,
+    required double maxAllowed,
+    required double fallbackValue,
+  }) {
+    final normalized = text.trim();
+    if (normalized.isEmpty || normalized.endsWith('.')) {
+      return null;
+    }
+    final value = _toDouble(normalized);
+    if (value == null) {
+      return null;
+    }
+    if (value > maxAllowed) {
+      return fallbackValue;
+    }
+    if (value < minAllowed && _isCompleteWearLowerInput(normalized)) {
+      return fallbackValue;
+    }
+    return null;
+  }
+
+  bool _isCompleteWearLowerInput(String text) {
+    if (RegExp(r'^0\.0+$').hasMatch(text)) {
+      return true;
+    }
+    final dotIndex = text.indexOf('.');
+    if (dotIndex < 0) {
+      return text.length > 1;
+    }
+    return text.length - dotIndex - 1 >= 2;
+  }
+
+  void _syncWearTextController(
+    TextEditingController controller,
+    double? value,
+  ) {
+    final text = value == null ? '' : _formatWearValue(value);
+    if (controller.text == text) {
+      return;
+    }
+    controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
 
   double? _toDouble(dynamic value) {
     if (value == null) {
