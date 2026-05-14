@@ -227,13 +227,7 @@ class _ExchangeRatePageState extends State<ExchangeRatePage> {
                     ),
                     const SizedBox(height: 2),
                     _singleLineFittedText(
-                      isCurrent
-                          ? (code == 'USD'
-                                ? 'app.user.setting.exchange_rate.default_currency'
-                                      .tr
-                                : 'app.user.setting.exchange_rate.selected_currency'
-                                      .tr)
-                          : _usdPreview(code, rate),
+                      _usdPreview(code, rate),
                       height: 21,
                       style: const TextStyle(
                         color: _mutedColor,
