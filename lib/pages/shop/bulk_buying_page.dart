@@ -1020,7 +1020,7 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
       return;
     }
 
-    final totalAmount = price * num;
+    final totalAmount = _totalAmount();
     if (isPurchaseBalanceInsufficient(totalAmount, fallbackUser: user)) {
       resetSubmittingState();
       AppSnackbar.error(tradeBuyBalanceInsufficientKey.tr);
