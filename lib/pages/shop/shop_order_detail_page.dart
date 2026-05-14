@@ -1558,7 +1558,7 @@ class ShopOrderDetailPage extends StatelessWidget {
       title: party.nickname ?? '-',
       avatarUrl: avatarUrl,
       fallbackIcon: Icons.person_rounded,
-      isOnline: resolveShopOnlineStatus(party.raw),
+      isOnline: extractShopOnlineStatus(party.raw),
       onTap: canOpenShop ? () => _openPartyShop(party, order) : null,
       showChevron: canOpenShop,
       trailing: trailing,

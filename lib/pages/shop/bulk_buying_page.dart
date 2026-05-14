@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
+import 'package:tronskins_app/common/widgets/zero_padding_dropdown.dart';
 import 'package:get/get.dart';
 import 'package:tronskins_app/api/market.dart';
 import 'package:tronskins_app/api/model/market/market_models.dart';
@@ -1325,40 +1326,29 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
         : _phaseUnlimitedValue;
 
     return _buildDropdownContainer(
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: selectedValue,
-          isExpanded: true,
-          menuMaxHeight: 280,
-          borderRadius: BorderRadius.circular(12),
-          dropdownColor: Colors.white,
-          icon: const Icon(
-            Icons.keyboard_arrow_down_rounded,
-            color: _bodyColor,
-          ),
-          style: const TextStyle(
-            color: _titleColor,
-            fontSize: 14,
-            height: 20 / 14,
-            fontWeight: FontWeight.w600,
-          ),
-          items: options
-              .map(
-                (option) => DropdownMenuItem<String>(
-                  value: option.value,
-                  child: Text(option.label),
-                ),
-              )
-              .toList(growable: false),
-          onChanged: (value) {
-            setState(() {
-              _selectedPaintIndex = value == _phaseUnlimitedValue
-                  ? null
-                  : value;
-            });
-            _scheduleMatchedQuery();
-          },
+      child: ZeroPaddingDropdown<String>(
+        value: selectedValue,
+        iconColor: _bodyColor,
+        textStyle: const TextStyle(
+          color: _titleColor,
+          fontSize: 14,
+          height: 20 / 14,
+          fontWeight: FontWeight.w600,
         ),
+        options: options
+            .map(
+              (option) => ZeroPaddingDropdownOption<String>(
+                value: option.value,
+                label: option.label,
+              ),
+            )
+            .toList(growable: false),
+        onChanged: (value) {
+          setState(() {
+            _selectedPaintIndex = value == _phaseUnlimitedValue ? null : value;
+          });
+          _scheduleMatchedQuery();
+        },
       ),
     );
   }
@@ -1417,43 +1407,34 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
   Widget _buildGradientDropdown() {
     final options = _buildGradientOptions();
     return _buildDropdownContainer(
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _currentGradientDropdownValue(options),
-          isExpanded: true,
-          menuMaxHeight: 280,
-          borderRadius: BorderRadius.circular(12),
-          dropdownColor: Colors.white,
-          icon: const Icon(
-            Icons.keyboard_arrow_down_rounded,
-            color: _bodyColor,
-          ),
-          style: const TextStyle(
-            color: _titleColor,
-            fontSize: 14,
-            height: 20 / 14,
-            fontWeight: FontWeight.w600,
-          ),
-          items: options
-              .map(
-                (option) => DropdownMenuItem<String>(
-                  value: option.value,
-                  child: Text(option.label),
-                ),
-              )
-              .toList(growable: false),
-          onChanged: (value) {
-            final option = options.firstWhere(
-              (option) => option.value == value,
-              orElse: () => options.first,
-            );
-            setState(() {
-              _gradientMin = option.min;
-              _gradientMax = option.max;
-            });
-            _scheduleMatchedQuery();
-          },
+      child: ZeroPaddingDropdown<String>(
+        value: _currentGradientDropdownValue(options),
+        iconColor: _bodyColor,
+        textStyle: const TextStyle(
+          color: _titleColor,
+          fontSize: 14,
+          height: 20 / 14,
+          fontWeight: FontWeight.w600,
         ),
+        options: options
+            .map(
+              (option) => ZeroPaddingDropdownOption<String>(
+                value: option.value,
+                label: option.label,
+              ),
+            )
+            .toList(growable: false),
+        onChanged: (value) {
+          final option = options.firstWhere(
+            (option) => option.value == value,
+            orElse: () => options.first,
+          );
+          setState(() {
+            _gradientMin = option.min;
+            _gradientMax = option.max;
+          });
+          _scheduleMatchedQuery();
+        },
       ),
     );
   }
@@ -1464,120 +1445,79 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
             _tierOptions.any((option) => option.id == _selectedTierId)
         ? _selectedTierId.toString()
         : _tierUnlimitedValue;
-    final options = <DropdownMenuItem<String>>[
-      DropdownMenuItem<String>(
+    final options = <ZeroPaddingDropdownOption<String>>[
+      ZeroPaddingDropdownOption<String>(
         value: _tierUnlimitedValue,
-        child: Text(_tierUnlimitedLabel),
+        label: _tierUnlimitedLabel,
       ),
       ..._tierOptions.map(
-        (option) => DropdownMenuItem<String>(
+        (option) => ZeroPaddingDropdownOption<String>(
           value: option.id.toString(),
-          child: Text(option.label),
+          label: option.label,
         ),
       ),
     ];
 
     return _buildDropdownContainer(
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: selectedValue,
-          isExpanded: true,
-          menuMaxHeight: 280,
-          borderRadius: BorderRadius.circular(12),
-          dropdownColor: Colors.white,
-          icon: const Icon(
-            Icons.keyboard_arrow_down_rounded,
-            color: _bodyColor,
-          ),
-          style: const TextStyle(
-            color: _titleColor,
-            fontSize: 14,
-            height: 20 / 14,
-            fontWeight: FontWeight.w600,
-          ),
-          items: options,
-          onChanged: (value) {
-            setState(() {
-              _selectedTierId = value == _tierUnlimitedValue
-                  ? null
-                  : int.tryParse(value ?? '');
-            });
-            _scheduleMatchedQuery();
-          },
+      child: ZeroPaddingDropdown<String>(
+        value: selectedValue,
+        iconColor: _bodyColor,
+        textStyle: const TextStyle(
+          color: _titleColor,
+          fontSize: 14,
+          height: 20 / 14,
+          fontWeight: FontWeight.w600,
         ),
+        options: options,
+        onChanged: (value) {
+          setState(() {
+            _selectedTierId = value == _tierUnlimitedValue
+                ? null
+                : int.tryParse(value);
+          });
+          _scheduleMatchedQuery();
+        },
       ),
     );
   }
 
   Widget _buildWearDropdown(List<_BulkWearQuickOption> quickOptions) {
     final currentValue = _currentWearDropdownValue(quickOptions);
-    final menuLabels = <String>[
-      _wearUnlimitedLabel,
-      ...quickOptions.map(_wearOptionValue),
-      _wearCustomLabel,
-    ];
     final selectedCustomLabel =
         (_filterLabel == null || _filterLabel == _wearUnlimitedLabel)
         ? _wearCustomLabel
         : _filterLabel!;
 
     return _buildDropdownContainer(
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: currentValue,
-          isExpanded: true,
-          menuMaxHeight: 280,
-          borderRadius: BorderRadius.circular(12),
-          dropdownColor: Colors.white,
-          icon: const Icon(
-            Icons.keyboard_arrow_down_rounded,
-            color: _bodyColor,
-          ),
-          style: const TextStyle(
-            color: _titleColor,
-            fontSize: 14,
-            height: 20 / 14,
-            fontWeight: FontWeight.w600,
-          ),
-          selectedItemBuilder: (context) {
-            return menuLabels.map((label) {
-              final displayLabel = label == _wearCustomLabel
-                  ? selectedCustomLabel
-                  : label;
-              return Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  displayLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _titleColor,
-                    fontSize: 14,
-                    height: 20 / 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              );
-            }).toList();
-          },
-          items: [
-            DropdownMenuItem<String>(
-              value: _wearUnlimitedValue,
-              child: Text(_wearUnlimitedLabel),
-            ),
-            ...quickOptions.map(
-              (option) => DropdownMenuItem<String>(
-                value: _wearOptionValue(option),
-                child: Text(_wearOptionValue(option)),
-              ),
-            ),
-            DropdownMenuItem<String>(
-              value: _wearCustomValue,
-              child: Text(_wearCustomLabel),
-            ),
-          ],
-          onChanged: (value) => _handleWearDropdownChanged(value, quickOptions),
+      child: ZeroPaddingDropdown<String>(
+        value: currentValue,
+        selectedLabel: currentValue == _wearCustomValue
+            ? selectedCustomLabel
+            : null,
+        iconColor: _bodyColor,
+        textStyle: const TextStyle(
+          color: _titleColor,
+          fontSize: 14,
+          height: 20 / 14,
+          fontWeight: FontWeight.w600,
         ),
+        options: [
+          ZeroPaddingDropdownOption<String>(
+            value: _wearUnlimitedValue,
+            label: _wearUnlimitedLabel,
+          ),
+          ...quickOptions.map(
+            (option) => ZeroPaddingDropdownOption<String>(
+              value: _wearOptionValue(option),
+              label: _wearOptionValue(option),
+            ),
+          ),
+          ZeroPaddingDropdownOption<String>(
+            value: _wearCustomValue,
+            label: _wearCustomLabel,
+          ),
+        ],
+        onChanged: (value) => _handleWearDropdownChanged(value, quickOptions),
       ),
     );
   }

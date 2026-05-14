@@ -3491,7 +3491,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     final detailFacts = <_OnSaleListingFact>[
       if (percentageLabel != null)
         _OnSaleListingFact(_onSaleGradientLabel, percentageLabel),
-      if (phaseValue != null)
+      if (phaseValue != null && _toolbarPhaseOptions.isNotEmpty)
         _OnSaleListingFact('app.market.csgo.phase'.tr, phaseValue),
       if (tierValue != null) _OnSaleListingFact(_tierFilterLabel, tierValue),
       if (paintSeed != null)

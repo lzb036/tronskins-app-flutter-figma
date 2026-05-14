@@ -16,6 +16,7 @@ ThemeData lightTheme() => ThemeData(
   ),
   scaffoldBackgroundColor: AppColors.light.scaffoldBackground,
   appBarTheme: settingsTopBarAppBarTheme(),
+  popupMenuTheme: const PopupMenuThemeData(menuPadding: EdgeInsets.zero),
   splashFactory: InkRipple.splashFactory,
   extensions: [AppColors.light, AppTextTheme.light()],
 );

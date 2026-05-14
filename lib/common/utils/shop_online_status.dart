@@ -10,14 +10,9 @@ bool? extractShopOnlineStatus(dynamic source) {
     return null;
   }
 
-  for (final key in _onlineKeys) {
-    if (!raw.containsKey(key)) {
-      continue;
-    }
-    final value = _parseOnlineValue(raw[key]);
-    if (value != null) {
-      return value;
-    }
+  final directShopValue = _extractOnlineValue(raw, _shopOnlineKeys);
+  if (directShopValue != null) {
+    return directShopValue;
   }
 
   for (final key in _nestedShopKeys) {
@@ -27,13 +22,12 @@ bool? extractShopOnlineStatus(dynamic source) {
     }
   }
 
-  return null;
+  return _extractOnlineValue(raw, _genericOnlineKeys);
 }
 
-const _onlineKeys = <String>[
+const _shopOnlineKeys = <String>[
   'isOnline',
   'is_online',
-  'online',
   'shopOnline',
   'shop_online',
   'shopStatus',
@@ -42,7 +36,22 @@ const _onlineKeys = <String>[
   'business_status',
 ];
 
+const _genericOnlineKeys = <String>['online'];
+
 const _nestedShopKeys = <String>['shop', 'shopInfo', 'store', 'userShop'];
+
+bool? _extractOnlineValue(Map<String, dynamic> raw, List<String> keys) {
+  for (final key in keys) {
+    if (!raw.containsKey(key)) {
+      continue;
+    }
+    final value = _parseOnlineValue(raw[key]);
+    if (value != null) {
+      return value;
+    }
+  }
+  return null;
+}
 
 Map<String, dynamic>? _asStringKeyedMap(dynamic source) {
   if (source is Map<String, dynamic>) {

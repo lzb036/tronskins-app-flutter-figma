@@ -8,6 +8,7 @@ import 'package:tronskins_app/api/model/market/market_models.dart';
 import 'package:tronskins_app/api/model/shop/shop_models.dart';
 import 'package:tronskins_app/api/shop.dart';
 import 'package:tronskins_app/common/hooks/game/global_game_controller.dart';
+import 'package:tronskins_app/common/utils/shop_online_status.dart';
 import 'package:tronskins_app/components/game/game_switch_menu.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/market/market_showcase_card.dart';
@@ -1382,8 +1383,7 @@ class _SellerShopPageState extends State<SellerShopPage>
       );
     }
 
-    final isOnline =
-        _shopInfo?['isOnline'] == true || _shopInfo?['is_online'] == true;
+    final isOnline = resolveShopOnlineStatus(_shopInfo);
 
     return Container(
       padding: const EdgeInsets.all(12),
