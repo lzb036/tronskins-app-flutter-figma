@@ -29,6 +29,9 @@ class BulkBuyingPage extends StatefulWidget {
 class _BulkBuyingPageState extends State<BulkBuyingPage> {
   static const String _wearUnlimitedValue = '__wear_unlimited__';
   static const String _wearCustomValue = '__wear_custom__';
+  static const String _phaseUnlimitedValue = '__phase_unlimited__';
+  static const String _gradientUnlimitedValue = '__gradient_unlimited__';
+  static const String _tierUnlimitedValue = '__tier_unlimited__';
   static const Color _pageBackground = Color(0xFFF7F9FB);
   static const Color _cardSurface = Colors.white;
   static const Color _fieldSurface = Color(0xFFECEEF0);
@@ -53,6 +56,7 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
   MarketTemplateSchema? _schema;
   List<dynamic>? _paintKits;
   bool _showPaintKits = false;
+  bool _isFadeTemplate = false;
   bool _isLoading = true;
   bool _isSubmitting = false;
   bool _isLoadingMatches = false;
@@ -62,6 +66,11 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
   final List<MarketListItem> _matchedItems = <MarketListItem>[];
   double? _wearMin;
   double? _wearMax;
+  String? _selectedPaintIndex;
+  double? _gradientMin;
+  double? _gradientMax;
+  int? _selectedTierId;
+  List<_BulkTierOption> _tierOptions = const <_BulkTierOption>[];
   String? _filterLabel;
 
   @override
@@ -136,6 +145,40 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
     return !excludedTypes.contains(typeKey);
   }
 
+  bool get _showPhaseFilter {
+    if (_appId != 730) {
+      return false;
+    }
+    return _marketHashNameContains('Doppler');
+  }
+
+  bool get _isFireIceTier => _marketHashNameContains('Marble Fade');
+
+  bool get _showTierFilter => _tierOptions.isNotEmpty;
+
+  bool get _showGradientFilter {
+    if (_appId != 730) {
+      return false;
+    }
+    if (_isFireIceTier && _showTierFilter) {
+      return false;
+    }
+    return _isFadeTemplate || _marketHashNameContains('Fade');
+  }
+
+  String get _tierFilterLabel => _isFireIceTier
+      ? 'app.market.csgo.fire_ice'.tr
+      : 'app.market.csgo.tier'.tr;
+
+  String get _tierUnlimitedLabel => _isFireIceTier
+      ? 'app.market.csgo.fire_ice_unlimited'.tr
+      : 'app.market.csgo.tier_unlimited'.tr;
+
+  bool _marketHashNameContains(String text) {
+    final marketHashName = _schema?.marketHashName ?? '';
+    return marketHashName.toLowerCase().contains(text.toLowerCase());
+  }
+
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
@@ -146,9 +189,16 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
         useAuth: useAuth,
         fallbackToPublicOnFail: true,
       );
-      _schema = res.datas?.schema;
-      _paintKits = res.datas?.paintKits;
+      final detail = res.datas;
+      _schema = detail?.schema;
+      _paintKits = detail?.paintKits;
       _showPaintKits = _isShowPaintKits(_schema, _paintKits);
+      _isFadeTemplate = detail?.fade == true;
+      _selectedPaintIndex = null;
+      _gradientMin = null;
+      _gradientMax = null;
+      _selectedTierId = null;
+      _tierOptions = await _loadTierOptions(detail);
       _filterLabel = _buildFilterLabel();
     } finally {
       if (mounted) {
@@ -163,6 +213,62 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
     }
     final hash = schema.marketHashName?.toLowerCase() ?? '';
     return hash.contains('doppler') || (kits != null && kits.isNotEmpty);
+  }
+
+  Future<List<_BulkTierOption>> _loadTierOptions(
+    MarketTemplateDetail? detail,
+  ) async {
+    if (detail == null || !_shouldShowTierFilter(detail)) {
+      return const <_BulkTierOption>[];
+    }
+    final itemWeapon = _tierItemWeapon(detail);
+    if (itemWeapon == null) {
+      return const <_BulkTierOption>[];
+    }
+    try {
+      final res = await _marketApi.csgoWeaponTierList(itemWeapon: itemWeapon);
+      return _mapTierOptions(res.datas ?? const <MarketTierOption>[]);
+    } catch (_) {
+      return const <_BulkTierOption>[];
+    }
+  }
+
+  bool _shouldShowTierFilter(MarketTemplateDetail? detail) {
+    if (_appId != 730 || detail?.quenching != true) {
+      return false;
+    }
+    final name = detail?.schema?.marketHashName?.toLowerCase() ?? '';
+    return name.contains('case hardened') || name.contains('marble fade');
+  }
+
+  String? _tierItemWeapon(MarketTemplateDetail detail) {
+    final schema = detail.schema;
+    return _cleanText(
+      schema?.itemWeapon ??
+          schema?.raw['itemWeapon']?.toString() ??
+          schema?.raw['item_weapon']?.toString(),
+    );
+  }
+
+  List<_BulkTierOption> _mapTierOptions(List<MarketTierOption> tiers) {
+    final options = <int, _BulkTierOption>{};
+    for (final tier in tiers) {
+      final id = tier.id;
+      final label = _cleanText(tier.tierName);
+      if (id == null || label == null) {
+        continue;
+      }
+      options[id] = _BulkTierOption(id: id, label: label);
+    }
+    return options.values.toList(growable: false);
+  }
+
+  String? _cleanText(String? value) {
+    final text = value?.trim();
+    if (text == null || text.isEmpty) {
+      return null;
+    }
+    return text;
   }
 
   void _sanitizePrice(String value) {
@@ -234,6 +340,12 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
         pageSize: 100,
         maxPrice: maxPrice,
         userId: userId,
+        paintIndex: _selectedPaintIndexAsInt,
+        paintWearMin: _wearMin,
+        paintWearMax: _wearMax,
+        percentageMin: _gradientMin,
+        percentageMax: _gradientMax,
+        tierId: _selectedTierId,
         useAuth: useAuth,
         fallbackToPublicOnFail: true,
       );
@@ -622,6 +734,7 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
       _wearMax = max;
       _filterLabel = _buildFilterLabel();
     });
+    _scheduleMatchedQuery();
   }
 
   Future<void> _handleWearDropdownChanged(
@@ -926,6 +1039,12 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
           'id': _schemaId,
           'paintWearMax': _wearMax,
           'paintWearMin': _wearMin,
+          'percentageMin': _gradientMin,
+          'percentageMax': _gradientMax,
+          'paintGradientMin': _gradientMin,
+          'paintGradientMax': _gradientMax,
+          'paintIndex': _selectedPaintIndex,
+          'tierId': _selectedTierId,
         }..removeWhere((key, value) => value == null),
       );
 
@@ -1128,6 +1247,268 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
     );
   }
 
+  int? get _selectedPaintIndexAsInt {
+    final value = _selectedPaintIndex;
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+    return int.tryParse(value);
+  }
+
+  Widget _buildFilterTitle(String title) {
+    return Text(
+      title.toUpperCase(),
+      style: const TextStyle(
+        color: _bodyColor,
+        fontSize: 12,
+        height: 16 / 12,
+        letterSpacing: 0.6,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+
+  Widget _buildFilterCard({required String title, required Widget child}) {
+    return _buildSurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [_buildFilterTitle(title), const SizedBox(height: 12), child],
+      ),
+    );
+  }
+
+  Widget _buildDropdownContainer({required Widget child}) {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: _fieldSurface,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: child,
+    );
+  }
+
+  List<_BulkPhaseOption> _buildPhaseOptions() {
+    final options = <_BulkPhaseOption>[
+      _BulkPhaseOption(
+        label: 'app.market.csgo.phase_unlimited'.tr,
+        value: _phaseUnlimitedValue,
+      ),
+    ];
+    final seen = <String>{_phaseUnlimitedValue};
+    for (final paintKit in _paintKits ?? const <dynamic>[]) {
+      if (paintKit is! Map) {
+        continue;
+      }
+      final id = paintKit['id']?.toString();
+      if (id == null || id.isEmpty || !seen.add(id)) {
+        continue;
+      }
+      final phase = paintKit['phase']?.toString();
+      options.add(
+        _BulkPhaseOption(
+          label: phase == null || phase.isEmpty ? id : phase,
+          value: id,
+        ),
+      );
+    }
+    return options;
+  }
+
+  Widget _buildPhaseDropdown() {
+    final options = _buildPhaseOptions();
+    final selectedValue = _selectedPaintIndex == null
+        ? _phaseUnlimitedValue
+        : options.any((option) => option.value == _selectedPaintIndex)
+        ? _selectedPaintIndex!
+        : _phaseUnlimitedValue;
+
+    return _buildDropdownContainer(
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: selectedValue,
+          isExpanded: true,
+          menuMaxHeight: 280,
+          borderRadius: BorderRadius.circular(12),
+          dropdownColor: Colors.white,
+          icon: const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: _bodyColor,
+          ),
+          style: const TextStyle(
+            color: _titleColor,
+            fontSize: 14,
+            height: 20 / 14,
+            fontWeight: FontWeight.w600,
+          ),
+          items: options
+              .map(
+                (option) => DropdownMenuItem<String>(
+                  value: option.value,
+                  child: Text(option.label),
+                ),
+              )
+              .toList(growable: false),
+          onChanged: (value) {
+            setState(() {
+              _selectedPaintIndex = value == _phaseUnlimitedValue
+                  ? null
+                  : value;
+            });
+            _scheduleMatchedQuery();
+          },
+        ),
+      ),
+    );
+  }
+
+  List<_BulkGradientOption> _buildGradientOptions() {
+    return <_BulkGradientOption>[
+      _BulkGradientOption(
+        value: _gradientUnlimitedValue,
+        label: 'app.market.csgo.gradient_unlimited'.tr,
+      ),
+      const _BulkGradientOption(
+        value: '95-100',
+        label: '≥95%',
+        min: 95,
+        max: 100,
+      ),
+      const _BulkGradientOption(
+        value: '96-100',
+        label: '≥96%',
+        min: 96,
+        max: 100,
+      ),
+      const _BulkGradientOption(
+        value: '97-100',
+        label: '≥97%',
+        min: 97,
+        max: 100,
+      ),
+      const _BulkGradientOption(
+        value: '98-100',
+        label: '≥98%',
+        min: 98,
+        max: 100,
+      ),
+      const _BulkGradientOption(
+        value: '99-100',
+        label: '≥99%',
+        min: 99,
+        max: 100,
+      ),
+    ];
+  }
+
+  String _currentGradientDropdownValue(List<_BulkGradientOption> options) {
+    if (_gradientMin == null && _gradientMax == null) {
+      return _gradientUnlimitedValue;
+    }
+    for (final option in options) {
+      if (option.min == _gradientMin && option.max == _gradientMax) {
+        return option.value;
+      }
+    }
+    return _gradientUnlimitedValue;
+  }
+
+  Widget _buildGradientDropdown() {
+    final options = _buildGradientOptions();
+    return _buildDropdownContainer(
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _currentGradientDropdownValue(options),
+          isExpanded: true,
+          menuMaxHeight: 280,
+          borderRadius: BorderRadius.circular(12),
+          dropdownColor: Colors.white,
+          icon: const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: _bodyColor,
+          ),
+          style: const TextStyle(
+            color: _titleColor,
+            fontSize: 14,
+            height: 20 / 14,
+            fontWeight: FontWeight.w600,
+          ),
+          items: options
+              .map(
+                (option) => DropdownMenuItem<String>(
+                  value: option.value,
+                  child: Text(option.label),
+                ),
+              )
+              .toList(growable: false),
+          onChanged: (value) {
+            final option = options.firstWhere(
+              (option) => option.value == value,
+              orElse: () => options.first,
+            );
+            setState(() {
+              _gradientMin = option.min;
+              _gradientMax = option.max;
+            });
+            _scheduleMatchedQuery();
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTierDropdown() {
+    final selectedValue =
+        _selectedTierId != null &&
+            _tierOptions.any((option) => option.id == _selectedTierId)
+        ? _selectedTierId.toString()
+        : _tierUnlimitedValue;
+    final options = <DropdownMenuItem<String>>[
+      DropdownMenuItem<String>(
+        value: _tierUnlimitedValue,
+        child: Text(_tierUnlimitedLabel),
+      ),
+      ..._tierOptions.map(
+        (option) => DropdownMenuItem<String>(
+          value: option.id.toString(),
+          child: Text(option.label),
+        ),
+      ),
+    ];
+
+    return _buildDropdownContainer(
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: selectedValue,
+          isExpanded: true,
+          menuMaxHeight: 280,
+          borderRadius: BorderRadius.circular(12),
+          dropdownColor: Colors.white,
+          icon: const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: _bodyColor,
+          ),
+          style: const TextStyle(
+            color: _titleColor,
+            fontSize: 14,
+            height: 20 / 14,
+            fontWeight: FontWeight.w600,
+          ),
+          items: options,
+          onChanged: (value) {
+            setState(() {
+              _selectedTierId = value == _tierUnlimitedValue
+                  ? null
+                  : int.tryParse(value ?? '');
+            });
+            _scheduleMatchedQuery();
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _buildWearDropdown(List<_BulkWearQuickOption> quickOptions) {
     final currentValue = _currentWearDropdownValue(quickOptions);
     final menuLabels = <String>[
@@ -1140,13 +1521,7 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
         ? _wearCustomLabel
         : _filterLabel!;
 
-    return Container(
-      height: 44,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: _fieldSurface,
-        borderRadius: BorderRadius.circular(8),
-      ),
+    return _buildDropdownContainer(
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: currentValue,
@@ -1517,26 +1892,32 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
               ],
             ),
           ),
+          if (_showPhaseFilter) ...[
+            const SizedBox(height: 16),
+            _buildFilterCard(
+              title: 'app.market.csgo.phase'.tr,
+              child: _buildPhaseDropdown(),
+            ),
+          ],
+          if (_showGradientFilter) ...[
+            const SizedBox(height: 16),
+            _buildFilterCard(
+              title: 'app.market.csgo.gradient_range'.tr,
+              child: _buildGradientDropdown(),
+            ),
+          ],
+          if (_showTierFilter) ...[
+            const SizedBox(height: 16),
+            _buildFilterCard(
+              title: _tierFilterLabel,
+              child: _buildTierDropdown(),
+            ),
+          ],
           if (_showFilter) ...[
             const SizedBox(height: 16),
-            _buildSurfaceCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'app.market.filter.csgo.wear_interval'.tr.toUpperCase(),
-                    style: const TextStyle(
-                      color: _bodyColor,
-                      fontSize: 12,
-                      height: 16 / 12,
-                      letterSpacing: 0.6,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildWearDropdown(wearQuickOptions),
-                ],
-              ),
+            _buildFilterCard(
+              title: 'app.market.filter.csgo.wear_interval'.tr,
+              child: _buildWearDropdown(wearQuickOptions),
             ),
           ],
           const SizedBox(height: 20),
@@ -1802,6 +2183,34 @@ class _BulkWearQuickOption {
   String get maxText => max.toStringAsFixed(2);
 
   String get label => '${min.toStringAsFixed(2)}-${max.toStringAsFixed(2)}';
+}
+
+class _BulkPhaseOption {
+  final String label;
+  final String value;
+
+  const _BulkPhaseOption({required this.label, required this.value});
+}
+
+class _BulkGradientOption {
+  final String value;
+  final String label;
+  final double? min;
+  final double? max;
+
+  const _BulkGradientOption({
+    required this.value,
+    required this.label,
+    this.min,
+    this.max,
+  });
+}
+
+class _BulkTierOption {
+  final int id;
+  final String label;
+
+  const _BulkTierOption({required this.id, required this.label});
 }
 
 class _BulkWearRange {
