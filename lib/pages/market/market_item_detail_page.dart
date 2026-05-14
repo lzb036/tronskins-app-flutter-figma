@@ -840,6 +840,9 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
   String _keychainFallbackName(int index) =>
       '${'app.market.item.keychains'.tr} ${index + 1}';
 
+  String _gemFallbackName(int index) =>
+      '${'app.market.item.gem'.tr} ${index + 1}';
+
   String get _pageTitle => 'app.market.product.details'.tr;
 
   String get _currentPriceLabel => 'app.market.item.current_price'.tr;
@@ -1927,6 +1930,94 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     );
   }
 
+  Widget _buildGemDetailRow({
+    required GameItemGem gem,
+    required int index,
+    required CurrencyController currency,
+  }) {
+    final title = gem.name?.trim();
+    final statInfo = gem.statInfo?.trim();
+    final hasPrice = gem.price != null && gem.price! > 0;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: _pageBackground,
+              borderRadius: BorderRadius.circular(8),
+              border: gem.borderColor != null
+                  ? Border.all(color: gem.borderColor!, width: 1.4)
+                  : Border.all(color: const Color(0x0DC4C5D5)),
+            ),
+            child: CachedNetworkImage(
+              imageUrl: gem.imageUrl,
+              fit: BoxFit.contain,
+              fadeInDuration: const Duration(milliseconds: 120),
+              placeholder: (context, _) => const SizedBox.expand(),
+              errorWidget: (context, _, __) => const Icon(
+                Icons.image_not_supported_outlined,
+                size: 18,
+                color: _textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  (title != null && title.isNotEmpty)
+                      ? title
+                      : _gemFallbackName(index),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _textPrimary,
+                    fontSize: 13,
+                    height: 18 / 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (statInfo != null && statInfo.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    statInfo,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _textSecondary,
+                      fontSize: 12,
+                      height: 17 / 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+                if (hasPrice) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    currency.format(gem.price!),
+                    style: const TextStyle(
+                      color: _priceOrange,
+                      fontSize: 12,
+                      height: 17 / 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTopHeroImage({
     required String imageUrl,
     required VoidCallback onTap,
@@ -2534,7 +2625,6 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
                                 const SizedBox(height: 10),
                                 Column(
                                   children: List.generate(gems.length, (index) {
-                                    final gem = gems[index];
                                     return Column(
                                       children: [
                                         if (index > 0)
@@ -2542,71 +2632,10 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
                                             height: 1,
                                             color: Color(0xFFF1F5F9),
                                           ),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 10,
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              Container(
-                                                width: 48,
-                                                height: 48,
-                                                padding: const EdgeInsets.all(
-                                                  4,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: _pageBackground,
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                  border:
-                                                      gem.borderColor != null
-                                                      ? Border.all(
-                                                          color:
-                                                              gem.borderColor!,
-                                                          width: 1.4,
-                                                        )
-                                                      : Border.all(
-                                                          color: const Color(
-                                                            0x0DC4C5D5,
-                                                          ),
-                                                        ),
-                                                ),
-                                                child: CachedNetworkImage(
-                                                  imageUrl: gem.imageUrl,
-                                                  fit: BoxFit.contain,
-                                                  fadeInDuration:
-                                                      const Duration(
-                                                        milliseconds: 120,
-                                                      ),
-                                                  placeholder: (context, _) =>
-                                                      const SizedBox.expand(),
-                                                  errorWidget:
-                                                      (
-                                                        context,
-                                                        _,
-                                                        __,
-                                                      ) => const Icon(
-                                                        Icons
-                                                            .image_not_supported_outlined,
-                                                        size: 18,
-                                                        color: _textSecondary,
-                                                      ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 12),
-                                              Expanded(
-                                                child: Text(
-                                                  '${'app.market.item.gem'.tr} ${index + 1}',
-                                                  style: const TextStyle(
-                                                    color: _textPrimary,
-                                                    fontSize: 13,
-                                                    height: 18 / 13,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                        _buildGemDetailRow(
+                                          gem: gems[index],
+                                          index: index,
+                                          currency: currency,
                                         ),
                                       ],
                                     );

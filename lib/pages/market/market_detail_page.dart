@@ -3734,7 +3734,6 @@ class _MarketDetailPageState extends State<MarketDetailPage>
                 ),
               if (gems.isNotEmpty)
                 _buildOnSaleDecorationGroup(
-                  label: 'app.market.item.gem'.tr,
                   child: GemRow(gems: gems, size: 22),
                 ),
             ],

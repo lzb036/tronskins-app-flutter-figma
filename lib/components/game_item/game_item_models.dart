@@ -42,8 +42,17 @@ class GameItemSticker {
 class GameItemGem {
   final String imageUrl;
   final Color? borderColor;
+  final String? name;
+  final String? statInfo;
+  final double? price;
 
-  const GameItemGem({required this.imageUrl, this.borderColor});
+  const GameItemGem({
+    required this.imageUrl,
+    this.borderColor,
+    this.name,
+    this.statInfo,
+    this.price,
+  });
 }
 
 List<GameItemSticker> parseStickerList(
@@ -158,23 +167,80 @@ List<GameItemGem> parseGemList(dynamic raw) {
   }
   final gems = <GameItemGem>[];
   for (final item in raw) {
-    if (item is Map<String, dynamic>) {
+    if (item is Map) {
+      final gemMap = item.map((key, value) => MapEntry(key.toString(), value));
       final url =
-          item['imageUrl']?.toString() ??
-          item['image_url']?.toString() ??
-          item['image']?.toString();
+          gemMap['imageUrl']?.toString() ??
+          gemMap['image_url']?.toString() ??
+          gemMap['image']?.toString();
       if (url == null || url.isEmpty) {
         continue;
       }
       final border = _parseColor(
-        item['borderColor']?.toString() ?? item['border_color']?.toString(),
+        gemMap['borderColor']?.toString() ?? gemMap['border_color']?.toString(),
       );
-      gems.add(GameItemGem(imageUrl: url, borderColor: border));
+      gems.add(
+        GameItemGem(
+          imageUrl: url,
+          borderColor: border,
+          name: _extractGemText(gemMap, const [
+            'gemType',
+            'gem_type',
+            'market_name',
+            'marketName',
+            'name',
+            'type',
+          ]),
+          statInfo: _extractGemText(gemMap, const [
+            'statInfo',
+            'stat_info',
+            'description',
+            'desc',
+            'value',
+          ]),
+          price: _extractGemDouble(gemMap, const [
+            'market_price',
+            'marketPrice',
+            'price',
+          ]),
+        ),
+      );
     } else if (item is String && item.isNotEmpty) {
       gems.add(GameItemGem(imageUrl: item));
     }
   }
   return gems;
+}
+
+String? _extractGemText(Map<String, dynamic> item, List<String> keys) {
+  for (final key in keys) {
+    final value = item[key];
+    if (value == null) {
+      continue;
+    }
+    final text = value.toString().trim();
+    if (text.isNotEmpty && text != 'null') {
+      return text;
+    }
+  }
+  return null;
+}
+
+double? _extractGemDouble(Map<String, dynamic> item, List<String> keys) {
+  for (final key in keys) {
+    final value = item[key];
+    if (value == null) {
+      continue;
+    }
+    if (value is num) {
+      return value.toDouble();
+    }
+    final parsed = double.tryParse(value.toString());
+    if (parsed != null) {
+      return parsed;
+    }
+  }
+  return null;
 }
 
 String? _extractStickerImageUrl(dynamic item) {
@@ -312,9 +378,29 @@ Color? _parseColor(String? hex) {
   if (hex == null || hex.isEmpty) {
     return null;
   }
-  final normalized = hex.replaceAll('#', '');
-  if (normalized.length == 6) {
-    return Color(int.parse('FF$normalized', radix: 16));
+  final rgbMatch = RegExp(
+    r'rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})',
+  ).firstMatch(hex);
+  if (rgbMatch != null) {
+    final red = int.tryParse(rgbMatch.group(1) ?? '');
+    final green = int.tryParse(rgbMatch.group(2) ?? '');
+    final blue = int.tryParse(rgbMatch.group(3) ?? '');
+    if (red != null &&
+        green != null &&
+        blue != null &&
+        red <= 255 &&
+        green <= 255 &&
+        blue <= 255) {
+      return Color.fromARGB(255, red, green, blue);
+    }
+  }
+  final normalized = hex.replaceAll('#', '').trim();
+  final expanded = normalized.length == 3
+      ? normalized.split('').map((value) => '$value$value').join()
+      : normalized;
+  if (expanded.length == 6) {
+    final value = int.tryParse('FF$expanded', radix: 16);
+    return value == null ? null : Color(value);
   }
   return null;
 }
