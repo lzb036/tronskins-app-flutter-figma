@@ -116,9 +116,13 @@ class _EditPasswordPageState extends State<EditPasswordPage> {
             ? ListView(
                 padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
                 children: [
-                  AccountSettingsHero(
-                    title: 'app.user.setting.password_change'.tr,
-                    description: 'app.user.setting.password_format_tip'.tr,
+                  Text(
+                    'app.user.setting.password_format_tip'.tr,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AccountSettingsPalette.body,
+                      fontSize: 14,
+                      height: 20 / 14,
+                    ),
                   ),
                   const SizedBox(height: 32),
                   _buildPasswordField(

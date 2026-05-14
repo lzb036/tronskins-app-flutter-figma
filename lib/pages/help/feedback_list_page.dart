@@ -239,11 +239,11 @@ class _FeedbackTicketCard extends StatelessWidget {
     final title = item.title?.trim();
     final content = item.context?.trim();
     return Container(
-      decoration: _FeedbackStyle.cardDecoration,
+      decoration: _FeedbackStyle.ticketCardDecoration,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: _FeedbackStyle.cardRadius,
+          borderRadius: _FeedbackStyle.ticketCardRadius,
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -530,7 +530,7 @@ class _FeedbackTicketSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: _FeedbackStyle.cardDecoration,
+      decoration: _FeedbackStyle.ticketCardDecoration,
       child: const SizedBox(
         height: 140.25,
         child: Column(
@@ -605,7 +605,21 @@ class _FeedbackStyle {
   static const glassTopBar = Color.fromRGBO(248, 250, 252, 0.7);
   static const contentBottomPadding = 24.0;
 
+  static const ticketCardRadius = BorderRadius.zero;
   static final cardRadius = BorderRadius.circular(12);
+
+  static final ticketCardDecoration = BoxDecoration(
+    color: card,
+    borderRadius: ticketCardRadius,
+    border: Border.all(color: border),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.04),
+        blurRadius: 4,
+        offset: const Offset(0, 2),
+      ),
+    ],
+  );
 
   static final cardDecoration = BoxDecoration(
     color: card,

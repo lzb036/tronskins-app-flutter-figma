@@ -4759,51 +4759,56 @@ class _MarketDetailPageState extends State<MarketDetailPage>
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          GestureDetector(
-                            onTap: (user?.uuid?.isNotEmpty ?? false)
-                                ? () => Get.toNamed(
-                                    Routers.MARKET_SELLER_SHOP,
-                                    arguments: {
-                                      'uuid': user!.uuid,
-                                      'appId': controller.appId,
-                                      'shopInfo': {
-                                        'uuid': user.uuid,
-                                        if (user.nickname?.isNotEmpty ?? false)
-                                          'name': user.nickname,
-                                        if (user.avatar?.isNotEmpty ?? false)
-                                          'avatar': user.avatar,
+                          Expanded(
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: (user?.uuid?.isNotEmpty ?? false)
+                                  ? () => Get.toNamed(
+                                      Routers.MARKET_SELLER_SHOP,
+                                      arguments: {
+                                        'uuid': user!.uuid,
+                                        'appId': controller.appId,
+                                        'shopInfo': {
+                                          'uuid': user.uuid,
+                                          if (user.nickname?.isNotEmpty ??
+                                              false)
+                                            'name': user.nickname,
+                                          if (user.avatar?.isNotEmpty ?? false)
+                                            'avatar': user.avatar,
+                                        },
                                       },
-                                    },
-                                  )
-                                : null,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                CircleAvatar(
-                                  radius: 12,
-                                  backgroundImage: avatar.isNotEmpty
-                                      ? CachedNetworkImageProvider(avatar)
-                                      : null,
-                                  child: avatar.isEmpty
-                                      ? const Icon(Icons.person, size: 12)
-                                      : null,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  buyerName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: _figmaSlate900,
-                                    fontSize: 11.5,
-                                    height: 13 / 11.5,
-                                    fontWeight: FontWeight.w600,
+                                    )
+                                  : null,
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 12,
+                                    backgroundImage: avatar.isNotEmpty
+                                        ? CachedNetworkImageProvider(avatar)
+                                        : null,
+                                    child: avatar.isEmpty
+                                        ? const Icon(Icons.person, size: 12)
+                                        : null,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      buyerName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: _figmaSlate900,
+                                        fontSize: 11.5,
+                                        height: 13 / 11.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 12),
                           buildHeaderActionButtons(),
                         ],
                       ),

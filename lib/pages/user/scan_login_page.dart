@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:tronskins_app/api/loginServer.dart';
+import 'package:tronskins_app/common/theme/app_colors.dart';
+import 'package:tronskins_app/common/theme/app_text_theme.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 
 class ScanLoginPage extends StatefulWidget {
   const ScanLoginPage({super.key});
@@ -148,7 +150,18 @@ class _ScanLoginPageState extends State<ScanLoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final appColors =
+        theme.extension<AppColors>() ??
+        (theme.brightness == Brightness.dark
+            ? AppColors.dark
+            : AppColors.light);
+    final appTextTheme =
+        theme.extension<AppTextTheme>() ??
+        (theme.brightness == Brightness.dark
+            ? AppTextTheme.dark()
+            : AppTextTheme.light());
+
     return PopScope(
       canPop: _pendingQrCode == null || _submitting,
       onPopInvokedWithResult: (didPop, result) async {
@@ -158,26 +171,33 @@ class _ScanLoginPageState extends State<ScanLoginPage> {
         await _resumeScanner();
       },
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: appColors.scaffoldBackground,
         appBar: SettingsStyleAppBar(
           title: Text('app.user.login.scan_title'.tr),
         ),
         body: AnimatedSwitcher(
           duration: const Duration(milliseconds: 220),
           child: _pendingQrCode == null
-              ? _buildScannerView(colorScheme)
-              : _buildConfirmView(context, colorScheme),
+              ? _buildScannerView(appColors, appTextTheme)
+              : _buildConfirmView(appColors, appTextTheme),
         ),
       ),
     );
   }
 
-  Widget _buildScannerView(ColorScheme colorScheme) {
+  Widget _buildScannerView(AppColors appColors, AppTextTheme appTextTheme) {
     return Stack(
       key: const ValueKey('scan'),
       fit: StackFit.expand,
       children: [
         MobileScanner(controller: _scannerController, onDetect: _onDetect),
+        IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: appColors.info.withValues(alpha: 0.46),
+            ),
+          ),
+        ),
         IgnorePointer(
           child: Center(
             child: Container(
@@ -185,10 +205,18 @@ class _ScanLoginPageState extends State<ScanLoginPage> {
               height: 220,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(24),
+                color: appColors.surface.withValues(alpha: 0.08),
                 border: Border.all(
-                  color: colorScheme.primary.withValues(alpha: 0.9),
+                  color: appColors.primary.withValues(alpha: 0.95),
                   width: 3,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: appColors.primary.withValues(alpha: 0.18),
+                    blurRadius: 24,
+                    spreadRadius: 1,
+                  ),
+                ],
               ),
             ),
           ),
@@ -200,15 +228,24 @@ class _ScanLoginPageState extends State<ScanLoginPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.55),
+              color: appColors.surface.withValues(alpha: 0.94),
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: appColors.primary.withValues(alpha: 0.16),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: appColors.info.withValues(alpha: 0.12),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
             child: Text(
               'app.user.login.scan_prompt'.tr,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
+              style: appTextTheme.bodyMedium.copyWith(
+                color: appColors.textPrimary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -218,7 +255,7 @@ class _ScanLoginPageState extends State<ScanLoginPage> {
     );
   }
 
-  Widget _buildConfirmView(BuildContext context, ColorScheme colorScheme) {
+  Widget _buildConfirmView(AppColors appColors, AppTextTheme appTextTheme) {
     return Container(
       key: const ValueKey('confirm'),
       width: double.infinity,
@@ -228,8 +265,9 @@ class _ScanLoginPageState extends State<ScanLoginPage> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            colorScheme.surface,
-            colorScheme.primaryContainer.withValues(alpha: 0.36),
+            appColors.scaffoldBackground,
+            appColors.surfaceVariant,
+            appColors.primary.withValues(alpha: 0.1),
           ],
         ),
       ),
@@ -243,27 +281,28 @@ class _ScanLoginPageState extends State<ScanLoginPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
-                  color: colorScheme.surface.withValues(alpha: 0.92),
+                  color: appColors.surface.withValues(alpha: 0.96),
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(
-                    color: colorScheme.outlineVariant.withValues(alpha: 0.45),
+                    color: appColors.border.withValues(alpha: 0.35),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 28,
+                      color: appColors.info.withValues(alpha: 0.08),
+                      blurRadius: 36,
                       offset: const Offset(0, 12),
                     ),
                   ],
                 ),
                 child: Column(
                   children: [
-                    _buildDesktopPreview(colorScheme),
+                    _buildDesktopPreview(appColors),
                     const SizedBox(height: 22),
                     Text(
                       'app.user.login.browser_confirm'.tr,
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      style: appTextTheme.titleLarge.copyWith(
+                        color: appColors.textPrimary,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -276,6 +315,13 @@ class _ScanLoginPageState extends State<ScanLoginPage> {
                                 ? null
                                 : () => _cancelScan(_pendingQrCode!),
                             style: OutlinedButton.styleFrom(
+                              foregroundColor: appColors.primary,
+                              backgroundColor: appColors.surfaceVariant,
+                              side: BorderSide(
+                                color: appColors.primary.withValues(
+                                  alpha: 0.45,
+                                ),
+                              ),
                               minimumSize: const Size.fromHeight(48),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
@@ -291,17 +337,22 @@ class _ScanLoginPageState extends State<ScanLoginPage> {
                                 ? null
                                 : () => _confirmScan(_pendingQrCode!),
                             style: FilledButton.styleFrom(
+                              foregroundColor: appColors.onPrimary,
+                              backgroundColor: appColors.primary,
+                              disabledBackgroundColor: appColors.primary
+                                  .withValues(alpha: 0.58),
                               minimumSize: const Size.fromHeight(48),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
                             ),
                             child: _submitting
-                                ? const SizedBox(
+                                ? SizedBox(
                                     width: 18,
                                     height: 18,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
+                                      color: appColors.onPrimary,
                                     ),
                                   )
                                 : Text('app.user.login.title'.tr),
@@ -320,7 +371,7 @@ class _ScanLoginPageState extends State<ScanLoginPage> {
     );
   }
 
-  Widget _buildDesktopPreview(ColorScheme colorScheme) {
+  Widget _buildDesktopPreview(AppColors appColors) {
     return SizedBox(
       width: 170,
       height: 132,
@@ -337,13 +388,13 @@ class _ScanLoginPageState extends State<ScanLoginPage> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    colorScheme.primaryContainer,
-                    colorScheme.secondaryContainer,
+                    appColors.primary.withValues(alpha: 0.18),
+                    appColors.surfaceVariant,
                   ],
                 ),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: colorScheme.primary.withValues(alpha: 0.18),
+                  color: appColors.primary.withValues(alpha: 0.26),
                 ),
               ),
               child: Column(
@@ -351,12 +402,10 @@ class _ScanLoginPageState extends State<ScanLoginPage> {
                 children: [
                   CircleAvatar(
                     radius: 20,
-                    backgroundColor: colorScheme.primary.withValues(
-                      alpha: 0.14,
-                    ),
+                    backgroundColor: appColors.primary.withValues(alpha: 0.12),
                     child: Icon(
                       Icons.desktop_windows_rounded,
-                      color: colorScheme.primary,
+                      color: appColors.primary,
                       size: 22,
                     ),
                   ),
@@ -364,7 +413,7 @@ class _ScanLoginPageState extends State<ScanLoginPage> {
                   Text(
                     'PC',
                     style: TextStyle(
-                      color: colorScheme.primary,
+                      color: appColors.primary,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.1,
                     ),
@@ -379,7 +428,7 @@ class _ScanLoginPageState extends State<ScanLoginPage> {
               width: 44,
               height: 10,
               decoration: BoxDecoration(
-                color: colorScheme.outlineVariant,
+                color: appColors.border,
                 borderRadius: BorderRadius.circular(999),
               ),
             ),
@@ -390,7 +439,7 @@ class _ScanLoginPageState extends State<ScanLoginPage> {
               width: 78,
               height: 8,
               decoration: BoxDecoration(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+                color: appColors.border.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(999),
               ),
             ),

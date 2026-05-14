@@ -29,6 +29,7 @@ class _NotifyBulletinListState extends State<NotifyBulletinList> {
   static const Color _chevronColor = Color(0xFFC4C5D5);
   static const Color _unreadDotColor = Color(0xFFBA1A1A);
   static const Color _accentBlue = Color(0xFF1E40AF);
+  static const BorderRadius _cardRadius = BorderRadius.zero;
 
   final ScrollController _scrollController = ScrollController();
 
@@ -71,7 +72,7 @@ class _NotifyBulletinListState extends State<NotifyBulletinList> {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: _cardRadius,
         border: Border.all(color: _cardBorder),
         boxShadow: const [
           BoxShadow(color: _cardShadow, blurRadius: 20, offset: Offset(0, 4)),
@@ -79,9 +80,9 @@ class _NotifyBulletinListState extends State<NotifyBulletinList> {
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: _cardRadius,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: _cardRadius,
           onTap: () {
             final id = item.id;
             if (id != null) {
@@ -289,7 +290,7 @@ class _NoticeSkeletonCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: _NotifyBulletinListState._cardRadius,
         border: Border.all(color: _NotifyBulletinListState._cardBorder),
         boxShadow: const [
           BoxShadow(

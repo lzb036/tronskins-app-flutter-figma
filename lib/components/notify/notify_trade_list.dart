@@ -32,6 +32,7 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
   static const Color _chevronColor = Color(0xFFC4C5D5);
   static const Color _unreadDotColor = Color(0xFFBA1A1A);
   static const Color _accentBlue = Color(0xFF1E40AF);
+  static const BorderRadius _cardRadius = BorderRadius.zero;
 
   final ScrollController _scrollController = ScrollController();
 
@@ -220,7 +221,7 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: _cardRadius,
         border: Border.all(color: _cardBorder),
         boxShadow: const [
           BoxShadow(color: _cardShadow, blurRadius: 20, offset: Offset(0, 4)),
@@ -228,10 +229,10 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: _cardRadius,
         child: InkWell(
           onTap: () => _openDetail(item),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: _cardRadius,
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 90),
             child: Padding(
@@ -402,7 +403,7 @@ class _NotifyTradeListState extends State<NotifyTradeList> {
                                         foregroundColor: Colors.white,
                                         icon: Icons.delete_outline_rounded,
                                         label: 'app.common.delete'.tr,
-                                        borderRadius: BorderRadius.circular(12),
+                                        borderRadius: _cardRadius,
                                       ),
                                     ],
                                   )
@@ -463,7 +464,7 @@ class _TradeSkeletonCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: _NotifyTradeListState._cardRadius,
         border: Border.all(color: _NotifyTradeListState._cardBorder),
         boxShadow: const [
           BoxShadow(
