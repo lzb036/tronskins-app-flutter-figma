@@ -413,23 +413,12 @@ class ShopListResponse<T> {
       });
     }
 
-    final rawSchemas = json['schemas'];
     final schemas = <String, ShopSchemaInfo>{};
-    if (rawSchemas is Map<String, dynamic>) {
-      rawSchemas.forEach((key, value) {
-        if (value is Map<String, dynamic>) {
-          schemas[key] = ShopSchemaInfo.fromJson(value);
-        }
-      });
-    }
+    _addSchemaEntries(schemas, json['schemas']);
 
-    final rawStickers = json['stickers'];
-    final stickers = <String, dynamic>{};
-    if (rawStickers is Map) {
-      rawStickers.forEach((key, value) {
-        stickers[key.toString()] = value;
-      });
-    }
+    final stickers = _parseDynamicMap(json['stickers']);
+    _addSchemaEntries(schemas, stickers);
+    _addSchemaEntries(schemas, json['keychains']);
 
     final pager = json['pager'] is Map<String, dynamic>
         ? ShopPager.fromJson(json['pager'] as Map<String, dynamic>)
@@ -533,23 +522,12 @@ class InventoryResponse {
               .toList()
         : <InventoryItem>[];
 
-    final rawSchemas = json['schemas'];
     final schemas = <String, ShopSchemaInfo>{};
-    if (rawSchemas is Map<String, dynamic>) {
-      rawSchemas.forEach((key, value) {
-        if (value is Map<String, dynamic>) {
-          schemas[key] = ShopSchemaInfo.fromJson(value);
-        }
-      });
-    }
+    _addSchemaEntries(schemas, json['schemas']);
 
-    final rawStickers = json['stickers'];
-    final stickers = <String, dynamic>{};
-    if (rawStickers is Map) {
-      rawStickers.forEach((key, value) {
-        stickers[key.toString()] = value;
-      });
-    }
+    final stickers = _parseDynamicMap(json['stickers']);
+    _addSchemaEntries(schemas, stickers);
+    _addSchemaEntries(schemas, json['keychains']);
 
     final pager = json['pager'] is Map<String, dynamic>
         ? ShopPager.fromJson(json['pager'] as Map<String, dynamic>)
@@ -586,6 +564,70 @@ Map<String, dynamic>? _pickAsset(Map<String, dynamic> json, int? appId) {
         : null;
   }
   return null;
+}
+
+Map<String, dynamic> _parseDynamicMap(dynamic raw) {
+  final result = <String, dynamic>{};
+  if (raw is Map) {
+    raw.forEach((key, value) {
+      result[key.toString()] = value;
+    });
+  }
+  return result;
+}
+
+void _addSchemaEntries(
+  Map<String, ShopSchemaInfo> schemas,
+  dynamic rawSchemas,
+) {
+  if (rawSchemas is! Map) {
+    return;
+  }
+  rawSchemas.forEach((key, value) {
+    final raw = _asStringKeyMap(value);
+    if (raw == null) {
+      return;
+    }
+    _putSchemaAliases(
+      schemas,
+      key: key.toString(),
+      schema: ShopSchemaInfo.fromJson(raw),
+    );
+  });
+}
+
+Map<String, dynamic>? _asStringKeyMap(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return value;
+  }
+  if (value is Map) {
+    return value.map((key, value) => MapEntry(key.toString(), value));
+  }
+  return null;
+}
+
+void _putSchemaAliases(
+  Map<String, ShopSchemaInfo> schemas, {
+  required String key,
+  required ShopSchemaInfo schema,
+}) {
+  final aliases = <String?>[
+    key,
+    schema.marketHashName,
+    schema.marketName,
+    schema.raw['id']?.toString(),
+    schema.raw['schema_id']?.toString(),
+    schema.raw['schemaId']?.toString(),
+    schema.raw['baseId']?.toString(),
+    schema.raw['base_id']?.toString(),
+  ];
+  for (final alias in aliases) {
+    final normalized = alias?.trim();
+    if (normalized == null || normalized.isEmpty || normalized == 'null') {
+      continue;
+    }
+    schemas.putIfAbsent(normalized, () => schema);
+  }
 }
 
 int? _asInt(dynamic value) {

@@ -697,9 +697,22 @@ class _ShopPageState extends State<ShopPage>
   }
 
   List<ShopOrderDetail> _pendingVisibleDetails(ShopOrderItem order) {
-    return order.details
-        .where((detail) => !_isPendingHiddenAccessoryDetail(detail))
-        .toList(growable: false);
+    if (order.details.isEmpty) {
+      return const <ShopOrderDetail>[];
+    }
+    final visibleDetails = <ShopOrderDetail>[];
+    var hiddenAccessoryCount = 0;
+    for (final detail in order.details) {
+      if (_isPendingHiddenAccessoryDetail(detail)) {
+        hiddenAccessoryCount += 1;
+      } else {
+        visibleDetails.add(detail);
+      }
+    }
+    if (hiddenAccessoryCount == order.details.length) {
+      return order.details;
+    }
+    return visibleDetails;
   }
 
   bool _isPendingHiddenAccessoryDetail(ShopOrderDetail detail) {
