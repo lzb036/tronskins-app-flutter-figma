@@ -14,7 +14,7 @@ import 'package:tronskins_app/common/theme/light_theme.dart';
 import 'package:tronskins_app/common/theme/system_ui_overlay_style.dart';
 import 'package:tronskins_app/common/widgets/app_request_loading_overlay.dart';
 import 'package:tronskins_app/common/widgets/auth_session_expired_listener.dart';
-import 'package:tronskins_app/common/widgets/flutter_patcher_update_gate.dart';
+import 'package:tronskins_app/common/widgets/app_hot_update_gate.dart';
 import 'package:tronskins_app/common/widgets/restart_widget.dart';
 import 'package:tronskins_app/l10n/app_translations.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
@@ -63,9 +63,7 @@ class MyApp extends StatelessWidget {
           data: media.copyWith(textScaler: TextScaler.noScaling),
           child: AuthSessionExpiredListener(
             child: AppRequestLoadingOverlay(
-              child: FlutterPatcherUpdateGate(
-                child: child ?? const SizedBox.shrink(),
-              ),
+              child: AppHotUpdateGate(child: child ?? const SizedBox.shrink()),
             ),
           ),
         );

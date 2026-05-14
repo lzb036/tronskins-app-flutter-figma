@@ -352,6 +352,113 @@ https://patch.tronskins.com/flutter-patcher/android/1.0.1_1/arm64-v8a/1.0.1-hotf
 }
 ```
 
+## 10.1 本地模拟热更
+
+因为正式接口还没开发完，项目里额外保留了一套本地模拟入口。
+
+这个入口默认关闭，不影响正式 `flutter_patcher`、Shorebird 和多元降级热更。只有本地打包时显式加开关，才会启用。
+
+新增文件：
+
+| 文件 | 作用 |
+|---|---|
+| `lib/common/widgets/app_hot_update_gate.dart` | 热更入口选择器，默认走正式 `FlutterPatcherUpdateGate` |
+| `lib/common/widgets/local_flutter_patcher_update_gate.dart` | 本地模拟热更入口，只在本地开关打开时使用 |
+
+### 10.1.1 本地模拟思路
+
+```text
+本地启动一个静态文件服务
+  -> 放一个 patch.json
+  -> patch.json 里写 forwardUrl
+  -> forwardUrl 指向本地 libapp.so
+  -> App 下载并安装
+  -> 冷启动后验证热更是否生效
+```
+
+本地 `patch.json` 示例：
+
+```json
+{
+  "forwardUrl": "libapp.so",
+  "version": "1.0.1-local.1",
+  "md5": "",
+  "targetVersionCode": 1
+}
+```
+
+说明：
+
+- `forwardUrl` 可以写完整地址，也可以像上面一样写相对路径。
+- `version` 每次测试新补丁建议递增。
+- `md5` 可以先留空，留空时跳过 MD5 校验。
+- `targetVersionCode` 要等于当前基础 APK 的 versionCode。
+
+### 10.1.2 启动本地文件服务
+
+把 `patch.json` 和 `libapp.so` 放在同一个目录，然后运行：
+
+```powershell
+python -m http.server 8787
+```
+
+如果是 Android 模拟器访问电脑本地服务，地址用：
+
+```text
+http://10.0.2.2:8787/patch.json
+```
+
+如果是真机访问电脑本地服务，地址用电脑局域网 IP，例如：
+
+```text
+http://192.168.1.10:8787/patch.json
+```
+
+### 10.1.3 打本地测试包
+
+本地模拟入口通过 `dart-define` 开启：
+
+```powershell
+flutter build apk --release `
+  --build-name=1.0.1 `
+  --build-number=1 `
+  --dart-define=TRONSKINS_LOCAL_PATCHER_ENABLED=true `
+  --dart-define=TRONSKINS_LOCAL_PATCHER_MANIFEST_URL=http://10.0.2.2:8787/patch.json
+```
+
+也可以直接运行到设备：
+
+```powershell
+flutter run --release `
+  --dart-define=TRONSKINS_LOCAL_PATCHER_ENABLED=true `
+  --dart-define=TRONSKINS_LOCAL_PATCHER_MANIFEST_URL=http://10.0.2.2:8787/patch.json
+```
+
+### 10.1.4 本地完整测试顺序
+
+1. 先安装一个基础 APK，里面打开本地热更开关。
+2. 修改 Dart 代码，例如改一个页面文案。
+3. 保持 `versionName` 和 `versionCode` 不变，重新构建 release APK。
+4. 用 `flutter_patcher:pack` 打出 `libapp.so`。
+5. 把 `libapp.so` 和 `patch.json` 放到本地静态服务目录。
+6. 打开基础 APK，它会读取本地 `patch.json` 并下载 `libapp.so`。
+7. 安装完成后，完全关闭 App 再重新打开。
+8. 如果修改后的 Dart 代码生效，就说明本地热更链路可行。
+
+### 10.1.5 可用的本地开关
+
+| 参数 | 说明 |
+|---|---|
+| `TRONSKINS_LOCAL_PATCHER_ENABLED` | 是否启用本地模拟热更 |
+| `TRONSKINS_LOCAL_PATCHER_MANIFEST_URL` | 本地 `patch.json` 地址 |
+| `TRONSKINS_LOCAL_PATCHER_URL` | 不使用 `patch.json` 时，直接填写 `libapp.so` 地址 |
+| `TRONSKINS_LOCAL_PATCHER_VERSION` | 直接填写 `libapp.so` 地址时使用的补丁版本 |
+| `TRONSKINS_LOCAL_PATCHER_MD5` | 可选，补丁 MD5 |
+| `TRONSKINS_LOCAL_PATCHER_TARGET_VERSION_CODE` | 可选，目标 versionCode |
+| `TRONSKINS_LOCAL_PATCHER_SIGNATURE` | 可选，签名 |
+
+正常发版不要带这些本地开关。
+
 ## 11. 灰度发布建议
 
 不要直接全量。
