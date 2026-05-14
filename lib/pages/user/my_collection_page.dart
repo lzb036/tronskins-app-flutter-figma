@@ -83,6 +83,14 @@ double? _parsePaintWear(String? value) {
   return double.tryParse(value);
 }
 
+String? _paintWearDisplayText(String? value) {
+  final text = value?.trim();
+  if (text == null || text.isEmpty || text == 'null') {
+    return null;
+  }
+  return text;
+}
+
 String _gameLabelForAppId(int appId) {
   for (final option in _collectionGameOptions) {
     if (option.appId == appId) {
@@ -1747,7 +1755,8 @@ class _CollectionFavoriteCard extends StatelessWidget {
     final rarity = TagInfo.fromMarketTag(tags?.rarity);
     final exterior = TagInfo.fromMarketTag(tags?.exterior);
     final title = _collectionTitle(item.marketHashName, item.marketName);
-    final wear = _parsePaintWear(item.paintWear);
+    final wearText = _paintWearDisplayText(item.paintWear);
+    final wear = _parsePaintWear(wearText);
     final accessories = _favoriteAccessoryItems(item);
     final compactPrice = item.price == null
         ? null
@@ -1763,93 +1772,94 @@ class _CollectionFavoriteCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: _collectionFavoriteCardDecoration(),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Stack(
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.zero,
-                        child: SizedBox(
-                          width: 80,
-                          height: 80,
-                          child: GameItemImage(
-                            imageUrl: item.imageUrl,
-                            appId: item.appId,
-                            quality: quality,
-                            rarity: rarity,
-                            exterior: exterior,
-                            showTopBadges: false,
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.zero,
+                            child: SizedBox(
+                              width: 80,
+                              height: 80,
+                              child: GameItemImage(
+                                imageUrl: item.imageUrl,
+                                appId: item.appId,
+                                quality: quality,
+                                rarity: rarity,
+                                exterior: exterior,
+                                showTopBadges: false,
+                              ),
+                            ),
                           ),
+                          if (exterior?.hasLabel == true)
+                            Positioned(
+                              top: 4,
+                              left: 4,
+                              child: _CollectionCompactExteriorBadge(
+                                label: exterior!.label!,
+                                color:
+                                    parseHexColor(exterior.color) ??
+                                    const Color(0xFF397439),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF191C1E),
+                                fontSize: 15,
+                                height: 18.75 / 15,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            if (wear != null) ...[
+                              const SizedBox(height: 12),
+                              _CollectionFavoriteWearMetric(
+                                wear: wear,
+                                wearText: wearText ?? wear.toString(),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                      if (exterior?.hasLabel == true)
-                        Positioned(
-                          top: 4,
-                          left: 4,
-                          child: _CollectionCompactExteriorBadge(
-                            label: exterior!.label!,
-                            color:
-                                parseHexColor(exterior.color) ??
-                                const Color(0xFF397439),
-                          ),
-                        ),
                     ],
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  if (accessories.isNotEmpty || compactPrice != null) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text(
-                          title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF191C1E),
-                            fontSize: 15,
-                            height: 18.75 / 15,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        if (wear != null) ...[
-                          const SizedBox(height: 12),
-                          _CollectionFavoriteWearMetric(wear: wear),
-                        ],
-                        if (accessories.isNotEmpty || compactPrice != null) ...[
-                          const SizedBox(height: 12),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              if (accessories.isNotEmpty)
-                                Expanded(
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: _CollectionAccessoryPreviewRow(
-                                      items: accessories,
-                                    ),
-                                  ),
-                                )
-                              else
-                                const Spacer(),
-                              if (compactPrice != null)
-                                Text(
-                                  compactPrice,
-                                  style: const TextStyle(
-                                    color: Color(0x99444653),
-                                    fontFamily: 'Space Grotesk',
-                                    fontSize: 10,
-                                    height: 15 / 10,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
+                        if (accessories.isNotEmpty)
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: _CollectionAccessoryPreviewRow(
+                                items: accessories,
+                              ),
+                            ),
+                          )
+                        else
+                          const Spacer(),
+                        if (accessories.isNotEmpty && compactPrice != null)
+                          const SizedBox(width: 8),
+                        if (compactPrice != null)
+                          _CollectionFavoritePriceText(value: compactPrice),
                       ],
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -2002,10 +2012,44 @@ class _CollectionPriceMetric extends StatelessWidget {
   }
 }
 
+class _CollectionFavoritePriceText extends StatelessWidget {
+  const _CollectionFavoritePriceText({required this.value});
+
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 112),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text(
+          value,
+          maxLines: 1,
+          softWrap: false,
+          overflow: TextOverflow.visible,
+          style: const TextStyle(
+            color: Color(0xFFFF6B35),
+            fontFamily: 'Space Grotesk',
+            fontSize: 18,
+            height: 28 / 18,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CollectionFavoriteWearMetric extends StatelessWidget {
-  const _CollectionFavoriteWearMetric({required this.wear});
+  const _CollectionFavoriteWearMetric({
+    required this.wear,
+    required this.wearText,
+  });
 
   final double wear;
+  final String wearText;
 
   @override
   Widget build(BuildContext context) {
@@ -2013,14 +2057,24 @@ class _CollectionFavoriteWearMetric extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          wear.toStringAsFixed(7),
-          style: const TextStyle(
-            color: Color(0xFF191C1E),
-            fontFamily: 'Space Grotesk',
-            fontSize: 12,
-            height: 18 / 12,
-            fontWeight: FontWeight.w700,
+        Align(
+          alignment: Alignment.centerLeft,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              wearText,
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.visible,
+              style: const TextStyle(
+                color: Color(0xFF191C1E),
+                fontFamily: 'Space Grotesk',
+                fontSize: 12,
+                height: 18 / 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 6),
@@ -2147,22 +2201,56 @@ class _CollectionCompactExteriorBadge extends StatelessWidget {
 class _CollectionAccessoryPreviewRow extends StatelessWidget {
   const _CollectionAccessoryPreviewRow({required this.items});
 
+  static const double _tileSize = 24;
+  static const double _gap = 8;
+  static const int _maxVisibleCount = 6;
+
   final List<_CollectionAccessoryPreviewData> items;
+
+  int _visibleCountForWidth(double maxWidth) {
+    if (items.isEmpty || maxWidth < _tileSize) {
+      return 0;
+    }
+    var visible = items.length < _maxVisibleCount
+        ? items.length
+        : _maxVisibleCount;
+    while (visible > 1) {
+      final hasOverflow = items.length > visible;
+      final tileCount = visible + (hasOverflow ? 1 : 0);
+      final width = tileCount * _tileSize + (tileCount - 1) * _gap;
+      if (width <= maxWidth) {
+        return visible;
+      }
+      visible -= 1;
+    }
+    return 1;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final visibleItems = items.take(6).toList(growable: false);
-    final overflow = items.length - visibleItems.length;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var i = 0; i < visibleItems.length; i++) ...[
-          _CollectionAccessoryPreviewTile(item: visibleItems[i]),
-          if (i != visibleItems.length - 1 || overflow > 0)
-            const SizedBox(width: 8),
-        ],
-        if (overflow > 0) _CollectionAccessoryOverflowTile(count: overflow),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : (_tileSize + _gap) * _maxVisibleCount;
+        final visibleCount = _visibleCountForWidth(maxWidth);
+        if (visibleCount == 0) {
+          return const SizedBox.shrink();
+        }
+        final visibleItems = items.take(visibleCount).toList(growable: false);
+        final overflow = items.length - visibleItems.length;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < visibleItems.length; i++) ...[
+              _CollectionAccessoryPreviewTile(item: visibleItems[i]),
+              if (i != visibleItems.length - 1 || overflow > 0)
+                const SizedBox(width: _gap),
+            ],
+            if (overflow > 0) _CollectionAccessoryOverflowTile(count: overflow),
+          ],
+        );
+      },
     );
   }
 }
