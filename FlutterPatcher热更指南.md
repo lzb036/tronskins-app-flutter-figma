@@ -188,6 +188,67 @@ GET /api/public/app/flutter-patcher/check
 
 ## 9. 生成热更包流程
 
+### 9.0 手动打包简版
+
+以当前基础版本 `1.0.1+1` 为例：
+
+- `app_version` 是 `1.0.1+1`
+- Android `versionCode` 是 `1`
+- 补丁版本可以命名为 `1.0.1-hotfix.1`
+
+简化流程如下：
+
+1. 只修改 Flutter Dart 层代码。
+2. 不修改 Android 原生代码、插件、assets、`pubspec.yaml` 版本号。
+3. 重新构建 release APK。
+4. 从 release APK 中打出 `libapp.so` 热更包。
+5. 上传 `libapp.so` 到服务器或 CDN。
+6. 服务端接口返回 `version`、`patchUrl`，建议同时返回 `md5` 和 `targetVersionCode`。
+7. 用户打开 App 后会自动检查、下载、安装补丁。
+8. 用户完全关闭并重新打开 App 后，热更生效。
+
+常用命令：
+
+```powershell
+flutter pub get
+
+flutter build apk --release `
+  --build-name=1.0.1 `
+  --build-number=1
+
+dart run flutter_patcher:pack `
+  --apk build/app/outputs/flutter-apk/app-release.apk `
+  --version 1.0.1-hotfix.1 `
+  --target-version-code 1 `
+  --abi arm64-v8a `
+  --out dist/flutter_patcher/android/1.0.1_1/arm64-v8a/1.0.1-hotfix.1
+```
+
+生成后的核心文件：（**正常到这一步，然后直接把libapp.so文件也就是热更包分发了就行**）
+
+```text
+dist/flutter_patcher/android/1.0.1_1/arm64-v8a/1.0.1-hotfix.1/libapp.so
+```
+
+计算 MD5：
+
+```powershell
+(Get-FileHash .\dist\flutter_patcher\android\1.0.1_1\arm64-v8a\1.0.1-hotfix.1\libapp.so -Algorithm MD5).Hash.ToLower()
+```
+
+如果需要兼容 32 位设备，再额外打 `armeabi-v7a`：
+
+```powershell
+dart run flutter_patcher:pack `
+  --apk build/app/outputs/flutter-apk/app-release.apk `
+  --version 1.0.1-hotfix.1 `
+  --target-version-code 1 `
+  --abi armeabi-v7a `
+  --out dist/flutter_patcher/android/1.0.1_1/armeabi-v7a/1.0.1-hotfix.1
+```
+
+最关键的是：`--target-version-code` 必须等于用户当前安装包的 `versionCode`。
+
 ### 9.1 正常发正式 APK
 
 先构建正常发布包：
