@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:tronskins_app/api/model/wallet/wallet_models.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
+import 'package:tronskins_app/common/theme/settings_top_bar_style.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/glass_notice_dialog.dart';
@@ -194,7 +195,7 @@ class _GiftCardTopBar extends StatelessWidget {
                           child: Icon(
                             Icons.arrow_back,
                             size: 22,
-                            color: Color(0xFF1E3A8A),
+                            color: settingsTopBarBrandColor,
                           ),
                         ),
                       ),
@@ -205,12 +206,7 @@ class _GiftCardTopBar extends StatelessWidget {
                         title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _GiftCardPageState._titleColor,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          height: 28 / 18,
-                        ),
+                        style: settingsTopBarTitleTextStyle,
                       ),
                     ),
                     TextButton(
