@@ -87,64 +87,64 @@ Android 配置也已按 `flutter_patcher` 要求调整：
 7. App 提示用户完全关闭后重新打开
 8. 用户下次冷启动后，补丁生效
 
-当前客户端检查接口路径：
+当前客户端检查接口路径已经和旧 `uni-app` 项目保持一致：
 
 ```text
-api/public/app/flutter-patcher/check
+api/public/app/checkupdate
 ```
 
 完整地址基于当前 App 选择的服务器，例如：
 
 ```text
-https://www.etopmarket.com/api/public/app/flutter-patcher/check
+https://www.etopmarket.com/api/public/app/checkupdate
 ```
 
 ## 6. App 请求服务端时会带什么参数
 
-客户端会通过 query 参数传给服务端：
+Flutter 端现在沿用旧 App 的检查接口参数，通过 GET query 传给服务端：
 
 | 参数 | 说明 |
 |---|---|
+| `appkey` | 固定为 `tronskins-app` |
+| `versionName` | Android 版本名，例如 `1.0.1` |
+| `hotVersion` | Android versionCode，例如 `1` |
 | `platform` | 固定为 `android` |
-| `app_version` | App 基础版本，例如 `1.0.1+1` |
-| `version_code` | Android versionCode，例如 `1` |
-| `abi` | 当前设备 ABI，例如 `arm64-v8a` |
-| `current_patch` | 当前已安装的补丁版本，没有则不传 |
-| `device_id` | 本地生成的设备 ID，用于灰度分流 |
 
 示例：
 
 ```text
-GET /api/public/app/flutter-patcher/check
-  ?platform=android
-  &app_version=1.0.1+1
-  &version_code=1
-  &abi=arm64-v8a
-  &device_id=xxxx
+GET /api/public/app/checkupdate
+  ?appkey=tronskins-app
+  &versionName=1.0.1
+  &hotVersion=1
+  &platform=android
 ```
+
+这个接口和旧项目 `E:\tronskins\tronskins-app\components\update\VersionUpdate.nvue` 中的热更检查接口一致。
 
 ## 7. 服务端应该返回什么
 
 ### 7.1 没有更新
 
+没有更新时，`forwardUrl` 不返回、返回空字符串，或返回 `null` 都可以。
+
 ```json
 {
-  "hasUpdate": false
+  "forwardUrl": ""
 }
 ```
 
 ### 7.2 有更新
 
+有更新时，核心字段是 `forwardUrl`，这里返回 `libapp.so` 的下载地址。
+
 ```json
 {
-  "hasUpdate": true,
-  "patch": {
-    "version": "1.0.1-hotfix.1",
-    "patchUrl": "https://patch.tronskins.com/android/1.0.1_1/arm64-v8a/1.0.1-hotfix.1/libapp.so",
-    "md5": "0123456789abcdef0123456789abcdef",
-    "targetVersionCode": 1,
-    "signature": ""
-  }
+  "forwardUrl": "https://patch.tronskins.com/android/1.0.1_1/arm64-v8a/1.0.1-hotfix.1/libapp.so",
+  "version": "1.0.1-hotfix.1",
+  "md5": "0123456789abcdef0123456789abcdef",
+  "targetVersionCode": 1,
+  "signature": ""
 }
 ```
 
@@ -152,19 +152,19 @@ GET /api/public/app/flutter-patcher/check
 
 | 字段 | 必填 | 说明 |
 |---|---|---|
-| `hasUpdate` | 是 | 是否有热更 |
-| `patch.version` | 是 | 补丁版本号，用于判断是否重复安装 |
-| `patch.patchUrl` | 是 | `libapp.so` 下载地址 |
-| `patch.md5` | 强烈建议 | 补丁文件 MD5，小写 32 位 hex |
-| `patch.targetVersionCode` | 强烈建议 | 补丁对应的基础 APK versionCode |
-| `patch.signature` | 可选 | Ed25519 签名；暂时不用可传空字符串 |
+| `forwardUrl` | 是 | `libapp.so` 下载地址；为空表示没有更新 |
+| `version` | 建议 | 补丁版本号，用于判断是否重复安装 |
+| `md5` | 建议 | 补丁文件 MD5，小写 32 位 hex |
+| `targetVersionCode` | 建议 | 补丁对应的基础 APK versionCode |
+| `signature` | 可选 | Ed25519 签名；暂时不用可传空字符串 |
 
 注意：
 
 - `targetVersionCode` 必须对应用户已安装 APK 的 `versionCode`
-- `patchUrl` 必须能被 App 直接访问
+- `forwardUrl` 必须能被 App 直接访问
 - 生产环境必须使用 HTTPS
-- 不要给错误 ABI 的设备下发补丁
+- 这里的 `forwardUrl` 不再是旧 App 的 wgt 包，而是 `flutter_patcher` 使用的 `libapp.so`
+- 当前客户端如果收到 `.apk` 地址，会跳过处理，因为这个入口只负责 `libapp.so` 热更
 
 ## 8. 服务端数据库建议
 
@@ -172,11 +172,12 @@ GET /api/public/app/flutter-patcher/check
 
 | 字段 | 说明 |
 |---|---|
-| `app_version` | App 版本名，例如 `1.0.1+1` |
-| `version_code` | Android versionCode |
+| `appkey` | 固定为 `tronskins-app` |
+| `version_name` | Android 版本名，例如 `1.0.1` |
+| `hot_version` | Android versionCode，例如 `1` |
 | `patch_version` | 补丁版本，例如 `1.0.1-hotfix.1` |
 | `abi` | `arm64-v8a`、`armeabi-v7a`、`x86_64` |
-| `patch_url` | `libapp.so` 下载地址 |
+| `forward_url` | `libapp.so` 下载地址 |
 | `md5` | 文件 MD5 |
 | `signature` | 签名，可先为空 |
 | `status` | `staging`、`active`、`paused`、`rollback` |
@@ -192,8 +193,8 @@ GET /api/public/app/flutter-patcher/check
 
 以当前基础版本 `1.0.1+1` 为例：
 
-- `app_version` 是 `1.0.1+1`
-- Android `versionCode` 是 `1`
+- 接口里的 `versionName` 是 `1.0.1`
+- 接口里的 `hotVersion` 是 `1`
 - 补丁版本可以命名为 `1.0.1-hotfix.1`
 
 简化流程如下：
@@ -203,7 +204,7 @@ GET /api/public/app/flutter-patcher/check
 3. 重新构建 release APK。
 4. 从 release APK 中打出 `libapp.so` 热更包。
 5. 上传 `libapp.so` 到服务器或 CDN。
-6. 服务端接口返回 `version`、`patchUrl`，建议同时返回 `md5` 和 `targetVersionCode`。
+6. 服务端接口返回 `forwardUrl`，地址指向 `libapp.so`，建议同时返回 `version`、`md5` 和 `targetVersionCode`。
 7. 用户打开 App 后会自动检查、下载、安装补丁。
 8. 用户完全关闭并重新打开 App 后，热更生效。
 
@@ -331,13 +332,24 @@ dist/
 推荐 CDN 路径：
 
 ```text
-/flutter-patcher/android/{app_version}/{version_code}/{abi}/{patch_version}/libapp.so
+/flutter-patcher/android/{versionName}_{hotVersion}/{abi}/{patch_version}/libapp.so
 ```
 
 示例：
 
 ```text
-https://patch.tronskins.com/flutter-patcher/android/1.0.1_1/1/arm64-v8a/1.0.1-hotfix.1/libapp.so
+https://patch.tronskins.com/flutter-patcher/android/1.0.1_1/arm64-v8a/1.0.1-hotfix.1/libapp.so
+```
+
+接口下发时，把这个地址放到 `forwardUrl`：
+
+```json
+{
+  "forwardUrl": "https://patch.tronskins.com/flutter-patcher/android/1.0.1_1/arm64-v8a/1.0.1-hotfix.1/libapp.so",
+  "version": "1.0.1-hotfix.1",
+  "md5": "这里填 libapp.so 的 md5",
+  "targetVersionCode": 1
+}
 ```
 
 ## 11. 灰度发布建议
@@ -367,7 +379,7 @@ https://patch.tronskins.com/flutter-patcher/android/1.0.1_1/1/arm64-v8a/1.0.1-ho
 如果补丁有问题：
 
 1. 服务端把补丁状态改成 `paused`
-2. 检查接口返回 `hasUpdate: false`
+2. 检查接口不返回 `forwardUrl`，或返回空字符串
 3. 已下载但未重启的用户不会再重复下载
 4. 已经安装且出问题的补丁，`flutter_patcher` 会尝试自动回滚并加入本地黑名单
 
@@ -431,9 +443,10 @@ $env:FLUTTER_STORAGE_BASE_URL = "https://storage.flutter-io.cn"
 正式使用前，至少验证：
 
 - 首次安装 App 能正常启动
-- App 会请求 `api/public/app/flutter-patcher/check`
-- 服务端返回 `hasUpdate: false` 时 App 正常使用
-- 服务端返回补丁时 App 能下载
+- App 会请求 `api/public/app/checkupdate`
+- 请求参数包含 `appkey/versionName/hotVersion/platform`
+- 服务端不返回 `forwardUrl` 时 App 正常使用
+- 服务端返回 `forwardUrl` 时 App 能下载 `libapp.so`
 - 下载完成后出现重启提示
 - 完全关闭并重新打开 App 后补丁生效
 - 错误 MD5 时补丁不会被安装
@@ -472,7 +485,7 @@ $env:FLUTTER_STORAGE_BASE_URL = "https://storage.flutter-io.cn"
 
 短期目标：
 
-1. 服务端先实现 `api/public/app/flutter-patcher/check`
+1. 服务端沿用 `api/public/app/checkupdate`
 2. CDN 先支持手动上传 `libapp.so`
 3. 数据库先支持补丁开关和灰度比例
 4. 用 Android 真机跑通一条完整热更链路

@@ -1,10 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_patcher/flutter_patcher.dart';
 import 'package:get/get.dart';
-import 'package:tronskins_app/common/device/device_id_helper.dart';
 import 'package:tronskins_app/common/logging/app_logger.dart';
 import 'package:tronskins_app/common/storage/server_storage.dart';
 import 'package:tronskins_app/common/theme/app_colors.dart';
@@ -25,10 +26,19 @@ class FlutterPatcherUpdateGate extends StatefulWidget {
 
 class _FlutterPatcherUpdateGateState extends State<FlutterPatcherUpdateGate>
     with WidgetsBindingObserver {
-  static const String _checkPath = 'api/public/app/flutter-patcher/check';
+  static const String _checkPath = 'api/public/app/checkupdate';
+  static const String _appKey = 'tronskins-app';
   static const Duration _resumeCheckThrottle = Duration(minutes: 10);
   static const Duration _checkTimeout = Duration(seconds: 8);
   static const Duration _restartNoticeDelay = Duration(milliseconds: 600);
+  late final Dio _dio = Dio(
+    BaseOptions(
+      connectTimeout: _checkTimeout,
+      receiveTimeout: _checkTimeout,
+      responseType: ResponseType.json,
+      contentType: 'application/json;charset=UTF-8',
+    ),
+  );
 
   bool _isChecking = false;
   bool _isApplying = false;
@@ -107,19 +117,27 @@ class _FlutterPatcherUpdateGateState extends State<FlutterPatcherUpdateGate>
     _lastCheckAt = DateTime.now();
 
     try {
-      final checkUrl = await _buildCheckUrl();
+      final checkRequest = await _buildCheckRequest();
       AppLogger.info(
         'FLUTTER_PATCHER',
-        'Checking update from $checkUrl',
+        'Checking update from ${checkRequest.uri}',
         scope: 'CHECK',
       );
 
-      final result = await FlutterPatcher.checkUpdate(
-        checkUrl,
-        timeout: _checkTimeout,
-      );
-      final patch = result.patch;
-      if (!mounted || !result.hasUpdate || patch == null) {
+      final patch = await _fetchPatch(checkRequest);
+      if (!mounted || patch == null) {
+        return;
+      }
+
+      final currentPatch = await FlutterPatcher.currentVersion;
+      if (currentPatch != null &&
+          currentPatch.isNotEmpty &&
+          currentPatch == patch.version) {
+        AppLogger.info(
+          'FLUTTER_PATCHER',
+          'Patch ${patch.version} is already installed.',
+          scope: 'CHECK',
+        );
         return;
       }
 
@@ -161,27 +179,100 @@ class _FlutterPatcherUpdateGateState extends State<FlutterPatcherUpdateGate>
         DateTime.now().difference(lastCheckAt) >= _resumeCheckThrottle;
   }
 
-  Future<String> _buildCheckUrl() async {
+  Future<_FlutterPatcherCheckRequest> _buildCheckRequest() async {
     final baseUri = Uri.parse(ServerStorage.getServer());
     final endpoint = baseUri.resolve(_checkPath);
     final versionCode = await FlutterPatcher.appVersionCode;
-    final deviceAbi = await FlutterPatcher.deviceAbi;
-    final currentPatch = await FlutterPatcher.currentVersion;
     final baseVersion = await AppVersion.baseVersion();
+    final fallbackVersionCode = _versionCodeFromBaseVersion(baseVersion);
+    final hotVersion = versionCode ?? fallbackVersionCode;
 
-    return endpoint
-        .replace(
-          queryParameters: <String, String>{
-            'platform': 'android',
-            'app_version': _normalizeVersion(baseVersion),
-            if (versionCode != null) 'version_code': versionCode.toString(),
-            if (deviceAbi.isNotEmpty) 'abi': deviceAbi,
-            if (currentPatch != null && currentPatch.isNotEmpty)
-              'current_patch': currentPatch,
-            'device_id': DeviceIdHelper.getUdid(),
-          },
-        )
-        .toString();
+    return _FlutterPatcherCheckRequest(
+      uri: endpoint.replace(
+        queryParameters: <String, String>{
+          'appkey': _appKey,
+          'versionName': _legacyVersionName(baseVersion),
+          if (hotVersion != null) 'hotVersion': hotVersion.toString(),
+          'platform': 'android',
+        },
+      ),
+      targetVersionCode: hotVersion,
+    );
+  }
+
+  Future<PatchInfo?> _fetchPatch(
+    _FlutterPatcherCheckRequest checkRequest,
+  ) async {
+    final response = await _dio.getUri<Object?>(
+      checkRequest.uri,
+      options: Options(
+        headers: const {'content-type': 'application/json;charset=UTF-8'},
+      ),
+    );
+    final map = _asMap(response.data);
+    if (map == null) {
+      throw const FormatException('Update response is not a JSON object.');
+    }
+
+    final payload = _unwrapResponsePayload(map);
+    final forwardUrl = _firstNonEmptyString(payload, const [
+      'forwardUrl',
+      'patchUrl',
+      'patch_url',
+    ]);
+    if (forwardUrl == null) {
+      AppLogger.info(
+        'FLUTTER_PATCHER',
+        'No forwardUrl in update response.',
+        scope: 'CHECK',
+      );
+      return null;
+    }
+
+    if (forwardUrl.toLowerCase().endsWith('.apk')) {
+      AppLogger.warn(
+        'FLUTTER_PATCHER',
+        'Received APK update package; flutter_patcher only applies libapp.so.',
+        scope: 'CHECK',
+      );
+      return null;
+    }
+
+    final patchUrl = _resolvePatchUrl(forwardUrl);
+    final patchVersion =
+        _firstNonEmptyString(payload, const [
+          'patchVersion',
+          'patch_version',
+          'version',
+          'versionName',
+          'hotVersion',
+          'versionCode',
+        ]) ??
+        patchUrl;
+
+    return PatchInfo(
+      version: patchVersion,
+      patchUrl: patchUrl,
+      md5: _normalizeMd5(
+        _firstNonEmptyString(payload, const [
+              'md5',
+              'fileMd5',
+              'file_md5',
+              'checksum',
+              'hash',
+            ]) ??
+            '',
+      ),
+      signature:
+          _firstNonEmptyString(payload, const ['signature', 'sign']) ?? '',
+      targetVersionCode:
+          _firstInt(payload, const [
+            'targetVersionCode',
+            'target_version_code',
+          ]) ??
+          checkRequest.targetVersionCode,
+      raw: payload,
+    );
   }
 
   Future<void> _applyPatch(PatchInfo patch) async {
@@ -436,10 +527,108 @@ class _FlutterPatcherCopy {
   final String restartMessage;
 }
 
+class _FlutterPatcherCheckRequest {
+  const _FlutterPatcherCheckRequest({
+    required this.uri,
+    required this.targetVersionCode,
+  });
+
+  final Uri uri;
+  final int? targetVersionCode;
+}
+
 String _normalizeVersion(String version) {
   final trimmed = version.trim();
   if (trimmed.startsWith('v') || trimmed.startsWith('V')) {
     return trimmed.substring(1);
   }
   return trimmed;
+}
+
+String _legacyVersionName(String version) {
+  final normalized = _normalizeVersion(version);
+  final buildSeparatorIndex = normalized.indexOf('+');
+  if (buildSeparatorIndex <= 0) {
+    return normalized;
+  }
+  return normalized.substring(0, buildSeparatorIndex);
+}
+
+int? _versionCodeFromBaseVersion(String version) {
+  final normalized = _normalizeVersion(version);
+  final buildSeparatorIndex = normalized.indexOf('+');
+  if (buildSeparatorIndex < 0 || buildSeparatorIndex == normalized.length - 1) {
+    return null;
+  }
+  return int.tryParse(normalized.substring(buildSeparatorIndex + 1));
+}
+
+Map<String, dynamic>? _asMap(Object? value) {
+  if (value is Map<String, dynamic>) {
+    return value;
+  }
+  if (value is Map) {
+    return value.map((key, value) => MapEntry(key.toString(), value));
+  }
+  if (value is String && value.trim().isNotEmpty) {
+    final decoded = jsonDecode(value);
+    return _asMap(decoded);
+  }
+  return null;
+}
+
+Map<String, dynamic> _unwrapResponsePayload(Map<String, dynamic> map) {
+  if (_firstNonEmptyString(map, const ['forwardUrl']) != null) {
+    return map;
+  }
+  for (final key in const ['data', 'datas']) {
+    final nested = _asMap(map[key]);
+    if (nested != null) {
+      return nested;
+    }
+  }
+  return map;
+}
+
+String? _firstNonEmptyString(Map<String, dynamic> map, List<String> keys) {
+  for (final key in keys) {
+    final value = map[key];
+    if (value == null) {
+      continue;
+    }
+    final text = value.toString().trim();
+    if (text.isNotEmpty) {
+      return text;
+    }
+  }
+  return null;
+}
+
+int? _firstInt(Map<String, dynamic> map, List<String> keys) {
+  for (final key in keys) {
+    final value = map[key];
+    if (value is num) {
+      return value.toInt();
+    }
+    if (value is String && value.trim().isNotEmpty) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) {
+        return parsed;
+      }
+    }
+  }
+  return null;
+}
+
+String _resolvePatchUrl(String url) {
+  final trimmed = url.trim();
+  final uri = Uri.tryParse(trimmed);
+  if (uri != null && uri.hasScheme) {
+    return trimmed;
+  }
+  return Uri.parse(ServerStorage.getServer()).resolve(trimmed).toString();
+}
+
+String _normalizeMd5(String value) {
+  return value.trim().toLowerCase();
 }
