@@ -14,6 +14,7 @@ import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/login_required_prompt.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
+import 'package:tronskins_app/common/utils/market_listing_price.dart';
 import 'package:tronskins_app/components/filter/filter_price_support.dart';
 import 'package:tronskins_app/components/filter/filter_models.dart';
 import 'package:tronskins_app/components/filter/market_filter_sheet.dart';
@@ -2655,17 +2656,16 @@ class _PurchasePriceChangeDialogState
   }
 
   double _sellMin() {
-    final sellMin = _buyingParseDouble(_schemaRaw['sell_min']);
-    final buffMin = _buyingParseDouble(_schemaRaw['buff_min_price']);
-    final candidates = [
-      sellMin,
-      buffMin,
-    ].whereType<double>().where((value) => value > 0).toList();
-    if (candidates.isEmpty) {
-      return 0;
-    }
-    final minMarket = candidates.reduce(min);
-    return minMarket > _minTradePrice ? minMarket : _minTradePrice;
+    return activeLowestListingPrice(
+      _schemaRaw,
+      minimumPrice: _minTradePrice,
+      priceKeys: const [
+        'sell_min',
+        'sellMin',
+        'buff_min_price',
+        'buffMinPrice',
+      ],
+    );
   }
 
   double _buyMax() {

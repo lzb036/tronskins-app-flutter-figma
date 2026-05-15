@@ -7,6 +7,7 @@ import 'package:tronskins_app/api/model/shop/shop_models.dart';
 import 'package:tronskins_app/api/shop_product.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/utils/market_listing_price.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/components/filter/filter_price_support.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
@@ -106,17 +107,16 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
   }
 
   double _sellMin() {
-    final sellMin = _parseDouble(_schemaRaw['sell_min']);
-    final buffMin = _parseDouble(_schemaRaw['buff_min_price']);
-    final candidates = [
-      sellMin,
-      buffMin,
-    ].whereType<double>().where((value) => value > 0).toList();
-    if (candidates.isEmpty) {
-      return 0;
-    }
-    final minMarket = candidates.reduce(min);
-    return minMarket > _minTradePrice ? minMarket : _minTradePrice;
+    return activeLowestListingPrice(
+      _schemaRaw,
+      minimumPrice: _minTradePrice,
+      priceKeys: const [
+        'sell_min',
+        'sellMin',
+        'buff_min_price',
+        'buffMinPrice',
+      ],
+    );
   }
 
   double _buyMax() {

@@ -9,6 +9,7 @@ import 'package:tronskins_app/api/shop_product.dart';
 import 'package:tronskins_app/api/steam.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/utils/market_listing_price.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/components/filter/filter_price_support.dart';
@@ -695,10 +696,10 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
     if (schema == null) {
       return false;
     }
-    final rawSellMin = schema.raw['sell_min'];
-    final sellMin = rawSellMin is num
-        ? rawSellMin.toDouble()
-        : double.tryParse(rawSellMin?.toString() ?? '') ?? 0;
+    final sellMin = activeLowestListingPrice(
+      schema.raw,
+      priceKeys: const ['sell_min', 'sellMin'],
+    );
     return sellMin > 10 && price < sellMin * 0.9;
   }
 
@@ -870,7 +871,7 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
 
     final raw = schema.raw;
     final values = <double>[
-      _parsePriceValue(raw['sell_min'] ?? raw['sellMin']),
+      activeLowestListingPrice(raw, priceKeys: const ['sell_min', 'sellMin']),
       _parsePriceValue(raw['buff_min_price'] ?? raw['buffMinPrice']),
       _parsePriceValue(raw['reference_price'] ?? raw['referencePrice']),
       _parsePriceValue(raw['market_price'] ?? raw['marketPrice']),

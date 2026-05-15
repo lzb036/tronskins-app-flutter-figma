@@ -1,3 +1,5 @@
+import 'package:tronskins_app/common/utils/market_listing_price.dart';
+
 class MarketItemTag {
   final String? name;
   final String? localizedName;
@@ -105,6 +107,7 @@ class MarketItemEntity {
     final csgoMap = csgoAsset is Map<String, dynamic>
         ? csgoAsset
         : <String, dynamic>{};
+    final sellNum = marketListingSellCount(json);
 
     dynamic pickValue(List<String> keys) {
       for (final key in keys) {
@@ -125,8 +128,17 @@ class MarketItemEntity {
       marketName: json['market_name']?.toString(),
       marketHashName: json['market_hash_name']?.toString(),
       imageUrl: json['image_url']?.toString(),
-      marketPrice: _asDouble(json['market_price'] ?? json['price']),
-      sellNum: _asInt(json['sell_num']),
+      marketPrice: activeLowestListingPrice(
+        json,
+        priceKeys: const [
+          'market_price',
+          'marketPrice',
+          'price',
+          'sell_min',
+          'sellMin',
+        ],
+      ),
+      sellNum: sellNum,
       cd: json['cd']?.toString(),
       paintSeed: pickValue(['paintSeed', 'paint_seed'])?.toString(),
       paintIndex: pickValue(['paintIndex', 'paint_index'])?.toString(),
@@ -453,6 +465,7 @@ class MarketTemplateSchema {
   });
 
   factory MarketTemplateSchema.fromJson(Map<String, dynamic> json) {
+    final sellNum = marketListingSellCount(json);
     return MarketTemplateSchema(
       raw: json,
       appId: _asInt(json['app_id'] ?? json['appId']),
@@ -462,13 +475,16 @@ class MarketTemplateSchema {
       itemWeapon:
           json['item_weapon']?.toString() ?? json['itemWeapon']?.toString(),
       imageUrl: json['image_url']?.toString(),
-      sellMin: _asDouble(json['sell_min']),
+      sellMin: activeLowestListingPrice(
+        json,
+        priceKeys: const ['sell_min', 'sellMin'],
+      ),
       sellMax: _asDouble(json['sell_max']),
       buyMin: _asDouble(json['buy_min']),
       buyMax: _asDouble(json['buy_max']),
       referencePrice: _asDouble(json['reference_price']),
-      sellNum: _asInt(json['sell_num']),
-      buyNum: _asInt(json['buy_num']),
+      sellNum: sellNum,
+      buyNum: _asInt(json['buy_num'] ?? json['buyNum']),
       tags: json['tags'] is Map<String, dynamic>
           ? MarketItemTags.fromJson(json['tags'] as Map<String, dynamic>)
           : null,

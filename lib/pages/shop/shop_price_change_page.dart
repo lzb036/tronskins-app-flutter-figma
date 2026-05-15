@@ -9,6 +9,7 @@ import 'package:tronskins_app/api/shop_product.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/game_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/utils/market_listing_price.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:tronskins_app/components/filter/filter_price_support.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
@@ -493,14 +494,12 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
     if (schema == null) {
       return 0;
     }
-    final raw = schema.raw;
-
-    final sellMin = _parsePriceValue(raw['sell_min']);
-    if (sellMin > 0) {
-      return _normalizePrice(sellMin);
-    }
-
-    return 0;
+    return _normalizePrice(
+      activeLowestListingPrice(
+        schema.raw,
+        priceKeys: const ['sell_min', 'sellMin'],
+      ),
+    );
   }
 
   double _extractAppraisePrice(ShopSchemaInfo? schema) {
@@ -543,7 +542,10 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
     if (schema == null) {
       return false;
     }
-    final sellMin = _parsePriceValue(schema.raw['sell_min']);
+    final sellMin = activeLowestListingPrice(
+      schema.raw,
+      priceKeys: const ['sell_min', 'sellMin'],
+    );
     return sellMin > 10 && price < sellMin * 0.9;
   }
 
@@ -823,7 +825,7 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
 
     final raw = schema.raw;
     final values = <double>[
-      _parsePriceValue(raw['sell_min'] ?? raw['sellMin']),
+      activeLowestListingPrice(raw, priceKeys: const ['sell_min', 'sellMin']),
       _parsePriceValue(raw['buff_min_price'] ?? raw['buffMinPrice']),
       _parsePriceValue(raw['reference_price'] ?? raw['referencePrice']),
       _parsePriceValue(raw['market_price'] ?? raw['marketPrice']),
