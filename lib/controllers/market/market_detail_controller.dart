@@ -259,6 +259,17 @@ class MarketDetailController extends GetxController {
     await loadOnSale(reset: true, preserveVisibleItems: preserveVisibleItems);
   }
 
+  void updateOnSaleFavoriteStatus({
+    required int itemId,
+    required bool favorited,
+  }) {
+    final index = onSaleItems.indexWhere((item) => item.id == itemId);
+    if (index == -1) {
+      return;
+    }
+    onSaleItems[index] = onSaleItems[index].copyWithFavorite(favorited);
+  }
+
   Future<void> loadTransactions({
     bool reset = false,
     bool preserveVisibleItems = false,

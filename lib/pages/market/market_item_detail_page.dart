@@ -17,6 +17,7 @@ import 'package:tronskins_app/common/widgets/steam_style_confirm_dialog.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 import 'package:tronskins_app/components/shop/shop_store_info_card.dart';
+import 'package:tronskins_app/controllers/market/market_detail_controller.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
 class MarketItemDetailPage extends StatefulWidget {
@@ -672,7 +673,15 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
         );
         return;
       }
-      setState(() => _favorited = !_favorited);
+      if (!mounted) {
+        return;
+      }
+      final nextFavorited = !_favorited;
+      setState(() {
+        _favorited = nextFavorited;
+        _item = _item.copyWithFavorite(nextFavorited);
+      });
+      _syncParentFavoriteStatus(nextFavorited);
       AppSnackbar.success(
         (_favorited
                 ? 'app.user.collection.message.success'
@@ -686,6 +695,17 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
         setState(() => _favoriteSubmitting = false);
       }
     }
+  }
+
+  void _syncParentFavoriteStatus(bool favorited) {
+    final itemId = _item.id;
+    if (itemId == null || !Get.isRegistered<MarketDetailController>()) {
+      return;
+    }
+    Get.find<MarketDetailController>().updateOnSaleFavoriteStatus(
+      itemId: itemId,
+      favorited: favorited,
+    );
   }
 
   String? _resolveSellerUuid() {

@@ -287,6 +287,42 @@ class MarketListItem {
       createTime: _asInt(json['create_time']),
     );
   }
+
+  MarketListItem copyWithFavorite(bool value) {
+    final nextRaw = Map<String, dynamic>.from(raw)
+      ..['favorited'] = value
+      ..['favorite'] = value
+      ..['isFavorited'] = value;
+    for (final key in const [
+      'asset',
+      'itemAsset',
+      'csgoAsset',
+      'tf2Asset',
+      'dota2Asset',
+    ]) {
+      final asset = nextRaw[key];
+      if (asset is Map) {
+        nextRaw[key] = Map<String, dynamic>.from(asset)
+          ..['favorited'] = value
+          ..['favorite'] = value
+          ..['isFavorited'] = value;
+      }
+    }
+
+    return MarketListItem(
+      raw: nextRaw,
+      id: id,
+      appId: appId,
+      schemaId: schemaId,
+      userId: userId,
+      own: own,
+      favorited: value,
+      marketHashName: marketHashName,
+      price: price,
+      typeName: typeName,
+      createTime: createTime,
+    );
+  }
 }
 
 class MarketListResponse {

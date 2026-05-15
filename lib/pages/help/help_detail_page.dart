@@ -5,6 +5,7 @@ import 'package:flutter_html_table/flutter_html_table.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:tronskins_app/api/model/help/help_models.dart';
+import 'package:tronskins_app/common/storage/server_storage.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/pages/help/widgets/help_ui.dart';
 
@@ -81,6 +82,14 @@ class HelpDetailPage extends StatelessWidget {
                     child: Html(
                       data: item.content ?? '',
                       extensions: [
+                        ImageExtension(
+                          builder: (context) => _HelpContentImage(
+                            src: _resolveHelpImageSrc(
+                              context.attributes['src'],
+                            ),
+                            alt: context.attributes['alt'],
+                          ),
+                        ),
                         TagWrapExtension(
                           tagsToWrap: {'table'},
                           builder: (child) =>
@@ -145,6 +154,93 @@ class HelpDetailPage extends StatelessWidget {
                 ],
               ),
       ),
+    );
+  }
+}
+
+String _resolveHelpImageSrc(String? value) {
+  final trimmed = value?.trim() ?? '';
+  if (trimmed.isEmpty) {
+    return '';
+  }
+  if (trimmed.startsWith('//')) {
+    return 'https:$trimmed';
+  }
+  final uri = Uri.tryParse(trimmed);
+  if (uri != null && uri.hasScheme) {
+    return trimmed;
+  }
+  final baseUri =
+      Uri.tryParse(ServerStorage.getServer()) ??
+      Uri.parse(ServerStorage.defaultServer);
+  return baseUri.resolve(trimmed).toString();
+}
+
+class _HelpContentImage extends StatelessWidget {
+  const _HelpContentImage({required this.src, this.alt});
+
+  static const Map<String, String> _headers = {
+    'User-Agent':
+        'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 '
+        '(KHTML, like Gecko) Chrome/120 Mobile Safari/537.36',
+    'Referer': 'https://www.etopmarket.com/',
+  };
+
+  final String src;
+  final String? alt;
+
+  @override
+  Widget build(BuildContext context) {
+    if (src.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width - 64;
+        return Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 16),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              src,
+              width: width,
+              fit: BoxFit.contain,
+              headers: _headers,
+              semanticLabel: alt,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) {
+                  return child;
+                }
+                return Container(
+                  width: width,
+                  height: 160,
+                  alignment: Alignment.center,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  width: width,
+                  height: 120,
+                  alignment: Alignment.center,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: Icon(
+                    Icons.broken_image_outlined,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }

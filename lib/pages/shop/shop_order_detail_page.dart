@@ -889,6 +889,9 @@ class ShopOrderDetailPage extends StatelessWidget {
       appId: appId,
       stickerMap: stickers,
     );
+    final gems = appId == 570
+        ? _resolveDetailGems(detail: detail, schema: schema, appId: appId)
+        : const <GameItemGem>[];
     final exterior = _schemaTag(schema, 'exterior');
     final rarity = _schemaTag(schema, 'rarity');
     final quality = _schemaTag(schema, 'quality');
@@ -936,6 +939,10 @@ class ShopOrderDetailPage extends StatelessWidget {
                 ],
               ),
             ),
+            if (gems.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _buildGemDetailCards(gems: gems, currency: currency),
+            ],
             if (stickerDetails.isNotEmpty) ...[
               const SizedBox(height: 12),
               _buildStickerDetailCards(
@@ -1291,6 +1298,152 @@ class ShopOrderDetailPage extends StatelessWidget {
                   Text(
                     metaItems.join(' · '),
                     maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _mutedColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      height: 14 / 10,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 92),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                priceText,
+                maxLines: 1,
+                style: TextStyle(
+                  color: price == null
+                      ? const Color(0xFF94A3B8)
+                      : const Color(0xFFBA1A1A),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  height: 16 / 12,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGemDetailCards({
+    required List<GameItemGem> gems,
+    required CurrencyController? currency,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _text(zh: '宝石', en: 'Gems'),
+          style: const TextStyle(
+            color: _mutedColor,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            height: 16 / 12,
+          ),
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final useTwoColumns = constraints.maxWidth >= 520;
+            final spacing = useTwoColumns ? 8.0 : 0.0;
+            final cardWidth = useTwoColumns
+                ? (constraints.maxWidth - spacing) / 2
+                : constraints.maxWidth;
+            return Wrap(
+              spacing: spacing,
+              runSpacing: 8,
+              children: [
+                for (var index = 0; index < gems.length; index++)
+                  SizedBox(
+                    width: cardWidth,
+                    child: _buildGemDetailCard(
+                      gem: gems[index],
+                      index: index,
+                      currency: currency,
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGemDetailCard({
+    required GameItemGem gem,
+    required int index,
+    required CurrencyController? currency,
+  }) {
+    final name = gem.name?.trim().isNotEmpty == true
+        ? gem.name!.trim()
+        : _gemFallbackName(index);
+    final statInfo = gem.statInfo?.trim();
+    final price = gem.price;
+    final priceText = price == null ? '-' : _formatPrice(currency, price);
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(6),
+              border: gem.borderColor != null
+                  ? Border.all(color: gem.borderColor!, width: 1.2)
+                  : null,
+            ),
+            child: Image.network(
+              gem.imageUrl,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(
+                  Icons.image_not_supported_outlined,
+                  size: 20,
+                  color: _mutedColor,
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _titleColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    height: 16 / 12,
+                  ),
+                ),
+                if (statInfo != null && statInfo.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    statInfo,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: _mutedColor,
@@ -2542,6 +2695,64 @@ class ShopOrderDetailPage extends StatelessWidget {
     ];
   }
 
+  List<GameItemGem> _resolveDetailGems({
+    required ShopOrderDetail detail,
+    required ShopSchemaInfo? schema,
+    required int appId,
+  }) {
+    for (final candidate in _detailGemCandidates(detail, schema, appId)) {
+      final parsed = parseGemList(_normalizeGemEntries(candidate));
+      if (parsed.isNotEmpty) {
+        return parsed;
+      }
+    }
+    return const [];
+  }
+
+  List<dynamic> _detailGemCandidates(
+    ShopOrderDetail detail,
+    ShopSchemaInfo? schema,
+    int appId,
+  ) {
+    final raw = detail.raw;
+    final schemaRaw = schema?.raw;
+    final rawAsset = _pickAssetRaw(raw, appId);
+    final rawDotaAsset =
+        _asMap(raw['dota2Asset']) ?? _asMap(raw['dota2_asset']);
+    final schemaAsset = schemaRaw == null
+        ? null
+        : _pickAssetRaw(schemaRaw, appId);
+    final schemaDotaAsset =
+        _asMap(schemaRaw?['dota2Asset']) ?? _asMap(schemaRaw?['dota2_asset']);
+
+    return [
+      raw['gemList'],
+      raw['gems'],
+      raw['gem_list'],
+      raw['gem'],
+      rawAsset?['gemList'],
+      rawAsset?['gems'],
+      rawAsset?['gem_list'],
+      rawAsset?['gem'],
+      rawDotaAsset?['gemList'],
+      rawDotaAsset?['gems'],
+      rawDotaAsset?['gem_list'],
+      rawDotaAsset?['gem'],
+      schemaRaw?['gemList'],
+      schemaRaw?['gems'],
+      schemaRaw?['gem_list'],
+      schemaRaw?['gem'],
+      schemaAsset?['gemList'],
+      schemaAsset?['gems'],
+      schemaAsset?['gem_list'],
+      schemaAsset?['gem'],
+      schemaDotaAsset?['gemList'],
+      schemaDotaAsset?['gems'],
+      schemaDotaAsset?['gem_list'],
+      schemaDotaAsset?['gem'],
+    ];
+  }
+
   List<dynamic> _normalizeStickerEntries(dynamic raw) {
     if (raw is List) {
       return raw;
@@ -2582,6 +2793,39 @@ class ShopOrderDetailPage extends StatelessWidget {
         if (values.isNotEmpty) {
           return values;
         }
+      }
+      return <dynamic>[value];
+    }
+    return const [];
+  }
+
+  List<dynamic> _normalizeGemEntries(dynamic raw) {
+    if (raw is List) {
+      return raw;
+    }
+    if (raw is Iterable) {
+      return raw.toList(growable: false);
+    }
+    if (raw is Map) {
+      if (raw.containsKey('image_url') ||
+          raw.containsKey('imageUrl') ||
+          raw.containsKey('image')) {
+        return <dynamic>[raw];
+      }
+      return raw.values.toList(growable: false);
+    }
+    if (raw is String) {
+      final value = raw.trim();
+      if (value.isEmpty || value == 'null') {
+        return const [];
+      }
+      if (value.startsWith('[') && value.endsWith(']')) {
+        try {
+          final decoded = jsonDecode(value);
+          if (decoded is List) {
+            return decoded;
+          }
+        } catch (_) {}
       }
       return <dynamic>[value];
     }
@@ -2814,6 +3058,9 @@ class ShopOrderDetailPage extends StatelessWidget {
 
   String _stickerFallbackName(int index) =>
       _text(zh: '印花 ${index + 1}', en: 'Sticker ${index + 1}');
+
+  String _gemFallbackName(int index) =>
+      _text(zh: '宝石 ${index + 1}', en: 'Gem ${index + 1}');
 
   String _resolveAvatarUrl(String? avatar) {
     if (avatar == null || avatar.isEmpty) {

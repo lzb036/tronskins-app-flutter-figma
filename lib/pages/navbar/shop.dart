@@ -2928,7 +2928,6 @@ class _ShopPageState extends State<ShopPage>
     final totalItemCount = _sellRecordItemQuantity(record);
     final useStackPreview = totalItemCount > 1;
     final statusSecondary = _buildSellRecordStatusSecondary(record);
-    final showCountdown = statusSecondary != null;
     final statusText = _buildRecordStatusText(record);
     final statusVisual = _buildSellRecordStatusVisual(record);
     final titleColor = statusVisual.muted
@@ -3107,21 +3106,6 @@ class _ShopPageState extends State<ShopPage>
                                               decorationColor: priceColor,
                                             ),
                                           ),
-                                          if (!showCountdown &&
-                                              totalItemCount > 1) ...[
-                                            const SizedBox(height: 1),
-                                            Text(
-                                              'x$totalItemCount',
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                color: secondaryColor,
-                                                fontSize: 10,
-                                                height: 15 / 10,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
                                         ],
                                       ),
                                     ),
