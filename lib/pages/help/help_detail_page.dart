@@ -1,6 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:tronskins_app/common/widgets/settings_style_app_bar.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'package:flutter_html_table/flutter_html_table.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:tronskins_app/api/model/help/help_models.dart';
@@ -79,6 +80,14 @@ class HelpDetailPage extends StatelessWidget {
                     padding: const EdgeInsets.all(16),
                     child: Html(
                       data: item.content ?? '',
+                      extensions: [
+                        TagWrapExtension(
+                          tagsToWrap: {'table'},
+                          builder: (child) =>
+                              _ScrollableTableView(child: child),
+                        ),
+                        const TableHtmlExtension(),
+                      ],
                       style: {
                         'body': Style(
                           margin: Margins.zero,
@@ -90,14 +99,95 @@ class HelpDetailPage extends StatelessWidget {
                         'h2': Style(fontSize: FontSize(20)),
                         'h3': Style(fontSize: FontSize(18)),
                         'p': Style(margin: Margins.only(bottom: 10)),
+                        'ul': Style(
+                          margin: Margins.only(bottom: 10),
+                          padding: HtmlPaddings.zero,
+                          listStyleType: ListStyleType.disc,
+                        ),
+                        'ol': Style(
+                          margin: Margins.only(bottom: 10),
+                          padding: HtmlPaddings.zero,
+                          listStyleType: ListStyleType.decimal,
+                        ),
+                        'li': Style(
+                          margin: Margins.zero,
+                          padding: HtmlPaddings.zero,
+                        ),
                         'a': Style(
                           color: Theme.of(context).colorScheme.primary,
+                        ),
+                        'table': Style(
+                          margin: Margins.only(top: 8, bottom: 14),
+                        ),
+                        'td': Style(
+                          padding: HtmlPaddings.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
+                          ),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.outlineVariant
+                                .withValues(alpha: 0.18),
+                          ),
+                        ),
+                        'th': Style(
+                          padding: HtmlPaddings.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
+                          ),
+                          fontWeight: FontWeight.w700,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
                         ),
                       },
                     ),
                   ),
                 ],
               ),
+      ),
+    );
+  }
+}
+
+class _ScrollableTableView extends StatefulWidget {
+  const _ScrollableTableView({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_ScrollableTableView> createState() => _ScrollableTableViewState();
+}
+
+class _ScrollableTableViewState extends State<_ScrollableTableView> {
+  late final ScrollController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scrollbar(
+      controller: _controller,
+      thumbVisibility: true,
+      trackVisibility: true,
+      scrollbarOrientation: ScrollbarOrientation.bottom,
+      thickness: 4,
+      radius: const Radius.circular(999),
+      child: SingleChildScrollView(
+        controller: _controller,
+        primary: false,
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.only(bottom: 12),
+        child: widget.child,
       ),
     );
   }
