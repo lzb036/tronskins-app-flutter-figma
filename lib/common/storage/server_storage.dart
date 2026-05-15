@@ -15,7 +15,7 @@ class ServerStorageItem {
 class ServerStorage {
   ServerStorage._();
 
-  static const String defaultServer = 'https://www.etopmarket.com/';
+  static const String defaultServer = 'https://www.tronskins.com/';
   static const String defaultServerName = 'Official website';
   static const String _serverKey = 'es_server';
   static const String _serverListKey = 'es_server_list';
