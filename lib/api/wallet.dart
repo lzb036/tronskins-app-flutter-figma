@@ -315,10 +315,7 @@ class ApiWalletServer {
   }
 
   Future<BaseHttpResponse<dynamic>> withdrawCancel({required String id}) async {
-    final response = await http.post(
-      'api/app/withdraws/cancel',
-      data: {'id': id},
-    );
+    final response = await http.post('api/app/withdraws/$id/cancel', data: {});
     return BaseHttpResponse.fromJson(
       response.data as Map<String, dynamic>,
       (json) => json,

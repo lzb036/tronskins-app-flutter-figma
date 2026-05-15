@@ -1075,11 +1075,10 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   bool get _isFireIceTier =>
       _detailMarketHashName.toLowerCase().contains('marble fade');
 
-  bool get _shouldHideGradientFilterForFireIce =>
-      _isFireIceTier && _toolbarTierOptions.isNotEmpty;
+  bool get _shouldHideGradientFilterForTier => _toolbarTierOptions.isNotEmpty;
 
   bool get _shouldShowGradientFilter =>
-      _hasGradientRangeSource && !_shouldHideGradientFilterForFireIce;
+      _hasGradientRangeSource && !_shouldHideGradientFilterForTier;
 
   String get _tierFilterLabel => _isFireIceTier
       ? 'app.market.csgo.fire_ice'.tr
