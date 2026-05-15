@@ -8,8 +8,10 @@ import 'package:tronskins_app/api/model/wallet/wallet_models.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/game_storage.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
+import 'package:tronskins_app/components/game_item/gem_row.dart';
 import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
+import 'package:tronskins_app/components/game_item/sticker_row.dart';
 import 'package:tronskins_app/components/game_item/wear_progress_bar.dart';
 import 'package:tronskins_app/components/layout/list_end_tip.dart';
 import 'package:tronskins_app/controllers/wallet/wallet_controller.dart';
@@ -229,11 +231,123 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
         _pickRawText(schema?.raw, const ['percentage']);
   }
 
+  Map<String, dynamic>? _asRawMap(dynamic value) {
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
+    return null;
+  }
+
+  List<Map<String, dynamic>?> _detailAssetCandidates(
+    WalletSettlementDetail detail,
+    WalletSchemaInfo? schema,
+  ) {
+    return [
+      _asRawMap(detail.raw['asset']),
+      _asRawMap(detail.raw['csgoAsset']),
+      _asRawMap(detail.raw['tf2Asset']),
+      _asRawMap(detail.raw['dota2Asset']),
+      _asRawMap(schema?.raw['asset']),
+      _asRawMap(schema?.raw['csgoAsset']),
+      _asRawMap(schema?.raw['tf2Asset']),
+      _asRawMap(schema?.raw['dota2Asset']),
+    ];
+  }
+
   List<GameItemSticker> _detailStickers(WalletSettlementDetail detail) {
-    final stickerRaw = _pickRawValue(detail.raw, const ['stickers']);
-    return parseStickerList(
-      stickerRaw,
+    final schema = _findSchema(detail);
+    final assets = _detailAssetCandidates(detail, schema);
+    return parseFirstAccessoryStickerList(
+      [
+        detail.raw['stickers'],
+        detail.raw['stickerList'],
+        detail.raw['sticker_list'],
+        detail.raw['sticker'],
+        detail.raw['stickerInfo'],
+        detail.raw['stickerInfos'],
+        detail.raw['sticker_info'],
+        for (final asset in assets) ...[
+          asset?['stickers'],
+          asset?['stickerList'],
+          asset?['sticker_list'],
+          asset?['sticker'],
+          asset?['stickerInfo'],
+          asset?['stickerInfos'],
+          asset?['sticker_info'],
+        ],
+        schema?.raw['stickers'],
+        schema?.raw['stickerList'],
+        schema?.raw['sticker_list'],
+        schema?.raw['sticker'],
+        schema?.raw['stickerInfo'],
+        schema?.raw['stickerInfos'],
+        schema?.raw['sticker_info'],
+      ],
+      schemaMap: controller.settlementStickers,
       stickerMap: controller.settlementStickers,
+    );
+  }
+
+  List<GameItemSticker> _detailKeychains(WalletSettlementDetail detail) {
+    final schema = _findSchema(detail);
+    final assets = _detailAssetCandidates(detail, schema);
+    return parseFirstAccessoryStickerList(
+      [
+        detail.raw['keychains'],
+        detail.raw['keychain'],
+        detail.raw['keychainList'],
+        detail.raw['keychain_list'],
+        for (final asset in assets) ...[
+          asset?['keychains'],
+          asset?['keychain'],
+          asset?['keychainList'],
+          asset?['keychain_list'],
+        ],
+        schema?.raw['keychains'],
+        schema?.raw['keychain'],
+        schema?.raw['keychainList'],
+        schema?.raw['keychain_list'],
+      ],
+      schemaMap: controller.settlementStickers,
+      stickerMap: controller.settlementStickers,
+    );
+  }
+
+  List<GameItemGem> _detailGems(WalletSettlementDetail detail) {
+    final schema = _findSchema(detail);
+    final assets = _detailAssetCandidates(detail, schema);
+    final candidates = [
+      detail.raw['gemList'],
+      detail.raw['gem_list'],
+      detail.raw['gems'],
+      detail.raw['gem'],
+      for (final asset in assets) ...[
+        asset?['gemList'],
+        asset?['gem_list'],
+        asset?['gems'],
+        asset?['gem'],
+      ],
+      schema?.raw['gemList'],
+      schema?.raw['gem_list'],
+      schema?.raw['gems'],
+      schema?.raw['gem'],
+    ];
+    for (final candidate in candidates) {
+      final gems = parseGemList(normalizeGameItemAccessoryEntries(candidate));
+      if (gems.isNotEmpty) {
+        return gems;
+      }
+    }
+    return const [];
+  }
+
+  List<GameItemSticker> _detailPreviewStickers(WalletSettlementDetail detail) {
+    return buildAccessoryPreviewStickers(
+      stickers: _detailStickers(detail),
+      keychains: _detailKeychains(detail),
     );
   }
 
@@ -243,7 +357,12 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
     double width = 40,
     double height = 40,
     bool showTopBadges = false,
+    bool showAccessories = true,
   }) {
+    final previewStickers = showAccessories
+        ? _detailPreviewStickers(detail)
+        : const <GameItemSticker>[];
+    final gems = showAccessories ? _detailGems(detail) : const <GameItemGem>[];
     return Container(
       width: width,
       height: height,
@@ -262,7 +381,8 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
           exterior: _schemaTag(schema, 'exterior'),
           phase: _phaseText(detail, schema),
           percentage: _percentageText(detail, schema),
-          stickers: _detailStickers(detail),
+          stickers: previewStickers,
+          gems: gems,
           avoidTopLeftBadgeOverlap: true,
           compactTopLeftBadges: true,
           showTopBadges: showTopBadges,
@@ -642,27 +762,191 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
     return count < 1 ? 1 : count;
   }
 
-  Widget _buildMultiPreviewStack(List<WalletSettlementDetail> details) {
-    final previewDetails = details.take(2).toList();
+  int _recordItemCount(WalletSettlementRecord record) {
+    var total = 0;
+    for (final detail in record.details) {
+      total += _detailCount(detail);
+    }
+    return total < 1 ? record.details.length : total;
+  }
+
+  Widget _buildMultiPreviewStack(WalletSettlementRecord record) {
+    final previewDetails = record.details.take(3).toList();
+    if (previewDetails.isEmpty) {
+      return const SizedBox(width: 56, height: 56);
+    }
+    final totalCount = _recordItemCount(record);
+    const tileSize = 56.0;
+
     return SizedBox(
-      width: previewDetails.length == 1 ? 48 : 76,
-      height: 48,
+      width: tileSize,
+      height: tileSize,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          for (var index = 0; index < previewDetails.length; index++)
+          Positioned.fill(
+            child: _buildStackPreviewTile(previewDetails.first, size: tileSize),
+          ),
+          if (totalCount > 1)
             Positioned(
-              left: index * 28,
-              child: _buildPreviewImage(
-                previewDetails[index],
-                schema: _findSchema(previewDetails[index]),
-                width: 48,
-                height: 48,
-              ),
+              left: -5,
+              top: -5,
+              child: _buildStackCountBadge(_compactCountLabel(totalCount)),
+            ),
+          if (totalCount <= 3)
+            ..._buildSmallPreviewStack(previewDetails.skip(1).toList())
+          else
+            Positioned(
+              right: -3,
+              bottom: -3,
+              child: _buildOverflowBadge(totalCount - 1),
             ),
         ],
       ),
     );
+  }
+
+  Widget _buildStackPreviewTile(
+    WalletSettlementDetail detail, {
+    double size = 56,
+  }) {
+    final schema = _findSchema(detail);
+    final isSmallTile = size < 40;
+    final radius = BorderRadius.circular(isSmallTile ? 6 : 8);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        border: isSmallTile ? null : Border.all(color: const Color(0x1AC4C5D5)),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+        ),
+        boxShadow: isSmallTile
+            ? const [
+                BoxShadow(
+                  color: Color(0x260F172A),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ]
+            : const [
+                BoxShadow(
+                  color: Color(0x1A000000),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ],
+      ),
+      foregroundDecoration: isSmallTile
+          ? BoxDecoration(
+              borderRadius: radius,
+              border: Border.all(color: Colors.white, width: 1.5),
+            )
+          : null,
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: EdgeInsets.all(isSmallTile ? 1 : 2),
+        child: GameItemImage(
+          imageUrl: _resolveImageUrl(detail, schema),
+          appId: _resolveAppId(detail, schema),
+          rarity: _schemaTag(schema, 'rarity'),
+          quality: _schemaTag(schema, 'quality'),
+          exterior: _schemaTag(schema, 'exterior'),
+          phase: _phaseText(detail, schema),
+          percentage: _percentageText(detail, schema),
+          showTopBadges: false,
+          compactTopLeftBadges: true,
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildSmallPreviewStack(List<WalletSettlementDetail> details) {
+    const smallTileSize = 22.0;
+    const smallTilePeek = 6.0;
+    final visibleDetails = details.take(2).toList();
+    return [
+      for (var layer = visibleDetails.length - 1; layer >= 0; layer--)
+        Positioned(
+          right: -2 + (layer * smallTilePeek),
+          bottom: -2 + (layer * smallTilePeek),
+          child: _buildStackPreviewTile(
+            visibleDetails[layer],
+            size: smallTileSize,
+          ),
+        ),
+    ];
+  }
+
+  Widget _buildStackCountBadge(String text) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 18),
+      height: 18,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      decoration: BoxDecoration(
+        color: _brandDeepColor,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white, width: 1.25),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1A0F172A),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+            spreadRadius: -2,
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          height: 1,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOverflowBadge(int hiddenCount) {
+    return Container(
+      width: 24,
+      height: 24,
+      padding: const EdgeInsets.all(4),
+      decoration: const BoxDecoration(
+        color: Color(0xE60F172A),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x330F172A),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+            spreadRadius: -2,
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          '+${_compactCountLabel(hiddenCount)}',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            height: 1,
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _compactCountLabel(int count) {
+    return count > 99 ? '99+' : count.toString();
   }
 
   Widget _buildRecordCard(
@@ -707,6 +991,9 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
     final schema = _findSchema(detail);
     final wearText = _paintWearText(detail);
     final wearValue = _paintWearValue(detail);
+    final previewStickers = _detailPreviewStickers(detail);
+    final gems = _detailGems(detail);
+    final hasWearText = wearText != null && wearText.trim().isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -714,7 +1001,13 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildPreviewImage(detail, schema: schema, width: 48, height: 48),
+            _buildPreviewImage(
+              detail,
+              schema: schema,
+              width: 48,
+              height: 48,
+              showAccessories: false,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -740,27 +1033,11 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
                       _buildStatusChip(record),
                     ],
                   ),
-                  if (wearText != null && wearText.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      wearText,
-                      style: const TextStyle(
-                        color: _bodyColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        height: 16 / 12,
-                      ),
-                    ),
-                  ],
-                  if (wearValue != null) ...[
+                  if (previewStickers.isNotEmpty || gems.isNotEmpty) ...[
                     const SizedBox(height: 6),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 168),
-                      child: WearProgressBar(
-                        paintWear: wearValue,
-                        height: 10,
-                        style: WearProgressBarStyle.figmaCompact,
-                      ),
+                    _buildDetailAccessoryPreview(
+                      stickers: previewStickers,
+                      gems: gems,
                     ),
                   ],
                 ],
@@ -768,8 +1045,90 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
             ),
           ],
         ),
+        if (hasWearText) ...[
+          const SizedBox(height: 12),
+          _buildWearLine(wearText: wearText.trim(), wearValue: wearValue),
+        ],
         const SizedBox(height: 16),
         _buildSettlementInfoPanel(record, currency),
+      ],
+    );
+  }
+
+  Widget _buildDetailAccessoryPreview({
+    required List<GameItemSticker> stickers,
+    required List<GameItemGem> gems,
+  }) {
+    final previewStickers = stickers.take(6).toList(growable: false);
+    final previewGems = gems.take(4).toList(growable: false);
+    if (previewStickers.isEmpty && previewGems.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Row(
+      children: [
+        if (previewStickers.isNotEmpty)
+          Flexible(
+            fit: FlexFit.loose,
+            child: StickerRow(stickers: previewStickers, size: 18),
+          ),
+        if (previewStickers.isNotEmpty && previewGems.isNotEmpty)
+          const SizedBox(width: 6),
+        if (previewGems.isNotEmpty)
+          Flexible(
+            fit: FlexFit.loose,
+            child: GemRow(gems: previewGems, size: 18),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildWearLine({
+    required String wearText,
+    required double? wearValue,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              _isChineseLocale ? '磨损度' : 'Wear',
+              style: const TextStyle(
+                color: Color(0xFF94A3B8),
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                height: 14 / 10,
+                letterSpacing: 0.4,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                wearText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _bodyColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  height: 16 / 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (wearValue != null && wearValue > 0) ...[
+          const SizedBox(height: 5),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 196),
+            child: WearProgressBar(
+              paintWear: wearValue,
+              height: 10,
+              style: WearProgressBarStyle.figmaCompact,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -782,7 +1141,7 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
     final extraCount = record.details.length - previewDetails.length;
     final firstDetail = previewDetails.isNotEmpty ? previewDetails.first : null;
     final firstSchema = firstDetail == null ? null : _findSchema(firstDetail);
-    final totalCount = record.details.length;
+    final totalCount = _recordItemCount(record);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -790,7 +1149,7 @@ class _WalletSettlementPageState extends State<WalletSettlementPage> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildMultiPreviewStack(record.details),
+            _buildMultiPreviewStack(record),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
