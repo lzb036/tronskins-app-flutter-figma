@@ -173,16 +173,12 @@ class _BuyingUpdatePricePageState extends State<BuyingUpdatePricePage> {
     if (buyMaxPrice <= 0) {
       return 0;
     }
-    double newPrice = 0;
-    if (buyMaxPrice <= 10 && buyMaxPrice > 0) {
-      newPrice = buyMaxPrice + 0.01;
-    }
-    if (buyMaxPrice > 10 && buyMaxPrice <= 100) {
-      newPrice = buyMaxPrice + 0.1;
-    }
-    if (buyMaxPrice > 100) {
-      newPrice = buyMaxPrice + 0.5;
-    }
+    final increment = buyMaxPrice < 10
+        ? 0.01
+        : buyMaxPrice <= 100
+        ? 0.1
+        : 0.5;
+    final newPrice = buyMaxPrice + increment;
     final rounded = double.parse(newPrice.toStringAsFixed(2));
     return rounded < _minTradePrice ? _minTradePrice : rounded;
   }

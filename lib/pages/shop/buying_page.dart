@@ -2576,9 +2576,7 @@ class _PurchasePriceChangeDialogState
   final TextEditingController _numController = TextEditingController();
 
   double _minPrice = 0;
-  double _referencePrice = 0;
   bool _isSubmitting = false;
-  bool _isLoadingReferencePrice = false;
 
   Map<String, dynamic> get _schemaRaw => widget.schema?.raw ?? const {};
 
@@ -2652,7 +2650,9 @@ class _PurchasePriceChangeDialogState
         );
       }
     }
-    await _loadReferencePrice(silentError: true);
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   double _sellMin() {
@@ -2670,6 +2670,19 @@ class _PurchasePriceChangeDialogState
 
   double _buyMax() {
     return _buyingParseDouble(_schemaRaw['buy_max']) ?? 0;
+  }
+
+  double _oneClickPrice(double buyMaxPrice) {
+    if (buyMaxPrice <= 0) {
+      return 0;
+    }
+    final increment = buyMaxPrice < 10
+        ? 0.01
+        : buyMaxPrice <= 100
+        ? 0.1
+        : 0.5;
+    final rounded = double.parse((buyMaxPrice + increment).toStringAsFixed(2));
+    return rounded < _minTradePrice ? _minTradePrice : rounded;
   }
 
   int _boundQuantity(int quantity) {
@@ -2690,53 +2703,15 @@ class _PurchasePriceChangeDialogState
   String get _currentPurchaseQuantityText =>
       _currentPurchaseQuantity.toString();
 
-  Future<void> _loadReferencePrice({bool silentError = false}) async {
-    final schemaId =
-        widget.item.schemaId ??
-        int.tryParse(widget.schema?.raw['id']?.toString() ?? '');
-    if (schemaId == null) {
-      return;
-    }
-    if (mounted) {
-      setState(() => _isLoadingReferencePrice = true);
-    } else {
-      _isLoadingReferencePrice = true;
-    }
-    try {
-      final res = await _api.getOrderBuyingMinPrice(
-        appId: widget.item.appId ?? widget.currentAppId,
-        schemaId: schemaId,
-      );
-      _referencePrice = res.datas ?? 0;
-    } catch (_) {
-      if (!silentError) {
-        AppSnackbar.error('app.trade.filter.failed'.tr);
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoadingReferencePrice = false);
-      } else {
-        _isLoadingReferencePrice = false;
-      }
-    }
-  }
-
   double _totalAmount() {
     final price = _inputPriceUsd();
     final num = int.tryParse(_numController.text) ?? 0;
     return price * num;
   }
 
-  Future<void> _applyMaxPrice() async {
-    if (_isLoadingReferencePrice) {
-      return;
-    }
-    if (_referencePrice <= 0) {
-      await _loadReferencePrice();
-    }
-    final value = _referencePrice;
+  void _applyMaxPrice() {
+    final value = _oneClickPrice(_buyMax());
     if (value <= 0) {
-      AppSnackbar.error('app.trade.filter.failed'.tr);
       return;
     }
     _setControllerText(_priceController, _normalizeDisplayPrice(value));
@@ -3210,9 +3185,7 @@ class _PurchasePriceChangeDialogState
                   ),
                   const Spacer(),
                   TextButton(
-                    onPressed: (_isSubmitting || _isLoadingReferencePrice)
-                        ? null
-                        : _applyMaxPrice,
+                    onPressed: _isSubmitting ? null : _applyMaxPrice,
                     style: TextButton.styleFrom(
                       foregroundColor: const Color(0xFF1E40AF),
                       backgroundColor: const Color.fromRGBO(30, 64, 175, 0.08),
@@ -3231,7 +3204,7 @@ class _PurchasePriceChangeDialogState
                       visualDensity: VisualDensity.compact,
                     ),
                     child: Text(
-                      'app.inventory.pricing_reference'.tr,
+                      'app.inventory.pricing'.tr,
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,

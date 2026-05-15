@@ -36,8 +36,6 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
   static const Color _brandBlue = Color(0xFF00288E);
   static const Color _brandBlueLight = Color(0xFF3B82F6);
   static const Color _priceOrange = Color(0xFFFF6B35);
-  static const Color _dangerRed = Color(0xFFBA1A1A);
-  static const Color _dangerRedSoft = Color(0xFFFFDAD6);
 
   final ApiMarketServer _marketServer = ApiMarketServer();
   final ApiShopServer _shopServer = ApiShopServer();
@@ -865,10 +863,6 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
 
   String get _pageTitle => 'app.market.product.details'.tr;
 
-  String get _currentPriceLabel => 'app.market.item.current_price'.tr;
-
-  String get _referencePriceLabel => 'app.market.detail.steam_price'.tr;
-
   String get _itemAttributesTitle => 'app.market.item.attributes'.tr;
 
   String get _floatValueLabel => 'app.market.item.float_value'.tr;
@@ -923,39 +917,6 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
             child: Text('app.user.shop.deliver_iknow'.tr),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildRarityBadge(String label, String? colorHex) {
-    final baseColor = _parseHex(colorHex) ?? const Color(0xFF9333EA);
-    final endColor = Color.lerp(baseColor, Colors.black, 0.35) ?? baseColor;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [baseColor, endColor],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: baseColor.withValues(alpha: 0.24),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 10,
-          height: 15 / 10,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.8,
-        ),
       ),
     );
   }
@@ -1109,17 +1070,6 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
         ShopStoreInfoMetric(label: _rateLabel, value: _last7DaysRate(shopInfo)),
       ],
     );
-  }
-
-  Color? _parseHex(String? hex) {
-    if (hex == null || hex.isEmpty) {
-      return null;
-    }
-    final normalized = hex.replaceAll('#', '');
-    if (normalized.length == 6) {
-      return Color(int.parse('FF$normalized', radix: 16));
-    }
-    return null;
   }
 
   String? _resolveDescription(Map<String, dynamic>? asset) {
@@ -2087,11 +2037,7 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     );
   }
 
-  Widget _buildItemTitleRow({
-    required String displayName,
-    required String? rarityLabel,
-    required String? rarityColor,
-  }) {
+  Widget _buildItemTitleRow({required String displayName}) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -2113,10 +2059,6 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
                   ),
                 ),
               ),
-              if (rarityLabel != null && rarityLabel.isNotEmpty) ...[
-                const SizedBox(width: 16),
-                _buildRarityBadge(rarityLabel, rarityColor),
-              ],
             ],
           ),
         ),
@@ -2228,16 +2170,6 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
         _item.price ??
         _extractDouble(_item.raw, const ['price', 'market_price']) ??
         _extractDouble(_schema?.raw, const ['price', 'market_price']);
-    final lastSoldPrice =
-        _extractDouble(_schema?.raw, const [
-          'reference_price',
-          'market_price',
-          'sell_min',
-          'sellMin',
-          'buy_max',
-          'buyMax',
-        ]) ??
-        _extractDouble(_item.raw, const ['market_price']);
     final rarityLabel = rarity?.label?.trim();
     final typeValue = type?.label?.trim() ?? _item.typeName?.trim();
     final weaponTypeValue = tags?.weapon?.localizedName?.trim() ?? typeValue;
@@ -2313,121 +2245,28 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Column(
                 children: [
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final badgeLabel = _isEnglishLocale
-                          ? _currentPriceLabel.toUpperCase()
-                          : _currentPriceLabel;
-                      final referenceLabel = _referencePriceLabel;
-
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (currentPrice != null)
-                                  Row(
-                                    children: [
-                                      Flexible(
-                                        child: FittedBox(
-                                          fit: BoxFit.scaleDown,
-                                          alignment: Alignment.centerLeft,
-                                          child: Text(
-                                            currency.format(currentPrice),
-                                            maxLines: 1,
-                                            softWrap: false,
-                                            style: const TextStyle(
-                                              color: _priceOrange,
-                                              fontSize: 34,
-                                              height: 38 / 34,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 3,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: _dangerRedSoft,
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          badgeLabel,
-                                          maxLines: 1,
-                                          softWrap: false,
-                                          style: const TextStyle(
-                                            color: _dangerRed,
-                                            fontSize: 10,
-                                            height: 14 / 10,
-                                            fontWeight: FontWeight.w700,
-                                            letterSpacing: 0.35,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                              ],
-                            ),
+                  if (currentPrice != null) ...[
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          currency.format(currentPrice),
+                          maxLines: 1,
+                          softWrap: false,
+                          style: const TextStyle(
+                            color: _priceOrange,
+                            fontSize: 34,
+                            height: 38 / 34,
+                            fontWeight: FontWeight.w700,
                           ),
-                          if (lastSoldPrice != null) ...[
-                            const SizedBox(width: 16),
-                            ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxWidth: constraints.maxWidth * 0.34,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    referenceLabel,
-                                    maxLines: 1,
-                                    softWrap: false,
-                                    textAlign: TextAlign.right,
-                                    style: const TextStyle(
-                                      color: _textSecondary,
-                                      fontSize: 11,
-                                      height: 16 / 11,
-                                      fontWeight: FontWeight.w500,
-                                      letterSpacing: 1.05,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text(
-                                      currency.format(lastSoldPrice),
-                                      maxLines: 1,
-                                      softWrap: false,
-                                      style: const TextStyle(
-                                        color: _textPrimary,
-                                        fontSize: 16,
-                                        height: 24 / 16,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  _buildItemTitleRow(
-                    displayName: displayName,
-                    rarityLabel: rarityLabel,
-                    rarityColor: rarity?.color,
-                  ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  _buildItemTitleRow(displayName: displayName),
                   if (overviewStats.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     ClipRRect(
