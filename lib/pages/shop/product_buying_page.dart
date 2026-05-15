@@ -12,6 +12,7 @@ import 'package:tronskins_app/api/shop_product.dart';
 import 'package:tronskins_app/common/hooks/currency/CurrencyController.dart';
 import 'package:tronskins_app/common/storage/user_storage.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
+import 'package:tronskins_app/common/utils/decimal_text_input_formatter.dart';
 import 'package:tronskins_app/common/utils/string_utils.dart';
 import 'package:tronskins_app/common/utils/trade_purchase_error.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
@@ -316,17 +317,17 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
   }
 
   void _sanitizePrice(String value) {
-    final parsed = double.tryParse(value);
-    if (parsed == null) {
+    final sanitized = DecimalTextInputFormatter.sanitize(
+      value,
+      decimalDigits: 2,
+    );
+    if (sanitized == value) {
       return;
     }
-    final parts = value.split('.');
-    if (parts.length == 2 && parts[1].length > 2) {
-      _priceController.text = parsed.toStringAsFixed(2);
-      _priceController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _priceController.text.length),
-      );
-    }
+    _priceController.value = TextEditingValue(
+      text: sanitized,
+      selection: TextSelection.collapsed(offset: sanitized.length),
+    );
   }
 
   void _sanitizeNum(String value) {
@@ -815,21 +816,25 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
     if (value > maxAllowed) {
       return fallbackValue;
     }
-    if (value < minAllowed && _isCompleteWearLowerInput(normalized)) {
+    if (value < minAllowed &&
+        _isCompleteWearLowerInput(normalized, minAllowed)) {
       return fallbackValue;
     }
     return null;
   }
 
-  bool _isCompleteWearLowerInput(String text) {
-    if (RegExp(r'^0\.0+$').hasMatch(text)) {
-      return true;
+  bool _isCompleteWearLowerInput(String text, double minAllowed) {
+    final normalized = _normalizeWearBoundaryText(text);
+    final minText = _formatWearValue(minAllowed);
+    return normalized.isNotEmpty && !minText.startsWith(normalized);
+  }
+
+  String _normalizeWearBoundaryText(String text) {
+    final normalized = text.trim();
+    if (normalized.startsWith('.')) {
+      return '0$normalized';
     }
-    final dotIndex = text.indexOf('.');
-    if (dotIndex < 0) {
-      return text.length > 1;
-    }
-    return text.length - dotIndex - 1 >= 2;
+    return normalized;
   }
 
   void _syncWearTextController(
@@ -1877,6 +1882,9 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
+                        inputFormatters: const [
+                          DecimalTextInputFormatter(decimalDigits: 2),
+                        ],
                         style: const TextStyle(
                           color: _titleColor,
                           fontSize: 24,
