@@ -959,7 +959,10 @@ class _InventoryUpShopPageState extends State<InventoryUpShopPage> {
     }
     if (trimTrailingZeros) {
       number = number.replaceFirst(RegExp(r'\.00$'), '');
-      number = number.replaceFirst(RegExp(r'(\.\d)0$'), r'$1');
+      number = number.replaceFirstMapped(
+        RegExp(r'(\.\d)0$'),
+        (match) => match.group(1) ?? '',
+      );
     }
     final cleanNumber = number.replaceFirst(RegExp(r'^\$+'), '');
     return '$symbol$cleanNumber';

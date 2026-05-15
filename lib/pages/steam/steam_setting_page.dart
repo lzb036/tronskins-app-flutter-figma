@@ -245,14 +245,6 @@ class _SteamSettingPageState extends State<SteamSettingPage> {
     await controller.loadSteamConfig();
   }
 
-  Future<void> _openSteamCredentialPage(String steamId) async {
-    if (controller.tradeUrl.value.trim().isEmpty) {
-      await _openTradeUrlPage(steamId);
-      return;
-    }
-    await _openApiKeyPage();
-  }
-
   Future<void> _refreshStatus() async {
     if (_isRefreshingStatus) {
       return;
@@ -554,8 +546,13 @@ class _SteamSettingPageState extends State<SteamSettingPage> {
                 isLoading: isInitialSteamLoading,
               ),
               const SizedBox(height: 24),
-              _buildSteamCredentialCard(
+              _buildTradeLinkCard(
                 steamId: steamId,
+                isBound: isBound,
+                isLoading: isInitialSteamLoading,
+              ),
+              const SizedBox(height: 24),
+              _buildApiKeyCard(
                 isBound: isBound,
                 isLoading: isInitialSteamLoading,
               ),
@@ -870,7 +867,7 @@ class _SteamSettingPageState extends State<SteamSettingPage> {
     );
   }
 
-  Widget _buildSteamCredentialCard({
+  Widget _buildTradeLinkCard({
     required String steamId,
     required bool isBound,
     required bool isLoading,
@@ -925,7 +922,31 @@ class _SteamSettingPageState extends State<SteamSettingPage> {
                 ),
               ),
             ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          if (isLoading)
+            const _SteamSkeletonBox(height: 48, radius: 4)
+          else
+            _WideActionButton(
+              label: isBound
+                  ? 'app.steam.tradeLink_get'.tr
+                  : 'app.steam.account.bind_title'.tr,
+              icon: Icons.open_in_new_rounded,
+              onTap: isBound ? () => _openTradeUrlPage(steamId) : _bindSteam,
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1E40AF), Color(0xFF2170E4)],
+              ),
+              foregroundColor: Colors.white,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildApiKeyCard({required bool isBound, required bool isLoading}) {
+    return _SteamSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
             'app.steam.api_key.setting'.tr.toUpperCase(),
             style: const TextStyle(
@@ -986,7 +1007,7 @@ class _SteamSettingPageState extends State<SteamSettingPage> {
                 ),
               ),
             ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           if (isLoading)
             const _SteamSkeletonBox(height: 48, radius: 4)
           else
@@ -994,10 +1015,8 @@ class _SteamSettingPageState extends State<SteamSettingPage> {
               label: isBound
                   ? 'app.steam.settings.go_get'.tr
                   : 'app.steam.account.bind_title'.tr,
-              icon: Icons.open_in_new_rounded,
-              onTap: isBound
-                  ? () => _openSteamCredentialPage(steamId)
-                  : _bindSteam,
+              icon: Icons.vpn_key_rounded,
+              onTap: isBound ? _openApiKeyPage : _bindSteam,
               gradient: const LinearGradient(
                 colors: [Color(0xFF1E40AF), Color(0xFF2170E4)],
               ),
