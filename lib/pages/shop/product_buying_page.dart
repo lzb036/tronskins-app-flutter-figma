@@ -34,6 +34,7 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
   static const String _wearCustomValue = '__wear_custom__';
   static const String _phaseUnlimitedValue = '__phase_unlimited__';
   static const String _gradientUnlimitedValue = '__gradient_unlimited__';
+  static const String _tierUnlimitedValue = '__tier_unlimited__';
   static const Color _pageBackground = Color(0xFFF7F9FB);
   static const Color _cardSurface = Colors.white;
   static const Color _softSurface = Color(0xFFF2F4F6);
@@ -59,6 +60,7 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
 
   MarketTemplateSchema? _schema;
   List<dynamic> _paintKits = const <dynamic>[];
+  bool _isFadeTemplate = false;
   double _purMinPrice = 0;
   double _minPrice = 0;
   int _purchaseNum = 0;
@@ -71,6 +73,8 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
   String? _selectedPaintIndex;
   double? _gradientMin;
   double? _gradientMax;
+  int? _selectedTierId;
+  List<_ProductTierOption> _tierOptions = const <_ProductTierOption>[];
   String? _filterLabel;
 
   @override
@@ -110,11 +114,15 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
         useAuth: useAuth,
         fallbackToPublicOnFail: true,
       );
-      _schema = res.datas?.schema;
-      _paintKits = res.datas?.paintKits ?? const <dynamic>[];
+      final detail = res.datas;
+      _schema = detail?.schema;
+      _paintKits = detail?.paintKits ?? const <dynamic>[];
+      _isFadeTemplate = detail?.fade == true;
       _selectedPaintIndex = null;
       _gradientMin = null;
       _gradientMax = null;
+      _selectedTierId = null;
+      _tierOptions = await _loadTierOptions(detail);
 
       final minRes = await _shopApi.getOrderBuyingMinPrice(
         appId: _appId,
@@ -167,12 +175,111 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
     if (_appId != 730) {
       return false;
     }
-    return _marketHashNameContains('Fade');
+    if (_isFireIceTier || _showTierFilter) {
+      return false;
+    }
+    return _isFadeTemplate || _marketHashNameContains('Fade');
   }
 
+  bool get _isFireIceTier =>
+      _schemaContainsAny(_schema, const ['Marble Fade', '渐变大理石']);
+
+  bool get _showTierFilter => _tierOptions.isNotEmpty;
+
+  String get _tierFilterLabel => _isFireIceTier
+      ? 'app.market.csgo.fire_ice'.tr
+      : 'app.market.csgo.tier'.tr;
+
+  String get _tierUnlimitedLabel => _isFireIceTier
+      ? 'app.market.csgo.fire_ice_unlimited'.tr
+      : 'app.market.csgo.tier_unlimited'.tr;
+
   bool _marketHashNameContains(String text) {
-    final marketHashName = _schema?.marketHashName ?? '';
-    return marketHashName.toLowerCase().contains(text.toLowerCase());
+    return _schemaContainsAny(_schema, <String>[text]);
+  }
+
+  bool _schemaContainsAny(MarketTemplateSchema? schema, List<String> texts) {
+    final source = _schemaSearchText(schema);
+    return texts.any((text) => source.contains(text.toLowerCase()));
+  }
+
+  String _schemaSearchText(MarketTemplateSchema? schema) {
+    if (schema == null) {
+      return '';
+    }
+    final raw = schema.raw;
+    final parts = <String?>[
+      schema.marketHashName,
+      schema.marketName,
+      raw['market_hash_name']?.toString(),
+      raw['marketHashName']?.toString(),
+      raw['market_name']?.toString(),
+      raw['marketName']?.toString(),
+    ];
+    return parts
+        .whereType<String>()
+        .map((value) => value.toLowerCase())
+        .join('\n');
+  }
+
+  Future<List<_ProductTierOption>> _loadTierOptions(
+    MarketTemplateDetail? detail,
+  ) async {
+    if (detail == null || !_shouldShowTierFilter(detail)) {
+      return const <_ProductTierOption>[];
+    }
+    final itemWeapon = _tierItemWeapon(detail);
+    if (itemWeapon == null) {
+      return const <_ProductTierOption>[];
+    }
+    try {
+      final res = await _marketApi.csgoWeaponTierList(itemWeapon: itemWeapon);
+      return _mapTierOptions(res.datas ?? const <MarketTierOption>[]);
+    } catch (_) {
+      return const <_ProductTierOption>[];
+    }
+  }
+
+  bool _shouldShowTierFilter(MarketTemplateDetail? detail) {
+    if (_appId != 730 || detail == null) {
+      return false;
+    }
+    return _schemaContainsAny(detail.schema, const [
+      'Case Hardened',
+      'Marble Fade',
+      '表面淬火',
+      '渐变大理石',
+    ]);
+  }
+
+  String? _tierItemWeapon(MarketTemplateDetail detail) {
+    final schema = detail.schema;
+    return _cleanText(
+      schema?.itemWeapon ??
+          schema?.raw['itemWeapon']?.toString() ??
+          schema?.raw['item_weapon']?.toString(),
+    );
+  }
+
+  List<_ProductTierOption> _mapTierOptions(List<MarketTierOption> tiers) {
+    final options = <int, _ProductTierOption>{};
+    for (final tier in tiers) {
+      final id = tier.id;
+      final label = _cleanText(tier.tierName);
+      if (id == null || label == null) {
+        continue;
+      }
+      options[id] = _ProductTierOption(id: id, label: label);
+    }
+    return options.values.toList(growable: false);
+  }
+
+  String? _cleanText(String? value) {
+    final text = value?.trim();
+    if (text == null || text.isEmpty) {
+      return null;
+    }
+    return text;
   }
 
   double _totalAmount() {
@@ -926,6 +1033,7 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
           'paintGradientMin': _gradientMin,
           'paintGradientMax': _gradientMax,
           'paintIndex': _selectedPaintIndex,
+          'tierId': _selectedTierId,
         }..removeWhere((key, value) => value == null),
       );
 
@@ -1352,6 +1460,47 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
     );
   }
 
+  Widget _buildTierDropdown() {
+    final selectedValue =
+        _selectedTierId != null &&
+            _tierOptions.any((option) => option.id == _selectedTierId)
+        ? _selectedTierId.toString()
+        : _tierUnlimitedValue;
+    final options = <ZeroPaddingDropdownOption<String>>[
+      ZeroPaddingDropdownOption<String>(
+        value: _tierUnlimitedValue,
+        label: _tierUnlimitedLabel,
+      ),
+      ..._tierOptions.map(
+        (option) => ZeroPaddingDropdownOption<String>(
+          value: option.id.toString(),
+          label: option.label,
+        ),
+      ),
+    ];
+
+    return _buildDropdownContainer(
+      child: ZeroPaddingDropdown<String>(
+        value: selectedValue,
+        iconColor: _bodyColor,
+        textStyle: const TextStyle(
+          color: _titleColor,
+          fontSize: 14,
+          height: 20 / 14,
+          fontWeight: FontWeight.w600,
+        ),
+        options: options,
+        onChanged: (value) {
+          setState(() {
+            _selectedTierId = value == _tierUnlimitedValue
+                ? null
+                : int.tryParse(value);
+          });
+        },
+      ),
+    );
+  }
+
   Widget _buildDropdownContainer({required Widget child}) {
     return Container(
       height: 44,
@@ -1677,6 +1826,13 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
             _buildFilterCard(
               title: 'app.market.csgo.gradient_range'.tr,
               child: _buildGradientDropdown(),
+            ),
+          ],
+          if (_showTierFilter) ...[
+            const SizedBox(height: 16),
+            _buildFilterCard(
+              title: _tierFilterLabel,
+              child: _buildTierDropdown(),
             ),
           ],
           if (_showFilter) ...[
@@ -2064,6 +2220,13 @@ class _ProductGradientOption {
     this.min,
     this.max,
   });
+}
+
+class _ProductTierOption {
+  final int id;
+  final String label;
+
+  const _ProductTierOption({required this.id, required this.label});
 }
 
 class _ProductWearRange {

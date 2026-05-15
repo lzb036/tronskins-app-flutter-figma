@@ -225,6 +225,8 @@ class _HomePageState extends State<HomePage>
 
   void _switchToMarketWithArgs(Map<String, dynamic> args) {
     args['appId'] = controller.appId.value;
+    _resetHomeViewportForGameChange();
+    marketController.requestScrollToTop();
     marketController.applyInitialArgs(args);
     marketController.refresh(reset: true);
     final navCtrl = Get.isRegistered<NavController>()

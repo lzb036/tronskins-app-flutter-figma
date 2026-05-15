@@ -125,8 +125,11 @@ class MarketItemEntity {
       id: _asInt(json['id']),
       schemaId: _asInt(json['schema_id'] ?? json['schemaId']),
       appId: _asInt(json['app_id'] ?? json['appId']),
-      marketName: json['market_name']?.toString(),
-      marketHashName: json['market_hash_name']?.toString(),
+      marketName:
+          json['market_name']?.toString() ?? json['marketName']?.toString(),
+      marketHashName:
+          json['market_hash_name']?.toString() ??
+          json['marketHashName']?.toString(),
       imageUrl: json['image_url']?.toString(),
       marketPrice: activeLowestListingPrice(
         json,
@@ -246,8 +249,11 @@ class MarketSchemaInfo {
       appId: _asInt(json['app_id'] ?? json['appId']),
       schemaId: _asInt(json['schema_id'] ?? json['schemaId'] ?? json['id']),
       imageUrl: json['image_url']?.toString(),
-      marketName: json['market_name']?.toString(),
-      marketHashName: json['market_hash_name']?.toString(),
+      marketName:
+          json['market_name']?.toString() ?? json['marketName']?.toString(),
+      marketHashName:
+          json['market_hash_name']?.toString() ??
+          json['marketHashName']?.toString(),
       tags: json['tags'] is Map<String, dynamic>
           ? MarketItemTags.fromJson(json['tags'] as Map<String, dynamic>)
           : null,
@@ -293,7 +299,9 @@ class MarketListItem {
       favorited: _asBool(
         json['favorited'] ?? json['favorite'] ?? json['isFavorited'],
       ),
-      marketHashName: json['market_hash_name']?.toString(),
+      marketHashName:
+          json['market_hash_name']?.toString() ??
+          json['marketHashName']?.toString(),
       price: _asDouble(json['price']),
       typeName: json['typeName']?.toString(),
       createTime: _asInt(json['create_time']),
@@ -470,8 +478,11 @@ class MarketTemplateSchema {
       raw: json,
       appId: _asInt(json['app_id'] ?? json['appId']),
       schemaId: _asInt(json['schema_id'] ?? json['schemaId'] ?? json['id']),
-      marketName: json['market_name']?.toString(),
-      marketHashName: json['market_hash_name']?.toString(),
+      marketName:
+          json['market_name']?.toString() ?? json['marketName']?.toString(),
+      marketHashName:
+          json['market_hash_name']?.toString() ??
+          json['marketHashName']?.toString(),
       itemWeapon:
           json['item_weapon']?.toString() ?? json['itemWeapon']?.toString(),
       imageUrl: json['image_url']?.toString(),

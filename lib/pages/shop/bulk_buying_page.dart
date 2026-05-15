@@ -153,7 +153,8 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
     return _marketHashNameContains('Doppler');
   }
 
-  bool get _isFireIceTier => _marketHashNameContains('Marble Fade');
+  bool get _isFireIceTier =>
+      _schemaContainsAny(_schema, const ['Marble Fade', '渐变大理石']);
 
   bool get _showTierFilter => _tierOptions.isNotEmpty;
 
@@ -161,7 +162,7 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
     if (_appId != 730) {
       return false;
     }
-    if (_isFireIceTier && _showTierFilter) {
+    if (_isFireIceTier || _showTierFilter) {
       return false;
     }
     return _isFadeTemplate || _marketHashNameContains('Fade');
@@ -176,8 +177,31 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
       : 'app.market.csgo.tier_unlimited'.tr;
 
   bool _marketHashNameContains(String text) {
-    final marketHashName = _schema?.marketHashName ?? '';
-    return marketHashName.toLowerCase().contains(text.toLowerCase());
+    return _schemaContainsAny(_schema, <String>[text]);
+  }
+
+  bool _schemaContainsAny(MarketTemplateSchema? schema, List<String> texts) {
+    final source = _schemaSearchText(schema);
+    return texts.any((text) => source.contains(text.toLowerCase()));
+  }
+
+  String _schemaSearchText(MarketTemplateSchema? schema) {
+    if (schema == null) {
+      return '';
+    }
+    final raw = schema.raw;
+    final parts = <String?>[
+      schema.marketHashName,
+      schema.marketName,
+      raw['market_hash_name']?.toString(),
+      raw['marketHashName']?.toString(),
+      raw['market_name']?.toString(),
+      raw['marketName']?.toString(),
+    ];
+    return parts
+        .whereType<String>()
+        .map((value) => value.toLowerCase())
+        .join('\n');
   }
 
   Future<void> _loadData() async {
@@ -235,11 +259,15 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
   }
 
   bool _shouldShowTierFilter(MarketTemplateDetail? detail) {
-    if (_appId != 730 || detail?.quenching != true) {
+    if (_appId != 730 || detail == null) {
       return false;
     }
-    final name = detail?.schema?.marketHashName?.toLowerCase() ?? '';
-    return name.contains('case hardened') || name.contains('marble fade');
+    return _schemaContainsAny(detail.schema, const [
+      'Case Hardened',
+      'Marble Fade',
+      '表面淬火',
+      '渐变大理石',
+    ]);
   }
 
   String? _tierItemWeapon(MarketTemplateDetail detail) {

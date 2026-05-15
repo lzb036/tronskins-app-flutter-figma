@@ -36,6 +36,7 @@ class _MarketPageState extends State<MarketPage> {
   final TextEditingController _searchController = TextEditingController();
   late final Worker _keywordWorker;
   Worker? _gameWorker;
+  Worker? _scrollToTopWorker;
 
   @override
   void initState() {
@@ -56,6 +57,9 @@ class _MarketPageState extends State<MarketPage> {
     _gameWorker = ever<int>(controller.appId, (_) {
       _resetMarketViewportForGameChange();
     });
+    _scrollToTopWorker = ever<int>(controller.scrollToTopRevision, (_) {
+      _resetMarketViewportForListChange();
+    });
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >
           _scrollController.position.maxScrollExtent - 200) {
@@ -68,6 +72,7 @@ class _MarketPageState extends State<MarketPage> {
   void dispose() {
     _keywordWorker.dispose();
     _gameWorker?.dispose();
+    _scrollToTopWorker?.dispose();
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -85,6 +90,10 @@ class _MarketPageState extends State<MarketPage> {
   }
 
   void _resetMarketViewportForGameChange() {
+    _resetMarketViewportForListChange();
+  }
+
+  void _resetMarketViewportForListChange() {
     _jumpScrollToTop();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
@@ -122,6 +131,7 @@ class _MarketPageState extends State<MarketPage> {
       if (result.clearKeyword) {
         _searchController.clear();
       }
+      controller.requestScrollToTop();
       await controller.applyFilter(
         field: result.sortField,
         asc: result.sortField.isEmpty ? false : result.sortAsc,
@@ -152,6 +162,7 @@ class _MarketPageState extends State<MarketPage> {
   Future<void> _applySearchKeyword(String keyword) async {
     final nextKeyword = keyword.trim();
     _searchController.text = nextKeyword;
+    controller.requestScrollToTop();
     await controller.search(nextKeyword);
     if (mounted) {
       setState(() {});

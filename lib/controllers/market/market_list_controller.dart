@@ -23,6 +23,7 @@ class MarketListController extends GetxController {
   final RxnDouble priceMax = RxnDouble();
   final RxnString itemName = RxnString();
   final RxMap<String, dynamic> tags = <String, dynamic>{}.obs;
+  final RxInt scrollToTopRevision = 0.obs;
 
   int _page = 1;
   bool _hasMore = true;
@@ -140,6 +141,10 @@ class MarketListController extends GetxController {
 
   Future<void> changeGame(int newAppId) async {
     await _globalGameController.switchGame(newAppId);
+  }
+
+  void requestScrollToTop() {
+    scrollToTopRevision.value++;
   }
 
   void applyInitialArgs(Map<String, dynamic>? args) {

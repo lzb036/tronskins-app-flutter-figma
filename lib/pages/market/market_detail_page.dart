@@ -80,6 +80,13 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     'fadePercentageMax',
     'fade_percentage_max',
   ];
+  static const List<String> _tierFilterNameMarkers = [
+    'case hardened',
+    'marble fade',
+    '表面淬火',
+    '渐变大理石',
+  ];
+  static const List<String> _fireIceNameMarkers = ['marble fade', '渐变大理石'];
   final MarketDetailController controller = Get.put(MarketDetailController());
   final GlobalKey _onSaleSortButtonKey = GlobalKey();
   final GlobalKey _onSaleWearButtonKey = GlobalKey();
@@ -366,11 +373,10 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   }
 
   bool _shouldShowTierFilter(MarketTemplateDetail? detail) {
-    if (controller.appId != 730 || detail?.quenching != true) {
+    if (controller.appId != 730 || detail == null) {
       return false;
     }
-    final name = _detailMarketHashName.toLowerCase();
-    return name.contains('case hardened') || name.contains('marble fade');
+    return _detailNameContainsAny(_tierFilterNameMarkers);
   }
 
   String? _tierItemWeapon(MarketTemplateDetail detail) {
@@ -1072,10 +1078,18 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     return 'app.market.csgo.gradient_range'.tr;
   }
 
-  bool get _isFireIceTier =>
-      _detailMarketHashName.toLowerCase().contains('marble fade');
+  bool get _isFireIceTier => _detailNameContainsAny(_fireIceNameMarkers);
 
-  bool get _shouldHideGradientFilterForTier => _toolbarTierOptions.isNotEmpty;
+  bool get _isTierFilterCandidate =>
+      controller.appId == 730 && _detailNameContainsAny(_tierFilterNameMarkers);
+
+  bool get _showToolbarTierFilterSkeleton =>
+      _isTierFilterCandidate &&
+      _toolbarTierOptions.isEmpty &&
+      (_loadingTemplate || _templateDetail == null);
+
+  bool get _shouldHideGradientFilterForTier =>
+      _isTierFilterCandidate || _toolbarTierOptions.isNotEmpty;
 
   bool get _shouldShowGradientFilter =>
       _hasGradientRangeSource && !_shouldHideGradientFilterForTier;
@@ -1166,6 +1180,13 @@ class _MarketDetailPageState extends State<MarketDetailPage>
         padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
         child: content,
       ),
+    );
+  }
+
+  Widget _buildTopToolbarSkeletonAction({double width = 64}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: _buildLoadingPill(width: width, height: 14, color: _figmaSlate100),
     );
   }
 
@@ -2290,14 +2311,37 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   String get _detailMarketHashName =>
       _templateDetail?.schema?.marketHashName ?? controller.marketHashName;
 
+  String get _detailNameSearchText {
+    final schema = _templateDetail?.schema;
+    final raw = schema?.raw;
+    final parts = <String?>[
+      schema?.marketHashName,
+      schema?.marketName,
+      raw?['market_hash_name']?.toString(),
+      raw?['marketHashName']?.toString(),
+      raw?['market_name']?.toString(),
+      raw?['marketName']?.toString(),
+      controller.item.marketHashName,
+      controller.item.marketName,
+      controller.marketHashName,
+    ];
+    return parts
+        .whereType<String>()
+        .map((value) => value.toLowerCase())
+        .join('\n');
+  }
+
+  bool _detailNameContainsAny(List<String> markers) {
+    final source = _detailNameSearchText;
+    return markers.any((marker) => source.contains(marker.toLowerCase()));
+  }
+
   bool get _hasGradientRangeSource {
     if (controller.appId != 730) {
       return false;
     }
-    final normalizedName = _detailMarketHashName.toLowerCase();
     return _templateDetail?.fade == true ||
-        normalizedName.contains('fade') ||
-        normalizedName.contains('case hardened');
+        _detailNameContainsAny(const ['fade', '渐变', 'case hardened', '表面淬火']);
   }
 
   List<_GradientRangeOption> get _toolbarGradientRangeOptions =>
@@ -2911,6 +2955,7 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     final showWearQuickFilter = _toolbarWearQuickOptions.isNotEmpty;
     final showGradientQuickFilter = _toolbarGradientRangeOptions.isNotEmpty;
     final showPhaseQuickFilter = _toolbarPhaseOptions.isNotEmpty;
+    final showTierFilterSkeleton = _showToolbarTierFilterSkeleton;
     final showTierQuickFilter = _toolbarTierOptions.isNotEmpty;
     return Container(
       width: double.infinity,
@@ -2992,12 +3037,26 @@ class _MarketDetailPageState extends State<MarketDetailPage>
                                   onTap: _openOnSalePhaseMenu,
                                 ),
                               ],
-                              if (showTierQuickFilter) ...[
+                              if (showTierFilterSkeleton) ...[
                                 SizedBox(
                                   width:
                                       (showWearQuickFilter ||
                                           showGradientQuickFilter ||
                                           showPhaseQuickFilter)
+                                      ? 14
+                                      : 18,
+                                ),
+                                _buildTopToolbarSkeletonAction(
+                                  width: _isFireIceTier ? 72 : 64,
+                                ),
+                              ],
+                              if (showTierQuickFilter) ...[
+                                SizedBox(
+                                  width:
+                                      (showWearQuickFilter ||
+                                          showGradientQuickFilter ||
+                                          showPhaseQuickFilter ||
+                                          showTierFilterSkeleton)
                                       ? 14
                                       : 18,
                                 ),
