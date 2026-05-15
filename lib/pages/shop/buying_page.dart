@@ -717,6 +717,110 @@ class _BuyingPageState extends State<BuyingPage>
         .replaceFirst(RegExp(r'\.$'), '');
   }
 
+  String? _cleanSpecText(String? value) {
+    final text = value?.trim();
+    if (text == null || text.isEmpty) {
+      return null;
+    }
+    return text;
+  }
+
+  bool _isUnlimitedSpecText(String value) {
+    final normalized = value.trim().toLowerCase();
+    return normalized.isEmpty ||
+        normalized == 'unlimited' ||
+        normalized == '__wear_unlimited__' ||
+        normalized == '__phase_unlimited__' ||
+        normalized == '__gradient_unlimited__' ||
+        normalized == '不限';
+  }
+
+  int _buyRequestAppId(BuyRequestItem item, ShopSchemaInfo? schema) {
+    return item.appId ??
+        _rawInt(item.raw, const ['app_id', 'appId']) ??
+        _parseInt(schema?.raw['app_id'] ?? schema?.raw['appId']) ??
+        _currentAppId;
+  }
+
+  String _buyRequestMarketHashName(
+    BuyRequestItem item,
+    ShopSchemaInfo? schema,
+  ) {
+    final candidates = [
+      schema?.marketHashName,
+      schema?.raw['market_hash_name']?.toString(),
+      schema?.raw['marketHashName']?.toString(),
+      item.raw['market_hash_name']?.toString(),
+      item.raw['marketHashName']?.toString(),
+      schema?.marketName,
+      item.raw['market_name']?.toString(),
+      item.raw['marketName']?.toString(),
+    ];
+    for (final candidate in candidates) {
+      final text = _cleanSpecText(candidate);
+      if (text != null) {
+        return text;
+      }
+    }
+    return '';
+  }
+
+  String? _schemaTagValue(ShopSchemaInfo? schema, String groupKey) {
+    final tags = schema?.raw['tags'];
+    if (tags is! Map) {
+      return null;
+    }
+    final raw = tags[groupKey];
+    if (raw is Map) {
+      for (final key in const ['name', 'key', 'value', 'localized_name']) {
+        final text = _cleanSpecText(raw[key]?.toString());
+        if (text != null) {
+          return text;
+        }
+      }
+      return null;
+    }
+    return _cleanSpecText(raw?.toString());
+  }
+
+  bool _supportsPurchaseWearFilter(
+    BuyRequestItem item,
+    ShopSchemaInfo? schema,
+  ) {
+    if (_buyRequestAppId(item, schema) != 730) {
+      return false;
+    }
+    final type = _schemaTagValue(schema, 'type');
+    const excludedTypes = <String>{
+      'CSGO_Type_WeaponCase',
+      'Type_CustomPlayer',
+      'CSGO_Tool_Sticker',
+    };
+    return type == null || !excludedTypes.contains(type);
+  }
+
+  bool _supportsPurchasePhaseFilter(
+    BuyRequestItem item,
+    ShopSchemaInfo? schema,
+  ) {
+    if (_buyRequestAppId(item, schema) != 730) {
+      return false;
+    }
+    final name = _buyRequestMarketHashName(item, schema).toLowerCase();
+    return name.contains('doppler') || name.contains('多普勒');
+  }
+
+  bool _supportsPurchaseGradientFilter(
+    BuyRequestItem item,
+    ShopSchemaInfo? schema,
+  ) {
+    if (_buyRequestAppId(item, schema) != 730) {
+      return false;
+    }
+    final name = _buyRequestMarketHashName(item, schema).toLowerCase();
+    return name.contains('fade') || name.contains('渐变');
+  }
+
   String? _formatWearSpec(BuyRequestItem item) {
     final min =
         item.paintWearMin ??
@@ -724,15 +828,40 @@ class _BuyingPageState extends State<BuyingPage>
     final max =
         item.paintWearMax ??
         _buyRequestDouble(item, const ['paint_wear_max', 'paintWearMax']);
-    if (min == null || max == null) {
+    if (min == null && max == null) {
       return null;
     }
-    return '${_formatSpecNumber(min)}-${_formatSpecNumber(max)}';
+    if (min != null && max != null) {
+      if (min.abs() < 0.000001 && max >= 1) {
+        return null;
+      }
+      return '${_formatSpecNumber(min)}-${_formatSpecNumber(max)}';
+    }
+    if (min != null) {
+      return '≥ ${_formatSpecNumber(min)}';
+    }
+    if (max == null || max < 0) {
+      return null;
+    }
+    return '≤ ${_formatSpecNumber(max)}';
   }
 
   String? _formatPhaseSpec(BuyRequestItem item) {
-    final phase = item.phase?.trim() ?? _rawText(item.raw, const ['phase']);
-    if (phase == null || phase.isEmpty) {
+    final phase =
+        _pickPurchaseRequirementText(item.raw, const [
+          'accepted_patterns',
+          'acceptedPatterns',
+          'phaseList',
+          'phase_list',
+          'phases',
+          'patterns',
+          'pattern',
+          'phase',
+          'paintIndex',
+          'paint_index',
+        ]) ??
+        _cleanSpecText(item.phase);
+    if (phase == null || _isUnlimitedSpecText(phase)) {
       return null;
     }
     return phase;
@@ -746,6 +875,9 @@ class _BuyingPageState extends State<BuyingPage>
     if (min == null || max == null || max < 0) {
       return null;
     }
+    if (min.abs() < 0.000001 && max >= 100) {
+      return null;
+    }
     final minText = _formatSpecNumber(min);
     if ((max - 100).abs() < 0.000001) {
       return '≥ $minText%';
@@ -753,26 +885,78 @@ class _BuyingPageState extends State<BuyingPage>
     return '$minText%-${_formatSpecNumber(max)}%';
   }
 
-  List<_PurchaseInfoChipData> _buildPurchaseInfoChips(BuyRequestItem item) {
+  String? _pickPurchaseRequirementText(
+    Map<String, dynamic> raw,
+    List<String> keys,
+  ) {
+    for (final key in keys) {
+      final values = _flattenPurchaseRequirementValues(raw[key]);
+      if (values.isNotEmpty) {
+        return values.join(', ');
+      }
+    }
+    return null;
+  }
+
+  List<String> _flattenPurchaseRequirementValues(dynamic value) {
+    if (value == null) {
+      return const <String>[];
+    }
+    if (value is Iterable) {
+      return value
+          .expand<String>(_flattenPurchaseRequirementValues)
+          .where((entry) => entry.isNotEmpty)
+          .toList(growable: false);
+    }
+    if (value is Map) {
+      for (final key in const ['label', 'name', 'text', 'value', 'phase']) {
+        final text = _cleanSpecText(value[key]?.toString());
+        if (text != null) {
+          return <String>[text];
+        }
+      }
+      return value.values
+          .expand<String>(_flattenPurchaseRequirementValues)
+          .where((entry) => entry.isNotEmpty)
+          .toList(growable: false);
+    }
+    final text = _cleanSpecText(value.toString());
+    return text == null ? const <String>[] : <String>[text];
+  }
+
+  List<_PurchaseInfoChipData> _buildPurchaseInfoChips(
+    BuyRequestItem item,
+    ShopSchemaInfo? schema,
+  ) {
     final chips = <_PurchaseInfoChipData>[];
+    final isCs2 = _buyRequestAppId(item, schema) == 730;
+    final unlimited = 'app.common.unlimited'.tr;
     final wear = _formatWearSpec(item);
-    if (wear != null) {
+    if (wear != null || (isCs2 && _supportsPurchaseWearFilter(item, schema))) {
       chips.add(
-        _PurchaseInfoChipData(label: 'app.market.csgo.wear'.tr, value: wear),
+        _PurchaseInfoChipData(
+          label: 'app.market.csgo.wear'.tr,
+          value: wear ?? unlimited,
+        ),
       );
     }
     final phase = _formatPhaseSpec(item);
-    if (phase != null) {
+    if (phase != null ||
+        (isCs2 && _supportsPurchasePhaseFilter(item, schema))) {
       chips.add(
-        _PurchaseInfoChipData(label: 'app.market.csgo.phase'.tr, value: phase),
+        _PurchaseInfoChipData(
+          label: 'app.market.csgo.phase'.tr,
+          value: phase ?? unlimited,
+        ),
       );
     }
     final gradient = _formatGradientSpec(item);
-    if (gradient != null) {
+    if (gradient != null ||
+        (isCs2 && _supportsPurchaseGradientFilter(item, schema))) {
       chips.add(
         _PurchaseInfoChipData(
           label: 'app.market.csgo.gradient_range'.tr,
-          value: gradient,
+          value: gradient ?? unlimited,
         ),
       );
     }
@@ -815,8 +999,8 @@ class _BuyingPageState extends State<BuyingPage>
     );
   }
 
-  Widget _buildPurchaseInfoWrap(BuyRequestItem item) {
-    final chips = _buildPurchaseInfoChips(item);
+  Widget _buildPurchaseInfoWrap(BuyRequestItem item, ShopSchemaInfo? schema) {
+    final chips = _buildPurchaseInfoChips(item, schema);
     if (chips.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -1732,7 +1916,7 @@ class _BuyingPageState extends State<BuyingPage>
                       height: 22.5 / 15,
                     ),
                   ),
-                  _buildPurchaseInfoWrap(item),
+                  _buildPurchaseInfoWrap(item, schema),
                   const SizedBox(height: 10),
                   _buildMyBuyingPriceRow(
                     label: _text(zh: '单价', en: 'Unit Price'),
@@ -2074,7 +2258,7 @@ class _BuyingPageState extends State<BuyingPage>
                             height: 24 / 16,
                           ),
                         ),
-                        _buildPurchaseInfoWrap(item),
+                        _buildPurchaseInfoWrap(item, schema),
                       ],
                     ),
                   ),
