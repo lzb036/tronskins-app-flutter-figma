@@ -465,7 +465,6 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
 
     if (_hasChanges(shop)) {
       setState(() => _syncDraftFromShop(shop));
-      return;
     }
 
     Navigator.maybeOf(context)?.maybePop();
@@ -592,13 +591,14 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
     return _formatClock(target);
   }
 
-  Widget _buildTopNavigation() {
+  Widget _buildTopNavigation({UserShopEntity? shop}) {
     return Positioned(
       top: 0,
       left: 0,
       right: 0,
       child: SettingsStyleInlineTopBar(
         title: 'app.user.shop.setting'.tr,
+        onBack: shop == null ? null : () => _handleCancel(shop),
         includeTopInset: true,
       ),
     );
@@ -626,7 +626,7 @@ class _ShopSettingPageState extends State<ShopSettingPage> {
                   ? const _ShopSettingLoadingState()
                   : _buildLoggedInBody(shop),
             ),
-            _buildTopNavigation(),
+            _buildTopNavigation(shop: shop),
             if (loggedIn && shop != null) _buildBottomActionBar(shop),
           ],
         ),
