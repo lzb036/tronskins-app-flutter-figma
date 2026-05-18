@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_patcher/flutter_patcher.dart';
 import 'package:get/get.dart';
+import 'package:restart_app/restart_app.dart';
 import 'package:tronskins_app/common/logging/app_logger.dart';
 import 'package:tronskins_app/common/storage/server_storage.dart';
 import 'package:tronskins_app/common/theme/app_colors.dart';
@@ -332,7 +333,7 @@ class _FlutterPatcherUpdateGateState extends State<FlutterPatcherUpdateGate>
         if (!mounted) {
           return;
         }
-        _showRestartNotice();
+        await _restartAfterPatch();
         return;
       }
 
@@ -383,6 +384,29 @@ class _FlutterPatcherUpdateGateState extends State<FlutterPatcherUpdateGate>
   void _showRestartNotice() {
     final copy = _copyForLocale();
     AppSnackbar.info(copy.restartMessage, title: copy.restartTitle);
+  }
+
+  Future<void> _restartAfterPatch() async {
+    final result = await Restart.restartApp(mode: RestartMode.process);
+    if (result.success) {
+      AppLogger.info(
+        'FLUTTER_PATCHER',
+        'Automatic restart requested after patch install. '
+            'mode=${result.mode.name}',
+        scope: 'RESTART',
+      );
+      return;
+    }
+
+    AppLogger.warn(
+      'FLUTTER_PATCHER',
+      'Automatic restart failed. code=${result.code ?? '-'} '
+          'message=${result.message ?? '-'}',
+      scope: 'RESTART',
+    );
+    if (mounted) {
+      _showRestartNotice();
+    }
   }
 
   _FlutterPatcherCopy _copyForLocale() {

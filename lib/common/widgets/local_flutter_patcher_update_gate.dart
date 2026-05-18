@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_patcher/flutter_patcher.dart';
+import 'package:restart_app/restart_app.dart';
 import 'package:tronskins_app/common/logging/app_logger.dart';
 import 'package:tronskins_app/common/theme/app_colors.dart';
 import 'package:tronskins_app/common/theme/app_text_theme.dart';
@@ -286,9 +287,10 @@ class _LocalFlutterPatcherUpdateGateState
       if (result.ok) {
         _hasPatchReadyForColdStart = true;
         await Future<void>.delayed(_restartNoticeDelay);
-        if (mounted) {
-          AppSnackbar.success('请完全关闭应用后重新打开，本地热更才会生效。', title: '本地热更已安装');
+        if (!mounted) {
+          return;
         }
+        await _restartAfterPatch();
         return;
       }
 
@@ -341,6 +343,29 @@ class _LocalFlutterPatcherUpdateGateState
       return;
     }
     AppSnackbar.error(message, title: '本地热更失败');
+  }
+
+  Future<void> _restartAfterPatch() async {
+    final result = await Restart.restartApp(mode: RestartMode.process);
+    if (result.success) {
+      AppLogger.info(
+        'LOCAL_PATCHER',
+        'Automatic restart requested after local patch install. '
+            'mode=${result.mode.name}',
+        scope: 'RESTART',
+      );
+      return;
+    }
+
+    AppLogger.warn(
+      'LOCAL_PATCHER',
+      'Automatic restart failed. code=${result.code ?? '-'} '
+          'message=${result.message ?? '-'}',
+      scope: 'RESTART',
+    );
+    if (mounted) {
+      AppSnackbar.success('本地热更已安装，请完全关闭应用后重新打开，本地热更才会生效。', title: '本地热更已安装');
+    }
   }
 
   bool get _isAndroid {
