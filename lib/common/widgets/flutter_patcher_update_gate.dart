@@ -121,7 +121,9 @@ class _FlutterPatcherUpdateGateState extends State<FlutterPatcherUpdateGate>
       final checkRequest = await _buildCheckRequest();
       AppLogger.info(
         'FLUTTER_PATCHER',
-        'Checking update from ${checkRequest.uri}',
+        'Checking update from ${checkRequest.uri} '
+            'targetVersionCode=${checkRequest.targetVersionCode ?? '-'} '
+            'abi=${checkRequest.deviceAbi ?? '-'}',
         scope: 'CHECK',
       );
 
@@ -184,15 +186,19 @@ class _FlutterPatcherUpdateGateState extends State<FlutterPatcherUpdateGate>
     final baseUri = Uri.parse(ServerStorage.getServer());
     final endpoint = baseUri.resolve(_checkPath);
     final versionCode = await FlutterPatcher.appVersionCode;
+    final deviceAbi = await FlutterPatcher.deviceAbi;
+    final normalizedAbi = deviceAbi.trim();
 
     return _FlutterPatcherCheckRequest(
       uri: endpoint.replace(
         queryParameters: <String, String>{
           'appKey': _appKey,
           'platform': 'android',
+          if (normalizedAbi.isNotEmpty) 'abi': normalizedAbi,
         },
       ),
       targetVersionCode: versionCode,
+      deviceAbi: normalizedAbi.isEmpty ? null : normalizedAbi,
     );
   }
 
@@ -251,7 +257,8 @@ class _FlutterPatcherUpdateGateState extends State<FlutterPatcherUpdateGate>
         'No hotPackage/forwardUrl in update response. '
             'serverVersion=${serverVersionName ?? '-'} '
             'patchVersion=${serverPatchVersion ?? '-'} '
-            'localBaseVersion=$baseVersion',
+            'localBaseVersion=$baseVersion '
+            'abi=${checkRequest.deviceAbi ?? '-'}',
         scope: 'CHECK',
       );
       return null;
@@ -262,7 +269,8 @@ class _FlutterPatcherUpdateGateState extends State<FlutterPatcherUpdateGate>
       'Update payload resolved. '
           'serverVersion=${serverVersionName ?? '-'} '
           'patchVersion=${serverPatchVersion ?? '-'} '
-          'localBaseVersion=$baseVersion',
+          'localBaseVersion=$baseVersion '
+          'abi=${checkRequest.deviceAbi ?? '-'}',
       scope: 'CHECK',
     );
 
@@ -609,10 +617,12 @@ class _FlutterPatcherCheckRequest {
   const _FlutterPatcherCheckRequest({
     required this.uri,
     required this.targetVersionCode,
+    this.deviceAbi,
   });
 
   final Uri uri;
   final int? targetVersionCode;
+  final String? deviceAbi;
 }
 
 String _normalizeVersion(String version) {

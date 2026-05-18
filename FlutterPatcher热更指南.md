@@ -238,6 +238,32 @@ dart run flutter_patcher:pack `
   --out dist/flutter_patcher/android/1.0.3_1/arm64-v8a/1.0.3-hotfix.1
 ```
 
+### 9.0.1 ABI 选择说明
+
+`flutter_patcher` 下发的是 Android 原生 `libapp.so`，**不同 ABI 的补丁不能混用**。
+
+常见场景：
+
+- Android 真机通常使用 `arm64-v8a`
+- 32 位老设备可能使用 `armeabi-v7a`
+- Android 模拟器通常使用 `x86_64`
+
+所以如果出现下面这种情况：
+
+- 补丁下载成功
+- 日志显示安装成功
+- 也触发了冷启动
+- 但界面修改位置没有变化
+
+要优先检查 **当前设备 ABI** 和 **服务端下发的 `.so` ABI** 是否一致。
+
+例如：
+
+- `arm64-v8a` 的补丁不能拿给 `x86_64` 模拟器使用
+- `x86_64` 的补丁也不能直接给真机使用
+
+当前客户端可以通过 `FlutterPatcher.deviceAbi` 获取设备 ABI，并建议把这个值带到热更检查接口中，由服务端返回匹配的补丁地址。
+
 生成后的核心文件：（**正常到这一步，然后直接把libapp.so文件也就是热更包分发了就行**）
 
 ```text
@@ -259,6 +285,28 @@ dart run flutter_patcher:pack `
   --target-version-code 1 `
   --abi armeabi-v7a `
   --out dist/flutter_patcher/android/1.0.1_1/armeabi-v7a/1.0.1-hotfix.1
+```
+
+如果需要给 Android 模拟器测试，再额外打 `x86_64`：
+
+```powershell
+dart run flutter_patcher:pack `
+  --apk build/app/outputs/flutter-apk/app-release.apk `
+  --version 1.0.1-hotfix.1 `
+  --target-version-code 1 `
+  --abi x86_64 `
+  --out dist/flutter_patcher/android/1.0.1_1/x86_64/1.0.1-hotfix.1
+```
+
+如果当前基础版本已经变成 `1.0.3+1`，对应命令就是：
+
+```powershell
+dart run flutter_patcher:pack `
+  --apk build/app/outputs/flutter-apk/app-release.apk `
+  --version 1.0.3-hotfix.1 `
+  --target-version-code 1 `
+  --abi x86_64 `
+  --out dist/flutter_patcher/android/1.0.3_1/x86_64/1.0.3-hotfix.1
 ```
 
 最关键的是：`--target-version-code` 必须等于用户当前安装包的 `versionCode`。
