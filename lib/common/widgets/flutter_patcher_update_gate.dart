@@ -26,8 +26,8 @@ class FlutterPatcherUpdateGate extends StatefulWidget {
 
 class _FlutterPatcherUpdateGateState extends State<FlutterPatcherUpdateGate>
     with WidgetsBindingObserver {
-  static const String _checkPath = 'api/public/app/checkupdate';
-  static const String _appKey = 'tronskins-app';
+  static const String _checkPath = 'api/public/app/version/v1/latest/by-app';
+  static const String _appKey = 'tronskins-flutter';
   static const Duration _resumeCheckThrottle = Duration(minutes: 10);
   static const Duration _checkTimeout = Duration(seconds: 8);
   static const Duration _restartNoticeDelay = Duration(milliseconds: 600);
@@ -183,20 +183,15 @@ class _FlutterPatcherUpdateGateState extends State<FlutterPatcherUpdateGate>
     final baseUri = Uri.parse(ServerStorage.getServer());
     final endpoint = baseUri.resolve(_checkPath);
     final versionCode = await FlutterPatcher.appVersionCode;
-    final baseVersion = await AppVersion.baseVersion();
-    final fallbackVersionCode = _versionCodeFromBaseVersion(baseVersion);
-    final hotVersion = versionCode ?? fallbackVersionCode;
 
     return _FlutterPatcherCheckRequest(
       uri: endpoint.replace(
         queryParameters: <String, String>{
-          'appkey': _appKey,
-          'versionName': _legacyVersionName(baseVersion),
-          if (hotVersion != null) 'hotVersion': hotVersion.toString(),
+          'appKey': _appKey,
           'platform': 'android',
         },
       ),
-      targetVersionCode: hotVersion,
+      targetVersionCode: versionCode,
     );
   }
 
@@ -215,15 +210,31 @@ class _FlutterPatcherUpdateGateState extends State<FlutterPatcherUpdateGate>
     }
 
     final payload = _unwrapResponsePayload(map);
+    final baseVersion = _legacyVersionName(await AppVersion.baseVersion());
+    final enabled = _firstBool(payload, const ['flag', 'enabled']);
+    if (enabled == false) {
+      AppLogger.info(
+        'FLUTTER_PATCHER',
+        'Update payload disabled by server flag.',
+        scope: 'CHECK',
+      );
+      return null;
+    }
+
     final forwardUrl = _firstNonEmptyString(payload, const [
+      'hotPackage',
+      'hot_package',
       'forwardUrl',
+      'forward_url',
       'patchUrl',
       'patch_url',
+      'downloadUrl',
+      'download_url',
     ]);
     if (forwardUrl == null) {
       AppLogger.info(
         'FLUTTER_PATCHER',
-        'No forwardUrl in update response.',
+        'No hotPackage/forwardUrl in update response.',
         scope: 'CHECK',
       );
       return null;
@@ -239,13 +250,33 @@ class _FlutterPatcherUpdateGateState extends State<FlutterPatcherUpdateGate>
     }
 
     final patchUrl = _resolvePatchUrl(forwardUrl);
+    final serverVersionName = _firstNonEmptyString(payload, const [
+      'version',
+      'versionName',
+      'version_name',
+    ]);
+    if (serverVersionName != null &&
+        serverVersionName.trim().isNotEmpty &&
+        serverVersionName.trim() != baseVersion) {
+      AppLogger.warn(
+        'FLUTTER_PATCHER',
+        'Skip patch because server version ${serverVersionName.trim()} '
+            'does not match local base version $baseVersion.',
+        scope: 'CHECK',
+      );
+      return null;
+    }
+
     final patchVersion =
         _firstNonEmptyString(payload, const [
+          'timestamp',
           'patchVersion',
           'patch_version',
           'version',
           'versionName',
+          'version_name',
           'hotVersion',
+          'hot_version',
           'versionCode',
         ]) ??
         patchUrl;
@@ -269,6 +300,9 @@ class _FlutterPatcherUpdateGateState extends State<FlutterPatcherUpdateGate>
           _firstInt(payload, const [
             'targetVersionCode',
             'target_version_code',
+            'hotVersion',
+            'hot_version',
+            'versionCode',
           ]) ??
           checkRequest.targetVersionCode,
       raw: payload,
@@ -554,15 +588,6 @@ String _legacyVersionName(String version) {
   return normalized.substring(0, buildSeparatorIndex);
 }
 
-int? _versionCodeFromBaseVersion(String version) {
-  final normalized = _normalizeVersion(version);
-  final buildSeparatorIndex = normalized.indexOf('+');
-  if (buildSeparatorIndex < 0 || buildSeparatorIndex == normalized.length - 1) {
-    return null;
-  }
-  return int.tryParse(normalized.substring(buildSeparatorIndex + 1));
-}
-
 Map<String, dynamic>? _asMap(Object? value) {
   if (value is Map<String, dynamic>) {
     return value;
@@ -614,6 +639,31 @@ int? _firstInt(Map<String, dynamic> map, List<String> keys) {
       final parsed = int.tryParse(value.trim());
       if (parsed != null) {
         return parsed;
+      }
+    }
+  }
+  return null;
+}
+
+bool? _firstBool(Map<String, dynamic> map, List<String> keys) {
+  for (final key in keys) {
+    final value = map[key];
+    if (value is bool) {
+      return value;
+    }
+    if (value is num) {
+      return value != 0;
+    }
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized.isEmpty) {
+        continue;
+      }
+      if (normalized == 'true' || normalized == '1') {
+        return true;
+      }
+      if (normalized == 'false' || normalized == '0') {
+        return false;
       }
     }
   }
