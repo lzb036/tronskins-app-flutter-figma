@@ -906,7 +906,12 @@ class ShopOrderDetailPage extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () => _openMarketDetail(detail, schema),
+        onTap: () => _openMarketDetail(
+          detail,
+          schema,
+          schemas: schemas,
+          stickers: stickers,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -956,19 +961,36 @@ class ShopOrderDetailPage extends StatelessWidget {
     );
   }
 
-  void _openMarketDetail(ShopOrderDetail detail, ShopSchemaInfo? schema) {
+  void _openMarketDetail(
+    ShopOrderDetail detail,
+    ShopSchemaInfo? schema, {
+    required Map<String, ShopSchemaInfo> schemas,
+    required Map<String, dynamic> stickers,
+  }) {
     final item = _buildMarketDetailItem(detail, schema);
-    if (item.schemaId == null && item.id == null) {
+    if (item.schemaId == null &&
+        item.id == null &&
+        (item.marketHashName == null || item.marketHashName!.isEmpty)) {
       AppSnackbar.error('app.trade.filter.failed'.tr);
       return;
     }
-    Get.toNamed(Routers.MARKET_DETAIL, arguments: item);
+    Get.toNamed(
+      Routers.MARKET_ITEM_DETAIL,
+      arguments: {
+        'item': item,
+        'schema': _marketSchemaFromShopSchema(schema),
+        'schemas': _marketSchemasFromShopSchemas(schemas),
+        'stickers': stickers,
+        'readOnly': true,
+      },
+    );
   }
 
-  MarketItemEntity _buildMarketDetailItem(
+  MarketListItem _buildMarketDetailItem(
     ShopOrderDetail detail,
     ShopSchemaInfo? schema,
   ) {
+    final appId = _resolveDetailAppId(detail, schema);
     final schemaId =
         detail.schemaId ??
         _asInt(
@@ -993,14 +1015,14 @@ class ShopOrderDetailPage extends StatelessWidget {
         detail.imageUrl ??
         schema?.imageUrl ??
         _findTextValue(detail.raw, const ['image_url', 'imageUrl', 'image']);
-    return MarketItemEntity(
-      id: schemaId,
-      schemaId: schemaId,
-      appId: _resolveDetailAppId(detail, schema),
-      marketName: marketName ?? marketHashName,
-      marketHashName: marketHashName,
-      imageUrl: imageUrl,
-      marketPrice:
+    final asset = _pickAssetRaw(detail.raw, appId) ?? detail.raw;
+    final nestedAsset = identical(asset, detail.raw) ? null : asset;
+    return MarketListItem.fromJson({
+      ...detail.raw,
+      'id': detail.raw['sell_id'] ?? detail.raw['id'] ?? schemaId,
+      'app_id': appId,
+      'schema_id': schemaId,
+      'price':
           _detailDisplayPrice(detail) ??
           _findNumericValue(schema?.raw, const [
             'reference_price',
@@ -1009,31 +1031,65 @@ class ShopOrderDetailPage extends StatelessWidget {
             'marketPrice',
             'price',
           ]),
-      paintSeed: _findTextValue(detail.raw, const ['paint_seed', 'paintSeed']),
-      paintIndex: _findTextValue(detail.raw, const [
-        'paint_index',
-        'paintIndex',
-      ]),
-      paintWear:
+      'market_name': marketName ?? marketHashName,
+      'market_hash_name': marketHashName,
+      'image_url': imageUrl,
+      'paint_seed':
+          _findTextValue(asset, const ['paint_seed', 'paintSeed']) ??
+          _findTextValue(detail.raw, const ['paint_seed', 'paintSeed']),
+      'paint_index':
+          _findTextValue(asset, const ['paint_index', 'paintIndex']) ??
+          _findTextValue(detail.raw, const ['paint_index', 'paintIndex']),
+      'paint_wear':
+          _findTextValue(asset, const ['paint_wear', 'paintWear']) ??
           detail.paintWear?.toString() ??
           _findTextValue(detail.raw, const ['paint_wear', 'paintWear']),
-      percentage: _findTextValue(detail.raw, const ['percentage']),
-      phase: _findTextValue(detail.raw, const ['phase']),
-      tags: _marketTagsFromSchema(schema),
-    );
+      'percentage':
+          _findTextValue(asset, const ['percentage']) ??
+          _findTextValue(detail.raw, const ['percentage']),
+      'phase':
+          _findTextValue(asset, const ['phase']) ??
+          _findTextValue(detail.raw, const ['phase']),
+      'tier':
+          _findTextValue(asset, const ['tier']) ??
+          _findTextValue(detail.raw, const ['tier']),
+      'fireIce':
+          _findTextValue(asset, const ['fireIce', 'fire_ice']) ??
+          _findTextValue(detail.raw, const ['fireIce', 'fire_ice']),
+      if (schema?.raw['tags'] != null) 'tags': schema!.raw['tags'],
+      if (nestedAsset != null) _marketAssetKey(appId): nestedAsset,
+    });
   }
 
-  MarketItemTags? _marketTagsFromSchema(ShopSchemaInfo? schema) {
-    final tags = schema?.raw['tags'];
-    if (tags is Map<String, dynamic>) {
-      return MarketItemTags.fromJson(tags);
+  MarketSchemaInfo? _marketSchemaFromShopSchema(ShopSchemaInfo? schema) {
+    if (schema == null) {
+      return null;
     }
-    if (tags is Map) {
-      return MarketItemTags.fromJson(
-        tags.map((key, value) => MapEntry(key.toString(), value)),
+    return MarketSchemaInfo.fromJson(Map<String, dynamic>.from(schema.raw));
+  }
+
+  Map<String, MarketSchemaInfo> _marketSchemasFromShopSchemas(
+    Map<String, ShopSchemaInfo> schemas,
+  ) {
+    final result = <String, MarketSchemaInfo>{};
+    for (final entry in schemas.entries) {
+      result[entry.key] = MarketSchemaInfo.fromJson(
+        Map<String, dynamic>.from(entry.value.raw),
       );
     }
-    return null;
+    return result;
+  }
+
+  String _marketAssetKey(int? appId) {
+    switch (appId) {
+      case 440:
+        return 'tf2Asset';
+      case 570:
+        return 'dota2Asset';
+      case 730:
+      default:
+        return 'csgoAsset';
+    }
   }
 
   Widget _buildItemInfoContent({

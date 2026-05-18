@@ -4559,19 +4559,21 @@ class _MarketDetailPageState extends State<MarketDetailPage>
       );
     }
 
+    final tierRequirement = _resolveBuyRequestTierRequirement(item);
+    if (tierRequirement != null) {
+      addRequirement('app.market.csgo.tier'.tr, tierRequirement);
+    }
+
+    final showGradientRequirement = tierRequirement == null;
     final gradientRequirement = _formatBuyRequestGradientRequirement(item);
-    if (gradientRequirement != null ||
-        _buyRequestSupportsGradientFilter(item, schema)) {
+    if (showGradientRequirement &&
+        (gradientRequirement != null ||
+            _buyRequestSupportsGradientFilter(item, schema))) {
       addRequirement(
         'app.market.csgo.gradient_range'.tr,
         gradientRequirement ?? 'app.market.csgo.gradient_unlimited'.tr,
         isActive: gradientRequirement != null,
       );
-    }
-
-    final tierRequirement = _resolveBuyRequestTierRequirement(item);
-    if (tierRequirement != null) {
-      addRequirement('app.market.csgo.tier'.tr, tierRequirement);
     }
 
     addRequirement(_figmaWearTitle, _formatBuyRequestWearRequirement(item));

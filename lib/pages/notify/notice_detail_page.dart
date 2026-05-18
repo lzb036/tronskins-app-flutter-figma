@@ -34,6 +34,10 @@ class _NoticeDetailPageState extends State<NoticeDetailPage> {
       _item = arg;
       return;
     }
+    if (arg is Map) {
+      _item = NoticeMessageItem.fromJson(Map<String, dynamic>.from(arg));
+      return;
+    }
     // 兼容传 id 字符串的场景，从列表中查找
     final id = arg?.toString();
     if (id == null || id.isEmpty) return;
@@ -55,9 +59,9 @@ class _NoticeDetailPageState extends State<NoticeDetailPage> {
   String _formatTime(int? value) {
     if (value == null) return '--';
     final ts = value < 1000000000000 ? value * 1000 : value;
-    return DateFormat('yyyy-MM-dd HH:mm').format(
-      DateTime.fromMillisecondsSinceEpoch(ts),
-    );
+    return DateFormat(
+      'yyyy-MM-dd HH:mm',
+    ).format(DateTime.fromMillisecondsSinceEpoch(ts));
   }
 
   Widget _buildContent(BuildContext context, String? content) {
@@ -67,9 +71,9 @@ class _NoticeDetailPageState extends State<NoticeDetailPage> {
     if (content == null || content.trim().isEmpty) {
       return Text(
         'app.common.no_data'.tr,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: const Color(0xFF757684),
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: const Color(0xFF757684)),
       );
     }
 

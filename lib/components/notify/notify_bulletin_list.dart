@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -65,6 +67,15 @@ class _NotifyBulletinListState extends State<NotifyBulletinList> {
     ).format(DateTime.fromMillisecondsSinceEpoch(ts));
   }
 
+  void _openDetail(NoticeMessageItem item) {
+    final id = item.id;
+    if (id == null || id.isEmpty) {
+      return;
+    }
+    unawaited(widget.controller.readNotice(item));
+    Get.toNamed(Routers.NOTICE_DETAIL, arguments: item);
+  }
+
   Widget _buildNoticeCard(BuildContext context, NoticeMessageItem item) {
     final isUnread = !item.isRead;
     final time = _formatTime(item.createTime);
@@ -83,12 +94,7 @@ class _NotifyBulletinListState extends State<NotifyBulletinList> {
         borderRadius: _cardRadius,
         child: InkWell(
           borderRadius: _cardRadius,
-          onTap: () {
-            final id = item.id;
-            if (id != null) {
-              Get.toNamed(Routers.NOTICE_DETAIL, arguments: item);
-            }
-          },
+          onTap: () => _openDetail(item),
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 90),
             child: Padding(
