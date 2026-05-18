@@ -281,6 +281,7 @@ class BuyRequestItem {
   final double? paintWearMin;
   final double? paintWearMax;
   final String? phase;
+  final String? tier;
   final double? percentageMin;
   final double? percentageMax;
   final int? count;
@@ -303,6 +304,7 @@ class BuyRequestItem {
     this.paintWearMin,
     this.paintWearMax,
     this.phase,
+    this.tier,
     this.percentageMin,
     this.percentageMax,
     this.count,
@@ -328,6 +330,12 @@ class BuyRequestItem {
       paintWearMin: _asDouble(json['paint_wear_min'] ?? json['paintWearMin']),
       paintWearMax: _asDouble(json['paint_wear_max'] ?? json['paintWearMax']),
       phase: json['phase']?.toString(),
+      tier:
+          json['tier']?.toString() ??
+          json['tierName']?.toString() ??
+          json['tier_name']?.toString() ??
+          json['fireIce']?.toString() ??
+          json['fire_ice']?.toString(),
       percentageMin: _asDouble(
         json['percentage_min'] ??
             json['percentageMin'] ??

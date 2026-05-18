@@ -40,6 +40,15 @@ class BuyRequestItemBody extends StatelessWidget {
         _rawText(item.raw, const ['paint_wear_max', 'paintWearMax']) ??
         item.paintWearMax?.toString();
     final phase = item.phase;
+    final tier =
+        _rawText(item.raw, const [
+          'tier',
+          'tierName',
+          'tier_name',
+          'fireIce',
+          'fire_ice',
+        ]) ??
+        item.tier;
     const imageWidth = 72.0;
     const imageHeight = imageWidth * 0.6;
 
@@ -81,6 +90,14 @@ class BuyRequestItemBody extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     '${'app.market.csgo.phase'.tr}: $phase',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              if (tier != null && tier.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    '${'app.market.csgo.tier'.tr}: $tier',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),

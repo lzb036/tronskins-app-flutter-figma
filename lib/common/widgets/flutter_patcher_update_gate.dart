@@ -213,6 +213,19 @@ class _FlutterPatcherUpdateGateState extends State<FlutterPatcherUpdateGate>
     final payload = _unwrapResponsePayload(map);
     final baseVersion = _legacyVersionName(await AppVersion.baseVersion());
     final enabled = _firstBool(payload, const ['flag', 'enabled']);
+    final serverVersionName = _firstNonEmptyString(payload, const [
+      'version',
+      'versionName',
+      'version_name',
+    ]);
+    final serverPatchVersion = _firstNonEmptyString(payload, const [
+      'timestamp',
+      'patchVersion',
+      'patch_version',
+      'hotVersion',
+      'hot_version',
+      'versionCode',
+    ]);
     if (enabled == false) {
       AppLogger.info(
         'FLUTTER_PATCHER',
@@ -235,11 +248,23 @@ class _FlutterPatcherUpdateGateState extends State<FlutterPatcherUpdateGate>
     if (forwardUrl == null) {
       AppLogger.info(
         'FLUTTER_PATCHER',
-        'No hotPackage/forwardUrl in update response.',
+        'No hotPackage/forwardUrl in update response. '
+            'serverVersion=${serverVersionName ?? '-'} '
+            'patchVersion=${serverPatchVersion ?? '-'} '
+            'localBaseVersion=$baseVersion',
         scope: 'CHECK',
       );
       return null;
     }
+
+    AppLogger.info(
+      'FLUTTER_PATCHER',
+      'Update payload resolved. '
+          'serverVersion=${serverVersionName ?? '-'} '
+          'patchVersion=${serverPatchVersion ?? '-'} '
+          'localBaseVersion=$baseVersion',
+      scope: 'CHECK',
+    );
 
     if (forwardUrl.toLowerCase().endsWith('.apk')) {
       AppLogger.warn(
@@ -251,11 +276,6 @@ class _FlutterPatcherUpdateGateState extends State<FlutterPatcherUpdateGate>
     }
 
     final patchUrl = _resolvePatchUrl(forwardUrl);
-    final serverVersionName = _firstNonEmptyString(payload, const [
-      'version',
-      'versionName',
-      'version_name',
-    ]);
     if (serverVersionName != null &&
         serverVersionName.trim().isNotEmpty &&
         serverVersionName.trim() != baseVersion) {

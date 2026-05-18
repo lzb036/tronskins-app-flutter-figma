@@ -868,6 +868,27 @@ class _BuyingPageState extends State<BuyingPage>
     return phase;
   }
 
+  String? _formatTierSpec(BuyRequestItem item) {
+    final tier =
+        _pickPurchaseRequirementText(item.raw, const [
+          'accepted_tiers',
+          'acceptedTiers',
+          'tierList',
+          'tier_list',
+          'tiers',
+          'tier',
+          'tierName',
+          'tier_name',
+          'fireIce',
+          'fire_ice',
+        ]) ??
+        _cleanSpecText(item.tier);
+    if (tier == null || _isUnlimitedSpecText(tier)) {
+      return null;
+    }
+    return tier;
+  }
+
   String? _formatGradientSpec(BuyRequestItem item) {
     final min =
         item.percentageMin ?? _buyRequestDouble(item, _purchaseGradientMinKeys);
@@ -949,6 +970,12 @@ class _BuyingPageState extends State<BuyingPage>
           label: 'app.market.csgo.phase'.tr,
           value: phase ?? unlimited,
         ),
+      );
+    }
+    final tier = _formatTierSpec(item);
+    if (tier != null) {
+      chips.add(
+        _PurchaseInfoChipData(label: 'app.market.csgo.tier'.tr, value: tier),
       );
     }
     final gradient = _formatGradientSpec(item);

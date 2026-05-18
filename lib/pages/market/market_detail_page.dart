@@ -4510,6 +4510,22 @@ class _MarketDetailPageState extends State<MarketDetailPage>
         _cleanText(item.phase);
   }
 
+  String? _resolveBuyRequestTierRequirement(BuyRequestItem item) {
+    return _pickRequirementText(item.raw, const [
+          'accepted_tiers',
+          'acceptedTiers',
+          'tierList',
+          'tier_list',
+          'tiers',
+          'tier',
+          'tierName',
+          'tier_name',
+          'fireIce',
+          'fire_ice',
+        ]) ??
+        _cleanText(item.tier);
+  }
+
   List<_BuyRequestRequirementData> _buildBuyRequestRequirements(
     BuyRequestItem item,
     ShopSchemaInfo? schema,
@@ -4551,6 +4567,11 @@ class _MarketDetailPageState extends State<MarketDetailPage>
         gradientRequirement ?? 'app.market.csgo.gradient_unlimited'.tr,
         isActive: gradientRequirement != null,
       );
+    }
+
+    final tierRequirement = _resolveBuyRequestTierRequirement(item);
+    if (tierRequirement != null) {
+      addRequirement('app.market.csgo.tier'.tr, tierRequirement);
     }
 
     addRequirement(_figmaWearTitle, _formatBuyRequestWearRequirement(item));

@@ -223,6 +223,19 @@ dart run flutter_patcher:pack `
   --target-version-code 1 `
   --abi arm64-v8a `
   --out dist/flutter_patcher/android/1.0.1_1/arm64-v8a/1.0.1-hotfix.1
+  
+  版本变更的话：
+  
+  flutter build apk --release `
+  --build-name=1.0.3 `
+  --build-number=1
+
+dart run flutter_patcher:pack `
+  --apk build/app/outputs/flutter-apk/app-release.apk `
+  --version 1.0.3-hotfix.1 `
+  --target-version-code 1 `
+  --abi arm64-v8a `
+  --out dist/flutter_patcher/android/1.0.3_1/arm64-v8a/1.0.3-hotfix.1
 ```
 
 生成后的核心文件：（**正常到这一步，然后直接把libapp.so文件也就是热更包分发了就行**）
