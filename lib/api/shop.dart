@@ -87,6 +87,8 @@ class ApiShopServer {
     required String uuid,
     int page = 1,
     int pageSize = 20,
+    String? keywords,
+    String? itemName,
   }) async {
     final response = await http.post(
       'api/public/shop/sell/list',
@@ -95,6 +97,8 @@ class ApiShopServer {
         'appId': appId.toString(),
         'page': page,
         'pageSize': pageSize,
+        'keywords': keywords,
+        'itemName': itemName,
       },
     );
     return BaseHttpResponse.fromJson(
@@ -119,6 +123,8 @@ class ApiShopServer {
     int pageSize = 20,
     String field = 'price',
     bool asc = true,
+    String? keywords,
+    String? itemName,
   }) async {
     final response = await http.post(
       'api/public/shop/sell/$appId/list',
@@ -129,6 +135,8 @@ class ApiShopServer {
         'asc': asc,
         'page': page,
         'pageSize': pageSize,
+        'keywords': keywords,
+        'itemName': itemName,
       },
     );
     return BaseHttpResponse.fromJson(

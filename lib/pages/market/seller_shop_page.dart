@@ -11,6 +11,7 @@ import 'package:tronskins_app/common/hooks/game/global_game_controller.dart';
 import 'package:tronskins_app/common/utils/shop_online_status.dart';
 import 'package:tronskins_app/components/game/game_switch_menu.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
+import 'package:tronskins_app/components/layout/app_search_bar.dart';
 import 'package:tronskins_app/components/market/market_showcase_card.dart';
 import 'package:tronskins_app/routes/app_routes.dart';
 
@@ -55,6 +56,7 @@ class _SellerShopPageState extends State<SellerShopPage>
       GlobalGameController.ensureInstance();
   final ScrollController _onSaleScrollController = ScrollController();
   final ScrollController _historyScrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
   final GlobalKey _onSaleSortButtonKey = GlobalKey();
   TabController? _tabController;
   Worker? _gameWorker;
@@ -80,6 +82,8 @@ class _SellerShopPageState extends State<SellerShopPage>
   _SellerMetricPeriod _metricPeriod = _SellerMetricPeriod.week;
   _SellerShopTab _activeTab = _SellerShopTab.onSale;
   _SellerOnSaleSort _onSaleSort = _SellerOnSaleSort.priceAsc;
+  String _onSaleKeywords = '';
+  String _historyKeywords = '';
 
   @override
   void initState() {
@@ -101,6 +105,7 @@ class _SellerShopPageState extends State<SellerShopPage>
       }
       await _applyGameChange(nextAppId);
     });
+    _searchController.addListener(_handleSearchInputChanged);
     if (_appId != _globalGameController.appId) {
       unawaited(_globalGameController.switchGame(_appId));
     }
@@ -113,6 +118,9 @@ class _SellerShopPageState extends State<SellerShopPage>
     _tabController?.animation?.removeListener(_handleTabAnimationTick);
     _tabController
       ?..removeListener(_handleTabControllerChange)
+      ..dispose();
+    _searchController
+      ..removeListener(_handleSearchInputChanged)
       ..dispose();
     _onSaleScrollController
       ..removeListener(_handleOnSaleScroll)
@@ -214,6 +222,7 @@ class _SellerShopPageState extends State<SellerShopPage>
         pageSize: 20,
         field: _onSaleSortField,
         asc: _onSaleSortAsc,
+        keywords: _onSaleKeywords.isEmpty ? null : _onSaleKeywords,
       );
       if (!mounted || requestAppId != _appId) {
         return;
@@ -317,6 +326,7 @@ class _SellerShopPageState extends State<SellerShopPage>
         uuid: _shopUuid,
         page: requestPage,
         pageSize: pageSize,
+        keywords: _historyKeywords.isEmpty ? null : _historyKeywords,
       );
       if (!mounted || requestAppId != _appId) {
         return;
@@ -381,6 +391,13 @@ class _SellerShopPageState extends State<SellerShopPage>
     if (_historyScrollController.position.extentAfter < 280) {
       _loadHistory();
     }
+  }
+
+  void _handleSearchInputChanged() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
   }
 
   void _handleTabControllerChange() {
@@ -494,6 +511,52 @@ class _SellerShopPageState extends State<SellerShopPage>
       _onSaleScrollController.jumpTo(0);
     }
     await _loadItems(reset: true, clearVisibleItems: true);
+  }
+
+  void _syncSearchControllerForTab(_SellerShopTab tab) {
+    final text = switch (tab) {
+      _SellerShopTab.onSale => _onSaleKeywords,
+      _SellerShopTab.saleHistory => _historyKeywords,
+    };
+    if (_searchController.text == text) {
+      return;
+    }
+    _searchController.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  Future<void> _submitActiveSearch([String? value]) async {
+    final normalized = (value ?? _searchController.text).trim();
+    FocusManager.instance.primaryFocus?.unfocus();
+    switch (_activeTab) {
+      case _SellerShopTab.onSale:
+        if (normalized == _onSaleKeywords) {
+          return;
+        }
+        _onSaleKeywords = normalized;
+        if (_onSaleScrollController.hasClients) {
+          _onSaleScrollController.jumpTo(0);
+        }
+        await _loadItems(reset: true, clearVisibleItems: true);
+      case _SellerShopTab.saleHistory:
+        if (normalized == _historyKeywords) {
+          return;
+        }
+        _historyKeywords = normalized;
+        if (_historyScrollController.hasClients) {
+          _historyScrollController.jumpTo(0);
+        }
+        await _loadHistory(reset: true, clearVisibleItems: true);
+    }
+  }
+
+  Future<void> _clearActiveSearch() async {
+    if (_searchController.text.isNotEmpty) {
+      _searchController.clear();
+    }
+    await _submitActiveSearch('');
   }
 
   bool get _isEnglishLocale =>
@@ -713,6 +776,7 @@ class _SellerShopPageState extends State<SellerShopPage>
       return;
     }
     setState(() => _activeTab = tab);
+    _syncSearchControllerForTab(tab);
     if (syncController) {
       final nextIndex = tab == _SellerShopTab.onSale ? 0 : 1;
       final controller = _ensureTabController();
@@ -777,6 +841,10 @@ class _SellerShopPageState extends State<SellerShopPage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _buildSearchBar(),
+          ),
           _buildTabBar(),
           if (_onSaleFilterBarHeight > 0 || _showOnSaleFilterBar)
             SizedBox(
@@ -788,6 +856,38 @@ class _SellerShopPageState extends State<SellerShopPage>
             ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    final hasKeyword = _searchController.text.trim().isNotEmpty;
+    return Row(
+      children: [
+        Expanded(
+          child: AppSearchInputBar(
+            controller: _searchController,
+            hintText: 'app.market.filter.search'.tr,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (value) {
+              unawaited(_submitActiveSearch(value));
+            },
+            onChanged: (_) {
+              if (mounted) {
+                setState(() {});
+              }
+            },
+            onClearTap: _clearActiveSearch,
+          ),
+        ),
+        const SizedBox(width: 8),
+        AppSearchActionButton(
+          icon: Icons.send_rounded,
+          active: hasKeyword,
+          onTap: () {
+            unawaited(_submitActiveSearch());
+          },
+        ),
+      ],
     );
   }
 
