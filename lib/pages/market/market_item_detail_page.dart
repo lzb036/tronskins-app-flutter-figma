@@ -52,6 +52,7 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
   bool _isPurchasing = false;
   bool _favorited = false;
   bool _favoriteSubmitting = false;
+  bool _hydratingMarketContext = false;
 
   @override
   void initState() {
@@ -64,8 +65,138 @@ class _MarketItemDetailPageState extends State<MarketItemDetailPage> {
     _stickers = _parseStickerMap(args['stickers']);
     _readOnly = args['readOnly'] == true;
     _favorited = _item.favorited == true;
-    if (!_readOnly) {
+    if (_needsMarketContextHydration()) {
+      _hydrateMarketContext();
+    } else if (!_readOnly) {
       _loadShopInfo();
+    }
+  }
+
+  bool _needsMarketContextHydration() {
+    final schemaId =
+        _schema?.schemaId ??
+        _item.schemaId ??
+        _asInt(_item.raw['schema_id'] ?? _item.raw['schemaId']);
+    if (schemaId == null) {
+      return false;
+    }
+    if (_user != null &&
+        _schema != null &&
+        _schema!.raw.isNotEmpty &&
+        _stickers.isNotEmpty) {
+      return false;
+    }
+    return true;
+  }
+
+  MarketListItem? _findHydratedListing(List<MarketListItem> items) {
+    final targetItemId = _item.id;
+    if (targetItemId != null) {
+      for (final candidate in items) {
+        if (candidate.id == targetItemId) {
+          return candidate;
+        }
+        final rawId = _asInt(candidate.raw['id']);
+        if (rawId == targetItemId) {
+          return candidate;
+        }
+      }
+      return null;
+    }
+    if (items.isEmpty) {
+      return null;
+    }
+    return items.first;
+  }
+
+  MarketSchemaInfo? _resolveHydratedSchema(
+    MarketListItem item,
+    Map<String, MarketSchemaInfo> schemas,
+  ) {
+    final schemaKey = item.schemaId?.toString();
+    if (schemaKey != null && schemas.containsKey(schemaKey)) {
+      return schemas[schemaKey];
+    }
+    final marketHashName = item.marketHashName?.trim();
+    if (marketHashName != null &&
+        marketHashName.isNotEmpty &&
+        schemas.containsKey(marketHashName)) {
+      return schemas[marketHashName];
+    }
+    return null;
+  }
+
+  Future<void> _hydrateMarketContext() async {
+    if (_hydratingMarketContext) {
+      return;
+    }
+    final schemaId =
+        _schema?.schemaId ??
+        _item.schemaId ??
+        _asInt(_item.raw['schema_id'] ?? _item.raw['schemaId']);
+    if (schemaId == null) {
+      if (!_readOnly) {
+        _loadShopInfo();
+      }
+      return;
+    }
+
+    _hydratingMarketContext = true;
+    try {
+      final sellerId =
+          _item.userId ??
+          _asInt(
+            _item.raw['user_id'] ??
+                _item.raw['userId'] ??
+                _item.raw['seller_id'] ??
+                _item.raw['sellerId'],
+          );
+      final res = await _marketServer.onSaleList(
+        appId: _item.appId ?? _schema?.appId ?? 730,
+        schemaId: schemaId,
+        userId: sellerId,
+        page: 1,
+        pageSize: 100,
+        useAuth: UserStorage.getUserInfo() != null,
+        fallbackToPublicOnFail: true,
+      );
+      if (!mounted || !res.success || res.datas == null) {
+        return;
+      }
+
+      final data = res.datas!;
+      final hydratedItem = _findHydratedListing(data.items);
+      if (hydratedItem == null) {
+        return;
+      }
+
+      final mergedSchemas = <String, MarketSchemaInfo>{
+        ..._schemas,
+        ...data.schemas,
+      };
+      final hydratedSchema =
+          _resolveHydratedSchema(hydratedItem, mergedSchemas) ?? _schema;
+      final hydratedUser = hydratedItem.userId == null
+          ? _user
+          : data.users[hydratedItem.userId!.toString()] ?? _user;
+
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _item = hydratedItem.copyWithFavorite(_favorited);
+        _schema = hydratedSchema;
+        _user = hydratedUser;
+        _schemas = mergedSchemas;
+        _stickers = <String, dynamic>{..._stickers, ...data.stickers};
+      });
+    } catch (_) {
+      // Keep the original lightweight payload when hydration fails.
+    } finally {
+      _hydratingMarketContext = false;
+      if (!_readOnly) {
+        _loadShopInfo();
+      }
     }
   }
 
