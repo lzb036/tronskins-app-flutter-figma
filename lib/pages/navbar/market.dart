@@ -105,7 +105,7 @@ class _MarketPageState extends State<MarketPage> {
 
   Future<void> _openFilterSheet() async {
     final isTf2 = controller.appId.value == 440;
-    final result = await MarketFilterSheet.showFromLeft(
+    final result = await MarketFilterSheet.showFromRight(
       context: context,
       appId: controller.appId.value,
       sortOptions: const [
@@ -210,31 +210,26 @@ class _MarketPageState extends State<MarketPage> {
             child: Row(
               children: [
                 Expanded(
-                  child: Row(
-                    children: [
-                      HeaderFilterButton(
-                        tooltip: 'app.market.filter.text'.tr,
-                        active: hasActiveFilter,
-                        onTap: _openFilterSheet,
-                      ),
-                      const SizedBox(width: 12),
-                      Flexible(
-                        child: Text(
-                          'app.tabbar.market'.tr,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF191C1E),
-                            fontSize: 20,
-                            height: 28 / 20,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    'app.tabbar.market'.tr,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF191C1E),
+                      fontSize: 20,
+                      height: 28 / 20,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
+                const SizedBox(width: 12),
                 _buildGameSwitchTrigger(),
+                const SizedBox(width: 8),
+                HeaderFilterButton(
+                  tooltip: 'app.market.filter.text'.tr,
+                  active: hasActiveFilter,
+                  onTap: _openFilterSheet,
+                ),
               ],
             ),
           ),

@@ -1194,7 +1194,7 @@ class _ShopPageState extends State<ShopPage>
   }
 
   Future<void> _openOnSaleFilterSheet() async {
-    final result = await MarketFilterSheet.showFromLeft(
+    final result = await MarketFilterSheet.showFromRight(
       context: context,
       appId: _globalGameController.appId,
       sortOptions: const [
@@ -1235,7 +1235,7 @@ class _ShopPageState extends State<ShopPage>
   }
 
   Future<void> _openPendingFilterSheet() async {
-    final result = await MarketFilterSheet.showFromLeft(
+    final result = await MarketFilterSheet.showFromRight(
       context: context,
       appId: _globalGameController.appId,
       sortOptions: const [
@@ -1269,7 +1269,7 @@ class _ShopPageState extends State<ShopPage>
   }
 
   Future<void> _openSellRecordFilterSheet() async {
-    final result = await MarketFilterSheet.showFromLeft(
+    final result = await MarketFilterSheet.showFromRight(
       context: context,
       appId: _globalGameController.appId,
       sortOptions: const [
@@ -1575,28 +1575,16 @@ class _ShopPageState extends State<ShopPage>
             child: Row(
               children: [
                 Expanded(
-                  child: Row(
-                    children: [
-                      HeaderFilterButton(
-                        tooltip: 'app.market.filter.text'.tr,
-                        active: _isActiveTabFilterApplied(),
-                        onTap: _openActiveTabFilterSheet,
-                      ),
-                      const SizedBox(width: 12),
-                      Flexible(
-                        child: Text(
-                          'app.shop.title'.tr,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF191C1E),
-                            fontSize: 20,
-                            height: 28 / 20,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    'app.shop.title'.tr,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF191C1E),
+                      fontSize: 20,
+                      height: 28 / 20,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
                 _buildTopActionWithDot(
@@ -1612,6 +1600,12 @@ class _ShopPageState extends State<ShopPage>
                 ),
                 const SizedBox(width: 8),
                 _buildGameSwitchTrigger(),
+                const SizedBox(width: 8),
+                HeaderFilterButton(
+                  tooltip: 'app.market.filter.text'.tr,
+                  active: _isActiveTabFilterApplied(),
+                  onTap: _openActiveTabFilterSheet,
+                ),
               ],
             ),
           ),
@@ -1634,24 +1628,36 @@ class _ShopPageState extends State<ShopPage>
     required ValueChanged<String> onSubmitted,
     required VoidCallback onSearch,
   }) {
+    final hasKeyword = controller.text.trim().isNotEmpty;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      child: AppSearchInputBar(
-        controller: controller,
-        hintText: 'app.market.filter.search'.tr,
-        onSubmitted: onSubmitted,
-        onChanged: (_) {
-          if (mounted) {
-            setState(() {});
-          }
-        },
-        onClearTap: () {
-          controller.clear();
-          if (mounted) {
-            setState(() {});
-          }
-        },
-        onSearchTap: onSearch,
+      child: Row(
+        children: [
+          Expanded(
+            child: AppSearchInputBar(
+              controller: controller,
+              hintText: 'app.market.filter.search'.tr,
+              onSubmitted: onSubmitted,
+              onChanged: (_) {
+                if (mounted) {
+                  setState(() {});
+                }
+              },
+              onClearTap: () {
+                controller.clear();
+                if (mounted) {
+                  setState(() {});
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          AppSearchActionButton(
+            icon: Icons.send_rounded,
+            active: hasKeyword,
+            onTap: onSearch,
+          ),
+        ],
       ),
     );
   }

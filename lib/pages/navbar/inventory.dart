@@ -287,7 +287,7 @@ class _InventoryPageState extends State<InventoryPage>
   }
 
   Future<void> _openFilterSheet() async {
-    final result = await MarketFilterSheet.showFromLeft(
+    final result = await MarketFilterSheet.showFromRight(
       context: context,
       appId: controller.currentAppId.value,
       sortOptions: const [
@@ -1008,31 +1008,26 @@ class _InventoryPageState extends State<InventoryPage>
             child: Row(
               children: [
                 Expanded(
-                  child: Row(
-                    children: [
-                      HeaderFilterButton(
-                        tooltip: 'app.market.filter.text'.tr,
-                        active: hasActiveFilter,
-                        onTap: _openFilterSheet,
-                      ),
-                      const SizedBox(width: 12),
-                      Flexible(
-                        child: Text(
-                          'app.inventory.title'.tr,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF191C1E),
-                            fontSize: 20,
-                            height: 28 / 20,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    'app.inventory.title'.tr,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF191C1E),
+                      fontSize: 20,
+                      height: 28 / 20,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
+                const SizedBox(width: 12),
                 _buildGameSwitchTrigger(),
+                const SizedBox(width: 8),
+                HeaderFilterButton(
+                  tooltip: 'app.market.filter.text'.tr,
+                  active: hasActiveFilter,
+                  onTap: _openFilterSheet,
+                ),
               ],
             ),
           ),
@@ -1341,27 +1336,39 @@ class _InventoryPageState extends State<InventoryPage>
   }
 
   Widget _buildSearchBar() {
-    return AppSearchInputBar(
-      controller: _searchController,
-      hintText: 'app.market.filter.search'.tr,
-      textInputAction: TextInputAction.done,
-      onSubmitted: (_) => FocusScope.of(context).unfocus(),
-      onChanged: (_) {
-        if (mounted) {
-          setState(() {});
-        }
-      },
-      onClearTap: () {
-        _searchController.clear();
-        if (mounted) {
-          setState(() {});
-        }
-        _applySearch('');
-      },
-      onSearchTap: () {
-        FocusScope.of(context).unfocus();
-        _applySearch(_searchController.text);
-      },
+    final hasKeyword = _searchController.text.trim().isNotEmpty;
+    return Row(
+      children: [
+        Expanded(
+          child: AppSearchInputBar(
+            controller: _searchController,
+            hintText: 'app.market.filter.search'.tr,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => FocusScope.of(context).unfocus(),
+            onChanged: (_) {
+              if (mounted) {
+                setState(() {});
+              }
+            },
+            onClearTap: () {
+              _searchController.clear();
+              if (mounted) {
+                setState(() {});
+              }
+              _applySearch('');
+            },
+          ),
+        ),
+        const SizedBox(width: 8),
+        AppSearchActionButton(
+          icon: Icons.send_rounded,
+          active: hasKeyword,
+          onTap: () {
+            FocusScope.of(context).unfocus();
+            _applySearch(_searchController.text);
+          },
+        ),
+      ],
     );
   }
 

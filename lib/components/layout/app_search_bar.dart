@@ -86,6 +86,7 @@ class AppSearchInputBar extends StatelessWidget {
     this.onClearTap,
     this.textInputAction = TextInputAction.search,
     this.readOnly = false,
+    this.actionIcon = Icons.search_rounded,
   });
 
   final TextEditingController controller;
@@ -96,6 +97,7 @@ class AppSearchInputBar extends StatelessWidget {
   final VoidCallback? onClearTap;
   final TextInputAction textInputAction;
   final bool readOnly;
+  final IconData actionIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -153,13 +155,47 @@ class AppSearchInputBar extends StatelessWidget {
               ),
             if (onSearchTap != null)
               _SearchBarIconButton(
-                icon: Icons.search_rounded,
+                icon: actionIcon,
                 color: hasKeyword
                     ? const Color(0xFF64748B)
                     : _kSearchBarIconColor,
                 onTap: onSearchTap!,
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class AppSearchActionButton extends StatelessWidget {
+  const AppSearchActionButton({
+    super.key,
+    required this.icon,
+    required this.onTap,
+    this.active = false,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: active ? const Color(0xFFE8F0FF) : _kSearchBarBackground,
+      borderRadius: BorderRadius.circular(_kSearchBarRadius),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(_kSearchBarRadius),
+        onTap: onTap,
+        child: SizedBox(
+          width: _kSearchBarHeight,
+          height: _kSearchBarHeight,
+          child: Icon(
+            icon,
+            size: 18,
+            color: active ? const Color(0xFF1E40AF) : const Color(0xFF64748B),
+          ),
         ),
       ),
     );

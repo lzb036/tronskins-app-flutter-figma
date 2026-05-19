@@ -332,17 +332,27 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
       );
     }
     if (_matchedItems.isNotEmpty && numValue > _matchedItems.length) {
-      _numController.text = _matchedItems.length.toString();
-      _numController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _numController.text.length),
-      );
+      _setQuantityValue(_matchedItems.length);
     }
+  }
+
+  void _setQuantityValue(int value) {
+    final normalized = value.clamp(0, 200);
+    final text = normalized.toString();
+    if (_numController.text == text) {
+      return;
+    }
+    _numController.text = text;
+    _numController.selection = TextSelection.fromPosition(
+      TextPosition(offset: _numController.text.length),
+    );
   }
 
   Future<void> _queryMatchedOnSale() async {
     final maxPrice = _inputPriceUsd();
     if (maxPrice <= 0) {
       _matchQueryVersion++;
+      _setQuantityValue(0);
       if (_matchedItems.isNotEmpty || _isLoadingMatches) {
         setState(() {
           _matchedItems.clear();
@@ -386,10 +396,7 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
 
       final currentNum = int.tryParse(_numController.text) ?? 0;
       if (currentNum > _matchedItems.length) {
-        _numController.text = _matchedItems.length.toString();
-        _numController.selection = TextSelection.fromPosition(
-          TextPosition(offset: _numController.text.length),
-        );
+        _setQuantityValue(_matchedItems.length);
       }
     } finally {
       if (mounted && queryVersion == _matchQueryVersion) {
@@ -978,10 +985,7 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
       maxAllowed = _matchedItems.length.clamp(0, 200);
     }
     final next = (current + delta).clamp(0, maxAllowed);
-    _numController.text = next.toString();
-    _numController.selection = TextSelection.fromPosition(
-      TextPosition(offset: _numController.text.length),
-    );
+    _setQuantityValue(next);
   }
 
   String _displayAmount(CurrencyController currency, double amount) {
@@ -1552,8 +1556,9 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
 
   Widget _buildQuantityControlButton({
     required IconData icon,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
   }) {
+    final enabled = onTap != null;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1562,7 +1567,11 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
         child: SizedBox(
           width: 32,
           height: 32,
-          child: Icon(icon, size: 18, color: _bodyColor),
+          child: Icon(
+            icon,
+            size: 18,
+            color: enabled ? _bodyColor : _bodyColor.withValues(alpha: 0.35),
+          ),
         ),
       ),
     );
@@ -1817,6 +1826,10 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
         : const <_BulkWearQuickOption>[];
     final priceHint = sellMin > 0 ? _displayAmount(currency, sellMin) : '0.00';
     final totalDisplay = _displayAmount(currency, _totalAmount());
+    final hasMatchedItems = _matchedItems.isNotEmpty;
+    final quantityEnabled = hasMatchedItems && !_isLoadingMatches;
+    final submitEnabled =
+        hasMatchedItems && !_isLoadingMatches && !_isSubmitting;
     const contentBottomPadding = 12.0;
 
     return Scaffold(
@@ -1984,7 +1997,9 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: _fieldSurface,
+                    color: quantityEnabled
+                        ? _fieldSurface
+                        : _fieldSurface.withValues(alpha: 0.72),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Row(
@@ -1992,16 +2007,21 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
                     children: [
                       _buildQuantityControlButton(
                         icon: Icons.remove_rounded,
-                        onTap: () => _changeQuantity(-1),
+                        onTap: quantityEnabled
+                            ? () => _changeQuantity(-1)
+                            : null,
                       ),
                       SizedBox(
                         width: 48,
                         child: TextField(
                           controller: _numController,
+                          enabled: quantityEnabled,
                           keyboardType: TextInputType.number,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: _titleColor,
+                          style: TextStyle(
+                            color: quantityEnabled
+                                ? _titleColor
+                                : _titleColor.withValues(alpha: 0.4),
                             fontSize: 16,
                             height: 24 / 16,
                             fontWeight: FontWeight.w700,
@@ -2024,7 +2044,9 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
                       ),
                       _buildQuantityControlButton(
                         icon: Icons.add_rounded,
-                        onTap: () => _changeQuantity(1),
+                        onTap: quantityEnabled
+                            ? () => _changeQuantity(1)
+                            : null,
                       ),
                     ],
                   ),
@@ -2050,29 +2072,29 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
-                  gradient: _isSubmitting
+                  gradient: submitEnabled
                       ? const LinearGradient(
-                          colors: [Color(0xFF94A3B8), Color(0xFFCBD5E1)],
+                          colors: [_brandBlue, _brandBlueEnd],
                         )
                       : const LinearGradient(
-                          colors: [_brandBlue, _brandBlueEnd],
+                          colors: [Color(0xFF94A3B8), Color(0xFFCBD5E1)],
                         ),
-                  boxShadow: _isSubmitting
-                      ? null
-                      : const [
+                  boxShadow: submitEnabled
+                      ? const [
                           BoxShadow(
                             color: Color(0x331E40AF),
                             blurRadius: 15,
                             offset: Offset(0, 10),
                             spreadRadius: -4,
                           ),
-                        ],
+                        ]
+                      : null,
                 ),
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(8),
-                    onTap: _isSubmitting ? null : _confirmSubmit,
+                    onTap: submitEnabled ? _confirmSubmit : null,
                     child: SizedBox(
                       height: 48,
                       child: Center(

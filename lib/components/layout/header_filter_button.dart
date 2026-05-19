@@ -6,7 +6,7 @@ class HeaderFilterButton extends StatelessWidget {
     required this.tooltip,
     required this.onTap,
     this.active = false,
-    this.icon,
+    this.icon = Icons.filter_alt_outlined,
     this.size = 32,
     this.iconSize = 24,
   });
@@ -35,53 +35,11 @@ class HeaderFilterButton extends StatelessWidget {
             width: size,
             height: size,
             child: Center(
-              child: icon != null
-                  ? Icon(icon, size: iconSize, color: iconColor)
-                  : SizedBox(
-                      width: iconSize,
-                      height: iconSize,
-                      child: CustomPaint(
-                        painter: _HeaderFilterGlyphPainter(color: iconColor),
-                      ),
-                    ),
+              child: Icon(icon, size: iconSize, color: iconColor),
             ),
           ),
         ),
       ),
     );
-  }
-}
-
-class _HeaderFilterGlyphPainter extends CustomPainter {
-  const _HeaderFilterGlyphPainter({required this.color});
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-
-    final left = size.width * 0.20;
-    final right = size.width * 0.80;
-    final lineYs = <double>[
-      size.height * 0.29,
-      size.height * 0.50,
-      size.height * 0.71,
-    ];
-
-    for (final lineY in lineYs) {
-      final start = Offset(left, lineY);
-      final end = Offset(right, lineY);
-      canvas.drawLine(start, end, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _HeaderFilterGlyphPainter oldDelegate) {
-    return oldDelegate.color != color;
   }
 }

@@ -168,7 +168,7 @@ class _HomePageState extends State<HomePage>
 
   Future<void> _openFilterSheet() async {
     final isTf2 = controller.appId.value == 440;
-    final result = await MarketFilterSheet.showFromLeft(
+    final result = await MarketFilterSheet.showFromRight(
       context: context,
       appId: controller.appId.value,
       sortOptions: [
@@ -313,21 +313,15 @@ class _HomePageState extends State<HomePage>
             padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
             child: Row(
               children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      HeaderFilterButton(
-                        tooltip: 'app.market.filter.text'.tr,
-                        active: hasActiveFilter,
-                        onTap: _openFilterSheet,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(child: _buildSearchTrigger()),
-                    ],
-                  ),
-                ),
+                Expanded(child: _buildSearchTrigger()),
                 const SizedBox(width: 12),
                 _buildGameSwitchTrigger(),
+                const SizedBox(width: 8),
+                HeaderFilterButton(
+                  tooltip: 'app.market.filter.text'.tr,
+                  active: hasActiveFilter,
+                  onTap: _openFilterSheet,
+                ),
               ],
             ),
           ),
