@@ -5082,88 +5082,6 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     return label.toUpperCase();
   }
 
-  String? _normalizeTransactionChipValue(String? value) {
-    final normalized = _cleanText(value);
-    if (normalized == null || normalized == '-') {
-      return null;
-    }
-    final numericValue = num.tryParse(normalized);
-    if (numericValue != null && numericValue == 0) {
-      return null;
-    }
-    return normalized;
-  }
-
-  String? _resolveTransactionPaintIndex(MarketListItem item) {
-    final asset = _resolveAsset(item);
-    final direct = _cleanText(
-      _extractText(asset, [
-            'paint_index',
-            'paintIndex',
-            'paint_kit',
-            'paintKit',
-          ]) ??
-          _extractText(item.raw, [
-            'paint_index',
-            'paintIndex',
-            'paint_kit',
-            'paintKit',
-          ]),
-    );
-    if (direct != null) {
-      return direct;
-    }
-
-    final phase =
-        _cleanText(_extractText(asset, ['phase'])) ??
-        _cleanText(item.raw['phase']?.toString());
-    if (phase == null) {
-      return null;
-    }
-
-    final target = phase.toLowerCase();
-    final paintKits = _templateDetail?.paintKits;
-    if (paintKits == null || paintKits.isEmpty) {
-      return null;
-    }
-
-    for (final raw in paintKits) {
-      if (raw is! Map) {
-        continue;
-      }
-      final map = Map<String, dynamic>.from(raw);
-      final id = _asInt(map['id']);
-      if (id == null) {
-        continue;
-      }
-      final phaseValue = _cleanText(map['phase']?.toString())?.toLowerCase();
-      final nameValue = _cleanText(map['name']?.toString())?.toLowerCase();
-      if (phaseValue == target || nameValue == target) {
-        return id.toString();
-      }
-    }
-
-    return null;
-  }
-
-  double? _resolveTransactionPaintWear(MarketListItem item) {
-    final asset = _resolveAsset(item);
-    final direct =
-        _extractDouble(asset, ['paint_wear', 'paintWear']) ??
-        _extractDouble(item.raw, ['paint_wear', 'paintWear']);
-    if (direct != null) {
-      return direct;
-    }
-    final text = _cleanText(
-      _extractText(asset, ['paint_wear', 'paintWear']) ??
-          _extractText(item.raw, ['paint_wear', 'paintWear']),
-    );
-    if (text == null) {
-      return null;
-    }
-    return double.tryParse(text);
-  }
-
   _HistoryStatusStyle _resolveTransactionStatusStyle(String label) {
     final normalized = label.trim().toLowerCase();
     final compact = normalized.replaceAll(RegExp(r'[\s_-]+'), '');
@@ -5774,12 +5692,6 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     final statusLabel = _resolveTransactionStatusLabel(item);
     final statusText = _formatTransactionStatusLabel(statusLabel);
     final statusStyle = _resolveTransactionStatusStyle(statusLabel);
-    final paintWearValue = _resolveTransactionPaintWear(item);
-    final wearText = paintWearValue == null
-        ? null
-        : _normalizeTransactionChipValue(paintWearValue.toStringAsFixed(4));
-    final patternText = _formatTransactionPatternLabel(item);
-    final buyerText = _resolveTransactionBuyerLine(item);
     final imageUrl =
         _extractText(asset, ['image_url', 'imageUrl', 'image']) ??
         item.raw['image_url']?.toString() ??
@@ -5792,42 +5704,6 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     final percentage =
         _extractText(asset, ['percentage']) ??
         item.raw['percentage']?.toString();
-    final displayLines = <Widget>[
-      if (wearText != null)
-        _buildTransactionMetricPill(text: wearText, isDark: isDark),
-      if (patternText != null)
-        Padding(
-          padding: EdgeInsets.only(top: wearText != null ? 4 : 0),
-          child: Text(
-            patternText,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: isDark ? _figmaSlate300 : _figmaSlate500,
-              fontSize: 10,
-              height: 15 / 10,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      if (buyerText != null)
-        Padding(
-          padding: EdgeInsets.only(
-            top: wearText != null || patternText != null ? 4 : 0,
-          ),
-          child: Text(
-            buyerText,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: isDark ? _figmaSlate300 : _figmaSlate500,
-              fontSize: 10,
-              height: 15 / 10,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ),
-    ];
 
     return Material(
       color: _historyRowBackground(index, isDark),
@@ -5911,10 +5787,6 @@ class _MarketDetailPageState extends State<MarketDetailPage>
                               ),
                             ),
                           ),
-                          if (displayLines.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            ...displayLines,
-                          ],
                         ],
                       ),
                     ),
@@ -5980,80 +5852,8 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     );
   }
 
-  Widget _buildTransactionMetricPill({
-    required String text,
-    required bool isDark,
-  }) {
-    return Container(
-      constraints: const BoxConstraints(minWidth: 40),
-      alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2A313D) : const Color(0xFFECEEF0),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        text,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: isDark ? _figmaSlate300 : const Color(0xFF444653),
-          fontSize: 10,
-          height: 15 / 10,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-
   TagInfo? _tagInfoFromMarketTag(MarketItemTag? tag) {
     return TagInfo.fromMarketTag(tag);
-  }
-
-  String? _formatTransactionPatternLabel(MarketListItem item) {
-    final normalized = _normalizeTransactionChipValue(
-      _resolveTransactionPaintIndex(item),
-    );
-    if (normalized == null) {
-      return null;
-    }
-    if (normalized.startsWith('#')) {
-      return normalized;
-    }
-    return '#$normalized';
-  }
-
-  String? _resolveTransactionBuyerLine(MarketListItem item) {
-    final userKey = item.userId?.toString();
-    final user = userKey == null ? null : controller.users[userKey];
-    final rawUser =
-        _asMap(item.raw['user']) ??
-        _asMap(item.raw['buyer']) ??
-        _asMap(item.raw['shop']);
-    final nickname =
-        _cleanText(user?.nickname) ??
-        _cleanText(rawUser?['nickname']?.toString()) ??
-        _cleanText(rawUser?['name']?.toString());
-    if (nickname == null) {
-      return null;
-    }
-    final label = 'app.market.buyer'.tr;
-    return '$label: ${_maskTransactionUserName(nickname)}';
-  }
-
-  String _maskTransactionUserName(String value) {
-    final trimmed = value.trim();
-    if (trimmed.isEmpty) {
-      return '--';
-    }
-    if (trimmed.length == 1) {
-      return '$trimmed***';
-    }
-    if (trimmed.length == 2) {
-      return '${trimmed.substring(0, 1)}***';
-    }
-    return '${trimmed.substring(0, 1)}***${trimmed.substring(trimmed.length - 1)}';
   }
 
   Color _historyRowBackground(int index, bool isDark) {
