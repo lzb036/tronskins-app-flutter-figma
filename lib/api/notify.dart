@@ -99,7 +99,7 @@ class ApiNotifyServer {
   }
 
   Future<BaseHttpResponse<dynamic>> readNotice({required String id}) async {
-    final response = await http.post('api/app/notice/read', data: {'id': id});
+    final response = await http.post('api/app/notice/$id/read');
     return BaseHttpResponse.fromJson(
       response.data as Map<String, dynamic>,
       (json) => json,

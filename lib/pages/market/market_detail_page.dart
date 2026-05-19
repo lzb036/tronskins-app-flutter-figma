@@ -8,6 +8,7 @@ import 'package:tronskins_app/api/model/market/market_models.dart';
 import 'package:tronskins_app/api/model/shop/shop_models.dart';
 import 'package:tronskins_app/api/shop_product.dart';
 import 'package:tronskins_app/common/storage/user_storage.dart';
+import 'package:tronskins_app/components/game_item/game_item_image.dart';
 import 'package:tronskins_app/components/game_item/game_item_models.dart';
 import 'package:tronskins_app/components/game_item/gem_row.dart';
 import 'package:tronskins_app/components/game_item/sticker_row.dart';
@@ -45,7 +46,10 @@ class _MarketDetailPageState extends State<MarketDetailPage>
   static const double _onSaleListingImageAspectRatio = 3 / 2;
   static const double _onSaleListingImageBoxHeight =
       _onSaleListingImageBoxWidth / _onSaleListingImageAspectRatio;
-  static const double _historyStatusBadgeWidth = 70;
+  static const double _transactionHistoryImageBoxWidth = 104;
+  static const double _transactionHistoryImageAspectRatio = 3 / 2;
+  static const double _transactionHistoryImageBoxHeight =
+      _transactionHistoryImageBoxWidth / _transactionHistoryImageAspectRatio;
   static const Color _figmaSlate100 = Color(0xFFF1F5F9);
   static const Color _figmaSlate300 = Color(0xFFCBD5E1);
   static const Color _figmaSlate400 = Color(0xFF94A3B8);
@@ -5160,86 +5164,6 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     return double.tryParse(text);
   }
 
-  String? _resolveTransactionExteriorLabel(
-    MarketListItem item,
-    double? paintWearValue,
-  ) {
-    final schema = _lookupMarketSchema(item);
-    final localizedLabel =
-        _cleanText(schema?.tags?.exterior?.localizedName) ??
-        _cleanText(_templateDetail?.schema?.tags?.exterior?.localizedName) ??
-        _cleanText(controller.item.tags?.exterior?.localizedName) ??
-        _extractTagLabel(item.raw['tags'], 'exterior');
-    if (localizedLabel != null) {
-      return localizedLabel;
-    }
-
-    final exteriorKey =
-        schema?.tags?.exterior?.key ??
-        _extractTagKey(item.raw['tags'], 'exterior') ??
-        _extractText(_resolveAsset(item), ['exterior_key', 'exteriorKey']);
-
-    switch (exteriorKey) {
-      case 'WearCategory0':
-        return 'Factory New';
-      case 'WearCategory1':
-        return 'Minimal Wear';
-      case 'WearCategory2':
-        return 'Field-Tested';
-      case 'WearCategory3':
-        return 'Well-Worn';
-      case 'WearCategory4':
-        return 'Battle-Scarred';
-    }
-
-    if (paintWearValue == null) {
-      return null;
-    }
-    if (paintWearValue < 0.07) {
-      return 'Factory New';
-    }
-    if (paintWearValue < 0.15) {
-      return 'Minimal Wear';
-    }
-    if (paintWearValue < 0.38) {
-      return 'Field-Tested';
-    }
-    if (paintWearValue < 0.45) {
-      return 'Well-Worn';
-    }
-    return 'Battle-Scarred';
-  }
-
-  String? _extractTagLabel(dynamic rawTags, String key) {
-    if (rawTags is! Map) {
-      return null;
-    }
-    final rawTag = rawTags[key];
-    if (rawTag is! Map) {
-      return null;
-    }
-    return _cleanText(
-      rawTag['localized_name']?.toString() ??
-          rawTag['localizedName']?.toString() ??
-          rawTag['name']?.toString(),
-    );
-  }
-
-  String? _extractTagKey(dynamic rawTags, String key) {
-    if (rawTags is! Map) {
-      return null;
-    }
-    final rawTag = rawTags[key];
-    if (rawTag is! Map) {
-      return null;
-    }
-    final define = rawTag['define'];
-    if (define is Map && define['key'] != null) {
-      return define['key'].toString();
-    }
-    return _cleanText(rawTag['key']?.toString());
-  }
-
   _HistoryStatusStyle _resolveTransactionStatusStyle(String label) {
     final normalized = label.trim().toLowerCase();
     final compact = normalized.replaceAll(RegExp(r'[\s_-]+'), '');
@@ -5845,6 +5769,8 @@ class _MarketDetailPageState extends State<MarketDetailPage>
     required int index,
     required bool isDark,
   }) {
+    final schema = _lookupMarketSchema(item);
+    final asset = _resolveAsset(item);
     final statusLabel = _resolveTransactionStatusLabel(item);
     final statusText = _formatTransactionStatusLabel(statusLabel);
     final statusStyle = _resolveTransactionStatusStyle(statusLabel);
@@ -5853,12 +5779,55 @@ class _MarketDetailPageState extends State<MarketDetailPage>
         ? null
         : _normalizeTransactionChipValue(paintWearValue.toStringAsFixed(4));
     final patternText = _formatTransactionPatternLabel(item);
-    final exteriorText = _normalizeTransactionChipValue(
-      _resolveTransactionExteriorLabel(item, paintWearValue),
-    );
     final buyerText = _resolveTransactionBuyerLine(item);
-    final showPrimaryMetaRow = wearText != null || patternText != null;
-    final showSecondaryMetaRow = exteriorText != null || buyerText != null;
+    final imageUrl =
+        _extractText(asset, ['image_url', 'imageUrl', 'image']) ??
+        item.raw['image_url']?.toString() ??
+        item.raw['imageUrl']?.toString() ??
+        schema?.imageUrl;
+    final rarity = _tagInfoFromMarketTag(schema?.tags?.rarity);
+    final quality = _tagInfoFromMarketTag(schema?.tags?.quality);
+    final phase =
+        _extractText(asset, ['phase']) ?? item.raw['phase']?.toString();
+    final percentage =
+        _extractText(asset, ['percentage']) ??
+        item.raw['percentage']?.toString();
+    final displayLines = <Widget>[
+      if (wearText != null)
+        _buildTransactionMetricPill(text: wearText, isDark: isDark),
+      if (patternText != null)
+        Padding(
+          padding: EdgeInsets.only(top: wearText != null ? 4 : 0),
+          child: Text(
+            patternText,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isDark ? _figmaSlate300 : _figmaSlate500,
+              fontSize: 10,
+              height: 15 / 10,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      if (buyerText != null)
+        Padding(
+          padding: EdgeInsets.only(
+            top: wearText != null || patternText != null ? 4 : 0,
+          ),
+          child: Text(
+            buyerText,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isDark ? _figmaSlate300 : _figmaSlate500,
+              fontSize: 10,
+              height: 15 / 10,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ),
+    ];
 
     return Material(
       color: _historyRowBackground(index, isDark),
@@ -5883,165 +5852,128 @@ class _MarketDetailPageState extends State<MarketDetailPage>
           return null;
         }),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  width: _historyStatusBadgeWidth,
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? statusStyle.backgroundColor.withValues(alpha: 0.18)
-                        : statusStyle.backgroundColor,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    statusText,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: statusStyle.statusColor,
-                      fontSize: 10.5,
-                      height: 12 / 10.5,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: _isEnglishLocale ? 0.3 : 0,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.fromLTRB(6, 8, 8, 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: SizedBox(
+                  width: _transactionHistoryImageBoxWidth,
+                  height: _transactionHistoryImageBoxHeight,
+                  child: Stack(
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Obx(
-                              () => Text(
-                                currency.format(item.price ?? 0),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: statusStyle.priceColor,
-                                  fontSize: 18,
-                                  height: 22.5 / 18,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 116),
-                            child: Text(
-                              _formatTime(item.createTime),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.right,
-                              style: TextStyle(
-                                color: isDark ? _figmaSlate300 : _figmaSlate500,
-                                fontSize: 11,
-                                height: 16.5 / 11,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (showPrimaryMetaRow || showSecondaryMetaRow) ...[
-                        const SizedBox(height: 4),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (showPrimaryMetaRow)
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        if (wearText != null)
-                                          _buildTransactionMetricPill(
-                                            text: wearText,
-                                            isDark: isDark,
-                                          ),
-                                        if (wearText != null &&
-                                            patternText != null)
-                                          const SizedBox(width: 8),
-                                        if (patternText != null)
-                                          Flexible(
-                                            child: Text(
-                                              patternText,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                color: isDark
-                                                    ? _figmaSlate300
-                                                    : _figmaSlate500,
-                                                fontSize: 10,
-                                                height: 15 / 10,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  if (exteriorText != null) ...[
-                                    if (showPrimaryMetaRow)
-                                      const SizedBox(height: 4),
-                                    Text(
-                                      exteriorText,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: isDark
-                                            ? _figmaSlate300
-                                            : const Color(0xFF444653),
-                                        fontSize: 10,
-                                        height: 15 / 10,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                            if (buyerText != null) ...[
-                              const SizedBox(width: 12),
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 92),
-                                child: Text(
-                                  buyerText,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.right,
-                                  style: TextStyle(
-                                    color: isDark
-                                        ? _figmaSlate300
-                                        : _figmaSlate500,
-                                    fontSize: 10,
-                                    height: 15 / 10,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
+                      Positioned.fill(
+                        child: GameItemImage(
+                          imageUrl: imageUrl,
+                          appId: item.appId ?? controller.appId,
+                          rarity: rarity,
+                          quality: quality,
+                          exterior: null,
+                          phase: phase,
+                          percentage: percentage,
+                          squareTopBadges: true,
+                          compactTopLeftBadges: true,
+                          topBadgeScale: 0.84,
                         ),
-                      ],
+                      ),
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.06),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Obx(
+                            () => Text(
+                              currency.format(item.price ?? 0),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: statusStyle.priceColor,
+                                fontSize: 18,
+                                height: 22.5 / 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          if (displayLines.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            ...displayLines,
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          constraints: const BoxConstraints(minWidth: 44),
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? statusStyle.backgroundColor.withValues(
+                                    alpha: 0.18,
+                                  )
+                                : statusStyle.backgroundColor,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            statusText,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: statusStyle.statusColor,
+                              fontSize: 10.5,
+                              height: 12 / 10.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: _isEnglishLocale ? 0.3 : 0,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 92),
+                          child: Text(
+                            _formatTime(item.createTime),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              color: isDark ? _figmaSlate300 : _figmaSlate500,
+                              fontSize: 11,
+                              height: 16.5 / 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -6073,6 +6005,10 @@ class _MarketDetailPageState extends State<MarketDetailPage>
         ),
       ),
     );
+  }
+
+  TagInfo? _tagInfoFromMarketTag(MarketItemTag? tag) {
+    return TagInfo.fromMarketTag(tag);
   }
 
   String? _formatTransactionPatternLabel(MarketListItem item) {
