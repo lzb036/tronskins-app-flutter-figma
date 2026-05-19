@@ -889,6 +889,19 @@ class _BuyingPageState extends State<BuyingPage>
     return tier;
   }
 
+  bool _supportsPurchaseTierFilter(
+    BuyRequestItem item,
+    ShopSchemaInfo? schema,
+  ) {
+    if (_buyRequestAppId(item, schema) != 730) {
+      return false;
+    }
+    final name = _buyRequestMarketHashName(item, schema).toLowerCase();
+    return name.contains('case hardened') ||
+        name.contains('表面淬火') ||
+        name.contains('淬火');
+  }
+
   String? _formatGradientSpec(BuyRequestItem item) {
     final min =
         item.percentageMin ?? _buyRequestDouble(item, _purchaseGradientMinKeys);
@@ -931,7 +944,18 @@ class _BuyingPageState extends State<BuyingPage>
           .toList(growable: false);
     }
     if (value is Map) {
-      for (final key in const ['label', 'name', 'text', 'value', 'phase']) {
+      for (final key in const [
+        'label',
+        'name',
+        'text',
+        'value',
+        'phase',
+        'tier',
+        'tierName',
+        'tier_name',
+        'fireIce',
+        'fire_ice',
+      ]) {
         final text = _cleanSpecText(value[key]?.toString());
         if (text != null) {
           return <String>[text];
@@ -973,9 +997,12 @@ class _BuyingPageState extends State<BuyingPage>
       );
     }
     final tier = _formatTierSpec(item);
-    if (tier != null) {
+    if (tier != null || (isCs2 && _supportsPurchaseTierFilter(item, schema))) {
       chips.add(
-        _PurchaseInfoChipData(label: 'app.market.csgo.tier'.tr, value: tier),
+        _PurchaseInfoChipData(
+          label: 'app.market.csgo.tier'.tr,
+          value: tier ?? unlimited,
+        ),
       );
     }
     final gradient = _formatGradientSpec(item);

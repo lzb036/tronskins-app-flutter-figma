@@ -85,3 +85,20 @@ double activeLowestListingPrice(
   }
   return lowest;
 }
+
+double undercutListingPrice(double basePrice, {double minimumPrice = 0}) {
+  if (!basePrice.isFinite || basePrice <= 0) {
+    return 0;
+  }
+
+  final decrement = basePrice < 10
+      ? 0.01
+      : basePrice <= 100
+      ? 0.1
+      : 0.5;
+  final nextPrice = double.parse((basePrice - decrement).toStringAsFixed(2));
+  if (minimumPrice > 0 && nextPrice < minimumPrice) {
+    return minimumPrice;
+  }
+  return nextPrice > 0 ? nextPrice : 0;
+}

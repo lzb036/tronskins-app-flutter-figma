@@ -24,8 +24,6 @@ class _ShopItemMergeGroup {
   final List<ShopItemAsset> items;
 }
 
-enum _PricingPreset { min, average, max }
-
 class _PriceInputFormatter extends TextInputFormatter {
   const _PriceInputFormatter();
 
@@ -665,18 +663,9 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
         continue;
       }
 
-      double nextPrice = reference;
-      if (nextPrice > 1000) {
-        nextPrice -= 0.5;
-      } else if (nextPrice > 100) {
-        nextPrice -= 0.1;
-      } else if (nextPrice > _minSellPrice) {
-        nextPrice -= 0.01;
-      } else {
-        nextPrice = _minSellPrice;
-      }
-
-      final normalizedPrice = _normalizePrice(nextPrice);
+      final normalizedPrice = _normalizePrice(
+        undercutListingPrice(reference, minimumPrice: _minSellPrice),
+      );
       if (normalizedPrice <= 0) {
         continue;
       }
@@ -687,6 +676,15 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
       );
     }
     setState(() {});
+  }
+
+  bool _hasAutoPricingItems() {
+    for (final item in _items) {
+      if (_extractSellMinForPricing(_lookupSchema(item)) > 0) {
+        return true;
+      }
+    }
+    return false;
   }
 
   void _syncMergedGroupPricesFromLead() {
@@ -877,28 +875,6 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
     return candidates.isEmpty ? 0 : candidates.last;
   }
 
-  void _applySuggestedPriceForIds(List<int> ids, int leadId, double value) {
-    final currency = Get.find<CurrencyController>();
-    final normalized = _normalizePrice(value);
-    if (normalized <= 0) {
-      return;
-    }
-    final text = FilterPriceSupport.formatEditableNumber(currency, normalized);
-    for (final id in ids) {
-      _prices[id] = normalized;
-      final controller = _controllers[id];
-      if (controller != null && controller.text != text) {
-        controller.value = TextEditingValue(
-          text: text,
-          selection: TextSelection.fromPosition(
-            TextPosition(offset: text.length),
-          ),
-        );
-      }
-    }
-    _normalizeInputOnBlurForIds(ids, sourceId: leadId);
-  }
-
   String _formatConvertedCurrency(
     CurrencyController currency,
     double usdAmount, {
@@ -955,17 +931,6 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
     return 'app.inventory.price_change'.tr;
   }
 
-  String _pricingPresetLabel(_PricingPreset preset) {
-    switch (preset) {
-      case _PricingPreset.min:
-        return 'app.inventory.pricing_preset.min'.tr;
-      case _PricingPreset.average:
-        return 'app.inventory.pricing_preset.pricing'.tr;
-      case _PricingPreset.max:
-        return 'app.inventory.pricing_preset.max'.tr;
-    }
-  }
-
   Widget _buildTopActionButton({
     required IconData icon,
     required String tooltip,
@@ -1002,6 +967,7 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
   }
 
   Widget _buildTopNavigation(BuildContext context) {
+    final hasAutoPricing = _hasAutoPricingItems();
     return SettingsStyleTopNavigation(
       title: _titleText(),
       actions: [
@@ -1011,12 +977,14 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
           onTap: () => _setMergeSameItems(!_mergeSameItems),
           active: _mergeSameItems,
         ),
-        const SizedBox(width: 8),
-        _buildTopActionButton(
-          icon: Icons.auto_awesome_rounded,
-          tooltip: 'app.inventory.pricing'.tr,
-          onTap: _applyReferencePrice,
-        ),
+        if (hasAutoPricing) ...[
+          const SizedBox(width: 8),
+          _buildTopActionButton(
+            icon: Icons.auto_awesome_rounded,
+            tooltip: 'app.inventory.pricing'.tr,
+            onTap: _applyReferencePrice,
+          ),
+        ],
       ],
     );
   }
@@ -1109,43 +1077,6 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
             ],
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildPresetChip({
-    required String label,
-    required double value,
-    required VoidCallback? onTap,
-  }) {
-    final enabled = value > 0 && onTap != null;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(4),
-        child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: enabled
-                ? const Color(0xFFE6E8EA)
-                : const Color(0xFFE6E8EA).withValues(alpha: 0.45),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            label,
-            maxLines: 1,
-            softWrap: false,
-            style: TextStyle(
-              color: enabled
-                  ? const Color(0xFF191C1E)
-                  : const Color(0xFF94A3B8),
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              height: 1.5,
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -1405,77 +1336,30 @@ class _ShopPriceChangePageState extends State<ShopPriceChangePage> {
             ),
             const SizedBox(height: 12),
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${'app.inventory.pricing_reference'.tr}:',
-                        style: const TextStyle(
-                          color: Color(0xFF757684),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        suggestionText,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        softWrap: false,
-                        style: const TextStyle(
-                          color: Color(0xFF444653),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          height: 1.5,
-                        ),
-                      ),
-                    ],
+                Text(
+                  '${'app.inventory.pricing_reference'.tr}:',
+                  style: const TextStyle(
+                    color: Color(0xFF757684),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    height: 1.5,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildPresetChip(
-                      label: _pricingPresetLabel(_PricingPreset.min),
-                      value: minPrice,
-                      onTap: minPrice > 0
-                          ? () => _applySuggestedPriceForIds(
-                              ids,
-                              leadId,
-                              minPrice,
-                            )
-                          : null,
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    suggestionText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                    style: const TextStyle(
+                      color: Color(0xFF444653),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      height: 1.5,
                     ),
-                    const SizedBox(width: 4),
-                    _buildPresetChip(
-                      label: _pricingPresetLabel(_PricingPreset.average),
-                      value: averagePrice,
-                      onTap: averagePrice > 0
-                          ? () => _applySuggestedPriceForIds(
-                              ids,
-                              leadId,
-                              averagePrice,
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 4),
-                    _buildPresetChip(
-                      label: _pricingPresetLabel(_PricingPreset.max),
-                      value: maxPrice,
-                      onTap: maxPrice > 0
-                          ? () => _applySuggestedPriceForIds(
-                              ids,
-                              leadId,
-                              maxPrice,
-                            )
-                          : null,
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
