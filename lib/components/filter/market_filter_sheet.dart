@@ -408,6 +408,7 @@ class MarketFilterSheet extends StatefulWidget {
 
 class _MarketFilterSheetState extends State<MarketFilterSheet> {
   static const String _weaponTypeDefaultName = 'unlimited';
+  static const double _weaponTypeTabScrollbarSafeTopInset = 10;
   static const List<double> _wearScaleMarkers = <double>[
     0.00,
     0.07,
@@ -1727,46 +1728,55 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                 child: SizedBox(height: 1),
               ),
             ),
-            Scrollbar(
-              controller: _weaponTypeTabScrollController,
-              thumbVisibility: true,
-              trackVisibility: false,
-              thickness: 3,
-              radius: const Radius.circular(999),
-              scrollbarOrientation: ScrollbarOrientation.top,
-              notificationPredicate: (notification) =>
-                  notification.metrics.axis == Axis.horizontal,
-              child: SingleChildScrollView(
-                key: _weaponTypeTabViewportKey,
+            Padding(
+              padding: const EdgeInsets.only(
+                top: _weaponTypeTabScrollbarSafeTopInset,
+              ),
+              child: Scrollbar(
                 controller: _weaponTypeTabScrollController,
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.only(top: 8, bottom: 8),
-                child: Row(
-                  children: [
-                    for (var index = 0; index < options.length; index += 1) ...[
-                      KeyedSubtree(
-                        key: _selectionAnchorKeys.putIfAbsent(
-                          'weapon-type-tab::${options[index].name}',
-                          GlobalKey.new,
-                        ),
-                        child: _buildWeaponTypeTab(
-                          label: options[index].label.tr,
-                          showBadge: _isWeaponTypeTabBadged(options[index]),
-                          selectedProgress: (1 - (page - index).abs()).clamp(
-                            0.0,
-                            1.0,
+                thumbVisibility: true,
+                trackVisibility: false,
+                thickness: 3,
+                radius: const Radius.circular(999),
+                scrollbarOrientation: ScrollbarOrientation.top,
+                notificationPredicate: (notification) =>
+                    notification.metrics.axis == Axis.horizontal,
+                child: SingleChildScrollView(
+                  key: _weaponTypeTabViewportKey,
+                  controller: _weaponTypeTabScrollController,
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.only(top: 8, bottom: 8),
+                  child: Row(
+                    children: [
+                      for (
+                        var index = 0;
+                        index < options.length;
+                        index += 1
+                      ) ...[
+                        KeyedSubtree(
+                          key: _selectionAnchorKeys.putIfAbsent(
+                            'weapon-type-tab::${options[index].name}',
+                            GlobalKey.new,
                           ),
-                          onTap: () => _selectWeaponTypeOption(
-                            group: group,
-                            options: options,
-                            index: index,
+                          child: _buildWeaponTypeTab(
+                            label: options[index].label.tr,
+                            showBadge: _isWeaponTypeTabBadged(options[index]),
+                            selectedProgress: (1 - (page - index).abs()).clamp(
+                              0.0,
+                              1.0,
+                            ),
+                            onTap: () => _selectWeaponTypeOption(
+                              group: group,
+                              options: options,
+                              index: index,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 22),
+                        const SizedBox(width: 22),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
