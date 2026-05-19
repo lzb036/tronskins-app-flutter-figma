@@ -1,235 +1,178 @@
-# FlutterPatcher 热更指南
+# FlutterPatcher 热更操作指南
 
-> 适用范围：TronSkins Android App。
-> 目标读者：产品、运营、测试、开发、项目负责人。
-> 当前状态：项目已接入 `flutter_patcher`，并作为当前 App 启动时实际使用的热更入口。
+适用范围：TronSkins Android App
 
-## 1. 这份文档要解决什么问题
+当前项目已经接入 `flutter_patcher`，并且当前代码链路已经支持：
 
-`flutter_patcher` 是一种 Android 自托管热更新方案。
+- App 启动自动检查热更
+- 请求热更接口时自动携带 `abi`
+- 按服务端返回的 `version` 校验基础包版本
+- 下载并安装 `libapp.so`
+- 安装成功后自动重启 App
 
-它更接近 uni-app 的热更思路：
+当前基础版本：
 
-```text
-手动生成热更包
-  -> 上传到自己的服务器或 CDN
-  -> 数据库记录补丁版本
-  -> App 启动时请求接口
-  -> 如果有新补丁，App 下载并安装
-  -> 用户下次冷启动后生效
+```yaml
+version: 1.0.3+1
 ```
 
-它不依赖 Shorebird 官方服务器，补丁下载地址完全由我们自己控制。
+也就是：
 
-## 2. 简单理解
+- `versionName = 1.0.3`
+- `versionCode = 1`
 
-Flutter Android release 包里的 Dart 代码最终会编译进 `libapp.so`。
+---
 
-`flutter_patcher` 的热更方式就是：
+## 1. 整套热更流程
 
-```text
-把新的 libapp.so 下载到本地
-  -> 校验文件
-  -> 保存成补丁
-  -> 下次冷启动时优先加载这个补丁
-```
+实际操作时，就按下面这套顺序走：
 
-所以它不是运行中立即生效，而是 **下载完成后，下次完全关闭并重新打开 App 生效**。
+1. 先准备一个 **release 基础包**
+2. 安装这个基础包到测试设备
+3. 只修改 Flutter Dart 代码
+4. 重新构建 release APK
+5. 从 release APK 中打出 `libapp.so`
+6. 按设备 ABI 上传对应的补丁文件到服务器
+7. 服务端接口返回这份补丁的地址和版本信息
+8. App 启动后自动检查、下载、安装补丁
+9. App 自动重启后，补丁生效
 
-## 3. 当前项目状态
-
-项目中现在保留了三套相关代码：
-
-| 方案 | 当前状态 | 说明 |
-|---|---|---|
-| `flutter_patcher` | 正在使用 | 当前 App 启动时实际运行的热更方案 |
-| Shorebird 官方热更 | 保留但未作为入口使用 | 代码仍在，后续可回退或对比 |
-| 多元降级热更模块 | 保留但未使用 | 未来用于 Shorebird 网关/CDN 调度 |
-
-当前实际入口：
-
-- `main.dart` 中调用 `FlutterPatcher.init()`
-- App 外层使用 `FlutterPatcherUpdateGate`
-- `ShorebirdUpdateGate` 文件仍保留，但不再挂到启动树上
-
-## 4. 当前已接入的客户端文件
-
-| 文件 | 作用 |
-|---|---|
-| `pubspec.yaml` | 已添加 `flutter_patcher: 0.1.2` |
-| `lib/main.dart` | 启动时初始化 `FlutterPatcher`，并使用新的热更入口 |
-| `lib/common/widgets/flutter_patcher_update_gate.dart` | 当前实际使用的热更检查、下载、安装、提示入口 |
-| `lib/common/widgets/shorebird_update_gate.dart` | Shorebird 旧入口，保留但未使用 |
-| `lib/common/hot_update/` | 多元降级热更备用模块，保留但未使用 |
-
-Android 配置也已按 `flutter_patcher` 要求调整：
-
-| 配置项 | 当前值 |
-|---|---|
-| `minSdk` | `24` |
-| `compileSdk` | `36` |
-| `ndkVersion` | `27.0.12077973` |
-| Java | `17` |
-| AGP | `8.11.1` |
-| Kotlin | `2.2.20` |
-| Gradle | `8.14` |
-
-## 5. App 当前热更流程
-
-用户打开 App 后：
-
-1. `FlutterPatcher.init()` 初始化补丁加载和崩溃保护
-2. `FlutterPatcherUpdateGate` 开始检查热更
-3. App 请求服务端检查接口
-4. 如果没有补丁，继续正常使用
-5. 如果有补丁，下载 `libapp.so`
-6. 校验成功后安装补丁
-7. App 提示用户完全关闭后重新打开
-8. 用户下次冷启动后，补丁生效
-
-当前客户端检查接口路径已经和旧 `uni-app` 项目保持一致：
+一句话理解：
 
 ```text
-api/public/app/checkupdate
+release 基础包
+  -> 修改 Dart 代码
+  -> 打出 libapp.so
+  -> 上传服务器
+  -> 接口返回补丁信息
+  -> App 下载并安装
+  -> 重启后生效
 ```
 
-完整地址基于当前 App 选择的服务器，例如：
+---
+
+## 2. 当前客户端怎么检查热更
+
+当前客户端请求：
 
 ```text
-https://www.etopmarket.com/api/public/app/checkupdate
+/api/public/app/version/v1/latest/by-app
 ```
 
-## 6. App 请求服务端时会带什么参数
+当前固定参数：
 
-Flutter 端现在沿用旧 App 的检查接口参数，通过 GET query 传给服务端：
+- `appKey=tronskins-flutter`
+- `platform=android`
 
-| 参数 | 说明 |
-|---|---|
-| `appkey` | 固定为 `tronskins-app` |
-| `versionName` | Android 版本名，例如 `1.0.1` |
-| `hotVersion` | Android versionCode，例如 `1` |
-| `platform` | 固定为 `android` |
+客户端还会自动携带：
+
+- `abi=FlutterPatcher.deviceAbi`
+
+常见 ABI：
+
+- 真机：`arm64-v8a`
+- 32 位老设备：`armeabi-v7a`
+- Android 模拟器：`x86_64`
 
 示例：
 
 ```text
-GET /api/public/app/checkupdate
-  ?appkey=tronskins-app
-  &versionName=1.0.1
-  &hotVersion=1
-  &platform=android
+GET /api/public/app/version/v1/latest/by-app?appKey=tronskins-flutter&platform=android&abi=x86_64
 ```
 
-这个接口和旧项目 `E:\tronskins\tronskins-app\components\update\VersionUpdate.nvue` 中的热更检查接口一致。
+---
 
-## 7. 服务端应该返回什么
+## 3. 服务端返回什么
 
-### 7.1 没有更新
-
-没有更新时，`forwardUrl` 不返回、返回空字符串，或返回 `null` 都可以。
+服务端至少要返回这些字段：
 
 ```json
 {
-  "forwardUrl": ""
-}
-```
-
-### 7.2 有更新
-
-有更新时，核心字段是 `forwardUrl`，这里返回 `libapp.so` 的下载地址。
-
-```json
-{
-  "forwardUrl": "https://patch.tronskins.com/android/1.0.1_1/arm64-v8a/1.0.1-hotfix.1/libapp.so",
-  "version": "1.0.1-hotfix.1",
-  "md5": "0123456789abcdef0123456789abcdef",
-  "targetVersionCode": 1,
-  "signature": ""
+  "code": 0,
+  "statusCode": 200,
+  "datas": {
+    "flag": true,
+    "appKey": "tronskins-flutter",
+    "platform": "Android",
+    "version": "1.0.3",
+    "hotPackage": "https://update.xxx.com/download/tronskins-app/2026051801.so",
+    "timestamp": "2026051801"
+  }
 }
 ```
 
 字段说明：
 
-| 字段 | 必填 | 说明 |
-|---|---|---|
-| `forwardUrl` | 是 | `libapp.so` 下载地址；为空表示没有更新 |
-| `version` | 建议 | 补丁版本号，用于判断是否重复安装 |
-| `md5` | 建议 | 补丁文件 MD5，小写 32 位 hex |
-| `targetVersionCode` | 建议 | 补丁对应的基础 APK versionCode |
-| `signature` | 可选 | Ed25519 签名；暂时不用可传空字符串 |
+- `flag`: 是否启用这次热更
+- `version`: 这份补丁对应的基础包版本
+- `hotPackage`: `.so` 下载地址
+- `timestamp`: 补丁版本号
 
-注意：
+---
 
-- `targetVersionCode` 必须对应用户已安装 APK 的 `versionCode`
-- `forwardUrl` 必须能被 App 直接访问
-- 生产环境必须使用 HTTPS
-- 这里的 `forwardUrl` 不再是旧 App 的 wgt 包，而是 `flutter_patcher` 使用的 `libapp.so`
-- 当前客户端如果收到 `.apk` 地址，会跳过处理，因为这个入口只负责 `libapp.so` 热更
+## 4. 热更生效的前提
 
-## 8. 服务端数据库建议
+下面这些条件必须同时满足：
 
-建议至少保存这些字段：
+1. 基础包必须是 **release APK**
+2. 服务端返回的 `version` 必须和用户当前安装包版本一致
+3. 服务端必须返回 `hotPackage`
+4. 服务端要按 `abi` 返回对应的 `.so`
+5. 基础 APK 和补丁 `.so` 不能是同一份代码内容
 
-| 字段 | 说明 |
-|---|---|
-| `appkey` | 固定为 `tronskins-app` |
-| `version_name` | Android 版本名，例如 `1.0.1` |
-| `hot_version` | Android versionCode，例如 `1` |
-| `patch_version` | 补丁版本，例如 `1.0.1-hotfix.1` |
-| `abi` | `arm64-v8a`、`armeabi-v7a`、`x86_64` |
-| `forward_url` | `libapp.so` 下载地址 |
-| `md5` | 文件 MD5 |
-| `signature` | 签名，可先为空 |
-| `status` | `staging`、`active`、`paused`、`rollback` |
-| `gray_percent` | 灰度比例 |
-| `wifi_only` | 是否仅 Wi-Fi 下载 |
-| `created_at` | 创建时间 |
+例如：
 
-只有 `active` 状态的补丁才允许下发。
+- 用户当前安装的是 `1.0.3+1`
+- 那服务端返回就必须是 `version: 1.0.3`
 
-## 9. 生成热更包流程
+如果版本不一致，客户端会直接跳过补丁。
 
-### 9.0 手动打包简版
+---
 
-以当前基础版本 `1.0.1+1` 为例：
+## 5. 哪些改动可以热更
 
-- 接口里的 `versionName` 是 `1.0.1`
-- 接口里的 `hotVersion` 是 `1`
-- 补丁版本可以命名为 `1.0.1-hotfix.1`
+可以热更：
 
-简化流程如下：
+- 页面逻辑
+- 业务判断
+- 文案
+- Widget 布局
+- 纯 Dart 工具类
 
-1. 只修改 Flutter Dart 层代码。
-2. 不修改 Android 原生代码、插件、assets、`pubspec.yaml` 版本号。
-3. 重新构建 release APK。
-4. 从 release APK 中打出 `libapp.so` 热更包。
-5. 上传 `libapp.so` 到服务器或 CDN。
-6. 服务端接口返回 `forwardUrl`，地址指向 `libapp.so`，建议同时返回 `version`、`md5` 和 `targetVersionCode`。
-7. 用户打开 App 后会自动检查、下载、安装补丁。
-8. 用户完全关闭并重新打开 App 后，热更生效。
+不要走热更：
 
-常用命令：
+- Android 原生代码
+- 原生插件
+- AndroidManifest
+- assets
+- 图片、字体、JSON
+- `pubspec.yaml` 资源配置
+
+---
+
+## 6. 先打 release 基础包
+
+如果只按当前 `pubspec.yaml` 版本走，直接执行：
 
 ```powershell
-flutter pub get
-
 flutter build apk --release `
-  --build-name=1.0.1 `
-  --build-number=1
-
-dart run flutter_patcher:pack `
-  --apk build/app/outputs/flutter-apk/app-release.apk `
-  --version 1.0.1-hotfix.1 `
-  --target-version-code 1 `
-  --abi arm64-v8a `
-  --out dist/flutter_patcher/android/1.0.1_1/arm64-v8a/1.0.1-hotfix.1
-  
-  版本变更的话：
-  
-  flutter build apk --release `
   --build-name=1.0.3 `
   --build-number=1
+```
 
+更省事的做法是直接依赖 `pubspec.yaml`，不手写版本号：
+
+```powershell
+flutter build apk --release
+```
+
+---
+
+## 7. 打热更包
+
+基础命令：
+
+```powershell
 dart run flutter_patcher:pack `
   --apk build/app/outputs/flutter-apk/app-release.apk `
   --version 1.0.3-hotfix.1 `
@@ -238,67 +181,40 @@ dart run flutter_patcher:pack `
   --out dist/flutter_patcher/android/1.0.3_1/arm64-v8a/1.0.3-hotfix.1
 ```
 
-### 9.0.1 ABI 选择说明
+这里最关键的参数：
 
-`flutter_patcher` 下发的是 Android 原生 `libapp.so`，**不同 ABI 的补丁不能混用**。
+- `--version`: 补丁版本名
+- `--target-version-code`: 必须等于用户当前安装包的 `versionCode`
+- `--abi`: 当前这份补丁对应的设备架构
+- `--out`: 输出目录
 
-常见场景：
+---
 
-- Android 真机通常使用 `arm64-v8a`
-- 32 位老设备可能使用 `armeabi-v7a`
-- Android 模拟器通常使用 `x86_64`
+## 8. 多种 ABI 怎么打
 
-所以如果出现下面这种情况：
-
-- 补丁下载成功
-- 日志显示安装成功
-- 也触发了冷启动
-- 但界面修改位置没有变化
-
-要优先检查 **当前设备 ABI** 和 **服务端下发的 `.so` ABI** 是否一致。
-
-例如：
-
-- `arm64-v8a` 的补丁不能拿给 `x86_64` 模拟器使用
-- `x86_64` 的补丁也不能直接给真机使用
-
-当前客户端可以通过 `FlutterPatcher.deviceAbi` 获取设备 ABI，并建议把这个值带到热更检查接口中，由服务端返回匹配的补丁地址。
-
-生成后的核心文件：（**正常到这一步，然后直接把libapp.so文件也就是热更包分发了就行**）
-
-```text
-dist/flutter_patcher/android/1.0.1_1/arm64-v8a/1.0.1-hotfix.1/libapp.so
-```
-
-计算 MD5：
-
-```powershell
-(Get-FileHash .\dist\flutter_patcher\android\1.0.1_1\arm64-v8a\1.0.1-hotfix.1\libapp.so -Algorithm MD5).Hash.ToLower()
-```
-
-如果需要兼容 32 位设备，再额外打 `armeabi-v7a`：
+### 8.1 真机常用 `arm64-v8a`
 
 ```powershell
 dart run flutter_patcher:pack `
   --apk build/app/outputs/flutter-apk/app-release.apk `
-  --version 1.0.1-hotfix.1 `
+  --version 1.0.3-hotfix.1 `
+  --target-version-code 1 `
+  --abi arm64-v8a `
+  --out dist/flutter_patcher/android/1.0.3_1/arm64-v8a/1.0.3-hotfix.1
+```
+
+### 8.2 32 位设备用 `armeabi-v7a`
+
+```powershell
+dart run flutter_patcher:pack `
+  --apk build/app/outputs/flutter-apk/app-release.apk `
+  --version 1.0.3-hotfix.1 `
   --target-version-code 1 `
   --abi armeabi-v7a `
-  --out dist/flutter_patcher/android/1.0.1_1/armeabi-v7a/1.0.1-hotfix.1
+  --out dist/flutter_patcher/android/1.0.3_1/armeabi-v7a/1.0.3-hotfix.1
 ```
 
-如果需要给 Android 模拟器测试，再额外打 `x86_64`：
-
-```powershell
-dart run flutter_patcher:pack `
-  --apk build/app/outputs/flutter-apk/app-release.apk `
-  --version 1.0.1-hotfix.1 `
-  --target-version-code 1 `
-  --abi x86_64 `
-  --out dist/flutter_patcher/android/1.0.1_1/x86_64/1.0.1-hotfix.1
-```
-
-如果当前基础版本已经变成 `1.0.3+1`，对应命令就是：
+### 8.3 模拟器测试用 `x86_64`
 
 ```powershell
 dart run flutter_patcher:pack `
@@ -309,370 +225,85 @@ dart run flutter_patcher:pack `
   --out dist/flutter_patcher/android/1.0.3_1/x86_64/1.0.3-hotfix.1
 ```
 
-最关键的是：`--target-version-code` 必须等于用户当前安装包的 `versionCode`。
+---
 
-### 9.1 正常发正式 APK
+## 9. 上传时怎么区分 ABI
 
-先构建正常发布包：
-
-```powershell
-flutter build apk --release
-```
-
-当前基础版本来自 `pubspec.yaml`：
-
-```yaml
-version: 1.0.1+1
-```
-
-其中 `+1` 就是 Android `versionCode = 1`。
-
-### 9.2 修改 Dart 代码
-
-只能修改 Flutter Dart 层代码，例如：
-
-- 页面逻辑
-- 业务判断
-- 文案
-- 纯 Dart 工具类
-- Widget 布局
-
-不要在热更中修改：
-
-- Android 原生代码
-- AndroidManifest
-- 图片、字体、JSON 等 assets
-- 原生插件
-- Flutter Engine
-- `pubspec.yaml` 中的资源配置
-
-### 9.3 重新构建 release APK
-
-修改 Dart 后重新构建：
-
-```powershell
-flutter build apk --release
-```
-
-### 9.4 生成补丁文件
-
-执行：
-
-```powershell
-dart run flutter_patcher:pack `
-  --apk build/app/outputs/flutter-apk/app-release.apk `
-  --version 1.0.1-hotfix.1 `
-  --target-version-code 1
-```
-
-说明：
-
-- `--version` 是补丁版本号
-- `--target-version-code` 是用户当前已安装 APK 的 versionCode
-- 这里的 `1` 对应 `pubspec.yaml` 里的 `1.0.1+1`
-
-输出目录：
+建议每种 ABI 单独保存：
 
 ```text
-dist/
-  libapp.so
-  manifest.json
+dist/flutter_patcher/android/1.0.3_1/arm64-v8a/1.0.3-hotfix.1/libapp.so
+dist/flutter_patcher/android/1.0.3_1/armeabi-v7a/1.0.3-hotfix.1/libapp.so
+dist/flutter_patcher/android/1.0.3_1/x86_64/1.0.3-hotfix.1/libapp.so
 ```
 
-## 10. 上传补丁流程
+服务端应根据客户端传来的 `abi` 返回对应地址。
 
-生成补丁后：
+例如：
 
-1. 上传 `dist/libapp.so` 到服务器或 CDN
-2. 保存 `dist/manifest.json` 备用
-3. 计算并记录 `libapp.so` 的 MD5
-4. 在数据库新增补丁记录
-5. 设置状态为 `staging`
-6. 内部测试通过后改成 `active`
+- `abi=arm64-v8a` -> 返回真机补丁
+- `abi=x86_64` -> 返回模拟器补丁
 
-推荐 CDN 路径：
+不同 ABI 的 `.so` 不能混用。
 
-```text
-/flutter-patcher/android/{versionName}_{hotVersion}/{abi}/{patch_version}/libapp.so
-```
+---
 
-示例：
+## 10. 最常见的失败原因
 
-```text
-https://patch.tronskins.com/flutter-patcher/android/1.0.1_1/arm64-v8a/1.0.1-hotfix.1/libapp.so
-```
+### 情况 1：下载成功，但界面没变化
 
-接口下发时，把这个地址放到 `forwardUrl`：
+优先检查：
 
-```json
-{
-  "forwardUrl": "https://patch.tronskins.com/flutter-patcher/android/1.0.1_1/arm64-v8a/1.0.1-hotfix.1/libapp.so",
-  "version": "1.0.1-hotfix.1",
-  "md5": "这里填 libapp.so 的 md5",
-  "targetVersionCode": 1
-}
-```
+- 基础包和补丁是不是同一份代码
+- 服务端返回的 `.so` ABI 对不对
+- 当前设备 ABI 是不是和补丁 ABI 一致
 
-## 10.1 本地模拟热更
+### 情况 2：接口返回了补丁，但客户端跳过
 
-因为正式接口还没开发完，项目里额外保留了一套本地模拟入口。
+优先检查：
 
-这个入口默认关闭，不影响正式 `flutter_patcher`、Shorebird 和多元降级热更。只有本地打包时显式加开关，才会启用。
+- 服务端 `version` 和本地基础包版本是否一致
 
-新增文件：
+### 情况 3：接口返回成功，但没有开始下载
 
-| 文件 | 作用 |
-|---|---|
-| `lib/common/widgets/app_hot_update_gate.dart` | 热更入口选择器，默认走正式 `FlutterPatcherUpdateGate` |
-| `lib/common/widgets/local_flutter_patcher_update_gate.dart` | 本地模拟热更入口，只在本地开关打开时使用 |
+优先检查：
 
-### 10.1.1 本地模拟思路
+- 有没有返回 `hotPackage`
+- `flag` 是否为 `true`
 
-```text
-本地启动一个静态文件服务
-  -> 放一个 patch.json
-  -> patch.json 里写 forwardUrl
-  -> forwardUrl 指向本地 libapp.so
-  -> App 下载并安装
-  -> 冷启动后验证热更是否生效
-```
+---
 
-本地 `patch.json` 示例：
+## 11. 推荐测试方式
 
-```json
-{
-  "forwardUrl": "libapp.so",
-  "version": "1.0.1-local.1",
-  "md5": "",
-  "targetVersionCode": 1
-}
-```
+建议这样测试：
 
-说明：
+1. 先用旧代码打 release 基础包
+2. 安装后确认界面是旧效果
+3. 再用新代码打 `.so`
+4. 上传到服务器
+5. 服务端返回新补丁
+6. 启动 App，等它下载安装并自动重启
+7. 重启后确认界面变成新效果
 
-- `forwardUrl` 可以写完整地址，也可以像上面一样写相对路径。
-- `version` 每次测试新补丁建议递增。
-- `md5` 可以先留空，留空时跳过 MD5 校验。
-- `targetVersionCode` 要等于当前基础 APK 的 versionCode。
+不要这样测：
 
-### 10.1.2 启动本地文件服务
+1. 先用新代码打 `.so`
+2. 再用同一份新代码打基础 APK
 
-把 `patch.json` 和 `libapp.so` 放在同一个目录，然后运行：
+这样即使热更成功，界面也看不出变化。
 
-```powershell
-python -m http.server 8787
-```
+---
 
-如果是 Android 模拟器访问电脑本地服务，地址用：
+## 12. 最终操作要点
 
-```text
-http://10.0.2.2:8787/patch.json
-```
+真正要记住的就这几条：
 
-项目已在 Android 网络安全配置里放行本地测试地址：
+1. 基础包一定要是 **release**
+2. 服务端 `version` 一定要和基础包一致
+3. 服务端一定要返回 `hotPackage`
+4. 一定要按设备 ABI 打对应补丁
+5. 真机通常打 `arm64-v8a`
+6. 模拟器通常打 `x86_64`
+7. 补丁和基础包代码必须有真实差异
 
-```text
-10.0.2.2
-127.0.0.1
-localhost
-```
-
-所以本地热更测试包可以访问这些 HTTP 地址。
-
-如果是真机访问电脑本地服务，地址用电脑局域网 IP，例如：
-
-```text
-http://192.168.1.10:8787/patch.json
-```
-
-### 10.1.3 打本地测试包
-
-本地模拟入口通过 `dart-define` 开启：
-
-```powershell
-flutter build apk --release `
-  --build-name=1.0.1 `
-  --build-number=1 `
-  --dart-define=TRONSKINS_LOCAL_PATCHER_ENABLED=true `
-  --dart-define=TRONSKINS_LOCAL_PATCHER_MANIFEST_URL=http://10.0.2.2:8787/patch.json
-```
-
-也可以直接运行到设备：
-
-```powershell
-flutter run --release `
-  --dart-define=TRONSKINS_LOCAL_PATCHER_ENABLED=true `
-  --dart-define=TRONSKINS_LOCAL_PATCHER_MANIFEST_URL=http://10.0.2.2:8787/patch.json
-```
-
-### 10.1.4 本地完整测试顺序
-
-1. 先安装一个基础 APK，里面打开本地热更开关。
-2. 修改 Dart 代码，例如改一个页面文案。
-3. 保持 `versionName` 和 `versionCode` 不变，重新构建 release APK。
-4. 用 `flutter_patcher:pack` 打出 `libapp.so`。
-5. 把 `libapp.so` 和 `patch.json` 放到本地静态服务目录。
-6. 打开基础 APK，它会读取本地 `patch.json` 并下载 `libapp.so`。
-7. 安装完成后，完全关闭 App 再重新打开。
-8. 如果修改后的 Dart 代码生效，就说明本地热更链路可行。
-
-### 10.1.5 可用的本地开关
-
-| 参数 | 说明 |
-|---|---|
-| `TRONSKINS_LOCAL_PATCHER_ENABLED` | 是否启用本地模拟热更 |
-| `TRONSKINS_LOCAL_PATCHER_MANIFEST_URL` | 本地 `patch.json` 地址 |
-| `TRONSKINS_LOCAL_PATCHER_URL` | 不使用 `patch.json` 时，直接填写 `libapp.so` 地址 |
-| `TRONSKINS_LOCAL_PATCHER_VERSION` | 直接填写 `libapp.so` 地址时使用的补丁版本 |
-| `TRONSKINS_LOCAL_PATCHER_MD5` | 可选，补丁 MD5 |
-| `TRONSKINS_LOCAL_PATCHER_TARGET_VERSION_CODE` | 可选，目标 versionCode |
-| `TRONSKINS_LOCAL_PATCHER_SIGNATURE` | 可选，签名 |
-
-正常发版不要带这些本地开关。
-
-## 11. 灰度发布建议
-
-不要直接全量。
-
-建议节奏：
-
-```text
-内部测试
-  -> 1%
-  -> 10%
-  -> 50%
-  -> 100%
-```
-
-每一步观察：
-
-- 热更检查成功率
-- 补丁下载成功率
-- App 崩溃率
-- 用户反馈
-- 启动失败或自动回滚日志
-
-## 12. 回滚和暂停
-
-如果补丁有问题：
-
-1. 服务端把补丁状态改成 `paused`
-2. 检查接口不返回 `forwardUrl`，或返回空字符串
-3. 已下载但未重启的用户不会再重复下载
-4. 已经安装且出问题的补丁，`flutter_patcher` 会尝试自动回滚并加入本地黑名单
-
-手动回滚能力也存在：
-
-```dart
-await FlutterPatcher.rollback();
-```
-
-当前项目暂未暴露手动回滚按钮，主要依赖服务端暂停和插件自身的崩溃保护。
-
-## 13. 本地验证命令
-
-建议先设置国内镜像：
-
-```powershell
-$env:PUB_HOSTED_URL = "https://pub.flutter-io.cn"
-$env:FLUTTER_STORAGE_BASE_URL = "https://storage.flutter-io.cn"
-```
-
-拉依赖：
-
-```powershell
-flutter pub get
-```
-
-验证 Dart：
-
-```powershell
-flutter analyze lib/main.dart lib/common/widgets/flutter_patcher_update_gate.dart lib/common/hot_update
-```
-
-验证插件 Kotlin 编译：
-
-```powershell
-cd android
-.\gradlew.bat :flutter_patcher:compileDebugKotlin --stacktrace --no-daemon --console=plain
-cd ..
-```
-
-构建 APK：
-
-```powershell
-flutter build apk --debug
-```
-
-或：
-
-```powershell
-flutter build apk --release
-```
-
-如果构建时访问 `storage.googleapis.com` 失败，先确认已经设置：
-
-```powershell
-$env:FLUTTER_STORAGE_BASE_URL = "https://storage.flutter-io.cn"
-```
-
-## 14. 真机验收标准
-
-正式使用前，至少验证：
-
-- 首次安装 App 能正常启动
-- App 会请求 `api/public/app/checkupdate`
-- 请求参数包含 `appkey/versionName/hotVersion/platform`
-- 服务端不返回 `forwardUrl` 时 App 正常使用
-- 服务端返回 `forwardUrl` 时 App 能下载 `libapp.so`
-- 下载完成后出现重启提示
-- 完全关闭并重新打开 App 后补丁生效
-- 错误 MD5 时补丁不会被安装
-- 下发错误 `targetVersionCode` 时补丁不会生效
-- 服务端暂停补丁后，新用户不会继续下载
-
-## 15. 风险说明
-
-| 风险 | 说明 | 应对方式 |
-|---|---|---|
-| 只支持 Android | iOS 不能使用这种方式 | iOS 仍走正常发版 |
-| 只能更新 Dart 代码 | 原生、assets、插件不能热更 | 超出范围必须发新版 |
-| 需要冷启动生效 | 不是运行中立即替换 | 下载完成后提示用户重启 |
-| 补丁和 APK 强绑定 | versionCode 不匹配会失效 | 服务端严格按 versionCode 下发 |
-| 多 ABI 管理复杂 | 不同 ABI 需要对应补丁 | 服务端按 ABI 下发 |
-| 渠道合规风险 | 某些应用市场限制下载可执行代码 | 上线前确认渠道规则 |
-| 插件仍是 beta | 需要充分真机测试 | 先小流量灰度 |
-
-## 16. 和其他热更方案的关系
-
-| 方案 | 当前状态 | 作用 |
-|---|---|---|
-| `flutter_patcher` | 当前使用 | 自托管 Android 热更 |
-| Shorebird | 保留 | 后续可作为备用方案 |
-| 多元降级热更 | 保留 | 后续可做 Shorebird CDN 调度 |
-
-当前不要删除 Shorebird 和多元降级代码，先保留，方便后续回退或对比。
-
-## 17. 参考资料
-
-- `flutter_patcher` pub.dev：https://pub.dev/packages/flutter_patcher
-- `flutter_patcher` API 文档：https://pub.dev/documentation/flutter_patcher/latest/topics/API-reference-topic.html
-- `flutter_patcher` 架构说明：https://pub.dev/documentation/flutter_patcher/latest/topics/Architecture-topic.html
-
-## 18. 最终建议
-
-短期目标：
-
-1. 服务端沿用 `api/public/app/checkupdate`
-2. CDN 先支持手动上传 `libapp.so`
-3. 数据库先支持补丁开关和灰度比例
-4. 用 Android 真机跑通一条完整热更链路
-
-完整链路跑通后，再补：
-
-- 后台管理页面
-- 一键暂停
-- 自动计算 MD5
-- 自动上传 CDN
-- 自动灰度
-- 崩溃率监控
+如果这几条都满足，当前项目就可以正常走热更。

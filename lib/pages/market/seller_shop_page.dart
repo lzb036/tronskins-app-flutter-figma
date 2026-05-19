@@ -817,7 +817,7 @@ class _SellerShopPageState extends State<SellerShopPage>
               child: _buildSellerCard(),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           _buildControlSection(),
           Expanded(
             child: Container(
