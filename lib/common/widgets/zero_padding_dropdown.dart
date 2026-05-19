@@ -73,6 +73,7 @@ class ZeroPaddingDropdown<T extends Object> extends StatelessWidget {
   }
 
   Future<void> _showMenu(BuildContext context) async {
+    FocusManager.instance.primaryFocus?.unfocus();
     final renderObject = context.findRenderObject();
     final overlayObject = Overlay.of(context).context.findRenderObject();
     if (renderObject is! RenderBox || overlayObject is! RenderBox) {

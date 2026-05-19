@@ -4,6 +4,14 @@ import 'package:dio/dio.dart';
 import 'package:tronskins_app/common/logging/app_logger.dart';
 
 class LoggingInterceptor extends Interceptor {
+  static const String _requestStartedAtKey = 'request_started_at_ms';
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    options.extra[_requestStartedAtKey] = DateTime.now().millisecondsSinceEpoch;
+    handler.next(options);
+  }
+
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     final requestTag = _requestTag(response.requestOptions);
@@ -68,7 +76,23 @@ class LoggingInterceptor extends Interceptor {
   }
 
   String _requestTag(RequestOptions options) {
-    return '${options.method.toUpperCase()} ${options.uri}';
+    final label = options.extra['request_label']?.toString().trim();
+    final durationMs = _requestDurationMs(options);
+    final labelPrefix = label != null && label.isNotEmpty ? '[$label] ' : '';
+    final durationSuffix = durationMs == null ? '' : ' (${durationMs}ms)';
+    return '$labelPrefix${options.method.toUpperCase()} ${options.uri}'
+        '$durationSuffix';
+  }
+
+  int? _requestDurationMs(RequestOptions options) {
+    final startedAt = options.extra[_requestStartedAtKey];
+    final startedMs = startedAt is int
+        ? startedAt
+        : int.tryParse(startedAt?.toString() ?? '');
+    if (startedMs == null) {
+      return null;
+    }
+    return DateTime.now().millisecondsSinceEpoch - startedMs;
   }
 
   String _stringify(dynamic data) {

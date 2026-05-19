@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 import 'package:tronskins_app/api/loginServer.dart';
 import 'package:tronskins_app/api/steam.dart';
 import 'package:tronskins_app/api/model/entity/user/user_steam_config_entity.dart';
 import 'package:tronskins_app/common/http/model/base_response.dart';
+import 'package:tronskins_app/common/logging/app_logger.dart';
+import 'package:tronskins_app/common/logging/steam_verify_log_file.dart';
 import 'package:tronskins_app/common/utils/steam_cookie_helper.dart';
 
 class SteamController extends GetxController {
@@ -81,21 +85,79 @@ class SteamController extends GetxController {
   }
 
   Future<void> refreshTradeStatus() async {
+    final startedAt = DateTime.now();
     try {
       tradeStatus.value = null;
       final res = await _steamApi.steamTradingState();
       tradeStatus.value = res.success ? (res.datas ?? false) : false;
+      AppLogger.info(
+        'STEAM_VERIFY',
+        'step=refresh_trade_status success=${res.success} '
+            'tradeStatus=${tradeStatus.value} code=${res.code} '
+            'message="${res.message}" datas="${res.datas}" '
+            'durationMs=${DateTime.now().difference(startedAt).inMilliseconds}',
+        scope: 'STATUS',
+      );
+      unawaited(
+        SteamVerifyLogFile.appendLine(
+          '[STATUS] step=refresh_trade_status success=${res.success} '
+          'tradeStatus=${tradeStatus.value} code=${res.code} '
+          'message="${res.message}" datas="${res.datas}" '
+          'durationMs=${DateTime.now().difference(startedAt).inMilliseconds}',
+        ),
+      );
     } catch (_) {
       tradeStatus.value = false;
+      AppLogger.errorLog(
+        'STEAM_VERIFY',
+        'step=refresh_trade_status threw '
+            'durationMs=${DateTime.now().difference(startedAt).inMilliseconds}',
+        scope: 'STATUS',
+      );
+      unawaited(
+        SteamVerifyLogFile.appendLine(
+          '[STATUS] step=refresh_trade_status threw '
+          'durationMs=${DateTime.now().difference(startedAt).inMilliseconds}',
+        ),
+      );
     }
   }
 
   Future<void> checkSession() async {
+    final startedAt = DateTime.now();
     try {
       final res = await _steamApi.steamOnlineState();
       sessionValid.value = res.success ? (res.datas ?? false) : false;
+      AppLogger.info(
+        'STEAM_VERIFY',
+        'step=check_session success=${res.success} '
+            'sessionValid=${sessionValid.value} code=${res.code} '
+            'message="${res.message}" datas="${res.datas}" '
+            'durationMs=${DateTime.now().difference(startedAt).inMilliseconds}',
+        scope: 'STATUS',
+      );
+      unawaited(
+        SteamVerifyLogFile.appendLine(
+          '[STATUS] step=check_session success=${res.success} '
+          'sessionValid=${sessionValid.value} code=${res.code} '
+          'message="${res.message}" datas="${res.datas}" '
+          'durationMs=${DateTime.now().difference(startedAt).inMilliseconds}',
+        ),
+      );
     } catch (_) {
       sessionValid.value = false;
+      AppLogger.errorLog(
+        'STEAM_VERIFY',
+        'step=check_session threw '
+            'durationMs=${DateTime.now().difference(startedAt).inMilliseconds}',
+        scope: 'STATUS',
+      );
+      unawaited(
+        SteamVerifyLogFile.appendLine(
+          '[STATUS] step=check_session threw '
+          'durationMs=${DateTime.now().difference(startedAt).inMilliseconds}',
+        ),
+      );
     }
   }
 

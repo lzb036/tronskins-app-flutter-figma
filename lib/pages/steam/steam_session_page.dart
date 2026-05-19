@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:tronskins_app/api/steam.dart';
 import 'package:tronskins_app/common/http/model/base_response.dart';
 import 'package:tronskins_app/common/logging/app_logger.dart';
+import 'package:tronskins_app/common/logging/steam_verify_log_file.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/utils/steam_webview_english.dart';
 import 'package:tronskins_app/controllers/auth/steam_controller.dart';
@@ -41,6 +42,7 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
   bool _hasTriedFreshStart = false;
 
   late final String _boundSteamId;
+  late final String _verifyAttemptId;
 
   String get _sessionUrl => 'https://steamcommunity.com/login/home/?l=english';
 
@@ -48,6 +50,9 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
   void initState() {
     super.initState();
     _boundSteamId = _resolveBoundSteamId();
+    _verifyAttemptId = DateTime.now().millisecondsSinceEpoch.toString();
+    unawaited(SteamVerifyLogFile.reset());
+    _logStep('session_init', 'boundSteamId=${_maskSteamId(_boundSteamId)}');
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..addJavaScriptChannel(
@@ -210,6 +215,7 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
   }
 
   Future<void> _startFreshSession() async {
+    _logStep('fresh_session_start', 'url=$_sessionUrl');
     _titlePoller?.cancel();
     _titlePoller = null;
 
@@ -239,7 +245,9 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
 
     try {
       await SteamWebViewEnglish.load(_controller, _cookieManager, _sessionUrl);
+      _logStep('fresh_session_loaded', 'url=$_sessionUrl');
     } catch (_) {
+      _logStep('fresh_session_load_failed', 'url=$_sessionUrl');
       if (mounted) {
         setState(() => _isPageLoading = false);
       }
@@ -254,6 +262,7 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
     try {
       await _controller.runJavaScript(steamSessionInjectionScript);
       _observerInjected = true;
+      _logStep('observer_injected', 'success=true');
     } catch (_) {}
   }
 
@@ -262,8 +271,10 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
       return;
     }
 
+    _logStep('bridge_message_received', 'length=${rawMessage.trim().length}');
     final payload = _extractTokenPayloadFromBridge(rawMessage);
     if (payload == null) {
+      _logStep('bridge_message_ignored', 'reason=payload_null');
       return;
     }
 
@@ -286,6 +297,11 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
       if (payload == null) {
         return;
       }
+      _logStep(
+        'title_token_detected',
+        'tokenLength=${payload['refreshToken']?.length ?? 0} '
+            'loginSteamId=${_maskSteamId(payload['steamId'])}',
+      );
 
       await _saveToken(
         refreshToken: payload['refreshToken'] ?? '',
@@ -351,13 +367,20 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
       return;
     }
 
+    final startedAt = DateTime.now();
     if (_boundSteamId.isEmpty) {
       _hasPendingTokenPayload = false;
+      _logStep('save_token_failed', 'reason=bound_steam_empty');
       _returnFailure('app.steam.message.unbind'.tr);
       return;
     }
 
     if (loginSteamId.isNotEmpty && loginSteamId != _boundSteamId) {
+      _logStep(
+        'save_token_failed',
+        'reason=steam_id_mismatch bound=${_maskSteamId(_boundSteamId)} '
+            'login=${_maskSteamId(loginSteamId)}',
+      );
       _hasHandledToken = true;
       _titlePoller?.cancel();
       _titlePoller = null;
@@ -365,6 +388,8 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
         'showSteamIdNotMatch': true,
         'steamId': _boundSteamId,
         'loginSteamId': loginSteamId,
+        'attemptId': _verifyAttemptId,
+        'failedStep': 'steam_id_mismatch',
       });
       return;
     }
@@ -376,6 +401,12 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
     _logMaskedRefreshToken(
       refreshToken: refreshToken,
       loginSteamId: loginSteamId,
+    );
+    _logStep(
+      'save_token_start',
+      'tokenLength=${refreshToken.trim().length} '
+          'boundSteamId=${_maskSteamId(_boundSteamId)} '
+          'loginSteamId=${_maskSteamId(loginSteamId)}',
     );
 
     try {
@@ -390,6 +421,12 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
       if (!result.success) {
         _hasHandledToken = false;
         _hasPendingTokenPayload = false;
+        _logStep(
+          'save_token_failed',
+          'reason=backend_rejected code=${result.code} '
+              'message="${result.message}" datas="${result.datas}" '
+              'durationMs=${DateTime.now().difference(startedAt).inMilliseconds}',
+        );
         _returnFailure(_resolveTokenFreshFailureMessage(result));
         return;
       }
@@ -405,6 +442,11 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
 
       _titlePoller?.cancel();
       _titlePoller = null;
+      _logStep(
+        'save_token_success',
+        'durationMs=${DateTime.now().difference(startedAt).inMilliseconds} '
+            'serverData="${result.datas}"',
+      );
       Navigator.of(context).pop({
         'verified': true,
         'sessionValid': true,
@@ -412,11 +454,25 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
         'loginSteamId': loginSteamId.isNotEmpty ? loginSteamId : _boundSteamId,
         'refreshToken': refreshToken,
         'serverData': result.datas,
+        'attemptId': _verifyAttemptId,
       });
       AppSnackbar.success('app.steam.message.verify_success'.tr);
-    } catch (_) {
+    } catch (error, stackTrace) {
       _hasHandledToken = false;
       _hasPendingTokenPayload = false;
+      _logStep(
+        'save_token_exception',
+        'errorType=${error.runtimeType} '
+            'durationMs=${DateTime.now().difference(startedAt).inMilliseconds}',
+      );
+      AppLogger.errorLog(
+        'STEAM_VERIFY',
+        'attempt=$_verifyAttemptId step=save_token_exception '
+            'boundSteamId=${_maskSteamId(_boundSteamId)}',
+        scope: 'FLOW',
+        error: error,
+        stackTrace: stackTrace,
+      );
       _returnFailure('app.steam.message.verify_failed'.tr);
     } finally {
       if (mounted) {
@@ -471,9 +527,30 @@ class _SteamSessionPageState extends State<SteamSessionPage> {
     final resolvedMessage = message.trim().isNotEmpty
         ? message
         : 'app.steam.message.verify_failed'.tr;
-    Navigator.of(
-      context,
-    ).pop({'verificationFailed': true, 'message': resolvedMessage});
+    _logStep('return_failure', 'message="$resolvedMessage"');
+    Navigator.of(context).pop({
+      'verificationFailed': true,
+      'message': resolvedMessage,
+      'attemptId': _verifyAttemptId,
+      'failedStep': 'token_fresh',
+    });
+  }
+
+  void _logStep(String step, String message) {
+    final line = 'attempt=$_verifyAttemptId step=$step $message';
+    AppLogger.info('STEAM_VERIFY', line, scope: 'FLOW');
+    unawaited(SteamVerifyLogFile.appendLine('[FLOW] $line'));
+  }
+
+  String _maskSteamId(String? steamId) {
+    final raw = steamId?.trim() ?? '';
+    if (raw.isEmpty) {
+      return '-';
+    }
+    if (raw.length <= 6) {
+      return raw;
+    }
+    return '${raw.substring(0, 3)}***${raw.substring(raw.length - 3)}';
   }
 
   @override

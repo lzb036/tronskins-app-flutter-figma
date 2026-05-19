@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:tronskins_app/common/logging/app_logger.dart';
+import 'package:tronskins_app/common/logging/steam_verify_log_file.dart';
 import 'package:tronskins_app/common/utils/app_snackbar.dart';
 import 'package:tronskins_app/common/widgets/back_to_top_overlay.dart';
 import 'package:tronskins_app/common/widgets/figma_confirmation_dialog.dart';
@@ -130,6 +134,17 @@ class _SteamSettingPageState extends State<SteamSettingPage> {
         await controller.loadSteamConfig();
         if (!mounted) {
           return;
+        }
+        final attemptId = resultMap['attemptId']?.toString().trim();
+        final failedStep = resultMap['failedStep']?.toString().trim();
+        if ((attemptId?.isNotEmpty ?? false) ||
+            (failedStep?.isNotEmpty ?? false)) {
+          final line =
+              'attempt=${attemptId?.isNotEmpty == true ? attemptId : "-"} '
+              'page_result_failedStep='
+              '${failedStep?.isNotEmpty == true ? failedStep : "-"}';
+          AppLogger.info('STEAM_VERIFY', line, scope: 'FLOW');
+          unawaited(SteamVerifyLogFile.appendLine('[FLOW] $line'));
         }
         final message = resultMap['message']?.toString().trim();
         AppSnackbar.error(

@@ -511,7 +511,6 @@ class _ProductBuyingPageState extends State<ProductBuyingPage> {
                                     ),
                                     onSubmitted: (_) {
                                       normalizeWearTextFields();
-                                      FocusScope.of(context).nextFocus();
                                     },
                                     decoration:
                                         FilterSheetStyle.inputDecoration(

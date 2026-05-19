@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:tronskins_app/common/http/http_helper.dart';
 import 'package:tronskins_app/common/http/model/base_response.dart';
 
@@ -13,7 +14,13 @@ class ApiSteamServer {
   }
 
   Future<BaseHttpResponse<bool>> steamOnlineState() async {
-    final response = await http.get('api/app/steam/online/state');
+    final response = await http.request(
+      'api/app/steam/online/state',
+      method: 'GET',
+      options: Options(
+        extra: <String, dynamic>{'request_label': 'steam_online_state'},
+      ),
+    );
     return BaseHttpResponse.fromJson(
       response.data as Map<String, dynamic>,
       (json) => _asBool(json),
@@ -21,7 +28,13 @@ class ApiSteamServer {
   }
 
   Future<BaseHttpResponse<bool>> steamTradingState() async {
-    final response = await http.get('api/app/steam/trade_status/state');
+    final response = await http.request(
+      'api/app/steam/trade_status/state',
+      method: 'GET',
+      options: Options(
+        extra: <String, dynamic>{'request_label': 'steam_trade_status_state'},
+      ),
+    );
     return BaseHttpResponse.fromJson(
       response.data as Map<String, dynamic>,
       (json) => _asBool(json),
@@ -105,6 +118,10 @@ class ApiSteamServer {
     final response = await http.post(
       'api/app/steam/auth/token/fresh',
       data: {'steamId': steamId, 'freshToken': freshToken},
+      options: Options(
+        receiveTimeout: const Duration(seconds: 30),
+        extra: <String, dynamic>{'request_label': 'steam_token_fresh'},
+      ),
     );
     return BaseHttpResponse.fromJson(
       response.data as Map<String, dynamic>,

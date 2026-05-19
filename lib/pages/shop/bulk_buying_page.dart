@@ -617,7 +617,6 @@ class _BulkBuyingPageState extends State<BulkBuyingPage> {
                                     ),
                                     onSubmitted: (_) {
                                       normalizeWearTextFields();
-                                      FocusScope.of(context).nextFocus();
                                     },
                                     decoration:
                                         FilterSheetStyle.inputDecoration(
