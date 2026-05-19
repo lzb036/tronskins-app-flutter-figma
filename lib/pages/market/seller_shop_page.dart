@@ -42,6 +42,8 @@ class _SellerShopPageState extends State<SellerShopPage>
   static const double _onSaleGridCrossSpacing = 8;
   static const double _onSaleGridAspectRatio = 0.98;
   static const double _onSaleFilterBarMaxHeight = 30;
+  static const double _searchBarMaxHeight = 34;
+  static const double _searchBarBottomSpacing = 6;
   static const EdgeInsets _onSaleGridPadding = EdgeInsets.fromLTRB(
     16,
     4,
@@ -580,6 +582,11 @@ class _SellerShopPageState extends State<SellerShopPage>
 
   bool get _showOnSaleFilterBar => _onSaleFilterBarHeight > 0.001;
 
+  double get _searchBarProgress =>
+      _activeTab == _SellerShopTab.onSale ? 1.0 : 0.0;
+
+  double get _searchBarHeight => _searchBarMaxHeight * _searchBarProgress;
+
   String get _pageTitle => 'app.market.seller_shop.title'.tr;
 
   String get _gameSwitcherLabel {
@@ -775,6 +782,7 @@ class _SellerShopPageState extends State<SellerShopPage>
     if (_activeTab == tab) {
       return;
     }
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() => _activeTab = tab);
     _syncSearchControllerForTab(tab);
     if (syncController) {
@@ -841,9 +849,33 @@ class _SellerShopPageState extends State<SellerShopPage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _buildSearchBar(),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            height: _searchBarHeight > 0.001
+                ? _searchBarHeight + _searchBarBottomSpacing
+                : 0,
+            child: IgnorePointer(
+              ignoring: _searchBarProgress < 0.98,
+              child: ClipRect(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  heightFactor: _searchBarProgress,
+                  child: Opacity(
+                    opacity: _searchBarProgress,
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: _searchBarBottomSpacing,
+                      ),
+                      child: SizedBox(
+                        height: _searchBarMaxHeight,
+                        child: _buildSearchBar(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
           _buildTabBar(),
           if (_onSaleFilterBarHeight > 0 || _showOnSaleFilterBar)
